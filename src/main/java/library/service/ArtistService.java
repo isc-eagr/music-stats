@@ -3,6 +3,8 @@ package library.service;
 import library.dto.ArtistAlbumDTO;
 import library.dto.ArtistCardDTO;
 import library.dto.ArtistSongDTO;
+import library.dto.ArtistStatsQuery;
+import library.dto.ArtistStatsRow;
 import library.dto.FeaturedArtistCardDTO;
 import library.dto.GenderCountDTO;
 import library.dto.PlaysByYearDTO;
@@ -99,7 +101,7 @@ public class ArtistService {
         
         String itunesSongIdsJson = itunesService.getAllItunesSongIdsJson();
         
-        List<Object[]> results = artistRepository.findArtistsWithStats(
+        List<ArtistStatsRow> results = artistRepository.findArtistsWithStats(new ArtistStatsQuery(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode, 
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                 countries, countryMode, tagIds, tagMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
@@ -114,59 +116,48 @@ public class ArtistService {
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
                 sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, perPage, page * perPage
-        );
+        ));
         
         List<ArtistCardDTO> artists = new ArrayList<>();
-        for (Object[] row : results) {
+        for (ArtistStatsRow row : results) {
             ArtistCardDTO dto = new ArtistCardDTO();
-            dto.setId(((Number) row[0]).intValue());
-            dto.setName((String) row[1]);
-            dto.setGenderId(row[2] != null ? ((Number) row[2]).intValue() : null);
-            dto.setGenderName((String) row[3]);
-            dto.setEthnicityId(row[4] != null ? ((Number) row[4]).intValue() : null);
-            dto.setEthnicityName((String) row[5]);
-            dto.setGenreId(row[6] != null ? ((Number) row[6]).intValue() : null);
-            dto.setGenreName((String) row[7]);
-            dto.setSubgenreId(row[8] != null ? ((Number) row[8]).intValue() : null);
-            dto.setSubgenreName((String) row[9]);
-            dto.setLanguageId(row[10] != null ? ((Number) row[10]).intValue() : null);
-            dto.setLanguageName((String) row[11]);
-            dto.setCountry((String) row[12]);
-            dto.setSongCount(row[13] != null ? ((Number) row[13]).intValue() : 0);
-            dto.setAlbumCount(row[14] != null ? ((Number) row[14]).intValue() : 0);
-            dto.setHasImage(row[15] != null && ((Number) row[15]).intValue() == 1);
-            dto.setPlayCount(row[16] != null ? ((Number) row[16]).intValue() : 0);
-            dto.setVatitoPlayCount(row[17] != null ? ((Number) row[17]).intValue() : 0);
-            dto.setRobertloverPlayCount(row[18] != null ? ((Number) row[18]).intValue() : 0);
+            dto.setId(row.id());
+            dto.setName(row.name());
+            dto.setGenderId(row.genderId());
+            dto.setGenderName(row.genderName());
+            dto.setEthnicityId(row.ethnicityId());
+            dto.setEthnicityName(row.ethnicityName());
+            dto.setGenreId(row.genreId());
+            dto.setGenreName(row.genreName());
+            dto.setSubgenreId(row.subgenreId());
+            dto.setSubgenreName(row.subgenreName());
+            dto.setLanguageId(row.languageId());
+            dto.setLanguageName(row.languageName());
+            dto.setCountry(row.country());
+            dto.setSongCount(row.songCount());
+            dto.setAlbumCount(row.albumCount());
+            dto.setHasImage(row.hasImage());
+            dto.setPlayCount(row.playCount());
+            dto.setVatitoPlayCount(row.vatitoPlayCount());
+            dto.setRobertloverPlayCount(row.robertloverPlayCount());
             
-            // Set time listened and format it
-            long timeListened = row[19] != null ? ((Number) row[19]).longValue() : 0L;
+            long timeListened = row.timeListened();
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             
-            // Set first and last listened dates (indices 20 and 21)
-            dto.setFirstListenedDate(row[20] != null ? formatDate((String) row[20]) : null);
-            dto.setLastListenedDate(row[21] != null ? formatDate((String) row[21]) : null);
-            dto.setDaysListened(row[22] != null ? ((Number) row[22]).intValue() : 0);
-            dto.setWeeksListened(row[23] != null ? ((Number) row[23]).intValue() : 0);
-            dto.setMonthsListened(row[24] != null ? ((Number) row[24]).intValue() : 0);
-            dto.setYearsListened(row[25] != null ? ((Number) row[25]).intValue() : 0);
-            
-            // Set organized (index 26)
-            dto.setOrganized(row[26] != null && ((Number) row[26]).intValue() == 1);
-            
-            // Set featured song count (index 27)
-            dto.setFeaturedSongCount(row[27] != null ? ((Number) row[27]).intValue() : 0);
-            
-            // Set birth date (index 28) and death date (index 29)
-            dto.setBirthDate(parseDateSafely(row[28]));
-            dto.setDeathDate(parseDateSafely(row[29]));
-            
-            // Set image count (index 30)
-            dto.setImageCount(row[30] != null ? ((Number) row[30]).intValue() : 0);
+            dto.setFirstListenedDate(row.firstListened() != null ? formatDate(row.firstListened()) : null);
+            dto.setLastListenedDate(row.lastListened() != null ? formatDate(row.lastListened()) : null);
+            dto.setDaysListened(row.daysListened());
+            dto.setWeeksListened(row.weeksListened());
+            dto.setMonthsListened(row.monthsListened());
+            dto.setYearsListened(row.yearsListened());
+            dto.setOrganized(row.organized());
+            dto.setFeaturedSongCount(row.featuredSongCount());
+            dto.setBirthDate(parseDateSafely(row.birthDate()));
+            dto.setDeathDate(parseDateSafely(row.deathDate()));
+            dto.setImageCount(row.imageCount());
 
-            // Compute average plays and average length (index 31 = total_song_length)
-            long totalSongLength = row[31] != null ? ((Number) row[31]).longValue() : 0L;
+            long totalSongLength = row.totalSongLength();
             int sc = dto.getSongCount();
             dto.setAvgPlays(sc > 0 ? (double) dto.getPlayCount() / sc : null);
             int ac = dto.getAlbumCount();
@@ -174,13 +165,12 @@ public class ArtistService {
             dto.setAvgLengthFormatted(sc > 0 ? TimeFormatUtils.formatTimeHMS(totalSongLength / sc) : null);
             dto.setAvgAlbumLengthFormatted(ac > 0 ? TimeFormatUtils.formatTimeHMS(totalSongLength / ac) : null);
 
-            // Set featured artist count (index 32), solo song count (index 33), songs with feat count (index 34)
-            dto.setFeaturedArtistCount(row[32] != null ? ((Number) row[32]).intValue() : 0);
-            dto.setSoloSongCount(row[33] != null ? ((Number) row[33]).intValue() : 0);
-            dto.setSongsWithFeatCount(row[34] != null ? ((Number) row[34]).intValue() : 0);
-            dto.setStandaloneSongCount(row[35] != null ? ((Number) row[35]).intValue() : 0);
-            dto.setHasThemeImage(row[36] != null && ((Number) row[36]).intValue() == 1);
-            dto.setItunesPresenceRatio(row[37] != null ? ((Number) row[37]).doubleValue() : null);
+            dto.setFeaturedArtistCount(row.featuredArtistCount());
+            dto.setSoloSongCount(row.soloSongCount());
+            dto.setSongsWithFeatCount(row.songsWithFeatCount());
+            dto.setStandaloneSongCount(row.standaloneSongCount());
+            dto.setHasThemeImage(row.hasThemeImage());
+            dto.setItunesPresenceRatio(row.itunesPresenceRatio());
 
             // Check iTunes presence for badge display
             dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
@@ -230,7 +220,8 @@ public class ArtistService {
         if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         if (accounts != null && accounts.isEmpty()) accounts = null;
         
-        return artistRepository.countArtistsWithFilters(name, genderIds, genderMode, 
+        return artistRepository.countArtistsWithFilters(new ArtistStatsQuery(
+                name, genderIds, genderMode,
                 ethnicityIds, ethnicityMode, genreIds, genreMode, subgenreIds, subgenreMode,
                 languageIds, languageMode, countries, countryMode, tagIds, tagMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
                 accounts, accountMode, ageMin, ageMax, ageMode,
@@ -242,7 +233,8 @@ public class ArtistService {
                 playCountMin, playCountMax,
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
-                itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
+                itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
+                null, null, null, null, null, null, 0, 0));
     }
     
     /**
@@ -280,7 +272,7 @@ public class ArtistService {
         if (accounts != null && accounts.isEmpty()) accounts = null;
 
         // Use efficient SQL-based counting with GROUP BY
-        Map<Integer, Long> genderCounts = artistRepository.countArtistsByGenderWithFilters(
+        Map<Integer, Long> genderCounts = artistRepository.countArtistsByGenderWithFilters(new ArtistStatsQuery(
                 name, genderIds, genderMode, ethnicityIds, ethnicityMode,
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                 countries, countryMode, tagIds, tagMode, deathDate, deathDateFrom, deathDateTo, deathDateMode,
@@ -292,7 +284,8 @@ public class ArtistService {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, albumCountMin, albumCountMax,
                 birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax,
-                itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
+                itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
+                null, null, null, null, null, null, 0, 0));
         
         // Gender ID 1 = Female, Gender ID 2 = Male
         long femaleCount = genderCounts.getOrDefault(1, 0L);

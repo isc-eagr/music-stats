@@ -1,5 +1,7 @@
 package library.repository;
 
+import library.dto.ArtistStatsQuery;
+import library.dto.ArtistStatsRow;
 import library.util.SqlFilterHelper;
 import library.util.StringNormalizer;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,71 +22,69 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
     }
     
     @Override
-    public List<Object[]> findArtistsWithStats(
-            String name,
-            List<Integer> genderIds,
-            String genderMode,
-            List<Integer> ethnicityIds,
-            String ethnicityMode,
-            List<Integer> genreIds,
-            String genreMode,
-            List<Integer> subgenreIds,
-            String subgenreMode,
-            List<Integer> languageIds,
-            String languageMode,
-            List<String> countries,
-            String countryMode,
-            List<Integer> tagIds,
-            String tagMode,
-            String deathDate,
-            String deathDateFrom,
-            String deathDateTo,
-            String deathDateMode,
-            List<String> accounts,
-            String accountMode,
-            Integer ageMin,
-            Integer ageMax,
-            String ageMode,
-            String firstListenedDate,
-            String firstListenedDateFrom,
-            String firstListenedDateTo,
-            String firstListenedDateMode,
-            String lastListenedDate,
-            String lastListenedDateFrom,
-            String lastListenedDateTo,
-            String lastListenedDateMode,
-            String listenedDateFrom,
-            String listenedDateTo,
-            String organized,
-            Integer imageCountMin,
-            Integer imageCountMax,
-            Integer imageTheme,
-            String imageThemeMode,
-            String isBand,
-            String itunesIdsJson,
-            String inItunes,
-            Integer playCountMin,
-            Integer playCountMax,
-            Integer albumCountMin,
-            Integer albumCountMax,
-            String birthDate,
-            String birthDateFrom,
-            String birthDateTo,
-            String birthDateMode,
-            Integer songCountMin,
-            Integer songCountMax,
-            Integer itunesPresenceMin,
-            Integer itunesPresenceMax,
-            String itunesSongIdsJson,
-            String sortBy,
-            String sortDir,
-                String sortBy2,
-                String sortDir2,
-                String sortBy3,
-                String sortDir3,
-            int limit,
-            int offset
-    ) {
+    public List<ArtistStatsRow> findArtistsWithStats(ArtistStatsQuery query) {
+        String name = query.name();
+        List<Integer> genderIds = query.genderIds();
+        String genderMode = query.genderMode();
+        List<Integer> ethnicityIds = query.ethnicityIds();
+        String ethnicityMode = query.ethnicityMode();
+        List<Integer> genreIds = query.genreIds();
+        String genreMode = query.genreMode();
+        List<Integer> subgenreIds = query.subgenreIds();
+        String subgenreMode = query.subgenreMode();
+        List<Integer> languageIds = query.languageIds();
+        String languageMode = query.languageMode();
+        List<String> countries = query.countries();
+        String countryMode = query.countryMode();
+        List<Integer> tagIds = query.tagIds();
+        String tagMode = query.tagMode();
+        String deathDate = query.deathDate();
+        String deathDateFrom = query.deathDateFrom();
+        String deathDateTo = query.deathDateTo();
+        String deathDateMode = query.deathDateMode();
+        List<String> accounts = query.accounts();
+        String accountMode = query.accountMode();
+        Integer ageMin = query.ageMin();
+        Integer ageMax = query.ageMax();
+        String firstListenedDate = query.firstListenedDate();
+        String firstListenedDateFrom = query.firstListenedDateFrom();
+        String firstListenedDateTo = query.firstListenedDateTo();
+        String firstListenedDateMode = query.firstListenedDateMode();
+        String lastListenedDate = query.lastListenedDate();
+        String lastListenedDateFrom = query.lastListenedDateFrom();
+        String lastListenedDateTo = query.lastListenedDateTo();
+        String lastListenedDateMode = query.lastListenedDateMode();
+        String listenedDateFrom = query.listenedDateFrom();
+        String listenedDateTo = query.listenedDateTo();
+        String organized = query.organized();
+        Integer imageCountMin = query.imageCountMin();
+        Integer imageCountMax = query.imageCountMax();
+        Integer imageTheme = query.imageTheme();
+        String imageThemeMode = query.imageThemeMode();
+        String isBand = query.isBand();
+        String itunesIdsJson = query.itunesIdsJson();
+        String inItunes = query.inItunes();
+        Integer playCountMin = query.playCountMin();
+        Integer playCountMax = query.playCountMax();
+        Integer albumCountMin = query.albumCountMin();
+        Integer albumCountMax = query.albumCountMax();
+        String birthDate = query.birthDate();
+        String birthDateFrom = query.birthDateFrom();
+        String birthDateTo = query.birthDateTo();
+        String birthDateMode = query.birthDateMode();
+        Integer songCountMin = query.songCountMin();
+        Integer songCountMax = query.songCountMax();
+        Integer itunesPresenceMin = query.itunesPresenceMin();
+        Integer itunesPresenceMax = query.itunesPresenceMax();
+        String itunesSongIdsJson = query.itunesSongIdsJson();
+        String sortBy = query.sortBy();
+        String sortDir = query.sortDir();
+        String sortBy2 = query.sortBy2();
+        String sortDir2 = query.sortDir2();
+        String sortBy3 = query.sortBy3();
+        String sortDir3 = query.sortDir3();
+        int limit = query.limit();
+        int offset = query.offset();
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -378,48 +378,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         params.add(limit);
         params.add(offset);
         
-        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            return new Object[] {
-                rs.getInt("id"),
-                rs.getString("name"),
-                rs.getObject("gender_id"),
-                rs.getString("gender_name"),
-                rs.getObject("ethnicity_id"),
-                rs.getString("ethnicity_name"),
-                rs.getObject("genre_id"),
-                rs.getString("genre_name"),
-                rs.getObject("subgenre_id"),
-                rs.getString("subgenre_name"),
-                rs.getObject("language_id"),
-                rs.getString("language_name"),
-                rs.getString("country"),
-                rs.getInt("song_count"),
-                rs.getInt("album_count"),
-                rs.getInt("has_image"),
-                rs.getInt("play_count"),
-                rs.getInt("vatito_play_count"),
-                rs.getInt("robertlover_play_count"),
-                rs.getLong("time_listened"),
-                rs.getString("first_listened"),
-                rs.getString("last_listened"),
-                rs.getInt("days_listened"),
-                rs.getInt("weeks_listened"),
-                rs.getInt("months_listened"),
-                rs.getInt("years_listened"),
-                rs.getObject("organized"),
-                rs.getInt("featured_song_count"),
-                rs.getString("birth_date"),
-                rs.getString("death_date"),
-                rs.getInt("image_count"),
-                rs.getLong("total_song_length"),
-                rs.getInt("featured_artist_count_stat"),
-                rs.getInt("solo_song_count"),
-                rs.getInt("songs_with_feat_count"),
-                rs.getInt("standalone_song_count"),
-                rs.getInt("has_theme_image"),
-                rs.getObject("itunes_presence_ratio")
-            };
-        }, params.toArray());
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> ArtistStatsRow.from(rs), params.toArray());
     }
 
     private void appendArtistSortOrder(StringBuilder sql, String sortBy, String sortDir,
@@ -481,63 +440,61 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
     }
     
     @Override
-    public Long countArtistsWithFilters(
-            String name,
-            List<Integer> genderIds,
-            String genderMode,
-            List<Integer> ethnicityIds,
-            String ethnicityMode,
-            List<Integer> genreIds,
-            String genreMode,
-            List<Integer> subgenreIds,
-            String subgenreMode,
-            List<Integer> languageIds,
-            String languageMode,
-            List<String> countries,
-            String countryMode,
-            List<Integer> tagIds,
-            String tagMode,
-            String deathDate,
-            String deathDateFrom,
-            String deathDateTo,
-            String deathDateMode,
-            List<String> accounts,
-            String accountMode,
-            Integer ageMin,
-            Integer ageMax,
-            String ageMode,
-            String firstListenedDate,
-            String firstListenedDateFrom,
-            String firstListenedDateTo,
-            String firstListenedDateMode,
-            String lastListenedDate,
-            String lastListenedDateFrom,
-            String lastListenedDateTo,
-            String lastListenedDateMode,
-            String listenedDateFrom,
-            String listenedDateTo,
-            String organized,
-            Integer imageCountMin,
-            Integer imageCountMax,
-            Integer imageTheme,
-            String imageThemeMode,
-            String isBand,
-            String itunesIdsJson,
-            String inItunes,
-            Integer playCountMin,
-            Integer playCountMax,
-            Integer albumCountMin,
-            Integer albumCountMax,
-            String birthDate,
-            String birthDateFrom,
-            String birthDateTo,
-            String birthDateMode,
-            Integer songCountMin,
-            Integer songCountMax,
-            Integer itunesPresenceMin,
-            Integer itunesPresenceMax,
-            String itunesSongIdsJson
-    ) {
+    public Long countArtistsWithFilters(ArtistStatsQuery query) {
+        String name = query.name();
+        List<Integer> genderIds = query.genderIds();
+        String genderMode = query.genderMode();
+        List<Integer> ethnicityIds = query.ethnicityIds();
+        String ethnicityMode = query.ethnicityMode();
+        List<Integer> genreIds = query.genreIds();
+        String genreMode = query.genreMode();
+        List<Integer> subgenreIds = query.subgenreIds();
+        String subgenreMode = query.subgenreMode();
+        List<Integer> languageIds = query.languageIds();
+        String languageMode = query.languageMode();
+        List<String> countries = query.countries();
+        String countryMode = query.countryMode();
+        List<Integer> tagIds = query.tagIds();
+        String tagMode = query.tagMode();
+        String deathDate = query.deathDate();
+        String deathDateFrom = query.deathDateFrom();
+        String deathDateTo = query.deathDateTo();
+        String deathDateMode = query.deathDateMode();
+        List<String> accounts = query.accounts();
+        String accountMode = query.accountMode();
+        Integer ageMin = query.ageMin();
+        Integer ageMax = query.ageMax();
+        String firstListenedDate = query.firstListenedDate();
+        String firstListenedDateFrom = query.firstListenedDateFrom();
+        String firstListenedDateTo = query.firstListenedDateTo();
+        String firstListenedDateMode = query.firstListenedDateMode();
+        String lastListenedDate = query.lastListenedDate();
+        String lastListenedDateFrom = query.lastListenedDateFrom();
+        String lastListenedDateTo = query.lastListenedDateTo();
+        String lastListenedDateMode = query.lastListenedDateMode();
+        String listenedDateFrom = query.listenedDateFrom();
+        String listenedDateTo = query.listenedDateTo();
+        String organized = query.organized();
+        Integer imageCountMin = query.imageCountMin();
+        Integer imageCountMax = query.imageCountMax();
+        Integer imageTheme = query.imageTheme();
+        String imageThemeMode = query.imageThemeMode();
+        String isBand = query.isBand();
+        String itunesIdsJson = query.itunesIdsJson();
+        String inItunes = query.inItunes();
+        Integer playCountMin = query.playCountMin();
+        Integer playCountMax = query.playCountMax();
+        Integer albumCountMin = query.albumCountMin();
+        Integer albumCountMax = query.albumCountMax();
+        String birthDate = query.birthDate();
+        String birthDateFrom = query.birthDateFrom();
+        String birthDateTo = query.birthDateTo();
+        String birthDateMode = query.birthDateMode();
+        Integer songCountMin = query.songCountMin();
+        Integer songCountMax = query.songCountMax();
+        Integer itunesPresenceMin = query.itunesPresenceMin();
+        Integer itunesPresenceMax = query.itunesPresenceMax();
+        String itunesSongIdsJson = query.itunesSongIdsJson();
         // Build listened date filter clause
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();
@@ -749,63 +706,61 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
     }
     
     @Override
-    public Map<Integer, Long> countArtistsByGenderWithFilters(
-            String name,
-            List<Integer> genderIds,
-            String genderMode,
-            List<Integer> ethnicityIds,
-            String ethnicityMode,
-            List<Integer> genreIds,
-            String genreMode,
-            List<Integer> subgenreIds,
-            String subgenreMode,
-            List<Integer> languageIds,
-            String languageMode,
-            List<String> countries,
-            String countryMode,
-            List<Integer> tagIds,
-            String tagMode,
-            String deathDate,
-            String deathDateFrom,
-            String deathDateTo,
-            String deathDateMode,
-            List<String> accounts,
-            String accountMode,
-            Integer ageMin,
-            Integer ageMax,
-            String ageMode,
-            String firstListenedDate,
-            String firstListenedDateFrom,
-            String firstListenedDateTo,
-            String firstListenedDateMode,
-            String lastListenedDate,
-            String lastListenedDateFrom,
-            String lastListenedDateTo,
-            String lastListenedDateMode,
-            String listenedDateFrom,
-            String listenedDateTo,
-            String organized,
-            Integer imageCountMin,
-            Integer imageCountMax,
-            Integer imageTheme,
-            String imageThemeMode,
-            String isBand,
-            String itunesIdsJson,
-            String inItunes,
-            Integer playCountMin,
-            Integer playCountMax,
-            Integer albumCountMin,
-            Integer albumCountMax,
-            String birthDate,
-            String birthDateFrom,
-            String birthDateTo,
-            String birthDateMode,
-            Integer songCountMin,
-            Integer songCountMax,
-            Integer itunesPresenceMin,
-            Integer itunesPresenceMax,
-            String itunesSongIdsJson
-    ) {
+    public Map<Integer, Long> countArtistsByGenderWithFilters(ArtistStatsQuery query) {
+        String name = query.name();
+        List<Integer> genderIds = query.genderIds();
+        String genderMode = query.genderMode();
+        List<Integer> ethnicityIds = query.ethnicityIds();
+        String ethnicityMode = query.ethnicityMode();
+        List<Integer> genreIds = query.genreIds();
+        String genreMode = query.genreMode();
+        List<Integer> subgenreIds = query.subgenreIds();
+        String subgenreMode = query.subgenreMode();
+        List<Integer> languageIds = query.languageIds();
+        String languageMode = query.languageMode();
+        List<String> countries = query.countries();
+        String countryMode = query.countryMode();
+        List<Integer> tagIds = query.tagIds();
+        String tagMode = query.tagMode();
+        String deathDate = query.deathDate();
+        String deathDateFrom = query.deathDateFrom();
+        String deathDateTo = query.deathDateTo();
+        String deathDateMode = query.deathDateMode();
+        List<String> accounts = query.accounts();
+        String accountMode = query.accountMode();
+        Integer ageMin = query.ageMin();
+        Integer ageMax = query.ageMax();
+        String firstListenedDate = query.firstListenedDate();
+        String firstListenedDateFrom = query.firstListenedDateFrom();
+        String firstListenedDateTo = query.firstListenedDateTo();
+        String firstListenedDateMode = query.firstListenedDateMode();
+        String lastListenedDate = query.lastListenedDate();
+        String lastListenedDateFrom = query.lastListenedDateFrom();
+        String lastListenedDateTo = query.lastListenedDateTo();
+        String lastListenedDateMode = query.lastListenedDateMode();
+        String listenedDateFrom = query.listenedDateFrom();
+        String listenedDateTo = query.listenedDateTo();
+        String organized = query.organized();
+        Integer imageCountMin = query.imageCountMin();
+        Integer imageCountMax = query.imageCountMax();
+        Integer imageTheme = query.imageTheme();
+        String imageThemeMode = query.imageThemeMode();
+        String isBand = query.isBand();
+        String itunesIdsJson = query.itunesIdsJson();
+        String inItunes = query.inItunes();
+        Integer playCountMin = query.playCountMin();
+        Integer playCountMax = query.playCountMax();
+        Integer albumCountMin = query.albumCountMin();
+        Integer albumCountMax = query.albumCountMax();
+        String birthDate = query.birthDate();
+        String birthDateFrom = query.birthDateFrom();
+        String birthDateTo = query.birthDateTo();
+        String birthDateMode = query.birthDateMode();
+        Integer songCountMin = query.songCountMin();
+        Integer songCountMax = query.songCountMax();
+        Integer itunesPresenceMin = query.itunesPresenceMin();
+        Integer itunesPresenceMax = query.itunesPresenceMax();
+        String itunesSongIdsJson = query.itunesSongIdsJson();
         // Build listened date filter clause
         StringBuilder listenedDateFilterClause = new StringBuilder();
         List<Object> listenedDateParams = new ArrayList<>();

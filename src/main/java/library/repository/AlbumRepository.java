@@ -1,5 +1,7 @@
 package library.repository;
 
+import library.dto.AlbumStatsQuery;
+import library.dto.AlbumStatsRow;
 import library.service.AppConfigService;
 import library.util.SqlFilterHelper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,40 +23,94 @@ public class AlbumRepository {
         this.appConfigService = appConfigService;
     }
     
-    public List<Object[]> findAlbumsWithStats(String name, List<Integer> artistName,
-                                               List<Integer> genreIds, String genreMode,
-                                               List<Integer> subgenreIds, String subgenreMode,
-                                               List<Integer> languageIds, String languageMode,
-                                               List<Integer> genderIds, String genderMode,
-                                               List<Integer> ethnicityIds, String ethnicityMode,
-                                               List<String> countries, String countryMode,
-                                               List<Integer> tagIds, String tagMode,
-                                               List<String> accounts, String accountMode,
-                                               String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-                                               String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
-                                               String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                               String listenedDateFrom, String listenedDateTo,
-                                               String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand,
-                                               String itunesIdsJson, String inItunes,
-                                               Integer ageMin, Integer ageMax, String ageMode,
-                                               Integer ageAtReleaseMin, Integer ageAtReleaseMax,
-                                               String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
-                                               String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
-                                               Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
-                                               Integer lengthMin, Integer lengthMax, String lengthMode,
-                                               Integer weeklyChartPeak, Integer weeklyChartWeeks,
-                                               String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
-                                               Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                               String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
-                                               Integer yearlyChartPeak, Integer yearlyChartYears,
-                                               String yearlyChartDateFrom, String yearlyChartDateTo,
-                                               String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
-                                               Integer itunesPresenceMin, Integer itunesPresenceMax,
-                                               String itunesSongIdsJson,
-                                               String sortBy, String sortDir,
-                                               String sortBy2, String sortDir2,
-                                               String sortBy3, String sortDir3,
-                                               int limit, int offset) {
+    public List<AlbumStatsRow> findAlbumsWithStats(AlbumStatsQuery query) {
+        String name = query.name();
+        List<Integer> artistName = query.artistName();
+        List<Integer> genreIds = query.genreIds();
+        String genreMode = query.genreMode();
+        List<Integer> subgenreIds = query.subgenreIds();
+        String subgenreMode = query.subgenreMode();
+        List<Integer> languageIds = query.languageIds();
+        String languageMode = query.languageMode();
+        List<Integer> genderIds = query.genderIds();
+        String genderMode = query.genderMode();
+        List<Integer> ethnicityIds = query.ethnicityIds();
+        String ethnicityMode = query.ethnicityMode();
+        List<String> countries = query.countries();
+        String countryMode = query.countryMode();
+        List<Integer> tagIds = query.tagIds();
+        String tagMode = query.tagMode();
+        List<String> accounts = query.accounts();
+        String accountMode = query.accountMode();
+        String releaseDate = query.releaseDate();
+        String releaseDateFrom = query.releaseDateFrom();
+        String releaseDateTo = query.releaseDateTo();
+        String releaseDateMode = query.releaseDateMode();
+        String firstListenedDate = query.firstListenedDate();
+        String firstListenedDateFrom = query.firstListenedDateFrom();
+        String firstListenedDateTo = query.firstListenedDateTo();
+        String firstListenedDateMode = query.firstListenedDateMode();
+        String lastListenedDate = query.lastListenedDate();
+        String lastListenedDateFrom = query.lastListenedDateFrom();
+        String lastListenedDateTo = query.lastListenedDateTo();
+        String lastListenedDateMode = query.lastListenedDateMode();
+        String listenedDateFrom = query.listenedDateFrom();
+        String listenedDateTo = query.listenedDateTo();
+        String organized = query.organized();
+        Integer imageCountMin = query.imageCountMin();
+        Integer imageCountMax = query.imageCountMax();
+        String hasFeaturedArtists = query.hasFeaturedArtists();
+        String isBand = query.isBand();
+        String itunesIdsJson = query.itunesIdsJson();
+        String inItunes = query.inItunes();
+        Integer ageMin = query.ageMin();
+        Integer ageMax = query.ageMax();
+        Integer ageAtReleaseMin = query.ageAtReleaseMin();
+        Integer ageAtReleaseMax = query.ageAtReleaseMax();
+        String birthDate = query.birthDate();
+        String birthDateFrom = query.birthDateFrom();
+        String birthDateTo = query.birthDateTo();
+        String birthDateMode = query.birthDateMode();
+        String deathDate = query.deathDate();
+        String deathDateFrom = query.deathDateFrom();
+        String deathDateTo = query.deathDateTo();
+        String deathDateMode = query.deathDateMode();
+        Integer playCountMin = query.playCountMin();
+        Integer playCountMax = query.playCountMax();
+        Integer songCountMin = query.songCountMin();
+        Integer songCountMax = query.songCountMax();
+        Integer lengthMin = query.lengthMin();
+        Integer lengthMax = query.lengthMax();
+        String lengthMode = query.lengthMode();
+        Integer weeklyChartPeak = query.weeklyChartPeak();
+        Integer weeklyChartWeeks = query.weeklyChartWeeks();
+        String weeklyChartDateFrom = query.weeklyChartDateFrom();
+        String weeklyChartDateTo = query.weeklyChartDateTo();
+        String weeklyChartSeason = query.weeklyChartSeason();
+        Integer seasonalChartPeak = query.seasonalChartPeak();
+        Integer seasonalChartSeasons = query.seasonalChartSeasons();
+        String seasonalChartDateFrom = query.seasonalChartDateFrom();
+        String seasonalChartDateTo = query.seasonalChartDateTo();
+        String seasonalChartSeason = query.seasonalChartSeason();
+        Integer yearlyChartPeak = query.yearlyChartPeak();
+        Integer yearlyChartYears = query.yearlyChartYears();
+        String yearlyChartDateFrom = query.yearlyChartDateFrom();
+        String yearlyChartDateTo = query.yearlyChartDateTo();
+        String lastFullListenDate = query.lastFullListenDate();
+        String lastFullListenDateFrom = query.lastFullListenDateFrom();
+        String lastFullListenDateTo = query.lastFullListenDateTo();
+        String lastFullListenDateMode = query.lastFullListenDateMode();
+        Integer itunesPresenceMin = query.itunesPresenceMin();
+        Integer itunesPresenceMax = query.itunesPresenceMax();
+        String itunesSongIdsJson = query.itunesSongIdsJson();
+        String sortBy = query.sortBy();
+        String sortDir = query.sortDir();
+        String sortBy2 = query.sortBy2();
+        String sortDir2 = query.sortDir2();
+        String sortBy3 = query.sortBy3();
+        String sortDir3 = query.sortDir3();
+        int limit = query.limit();
+        int offset = query.offset();
         boolean needsFullListen = "last_full_listen".equals(sortBy) || (lastFullListenDateMode != null && !lastFullListenDateMode.isEmpty());
         boolean needsItunesJoin = (itunesPresenceMin != null || itunesPresenceMax != null || "itunes_presence".equals(sortBy));
         // Build account filter subquery for the play_stats join
@@ -774,61 +830,7 @@ public class AlbumRepository {
         params.add(limit);
         params.add(offset);
         
-        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[51];
-            row[0] = rs.getInt("id");
-            row[1] = rs.getString("name");
-            row[2] = rs.getString("artist_name");
-            row[3] = rs.getInt("artist_id");
-            row[4] = rs.getObject("genre_id");
-            row[5] = rs.getString("genre_name");
-            row[6] = rs.getObject("subgenre_id");
-            row[7] = rs.getString("subgenre_name");
-            row[8] = rs.getObject("language_id");
-            row[9] = rs.getString("language_name");
-            row[10] = rs.getObject("ethnicity_id");
-            row[11] = rs.getString("ethnicity_name");
-            row[12] = rs.getString("release_year");
-            row[13] = rs.getString("release_date");
-            row[14] = rs.getInt("song_count");
-            row[15] = rs.getLong("album_length");
-            row[16] = rs.getInt("has_image");
-            row[17] = rs.getString("gender_name");
-            row[18] = rs.getObject("gender_id");
-            row[19] = rs.getInt("play_count");
-            row[20] = rs.getInt("vatito_play_count");
-            row[21] = rs.getInt("robertlover_play_count");
-            row[22] = rs.getLong("time_listened");
-            row[23] = rs.getString("first_listened");
-            row[24] = rs.getString("last_listened");
-            row[25] = rs.getInt("days_listened");
-            row[26] = rs.getInt("weeks_listened");
-            row[27] = rs.getInt("months_listened");
-            row[28] = rs.getInt("years_listened");
-            row[29] = rs.getString("country");
-            row[30] = rs.getObject("organized");
-            row[31] = rs.getString("birth_date");
-            row[32] = rs.getString("death_date");
-            row[33] = rs.getInt("image_count");
-            row[34] = rs.getObject("seasonal_chart_peak");
-            row[35] = rs.getObject("weekly_chart_peak");
-            row[36] = rs.getObject("weekly_chart_weeks");
-            row[37] = rs.getObject("yearly_chart_peak");
-            row[38] = rs.getString("weekly_chart_peak_start_date");
-            row[39] = rs.getString("seasonal_chart_peak_period");
-            row[40] = rs.getString("yearly_chart_peak_period");
-            row[41] = rs.getString("seasonal_chart_peak_start_date");
-            row[42] = rs.getInt("featured_artist_count");
-            row[43] = rs.getInt("solo_song_count");
-            row[44] = rs.getInt("songs_with_feat_count");
-            row[45] = rs.getObject("age_at_release");
-            row[46] = rs.getObject("weekly_chart_peak_weeks");
-            row[47] = rs.getObject("seasonal_chart_peak_seasons");
-            row[48] = rs.getObject("yearly_chart_peak_years");
-            row[49] = rs.getString("last_full_listen_date");
-            row[50] = rs.getObject("itunes_presence_ratio");
-            return row;
-        }, params.toArray());
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> AlbumStatsRow.from(rs), params.toArray());
     }
 
     private void appendAlbumSortOrder(StringBuilder sql, String sortBy, String sortDir,

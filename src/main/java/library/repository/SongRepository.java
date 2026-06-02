@@ -1,6 +1,8 @@
 package library.repository;
 
 import library.dto.ChartFilterDTO;
+import library.dto.SongStatsQuery;
+import library.dto.SongStatsRow;
 import library.service.AppConfigService;
 import library.util.TimeFormatUtils;
 import library.util.SqlFilterHelper;
@@ -23,46 +25,103 @@ public class SongRepository {
         this.appConfigService = appConfigService;
     }
     
-    public List<Object[]> findSongsWithStats(String name, List<Integer> artistName, String albumName,
-                                              List<Integer> genreIds, String genreMode,
-                                              List<Integer> subgenreIds, String subgenreMode,
-                                              List<Integer> languageIds, String languageMode,
-                                              List<Integer> genderIds, String genderMode,
-                                              List<Integer> ethnicityIds, String ethnicityMode,
-                                              List<String> countries, String countryMode,
-                                              List<Integer> tagIds, String tagMode,
-                                              List<String> accounts, String accountMode,
-                                              String releaseDate, String releaseDateFrom, String releaseDateTo, String releaseDateMode,
-                                              String firstListenedDate, String firstListenedDateFrom, String firstListenedDateTo, String firstListenedDateMode,
-                                              String lastListenedDate, String lastListenedDateFrom, String lastListenedDateTo, String lastListenedDateMode,
-                                              String listenedDateFrom, String listenedDateTo,
-                                              String organized, Integer imageCountMin, Integer imageCountMax, String hasFeaturedArtists, String isBand, String isSingle,
-                                              String itunesIdsJson, String inItunes,
-                                              Integer ageMin, Integer ageMax, String ageMode,
-                                              Integer ageAtReleaseMin, Integer ageAtReleaseMax,
-                                              String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
-                                              String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
-                                              Integer playCountMin, Integer playCountMax,
-                                              Integer trackNumber, String trackNumberMode,
-                                              Integer lengthMin, Integer lengthMax, String lengthMode,
-                                              Integer weeklyChartPeak, Integer weeklyChartWeeks,
-                                              String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
-                                              Integer trlPeak, Integer trlDays,
-                                              String trlDateFrom, String trlDateTo,
-                                              Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
-                                              String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
-                                              Integer billboardPeak, Integer billboardWeeks,
-                                              String billboardDateFrom, String billboardDateTo,
-                                              Integer seasonalChartPeak, Integer seasonalChartSeasons,
-                                              String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
-                                              Integer yearlyChartPeak, Integer yearlyChartYears,
-                                              String yearlyChartDateFrom, String yearlyChartDateTo,
-                                               String sortBy, String sortDirection,
-                                               String sortBy2, String sortDirection2,
-                                               String sortBy3, String sortDirection3,
-                                               int limit, int offset,
-                                               boolean includeExpensiveStats,
-                                               List<Integer> songIdsFilter) {
+    public List<SongStatsRow> findSongsWithStats(SongStatsQuery query) {
+        String name = query.name();
+        List<Integer> artistName = query.artistName();
+        String albumName = query.albumName();
+        List<Integer> genreIds = query.genreIds();
+        String genreMode = query.genreMode();
+        List<Integer> subgenreIds = query.subgenreIds();
+        String subgenreMode = query.subgenreMode();
+        List<Integer> languageIds = query.languageIds();
+        String languageMode = query.languageMode();
+        List<Integer> genderIds = query.genderIds();
+        String genderMode = query.genderMode();
+        List<Integer> ethnicityIds = query.ethnicityIds();
+        String ethnicityMode = query.ethnicityMode();
+        List<String> countries = query.countries();
+        String countryMode = query.countryMode();
+        List<Integer> tagIds = query.tagIds();
+        String tagMode = query.tagMode();
+        List<String> accounts = query.accounts();
+        String accountMode = query.accountMode();
+        String releaseDate = query.releaseDate();
+        String releaseDateFrom = query.releaseDateFrom();
+        String releaseDateTo = query.releaseDateTo();
+        String releaseDateMode = query.releaseDateMode();
+        String firstListenedDate = query.firstListenedDate();
+        String firstListenedDateFrom = query.firstListenedDateFrom();
+        String firstListenedDateTo = query.firstListenedDateTo();
+        String firstListenedDateMode = query.firstListenedDateMode();
+        String lastListenedDate = query.lastListenedDate();
+        String lastListenedDateFrom = query.lastListenedDateFrom();
+        String lastListenedDateTo = query.lastListenedDateTo();
+        String lastListenedDateMode = query.lastListenedDateMode();
+        String listenedDateFrom = query.listenedDateFrom();
+        String listenedDateTo = query.listenedDateTo();
+        String organized = query.organized();
+        Integer imageCountMin = query.imageCountMin();
+        Integer imageCountMax = query.imageCountMax();
+        String hasFeaturedArtists = query.hasFeaturedArtists();
+        String isBand = query.isBand();
+        String isSingle = query.isSingle();
+        String itunesIdsJson = query.itunesIdsJson();
+        String inItunes = query.inItunes();
+        Integer ageMin = query.ageMin();
+        Integer ageMax = query.ageMax();
+        Integer ageAtReleaseMin = query.ageAtReleaseMin();
+        Integer ageAtReleaseMax = query.ageAtReleaseMax();
+        String birthDate = query.birthDate();
+        String birthDateFrom = query.birthDateFrom();
+        String birthDateTo = query.birthDateTo();
+        String birthDateMode = query.birthDateMode();
+        String deathDate = query.deathDate();
+        String deathDateFrom = query.deathDateFrom();
+        String deathDateTo = query.deathDateTo();
+        String deathDateMode = query.deathDateMode();
+        Integer playCountMin = query.playCountMin();
+        Integer playCountMax = query.playCountMax();
+        Integer trackNumber = query.trackNumber();
+        String trackNumberMode = query.trackNumberMode();
+        Integer lengthMin = query.lengthMin();
+        Integer lengthMax = query.lengthMax();
+        String lengthMode = query.lengthMode();
+        Integer weeklyChartPeak = query.weeklyChartPeak();
+        Integer weeklyChartWeeks = query.weeklyChartWeeks();
+        String weeklyChartDateFrom = query.weeklyChartDateFrom();
+        String weeklyChartDateTo = query.weeklyChartDateTo();
+        String weeklyChartSeason = query.weeklyChartSeason();
+        Integer trlPeak = query.trlPeak();
+        Integer trlDays = query.trlDays();
+        String trlDateFrom = query.trlDateFrom();
+        String trlDateTo = query.trlDateTo();
+        Integer vatosCuntdownPeak = query.vatosCuntdownPeak();
+        Integer vatosCuntdownDays = query.vatosCuntdownDays();
+        String vatosCuntdownDateFrom = query.vatosCuntdownDateFrom();
+        String vatosCuntdownDateTo = query.vatosCuntdownDateTo();
+        Integer billboardPeak = query.billboardPeak();
+        Integer billboardWeeks = query.billboardWeeks();
+        String billboardDateFrom = query.billboardDateFrom();
+        String billboardDateTo = query.billboardDateTo();
+        Integer seasonalChartPeak = query.seasonalChartPeak();
+        Integer seasonalChartSeasons = query.seasonalChartSeasons();
+        String seasonalChartDateFrom = query.seasonalChartDateFrom();
+        String seasonalChartDateTo = query.seasonalChartDateTo();
+        String seasonalChartSeason = query.seasonalChartSeason();
+        Integer yearlyChartPeak = query.yearlyChartPeak();
+        Integer yearlyChartYears = query.yearlyChartYears();
+        String yearlyChartDateFrom = query.yearlyChartDateFrom();
+        String yearlyChartDateTo = query.yearlyChartDateTo();
+        String sortBy = query.sortBy();
+        String sortDirection = query.sortDirection();
+        String sortBy2 = query.sortBy2();
+        String sortDirection2 = query.sortDirection2();
+        String sortBy3 = query.sortBy3();
+        String sortDirection3 = query.sortDirection3();
+        int limit = query.limit();
+        int offset = query.offset();
+        boolean includeExpensiveStats = query.includeExpensiveStats();
+        List<Integer> songIdsFilter = query.songIdsFilter();
         // Build account filter subquery for the play_stats join
         StringBuilder accountFilterClause = new StringBuilder();
         List<Object> accountParams = new ArrayList<>();
@@ -694,67 +753,7 @@ public class SongRepository {
         params.add(limit);
         params.add(offset);
         
-        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-            Object[] row = new Object[57];
-            row[0] = rs.getInt("id");
-            row[1] = rs.getString("name");
-            row[2] = rs.getString("artist_name");
-            row[3] = rs.getInt("artist_id");
-            row[4] = rs.getString("album_name");
-            row[5] = rs.getObject("album_id");
-            row[6] = rs.getObject("genre_id");
-            row[7] = rs.getString("genre_name");
-            row[8] = rs.getObject("subgenre_id");
-            row[9] = rs.getString("subgenre_name");
-            row[10] = rs.getObject("language_id");
-            row[11] = rs.getString("language_name");
-            row[12] = rs.getObject("ethnicity_id");
-            row[13] = rs.getString("ethnicity_name");
-            row[14] = rs.getString("release_year");
-            row[15] = rs.getString("release_date");
-            row[16] = rs.getObject("length_seconds");
-            row[17] = rs.getInt("has_image");
-            row[18] = rs.getString("gender_name");
-            row[19] = rs.getObject("gender_id");
-            row[20] = rs.getInt("play_count");
-            row[21] = rs.getInt("vatito_play_count");
-            row[22] = rs.getInt("robertlover_play_count");
-            row[23] = rs.getLong("time_listened");
-            row[24] = rs.getString("first_listened");
-            row[25] = rs.getString("last_listened");
-            row[26] = rs.getInt("days_listened");
-            row[27] = rs.getInt("weeks_listened");
-            row[28] = rs.getInt("months_listened");
-            row[29] = rs.getInt("years_listened");
-            row[30] = rs.getString("country");
-            row[31] = rs.getObject("organized");
-            row[32] = rs.getInt("album_has_image");
-            row[33] = rs.getInt("is_single");
-            row[34] = rs.getString("birth_date");
-            row[35] = rs.getString("death_date");
-            row[36] = rs.getInt("image_count");
-            row[37] = rs.getObject("billboard_peak");
-            row[38] = rs.getObject("billboard_weeks");
-            row[39] = rs.getObject("seasonal_chart_peak");
-            row[40] = rs.getObject("trl_days");
-            row[41] = rs.getObject("trl_peak");
-            row[42] = rs.getObject("vatos_cuntdown_days");
-            row[43] = rs.getObject("vatos_cuntdown_peak");
-            row[44] = rs.getObject("weekly_chart_peak");
-            row[45] = rs.getObject("weekly_chart_weeks");
-            row[46] = rs.getObject("yearly_chart_peak");
-            row[47] = rs.getString("weekly_chart_peak_start_date");
-            row[48] = rs.getString("seasonal_chart_peak_period");
-            row[49] = rs.getString("yearly_chart_peak_period");
-            row[50] = rs.getString("seasonal_chart_peak_start_date");
-            row[51] = rs.getInt("featured_artist_count");
-            row[52] = rs.getObject("age_at_release");
-            row[53] = rs.getObject("weekly_chart_peak_weeks");
-            row[54] = rs.getObject("seasonal_chart_peak_seasons");
-            row[55] = rs.getObject("yearly_chart_peak_years");
-            row[56] = rs.getObject("track_number");
-            return row;
-        }, params.toArray());
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> SongStatsRow.from(rs), params.toArray());
     }
 
     private void appendSongSortOrder(StringBuilder sql, String sortBy, String sortDirection,
