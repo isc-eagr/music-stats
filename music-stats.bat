@@ -12,11 +12,10 @@ echo   Music Stats - Starting...
 echo ======================================
 echo.
 
-java -jar target/music-stats-0.0.1-SNAPSHOT.jar
+java -jar target/music-stats-0.0.1-SNAPSHOT.jar --debug=false --logging.level.root=INFO --logging.level.org.springframework=INFO --logging.level.org.hibernate=INFO --spring.jpa.show-sql=false
 
 echo.
 echo ======================================
 echo   Music Stats - Stopped
 echo ======================================
 echo.
-pause

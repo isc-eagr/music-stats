@@ -123,4 +123,9 @@ Prefer JdbcTemplate over JPQL for:
 Additional rule:
 - Any addition to sort options must also be added to the extended stats in the list and detail pages, and implemented as a new hidden column on the corresponding section of the Graphs page (so the column can be toggled in the Graphs UI). See the repository attachments for examples and locations; you may not need to search or re-open those files when applying this rule.
 
+###Explicit requests for production deployments.
+- We have a script to deploy to production, but it should only be run when explicitly requested by the main developer. Do not run production deployment scripts without direct instruction to do so.
+- The script is located at C:\Code\music-stats\deploy-prod.bat and should be run from the command line with appropriate permissions.
+- Agents sometimes determine that they need to run the script with weird command line options, don't add anything, simply run the bat directly. It has been tested thoroughly and ran multiple times and worked each time without anything added.
+
 ````

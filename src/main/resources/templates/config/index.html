@@ -370,8 +370,7 @@
                         <h3 class="config-card-title">Run interval</h3>
                         <p class="config-card-copy">Minutes between runs.</p>
                         <div class="config-field">
-                            <label for="automationIntervalMinutes">Minutes</label>
-                            <input id="automationIntervalMinutes" name="automationIntervalMinutes" type="number" min="1" max="180" step="1" th:value="${automationConfig.intervalMinutes}">
+                            <input id="automationIntervalMinutes" name="automationIntervalMinutes" type="number" min="1" max="180" step="1" aria-label="Minutes between runs" th:value="${automationConfig.intervalMinutes}">
                             <span class="config-help">Allowed range: 1 to 180 minutes.</span>
                         </div>
                     </div>
@@ -388,7 +387,6 @@
 
                     <div class="config-card third">
                         <h3 class="config-card-title">Start hour</h3>
-                        <p class="config-card-copy">Window start.</p>
                         <div class="config-field">
                             <label for="automationStartHour">24-hour clock</label>
                             <input id="automationStartHour" name="automationStartHour" type="number" min="0" max="23" step="1" th:value="${automationConfig.startHour}">
@@ -398,7 +396,6 @@
 
                     <div class="config-card third">
                         <h3 class="config-card-title">End hour</h3>
-                        <p class="config-card-copy">Window end.</p>
                         <div class="config-field">
                             <label for="automationEndHour">24-hour clock</label>
                             <input id="automationEndHour" name="automationEndHour" type="number" min="0" max="23" step="1" th:value="${automationConfig.endHour}">
@@ -419,7 +416,6 @@
                 <div class="config-grid">
                     <div class="config-card third">
                         <h3 class="config-card-title">Albums up to 6 tracks</h3>
-                        <p class="config-card-copy">Allowed missing tracks.</p>
                         <div class="config-field">
                             <label for="allowedMissingUpTo6Tracks">Allowed missing tracks</label>
                             <input id="allowedMissingUpTo6Tracks" name="allowedMissingUpTo6Tracks" type="number" min="0" max="6" step="1" th:value="${fullListenConfig.allowedMissingUpTo6Tracks}">
@@ -428,7 +424,6 @@
 
                     <div class="config-card third">
                         <h3 class="config-card-title">Albums up to 10 tracks</h3>
-                        <p class="config-card-copy">Allowed missing tracks.</p>
                         <div class="config-field">
                             <label for="allowedMissingUpTo10Tracks">Allowed missing tracks</label>
                             <input id="allowedMissingUpTo10Tracks" name="allowedMissingUpTo10Tracks" type="number" min="0" max="10" step="1" th:value="${fullListenConfig.allowedMissingUpTo10Tracks}">
@@ -437,7 +432,6 @@
 
                     <div class="config-card third">
                         <h3 class="config-card-title">Albums up to 20 tracks</h3>
-                        <p class="config-card-copy">Allowed missing tracks.</p>
                         <div class="config-field">
                             <label for="allowedMissingUpTo20Tracks">Allowed missing tracks</label>
                             <input id="allowedMissingUpTo20Tracks" name="allowedMissingUpTo20Tracks" type="number" min="0" max="20" step="1" th:value="${fullListenConfig.allowedMissingUpTo20Tracks}">
@@ -446,7 +440,6 @@
 
                     <div class="config-card third">
                         <h3 class="config-card-title">Albums over 20 tracks</h3>
-                        <p class="config-card-copy">Allowed missing tracks.</p>
                         <div class="config-field">
                             <label for="allowedMissingOver20Tracks">Allowed missing tracks</label>
                             <input id="allowedMissingOver20Tracks" name="allowedMissingOver20Tracks" type="number" min="0" max="50" step="1" th:value="${fullListenConfig.allowedMissingOver20Tracks}">
