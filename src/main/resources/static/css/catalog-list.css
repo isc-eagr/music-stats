@@ -689,6 +689,71 @@ a.winning-chip:hover {
         grid-template-columns: 1fr;
         gap: 10px;
     }
+
+    .year-catalog-grid {
+        gap: 8px;
+    }
+
+    .year-catalog-grid .catalog-card {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        align-items: stretch;
+    }
+
+    .year-catalog-grid .catalog-image {
+        width: 74px;
+        height: 100%;
+        min-height: 74px;
+    }
+
+    .year-catalog-grid .catalog-info {
+        min-width: 0;
+        padding: 8px;
+    }
+
+    .year-catalog-grid .catalog-name {
+        margin-bottom: 6px;
+        font-size: 15px;
+    }
+
+    .year-catalog-grid .catalog-stats {
+        gap: 6px;
+        margin-bottom: 5px;
+        flex-wrap: wrap;
+    }
+
+    .year-catalog-grid .catalog-stats .stat {
+        gap: 3px;
+        font-size: 12px;
+        min-width: 0;
+    }
+
+    .year-catalog-grid .catalog-stats .stat-value {
+        font-size: 13px;
+    }
+
+    .year-catalog-grid .gender-bars-container {
+        margin-top: 8px;
+        gap: 5px;
+    }
+
+    .year-catalog-grid .gender-bar-row {
+        gap: 5px;
+    }
+
+    .year-catalog-grid .gender-bar-icon {
+        width: 16px;
+        font-size: 12px;
+    }
+
+    .year-catalog-grid .gender-bar {
+        height: 16px;
+    }
+
+    .year-catalog-grid .gender-male-bar-text {
+        font-size: 10px;
+        padding: 0 2px;
+    }
     
     .catalog-image {
         width: 80px;

@@ -252,6 +252,15 @@
             color: #d7d7dd;
             vertical-align: middle;
         }
+        .overview-index-col {
+            width: 52px;
+            min-width: 52px;
+            max-width: 52px;
+            text-align: center;
+            color: #8b8e98;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+        }
         .overview-table th {
             position: sticky;
             top: 0;
@@ -804,6 +813,7 @@
                 <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="songOverviewTable">
                     <thead>
                         <tr>
+                            <th data-no-sort class="overview-index-col">#</th>
                             <th data-no-sort class="overview-image-cell"></th>
                             <th data-no-sort th:if="${periodType == 'weekly'}"></th>
                             <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
@@ -856,6 +866,7 @@
                             th:each="entry : ${songRows}"
                             th:classappend="${entry.genderClass != null ? entry.genderClass : ''}"
                             th:attr="data-song-id=${entry.songId},data-top1=${entry.spanAtTop1},data-top5=${entry.spanAtTop5},data-top10=${entry.spanAtTop10},data-song-title=${entry.songTitle},data-artist-name=${entry.artistName},data-album-name=${entry.albumName}">
+                                <td class="overview-index-col row-num-col" th:text="${entryStat.count}">1</td>
                                 <td class="overview-image-cell">
                                     <div th:if="${entry.hasImage and entry.albumHasImage}" class="hover-image-container">
                                         <img th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'song', ${entry.songId})|" class="album-image-default overview-item-image clickable-image">
@@ -866,7 +877,7 @@
                                     <div th:if="${!entry.hasImage and !entry.albumHasImage}" class="overview-item-placeholder">SONG</div>
                                 </td>
                                 <td class="center" th:if="${periodType == 'weekly'}">
-                                    <button type="button" class="overview-expand-btn" data-colspan="11" onclick="toggleOverviewDetail(this)">+</button>
+                                    <button type="button" class="overview-expand-btn" data-colspan="12" onclick="toggleOverviewDetail(this)">+</button>
                                 </td>
                                 <td>
                                     <a class="overview-link-secondary" th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist</a>
@@ -911,6 +922,7 @@
                 <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="albumOverviewTable">
                     <thead>
                         <tr>
+                            <th data-no-sort class="overview-index-col">#</th>
                             <th data-no-sort class="overview-image-cell"></th>
                             <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
                                 <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
@@ -959,6 +971,7 @@
                     </thead>
                     <tbody id="albumOverviewBody">
                         <tr class="overview-filter-row" th:each="entry : ${albumRows}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                            <td class="overview-index-col row-num-col" th:text="${entryStat.count}">1</td>
                             <td class="overview-image-cell">
                                 <img th:if="${entry.hasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'album', ${entry.albumId})|" class="overview-item-image clickable-image">
                                 <div th:unless="${entry.hasImage}" class="overview-item-placeholder">ALB</div>
@@ -998,6 +1011,7 @@
                 <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="artistOverviewTable">
                     <thead>
                         <tr>
+                            <th data-no-sort class="overview-index-col">#</th>
                             <th data-no-sort class="overview-image-cell"></th>
                             <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
                                 <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
@@ -1052,6 +1066,7 @@
                             th:classappend="${entry.genderClass != null ? entry.genderClass : ''}"
                             th:with="songPeakFilterName=${periodType == 'weekly' ? 'weeklyChartPeak' : (periodType == 'seasonal' ? 'seasonalChartPeak' : 'yearlyChartPeak')}, albumPeakFilterName=${songPeakFilterName}, songChartedPeakValue=${periodType == 'weekly' ? 20 : (periodType == 'seasonal' ? 35 : 30)}, albumChartedPeakValue=${periodType == 'weekly' ? 10 : (periodType == 'seasonal' ? 5 : 10)}"
                             th:attr="data-artist-id=${entry.resolvedArtistId}">
+                            <td class="overview-index-col row-num-col" th:text="${entryStat.count}">1</td>
                             <td class="overview-image-cell">
                                 <img th:if="${entry.hasImage}" th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'artist', ${entry.resolvedArtistId})|" class="overview-item-image overview-artist-image clickable-image">
                                 <div th:unless="${entry.hasImage}" class="overview-item-placeholder overview-artist-image">ART</div>
@@ -1117,16 +1132,17 @@
         const overviewIncludeFeatured = /*[[${selectedIncludeFeatured}]]*/ false;
         const overviewArtistMetrics = /*[[${overviewTab == 'artist' ? artistRows : null}]]*/ null;
         const artistMetricColumns = {
-            image: 0,
-            artist: 1,
-            songs: 2,
-            songWeeks: 3,
-            numberOnes: 4,
-            songAtNumberOne: 5,
-            albums: 6,
-            albumWeeks: 7,
-            albumNumberOnes: 8,
-            albumAtNumberOne: 9
+            index: 0,
+            image: 1,
+            artist: 2,
+            songs: 3,
+            songWeeks: 4,
+            numberOnes: 5,
+            songAtNumberOne: 6,
+            albums: 7,
+            albumWeeks: 8,
+            albumNumberOnes: 9,
+            albumAtNumberOne: 10
         };
         const artistMetricsById = new Map();
         let weeklyOverviewReloadRequestId = 0;
@@ -1243,6 +1259,25 @@
 
         function getActiveOverviewContainer() {
             return getActiveOverviewTable()?.closest('.overview-table-wrap') || null;
+        }
+
+        function updateOverviewRowCounters() {
+            const body = getActiveOverviewBody();
+            if (!body) {
+                return;
+            }
+            let visibleIndex = 1;
+            Array.from(body.querySelectorAll('.overview-filter-row')).forEach((row) => {
+                const cell = row.querySelector('.overview-index-col');
+                if (!cell) {
+                    return;
+                }
+                if (row.classList.contains('overview-hidden')) {
+                    cell.textContent = '';
+                    return;
+                }
+                cell.textContent = String(visibleIndex++);
+            });
         }
 
         function getOverviewThresholdMax(type) {
@@ -1420,7 +1455,7 @@
                     '🎵'
                 );
                 const detailButtonHtml = isWeeklyOverview
-                    ? `<td class="center"><button type="button" class="overview-expand-btn" data-colspan="11" onclick="toggleOverviewDetail(this)">+</button></td>`
+                    ? `<td class="center"><button type="button" class="overview-expand-btn" data-colspan="12" onclick="toggleOverviewDetail(this)">+</button></td>`
                     : '';
                 const peakDateHtml = isWeeklyOverview
                     ? `<td class="center" data-value="${entry.peakAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.peakAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.peakAppearanceLabel))}</a></td>`
@@ -1430,6 +1465,7 @@
                     : '';
                 return `
                     <tr class="overview-filter-row${genderClass}" data-song-id="${entry.songId}" data-top1="${entry.spanAtTop1}" data-top5="${entry.spanAtTop5}" data-top10="${entry.spanAtTop10}" data-song-title="${escapeWeeklyOverviewHtml(entry.songTitle)}" data-artist-name="${escapeWeeklyOverviewHtml(entry.artistName)}" data-album-name="${escapeWeeklyOverviewHtml(entry.albumName)}">
+                        <td class="overview-index-col row-num-col"></td>
                         <td class="overview-image-cell">${buildSongOverviewImageHtml(entry)}</td>
                         ${detailButtonHtml}
                         <td><a class="overview-link-secondary" href="/artists/${entry.artistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
@@ -1458,6 +1494,7 @@
                     : '';
                 return `
                     <tr class="overview-filter-row${genderClass}">
+                        <td class="overview-index-col row-num-col"></td>
                         <td class="overview-image-cell">${buildAlbumOverviewImageHtml(entry)}</td>
                         <td><a class="overview-link-secondary" href="/artists/${entry.resolvedArtistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
                         <td><a class="overview-link-primary" href="/albums/${entry.albumId}">${escapeWeeklyOverviewHtml(entry.albumName)}</a></td>
@@ -1494,6 +1531,7 @@
                 );
                 return `
                     <tr class="overview-filter-row${genderClass}" data-artist-id="${entry.resolvedArtistId}">
+                        <td class="overview-index-col row-num-col"></td>
                         <td class="overview-image-cell">${buildArtistOverviewImageHtml(entry)}</td>
                         <td><a class="overview-link-primary" href="/artists/${entry.resolvedArtistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
                         <td class="center" data-value="${entry.chartedSongsCount}">${buildOverviewMetricLink(songChartedUrl, entry.chartedSongsCount)}</td>
@@ -1750,6 +1788,11 @@
             url.searchParams.set('size', String(size));
             if (overviewTab === 'artist' && overviewIncludeFeatured) {
                 url.searchParams.set('includeFeatured', 'true');
+            }
+            const container = getActiveOverviewContainer();
+            const activeQuery = container?.dataset?.q || '';
+            if (activeQuery) {
+                url.searchParams.set('q', activeQuery);
             }
             getWeeklySortStateFromLocation().forEach((sortEntry, index) => {
                 const sortKey = index === 0 ? 'sort' : `sort${index + 1}`;
@@ -2025,6 +2068,7 @@
             const fragment = document.createDocumentFragment();
             rows.forEach((row) => fragment.appendChild(row));
             body.appendChild(fragment);
+            updateOverviewRowCounters();
         }
 
         function updateArtistOverviewColumnVisibility(songThreshold, albumThreshold) {
@@ -2035,7 +2079,7 @@
             if (!table) {
                 return;
             }
-            const visible = new Set([artistMetricColumns.image, artistMetricColumns.artist]);
+            const visible = new Set([artistMetricColumns.index, artistMetricColumns.image, artistMetricColumns.artist]);
             if (songThreshold != null) {
                 visible.add(artistMetricColumns.songs);
                 visible.add(artistMetricColumns.songWeeks);
@@ -2096,6 +2140,7 @@
             } else {
                 resortWeeklyArtistRows();
             }
+            updateOverviewRowCounters();
         }
 
         function getColumnFilterValues() {
@@ -2112,13 +2157,18 @@
             if (Number.isNaN(value)) {
                 return false;
             }
-            const rangeMatch = query.match(/^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/);
+            const normalizedQuery = String(query || '')
+                .trim()
+                .replace(/\u2264/g, '<=')
+                .replace(/\u2265/g, '>=')
+                .replace(/[\u2013\u2014]/g, '-');
+            const rangeMatch = normalizedQuery.match(/^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/);
             if (rangeMatch) {
                 const min = Number(rangeMatch[1]);
                 const max = Number(rangeMatch[2]);
                 return value >= min && value <= max;
             }
-            const compareMatch = query.match(/^(<=|>=|=|<|>)?\s*(-?\d+(?:\.\d+)?)$/);
+            const compareMatch = normalizedQuery.match(/^(<=|>=|=|<|>)?\s*(-?\d+(?:\.\d+)?)$/);
             if (!compareMatch) {
                 return false;
             }
@@ -2154,6 +2204,7 @@
             if (!body || !counter) {
                 return;
             }
+            updateOverviewRowCounters();
             const loaded = body.querySelectorAll('.overview-filter-row').length;
             const visible = body.querySelectorAll('.overview-filter-row:not(.overview-hidden)').length;
             const total = Number(container?.dataset?.total || loaded);
@@ -2307,6 +2358,7 @@
                     }
                     const data = await response.json();
                     tbody.insertAdjacentHTML('beforeend', renderWeeklyOverviewRows(data.entries || []));
+                    updateOverviewRowCounters();
                     initializeOverviewNumberOneTooltips(tbody);
                     hydrateWeeklyOverviewRows(data.entries || []);
                     addedCount = (data.entries || []).length;
@@ -2475,7 +2527,7 @@
                 detailRow.className = 'overview-detail-row detail-row generated-detail-row';
                 const detailCell = document.createElement('td');
                 detailCell.className = 'overview-detail-cell';
-                detailCell.colSpan = Number(button.getAttribute('data-colspan') || '11');
+                detailCell.colSpan = Number(button.getAttribute('data-colspan') || '12');
                 detailCell.innerHTML = renderWeeklyOverviewDetailContent(row, {}, true);
                 detailRow.appendChild(detailCell);
                 row.insertAdjacentElement('afterend', detailRow);
@@ -2540,7 +2592,10 @@
                     }
                     header.addEventListener('click', () => {
                         showPageBusyOverlay('Sorting overview', 'Reordering the overview rows...');
-                        requestAnimationFrame(() => requestAnimationFrame(hidePageBusyOverlay));
+                        requestAnimationFrame(() => requestAnimationFrame(() => {
+                            updateOverviewRowCounters();
+                            hidePageBusyOverlay();
+                        }));
                     });
                 });
             }

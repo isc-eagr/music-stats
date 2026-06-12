@@ -123,13 +123,17 @@ public class SongService {
                                                     Integer playCountMin, Integer playCountMax,
                                                     Integer trackNumber, String trackNumberMode,
                                                     Integer lengthMin, Integer lengthMax, String lengthMode,
-                                                    Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                                    Integer weeklyChartPeak, String weeklyChartPeakMode, Integer weeklyChartWeeks,
+                                                    Integer weeklyChartPeakWeeks, String weeklyChartPeakWeeksMode,
                                                     String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
-                                                    Integer trlPeak, Integer trlDays,
+                                                    Integer trlPeak, String trlPeakMode, Integer trlDays,
+                                                    Integer trlDaysAtPeak, String trlDaysAtPeakMode,
                                                     String trlDateFrom, String trlDateTo,
-                                                    Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                                    Integer vatosCuntdownPeak, String vatosCuntdownPeakMode, Integer vatosCuntdownDays,
+                                                    Integer vatosCuntdownDaysAtPeak, String vatosCuntdownDaysAtPeakMode,
                                                     String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
-                                                    Integer billboardPeak, Integer billboardWeeks,
+                                                    Integer billboardPeak, String billboardPeakMode, Integer billboardWeeks,
+                                                    Integer billboardWeeksAtPeak, String billboardWeeksAtPeakMode,
                                                     String billboardDateFrom, String billboardDateTo,
                                                     Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                                     String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
@@ -198,20 +202,32 @@ public class SongService {
         parts.add(lengthMax);
         parts.add(lengthMode);
         parts.add(weeklyChartPeak);
+        parts.add(weeklyChartPeakMode);
         parts.add(weeklyChartWeeks);
+        parts.add(weeklyChartPeakWeeks);
+        parts.add(weeklyChartPeakWeeksMode);
         parts.add(weeklyChartDateFrom);
         parts.add(weeklyChartDateTo);
         parts.add(weeklyChartSeason);
         parts.add(trlPeak);
+        parts.add(trlPeakMode);
         parts.add(trlDays);
+        parts.add(trlDaysAtPeak);
+        parts.add(trlDaysAtPeakMode);
         parts.add(trlDateFrom);
         parts.add(trlDateTo);
         parts.add(vatosCuntdownPeak);
+        parts.add(vatosCuntdownPeakMode);
         parts.add(vatosCuntdownDays);
+        parts.add(vatosCuntdownDaysAtPeak);
+        parts.add(vatosCuntdownDaysAtPeakMode);
         parts.add(vatosCuntdownDateFrom);
         parts.add(vatosCuntdownDateTo);
         parts.add(billboardPeak);
+        parts.add(billboardPeakMode);
         parts.add(billboardWeeks);
+        parts.add(billboardWeeksAtPeak);
+        parts.add(billboardWeeksAtPeakMode);
         parts.add(billboardDateFrom);
         parts.add(billboardDateTo);
         parts.add(seasonalChartPeak);
@@ -258,13 +274,17 @@ public class SongService {
                                        Integer playCountMin, Integer playCountMax,
                                        Integer trackNumber, String trackNumberMode,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
-                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       Integer weeklyChartPeak, String weeklyChartPeakMode, Integer weeklyChartWeeks,
+                                       Integer weeklyChartPeakWeeks, String weeklyChartPeakWeeksMode,
                                        String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
-                                       Integer trlPeak, Integer trlDays,
+                                       Integer trlPeak, String trlPeakMode, Integer trlDays,
+                                       Integer trlDaysAtPeak, String trlDaysAtPeakMode,
                                        String trlDateFrom, String trlDateTo,
-                                       Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                                       Integer vatosCuntdownPeak, String vatosCuntdownPeakMode, Integer vatosCuntdownDays,
+                                       Integer vatosCuntdownDaysAtPeak, String vatosCuntdownDaysAtPeakMode,
                                        String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
-                                       Integer billboardPeak, Integer billboardWeeks,
+                                       Integer billboardPeak, String billboardPeakMode, Integer billboardWeeks,
+                                       Integer billboardWeeksAtPeak, String billboardWeeksAtPeakMode,
                                        String billboardDateFrom, String billboardDateTo,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                        String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
@@ -305,13 +325,13 @@ public class SongService {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
                 weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                trlPeak, trlDays,
+                trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
                 trlDateFrom, trlDateTo,
-                vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
                 vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                billboardPeak, billboardWeeks,
+                billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
                 billboardDateFrom, billboardDateTo,
                 seasonalChartPeak, seasonalChartSeasons,
                 seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
@@ -338,13 +358,13 @@ public class SongService {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
                 weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                trlPeak, trlDays,
+                trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
                 trlDateFrom, trlDateTo,
-                vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
                 vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                billboardPeak, billboardWeeks,
+                billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
                 billboardDateFrom, billboardDateTo,
                 seasonalChartPeak, seasonalChartSeasons,
                 seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
@@ -385,13 +405,13 @@ public class SongService {
                         playCountMin, playCountMax,
                         trackNumber, trackNumberMode,
                         lengthMin, lengthMax, lengthMode,
-                        weeklyChartPeak, weeklyChartWeeks,
+                        weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
                         weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                        trlPeak, trlDays,
+                        trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
                         trlDateFrom, trlDateTo,
-                        vatosCuntdownPeak, vatosCuntdownDays,
+                        vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
                         vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                        billboardPeak, billboardWeeks,
+                        billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
                         billboardDateFrom, billboardDateTo,
                         seasonalChartPeak, seasonalChartSeasons,
                         seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
@@ -461,10 +481,13 @@ public class SongService {
             dto.setImageCount(row.imageCount());
             dto.setBillboardPeak(row.billboardPeak());
             dto.setBillboardWeeks(row.billboardWeeks());
+            dto.setBillboardWeeksAtPeak(row.billboardWeeksAtPeak());
             dto.setSeasonalChartPeak(row.seasonalChartPeak());
             dto.setTrlDays(row.trlDays());
+            dto.setTrlDaysAtPeak(row.trlDaysAtPeak());
             dto.setTrlPeak(row.trlPeak());
             dto.setVatosCuntdownDays(row.vatosCuntdownDays());
+            dto.setVatosCuntdownDaysAtPeak(row.vatosCuntdownDaysAtPeak());
             dto.setVatosCuntdownPeak(row.vatosCuntdownPeak());
             dto.setWeeklyChartPeak(row.weeklyChartPeak());
             dto.setWeeklyChartWeeks(row.weeklyChartWeeks() != null ? row.weeklyChartWeeks() : 0);
@@ -521,11 +544,11 @@ public class SongService {
                 continue;
             }
             switch (sortField) {
-                case "billboard_peak", "billboard_weeks",
+                case "billboard_peak", "billboard_weeks", "billboard_weeks_at_peak",
                         "seasonal_chart_peak",
-                        "trl_days", "trl_peak",
-                        "vatos_cuntdown_days", "vatos_cuntdown_peak",
-                        "weekly_chart_peak", "weekly_chart_weeks",
+                        "trl_days", "trl_days_at_peak", "trl_peak",
+                        "vatos_cuntdown_days", "vatos_cuntdown_days_at_peak", "vatos_cuntdown_peak",
+                        "weekly_chart_peak", "weekly_chart_weeks", "weekly_chart_peak_weeks",
                         "yearly_chart_peak" -> {
                     return true;
                 }
@@ -646,15 +669,19 @@ public class SongService {
             case "weekly_chart_peak" -> comparingComparable(SongCardDTO::getWeeklyChartPeak, desc, true)
                 .thenComparing(comparingDisplayDates(SongCardDTO::getWeeklyChartPeakStartDate, true, true));
             case "weekly_chart_weeks" -> comparingComparable(SongCardDTO::getWeeklyChartWeeks, desc, false);
+            case "weekly_chart_peak_weeks" -> comparingComparable(SongCardDTO::getWeeklyChartPeakWeeks, desc, false);
             case "trl_peak" -> comparingComparable(SongCardDTO::getTrlPeak, desc, true)
                 .thenComparing(comparingComparable(SongCardDTO::getTrlDays, true, true));
             case "trl_days" -> comparingComparable(SongCardDTO::getTrlDays, desc, false);
+            case "trl_days_at_peak" -> comparingComparable(SongCardDTO::getTrlDaysAtPeak, desc, false);
             case "vatos_cuntdown_peak" -> comparingComparable(SongCardDTO::getVatosCuntdownPeak, desc, true)
                 .thenComparing(comparingComparable(SongCardDTO::getVatosCuntdownDays, true, true));
             case "vatos_cuntdown_days" -> comparingComparable(SongCardDTO::getVatosCuntdownDays, desc, false);
+            case "vatos_cuntdown_days_at_peak" -> comparingComparable(SongCardDTO::getVatosCuntdownDaysAtPeak, desc, false);
             case "billboard_peak" -> comparingComparable(SongCardDTO::getBillboardPeak, desc, true)
                 .thenComparing(comparingComparable(SongCardDTO::getBillboardWeeks, true, true));
             case "billboard_weeks" -> comparingComparable(SongCardDTO::getBillboardWeeks, desc, false);
+            case "billboard_weeks_at_peak" -> comparingComparable(SongCardDTO::getBillboardWeeksAtPeak, desc, false);
             case "yearly_chart_peak" -> comparingComparable(SongCardDTO::getYearlyChartPeak, desc, true)
                 .thenComparing(comparingStrings(SongCardDTO::getYearlyChartPeakPeriod, true, true));
             case "genre" -> comparingStrings(SongCardDTO::getGenreName, desc, false);
@@ -759,10 +786,13 @@ public class SongService {
         target.setImageCount(source.getImageCount());
         target.setBillboardPeak(source.getBillboardPeak());
         target.setBillboardWeeks(source.getBillboardWeeks());
+        target.setBillboardWeeksAtPeak(source.getBillboardWeeksAtPeak());
         target.setSeasonalChartPeak(source.getSeasonalChartPeak());
         target.setTrlDays(source.getTrlDays());
+        target.setTrlDaysAtPeak(source.getTrlDaysAtPeak());
         target.setTrlPeak(source.getTrlPeak());
         target.setVatosCuntdownDays(source.getVatosCuntdownDays());
+        target.setVatosCuntdownDaysAtPeak(source.getVatosCuntdownDaysAtPeak());
         target.setVatosCuntdownPeak(source.getVatosCuntdownPeak());
         target.setWeeklyChartPeak(source.getWeeklyChartPeak());
         target.setWeeklyChartWeeks(source.getWeeklyChartWeeks());
@@ -845,13 +875,17 @@ public class SongService {
                           Integer playCountMin, Integer playCountMax,
                           Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
-                          Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                          Integer weeklyChartPeak, String weeklyChartPeakMode, Integer weeklyChartWeeks,
+                          Integer weeklyChartPeakWeeks, String weeklyChartPeakWeeksMode,
                           String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
-                          Integer trlPeak, Integer trlDays,
+                          Integer trlPeak, String trlPeakMode, Integer trlDays,
+                          Integer trlDaysAtPeak, String trlDaysAtPeakMode,
                           String trlDateFrom, String trlDateTo,
-                          Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                          Integer vatosCuntdownPeak, String vatosCuntdownPeakMode, Integer vatosCuntdownDays,
+                          Integer vatosCuntdownDaysAtPeak, String vatosCuntdownDaysAtPeakMode,
                           String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
-                          Integer billboardPeak, Integer billboardWeeks,
+                          Integer billboardPeak, String billboardPeakMode, Integer billboardWeeks,
+                          Integer billboardWeeksAtPeak, String billboardWeeksAtPeakMode,
                           String billboardDateFrom, String billboardDateTo,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
                           String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
@@ -879,13 +913,13 @@ public class SongService {
                     playCountMin, playCountMax,
                     trackNumber, trackNumberMode,
                     lengthMin, lengthMax, lengthMode,
-                    weeklyChartPeak, weeklyChartWeeks,
+                    weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
                         weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                    trlPeak, trlDays,
+                    trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
                         trlDateFrom, trlDateTo,
-                    vatosCuntdownPeak, vatosCuntdownDays,
+                    vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
                         vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                    billboardPeak, billboardWeeks,
+                    billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
                         billboardDateFrom, billboardDateTo,
                         seasonalChartPeak, seasonalChartSeasons,
                         seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
@@ -914,13 +948,13 @@ public class SongService {
                     playCountMin, playCountMax,
                     trackNumber, trackNumberMode,
                     lengthMin, lengthMax, lengthMode,
-                    weeklyChartPeak, weeklyChartWeeks,
+                    weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
                         weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                    trlPeak, trlDays,
+                    trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
                         trlDateFrom, trlDateTo,
-                    vatosCuntdownPeak, vatosCuntdownDays,
+                    vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
                         vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                    billboardPeak, billboardWeeks,
+                    billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
                         billboardDateFrom, billboardDateTo,
                         seasonalChartPeak, seasonalChartSeasons,
                         seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
@@ -949,13 +983,13 @@ public class SongService {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
                 weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                trlPeak, trlDays,
+                trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
                 trlDateFrom, trlDateTo,
-                vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
                 vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                billboardPeak, billboardWeeks,
+                billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
                 billboardDateFrom, billboardDateTo,
                 seasonalChartPeak, seasonalChartSeasons,
                 seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
@@ -990,13 +1024,17 @@ public class SongService {
                           Integer playCountMin, Integer playCountMax,
                           Integer trackNumber, String trackNumberMode,
                           Integer lengthMin, Integer lengthMax, String lengthMode,
-                          Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                          Integer weeklyChartPeak, String weeklyChartPeakMode, Integer weeklyChartWeeks,
+                          Integer weeklyChartPeakWeeks, String weeklyChartPeakWeeksMode,
                           String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
-                          Integer trlPeak, Integer trlDays,
+                          Integer trlPeak, String trlPeakMode, Integer trlDays,
+                          Integer trlDaysAtPeak, String trlDaysAtPeakMode,
                           String trlDateFrom, String trlDateTo,
-                          Integer vatosCuntdownPeak, Integer vatosCuntdownDays,
+                          Integer vatosCuntdownPeak, String vatosCuntdownPeakMode, Integer vatosCuntdownDays,
+                          Integer vatosCuntdownDaysAtPeak, String vatosCuntdownDaysAtPeakMode,
                           String vatosCuntdownDateFrom, String vatosCuntdownDateTo,
-                          Integer billboardPeak, Integer billboardWeeks,
+                          Integer billboardPeak, String billboardPeakMode, Integer billboardWeeks,
+                          Integer billboardWeeksAtPeak, String billboardWeeksAtPeakMode,
                           String billboardDateFrom, String billboardDateTo,
                           Integer seasonalChartPeak, Integer seasonalChartSeasons,
                           String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
@@ -1024,13 +1062,13 @@ public class SongService {
                 playCountMin, playCountMax,
                 trackNumber, trackNumberMode,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
                 weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                trlPeak, trlDays,
+                trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
                 trlDateFrom, trlDateTo,
-                vatosCuntdownPeak, vatosCuntdownDays,
+                vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
                 vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                billboardPeak, billboardWeeks,
+                billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
                 billboardDateFrom, billboardDateTo,
                 seasonalChartPeak, seasonalChartSeasons,
                 seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,

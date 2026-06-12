@@ -1408,7 +1408,7 @@ public class ArtistService {
     
     // Search artists by name for API
     public List<Map<String, Object>> searchArtists(String query, int limit) {
-        String normalizedQuery = StringNormalizer.normalizeForImport(query);
+        String normalizedQuery = StringNormalizer.normalizeForSearch(query);
         String baseSql = "SELECT a.id, a.name, a.genre_id, a.subgenre_id, a.language_id, a.gender_id, a.ethnicity_id, "
             + "g.name as genre_name, sg.name as subgenre_name, l.name as language_name, "
             + "gn.name as gender_name, e.name as ethnicity_name "

@@ -62,6 +62,7 @@
                             <option value="artist" th:selected="${sortBy == 'artist'}">Artist</option>
                             <option value="billboard_peak" th:selected="${sortBy == 'billboard_peak'}">Billboard Peak</option>
                             <option value="billboard_weeks" th:selected="${sortBy == 'billboard_weeks'}">Billboard Total Weeks</option>
+                            <option value="billboard_weeks_at_peak" th:selected="${sortBy == 'billboard_weeks_at_peak'}">Billboard Weeks @ Peak</option>
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
                             <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
@@ -84,12 +85,15 @@
                             <option value="subgenre" th:selected="${sortBy == 'subgenre'}">Subgenre</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
                             <option value="track_number" th:selected="${sortBy == 'track_number'}">Track Number</option>
+                            <option value="trl_days_at_peak" th:selected="${sortBy == 'trl_days_at_peak'}">TRL Days @ Peak</option>
                             <option value="trl_days" th:selected="${sortBy == 'trl_days'}">TRL Total Days</option>
                             <option value="trl_peak" th:selected="${sortBy == 'trl_peak'}">TRL Peak</option>
+                            <option value="vatos_cuntdown_days_at_peak" th:selected="${sortBy == 'vatos_cuntdown_days_at_peak'}">Vato's Cuntdown Days @ Peak</option>
                             <option value="vatos_cuntdown_days" th:selected="${sortBy == 'vatos_cuntdown_days'}">Vato's Cuntdown Total Days</option>
                             <option value="vatos_cuntdown_peak" th:selected="${sortBy == 'vatos_cuntdown_peak'}">Vato's Cuntdown Peak</option>
                             <option value="weeks_listened" th:selected="${sortBy == 'weeks_listened'}">Weeks Listened</option>
                             <option value="weekly_chart_peak" th:selected="${sortBy == 'weekly_chart_peak'}">Weekly Chart Peak</option>
+                            <option value="weekly_chart_peak_weeks" th:selected="${sortBy == 'weekly_chart_peak_weeks'}">Weekly Chart Weeks @ Peak</option>
                             <option value="weekly_chart_weeks" th:selected="${sortBy == 'weekly_chart_weeks'}">Weekly Chart Total Weeks</option>
                             <option value="years_listened" th:selected="${sortBy == 'years_listened'}">Years Listened</option>
                             <option value="yearly_chart_peak" th:selected="${sortBy == 'yearly_chart_peak'}">Yearly Chart Peak</option>
@@ -312,10 +316,25 @@
                                     <div class="filter-item-content">
                                         <div class="filter-group">
                                             <label class="field"><span>Peak Position ≤</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="billboardPeak" data-mode="top" th:classappend="${billboardPeakMode == null or billboardPeakMode == 'top' ? 'active' : ''}">Top N</button>
+                                                    <button type="button" class="filter-modifier" data-filter="billboardPeak" data-mode="exact" th:classappend="${billboardPeakMode == 'exact' ? 'active' : ''}">Exact</button>
+                                                    <button type="button" class="filter-modifier" data-filter="billboardPeak" data-mode="lower" th:classappend="${billboardPeakMode == 'lower' ? 'active' : ''}">Below N</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="billboardPeakMode" id="billboardPeakMode" th:value="${billboardPeakMode ?: 'top'}" />
                                                 <input type="number" autocomplete="off" name="billboardPeak" th:value="${billboardPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
                                                 <input type="number" autocomplete="off" name="billboardWeeks" th:value="${billboardWeeks}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Weeks @ Peak &ge;</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="billboardWeeksAtPeak" data-mode="gte" th:classappend="${billboardWeeksAtPeakMode == null or billboardWeeksAtPeakMode == 'gte' ? 'active' : ''}">&gt;=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="billboardWeeksAtPeak" data-mode="exact" th:classappend="${billboardWeeksAtPeakMode == 'exact' ? 'active' : ''}">=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="billboardWeeksAtPeak" data-mode="lte" th:classappend="${billboardWeeksAtPeakMode == 'lte' ? 'active' : ''}">&lt;=</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="billboardWeeksAtPeakMode" id="billboardWeeksAtPeakMode" th:value="${billboardWeeksAtPeakMode ?: 'gte'}" />
+                                                <input type="number" autocomplete="off" name="billboardWeeksAtPeak" th:value="${billboardWeeksAtPeak}" placeholder="e.g. 2" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Charted From</span>
                                                 <input type="text" autocomplete="off" name="billboardDateFrom" th:value="${billboardDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
@@ -1039,10 +1058,25 @@
                                     <div class="filter-item-content">
                                         <div class="filter-group">
                                             <label class="field"><span>Peak Position ≤</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="trlPeak" data-mode="top" th:classappend="${trlPeakMode == null or trlPeakMode == 'top' ? 'active' : ''}">Top N</button>
+                                                    <button type="button" class="filter-modifier" data-filter="trlPeak" data-mode="exact" th:classappend="${trlPeakMode == 'exact' ? 'active' : ''}">Exact</button>
+                                                    <button type="button" class="filter-modifier" data-filter="trlPeak" data-mode="lower" th:classappend="${trlPeakMode == 'lower' ? 'active' : ''}">Below N</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="trlPeakMode" id="trlPeakMode" th:value="${trlPeakMode ?: 'top'}" />
                                                 <input type="number" autocomplete="off" name="trlPeak" th:value="${trlPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
                                                 <input type="number" autocomplete="off" name="trlDays" th:value="${trlDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Days @ Peak &ge;</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="trlDaysAtPeak" data-mode="gte" th:classappend="${trlDaysAtPeakMode == null or trlDaysAtPeakMode == 'gte' ? 'active' : ''}">&gt;=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="trlDaysAtPeak" data-mode="exact" th:classappend="${trlDaysAtPeakMode == 'exact' ? 'active' : ''}">=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="trlDaysAtPeak" data-mode="lte" th:classappend="${trlDaysAtPeakMode == 'lte' ? 'active' : ''}">&lt;=</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="trlDaysAtPeakMode" id="trlDaysAtPeakMode" th:value="${trlDaysAtPeakMode ?: 'gte'}" />
+                                                <input type="number" autocomplete="off" name="trlDaysAtPeak" th:value="${trlDaysAtPeak}" placeholder="e.g. 2" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Charted From</span>
                                                 <input type="text" autocomplete="off" name="trlDateFrom" th:value="${trlDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
@@ -1065,10 +1099,25 @@
                                     <div class="filter-item-content">
                                         <div class="filter-group">
                                             <label class="field"><span>Peak Position ≤</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="vatosCuntdownPeak" data-mode="top" th:classappend="${vatosCuntdownPeakMode == null or vatosCuntdownPeakMode == 'top' ? 'active' : ''}">Top N</button>
+                                                    <button type="button" class="filter-modifier" data-filter="vatosCuntdownPeak" data-mode="exact" th:classappend="${vatosCuntdownPeakMode == 'exact' ? 'active' : ''}">Exact</button>
+                                                    <button type="button" class="filter-modifier" data-filter="vatosCuntdownPeak" data-mode="lower" th:classappend="${vatosCuntdownPeakMode == 'lower' ? 'active' : ''}">Below N</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="vatosCuntdownPeakMode" id="vatosCuntdownPeakMode" th:value="${vatosCuntdownPeakMode ?: 'top'}" />
                                                 <input type="number" autocomplete="off" name="vatosCuntdownPeak" th:value="${vatosCuntdownPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Total Days ≥</span>
                                                 <input type="number" autocomplete="off" name="vatosCuntdownDays" th:value="${vatosCuntdownDays}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Days @ Peak &ge;</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="vatosCuntdownDaysAtPeak" data-mode="gte" th:classappend="${vatosCuntdownDaysAtPeakMode == null or vatosCuntdownDaysAtPeakMode == 'gte' ? 'active' : ''}">&gt;=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="vatosCuntdownDaysAtPeak" data-mode="exact" th:classappend="${vatosCuntdownDaysAtPeakMode == 'exact' ? 'active' : ''}">=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="vatosCuntdownDaysAtPeak" data-mode="lte" th:classappend="${vatosCuntdownDaysAtPeakMode == 'lte' ? 'active' : ''}">&lt;=</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="vatosCuntdownDaysAtPeakMode" id="vatosCuntdownDaysAtPeakMode" th:value="${vatosCuntdownDaysAtPeakMode ?: 'gte'}" />
+                                                <input type="number" autocomplete="off" name="vatosCuntdownDaysAtPeak" th:value="${vatosCuntdownDaysAtPeak}" placeholder="e.g. 2" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Charted From</span>
                                                 <input type="text" autocomplete="off" name="vatosCuntdownDateFrom" th:value="${vatosCuntdownDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
@@ -1091,10 +1140,25 @@
                                     <div class="filter-item-content">
                                         <div class="filter-group">
                                             <label class="field"><span>Peak Position ≤</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeak" data-mode="top" th:classappend="${weeklyChartPeakMode == null or weeklyChartPeakMode == 'top' ? 'active' : ''}">Top N</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeak" data-mode="exact" th:classappend="${weeklyChartPeakMode == 'exact' ? 'active' : ''}">Exact</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeak" data-mode="lower" th:classappend="${weeklyChartPeakMode == 'lower' ? 'active' : ''}">Below N</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="weeklyChartPeakMode" id="weeklyChartPeakMode" th:value="${weeklyChartPeakMode ?: 'top'}" />
                                                 <input type="number" autocomplete="off" name="weeklyChartPeak" th:value="${weeklyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
                                                 <input type="number" autocomplete="off" name="weeklyChartWeeks" th:value="${weeklyChartWeeks}" placeholder="e.g. 1" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Weeks @ Peak &ge;</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeakWeeks" data-mode="gte" th:classappend="${weeklyChartPeakWeeksMode == null or weeklyChartPeakWeeksMode == 'gte' ? 'active' : ''}">&gt;=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeakWeeks" data-mode="exact" th:classappend="${weeklyChartPeakWeeksMode == 'exact' ? 'active' : ''}">=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeakWeeks" data-mode="lte" th:classappend="${weeklyChartPeakWeeksMode == 'lte' ? 'active' : ''}">&lt;=</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="weeklyChartPeakWeeksMode" id="weeklyChartPeakWeeksMode" th:value="${weeklyChartPeakWeeksMode ?: 'gte'}" />
+                                                <input type="number" autocomplete="off" name="weeklyChartPeakWeeks" th:value="${weeklyChartPeakWeeks}" placeholder="e.g. 2" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Charted From</span>
                                                 <input type="text" autocomplete="off" name="weeklyChartDateFrom" th:value="${weeklyChartDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
@@ -1578,18 +1642,20 @@
             </div>
             
             <!-- Weekly Chart filter chip -->
-            <div class="filter-chip" th:if="${weeklyChartPeak != null or weeklyChartWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()) or (weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty())}">
+            <div class="filter-chip" th:if="${weeklyChartPeak != null or weeklyChartWeeks != null or weeklyChartPeakWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()) or (weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     📊 Weekly Chart:
                     <span th:if="${weeklyChartPeak != null}" th:text="'Peak ≤' + ${weeklyChartPeak}"></span>
                     <span th:if="${weeklyChartPeak != null and weeklyChartWeeks != null}">, </span>
                     <span th:if="${weeklyChartWeeks != null}" th:text="'≥' + ${weeklyChartWeeks} + ' weeks'"></span>
-                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null) and weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}">, </span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null) and weeklyChartPeakWeeks != null}">, </span>
+                    <span th:if="${weeklyChartPeakWeeks != null}" th:text="'@ peak >= ' + ${weeklyChartPeakWeeks} + ' weeks'"></span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null or weeklyChartPeakWeeks != null) and weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}">, </span>
                     <span th:if="${weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}" th:text="'From ' + ${weeklyChartDateFrom}"></span>
-                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty())) and weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}">, </span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null or weeklyChartPeakWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty())) and weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}">, </span>
                     <span th:if="${weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}" th:text="'To ' + ${weeklyChartDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartWeeks', 'weeklyChartDateFrom', 'weeklyChartDateTo')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartPeakMode', 'weeklyChartWeeks', 'weeklyChartPeakWeeks', 'weeklyChartPeakWeeksMode', 'weeklyChartDateFrom', 'weeklyChartDateTo')" type="button">×</button>
             </div>
 
             <div class="filter-chip" th:if="${weeklyChartSeason != null and !weeklyChartSeason.isEmpty()}">
@@ -1601,48 +1667,54 @@
             </div>
 
             <!-- TRL filter chip -->
-            <div class="filter-chip" th:if="${trlPeak != null or trlDays != null or (trlDateFrom != null and !trlDateFrom.isEmpty()) or (trlDateTo != null and !trlDateTo.isEmpty())}">
+            <div class="filter-chip" th:if="${trlPeak != null or trlDays != null or trlDaysAtPeak != null or (trlDateFrom != null and !trlDateFrom.isEmpty()) or (trlDateTo != null and !trlDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     📺 TRL:
                     <span th:if="${trlPeak != null}" th:text="'Peak ≤' + ${trlPeak}"></span>
                     <span th:if="${trlPeak != null and trlDays != null}">, </span>
                     <span th:if="${trlDays != null}" th:text="'≥' + ${trlDays} + ' days'"></span>
-                    <span th:if="${(trlPeak != null or trlDays != null) and trlDateFrom != null and !trlDateFrom.isEmpty()}">, </span>
+                    <span th:if="${(trlPeak != null or trlDays != null) and trlDaysAtPeak != null}">, </span>
+                    <span th:if="${trlDaysAtPeak != null}" th:text="'@ peak >= ' + ${trlDaysAtPeak} + ' days'"></span>
+                    <span th:if="${(trlPeak != null or trlDays != null or trlDaysAtPeak != null) and trlDateFrom != null and !trlDateFrom.isEmpty()}">, </span>
                     <span th:if="${trlDateFrom != null and !trlDateFrom.isEmpty()}" th:text="'From ' + ${trlDateFrom}"></span>
-                    <span th:if="${(trlPeak != null or trlDays != null or (trlDateFrom != null and !trlDateFrom.isEmpty())) and trlDateTo != null and !trlDateTo.isEmpty()}">, </span>
+                    <span th:if="${(trlPeak != null or trlDays != null or trlDaysAtPeak != null or (trlDateFrom != null and !trlDateFrom.isEmpty())) and trlDateTo != null and !trlDateTo.isEmpty()}">, </span>
                     <span th:if="${trlDateTo != null and !trlDateTo.isEmpty()}" th:text="'To ' + ${trlDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('trlPeak', 'trlDays', 'trlDateFrom', 'trlDateTo')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('trlPeak', 'trlPeakMode', 'trlDays', 'trlDaysAtPeak', 'trlDaysAtPeakMode', 'trlDateFrom', 'trlDateTo')" type="button">×</button>
             </div>
 
             <!-- Vato's Cuntdown filter chip -->
-            <div class="filter-chip" th:if="${vatosCuntdownPeak != null or vatosCuntdownDays != null or (vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()) or (vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty())}">
+            <div class="filter-chip" th:if="${vatosCuntdownPeak != null or vatosCuntdownDays != null or vatosCuntdownDaysAtPeak != null or (vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()) or (vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     🗓 Vato's Cuntdown:
                     <span th:if="${vatosCuntdownPeak != null}" th:text="'Peak ≤' + ${vatosCuntdownPeak}"></span>
                     <span th:if="${vatosCuntdownPeak != null and vatosCuntdownDays != null}">, </span>
                     <span th:if="${vatosCuntdownDays != null}" th:text="'≥' + ${vatosCuntdownDays} + ' days'"></span>
-                    <span th:if="${(vatosCuntdownPeak != null or vatosCuntdownDays != null) and vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()}">, </span>
+                    <span th:if="${(vatosCuntdownPeak != null or vatosCuntdownDays != null) and vatosCuntdownDaysAtPeak != null}">, </span>
+                    <span th:if="${vatosCuntdownDaysAtPeak != null}" th:text="'@ peak >= ' + ${vatosCuntdownDaysAtPeak} + ' days'"></span>
+                    <span th:if="${(vatosCuntdownPeak != null or vatosCuntdownDays != null or vatosCuntdownDaysAtPeak != null) and vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()}">, </span>
                     <span th:if="${vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty()}" th:text="'From ' + ${vatosCuntdownDateFrom}"></span>
-                    <span th:if="${(vatosCuntdownPeak != null or vatosCuntdownDays != null or (vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty())) and vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty()}">, </span>
+                    <span th:if="${(vatosCuntdownPeak != null or vatosCuntdownDays != null or vatosCuntdownDaysAtPeak != null or (vatosCuntdownDateFrom != null and !vatosCuntdownDateFrom.isEmpty())) and vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty()}">, </span>
                     <span th:if="${vatosCuntdownDateTo != null and !vatosCuntdownDateTo.isEmpty()}" th:text="'To ' + ${vatosCuntdownDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('vatosCuntdownPeak', 'vatosCuntdownDays', 'vatosCuntdownDateFrom', 'vatosCuntdownDateTo')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('vatosCuntdownPeak', 'vatosCuntdownPeakMode', 'vatosCuntdownDays', 'vatosCuntdownDaysAtPeak', 'vatosCuntdownDaysAtPeakMode', 'vatosCuntdownDateFrom', 'vatosCuntdownDateTo')" type="button">×</button>
             </div>
 
             <!-- Billboard filter chip -->
-            <div class="filter-chip" th:if="${billboardPeak != null or billboardWeeks != null or (billboardDateFrom != null and !billboardDateFrom.isEmpty()) or (billboardDateTo != null and !billboardDateTo.isEmpty())}">
+            <div class="filter-chip" th:if="${billboardPeak != null or billboardWeeks != null or billboardWeeksAtPeak != null or (billboardDateFrom != null and !billboardDateFrom.isEmpty()) or (billboardDateTo != null and !billboardDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     🎵 Billboard:
                     <span th:if="${billboardPeak != null}" th:text="'Peak ≤' + ${billboardPeak}"></span>
                     <span th:if="${billboardPeak != null and billboardWeeks != null}">, </span>
                     <span th:if="${billboardWeeks != null}" th:text="'≥' + ${billboardWeeks} + ' weeks'"></span>
-                    <span th:if="${(billboardPeak != null or billboardWeeks != null) and billboardDateFrom != null and !billboardDateFrom.isEmpty()}">, </span>
+                    <span th:if="${(billboardPeak != null or billboardWeeks != null) and billboardWeeksAtPeak != null}">, </span>
+                    <span th:if="${billboardWeeksAtPeak != null}" th:text="'@ peak >= ' + ${billboardWeeksAtPeak} + ' weeks'"></span>
+                    <span th:if="${(billboardPeak != null or billboardWeeks != null or billboardWeeksAtPeak != null) and billboardDateFrom != null and !billboardDateFrom.isEmpty()}">, </span>
                     <span th:if="${billboardDateFrom != null and !billboardDateFrom.isEmpty()}" th:text="'From ' + ${billboardDateFrom}"></span>
-                    <span th:if="${(billboardPeak != null or billboardWeeks != null or (billboardDateFrom != null and !billboardDateFrom.isEmpty())) and billboardDateTo != null and !billboardDateTo.isEmpty()}">, </span>
+                    <span th:if="${(billboardPeak != null or billboardWeeks != null or billboardWeeksAtPeak != null or (billboardDateFrom != null and !billboardDateFrom.isEmpty())) and billboardDateTo != null and !billboardDateTo.isEmpty()}">, </span>
                     <span th:if="${billboardDateTo != null and !billboardDateTo.isEmpty()}" th:text="'To ' + ${billboardDateTo}"></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('billboardPeak', 'billboardWeeks', 'billboardDateFrom', 'billboardDateTo')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('billboardPeak', 'billboardPeakMode', 'billboardWeeks', 'billboardWeeksAtPeak', 'billboardWeeksAtPeakMode', 'billboardDateFrom', 'billboardDateTo')" type="button">×</button>
             </div>
             
             <!-- Yearly Chart filter chip -->
@@ -1828,14 +1900,17 @@
                         <span class="sort-metric-label" th:switch="${sortBy}">
                             <th:block th:case="'billboard_peak'">Billboard Peak:</th:block>
                             <th:block th:case="'billboard_weeks'">Billboard Weeks:</th:block>
+                            <th:block th:case="'billboard_weeks_at_peak'">Billboard @ Peak:</th:block>
                             <th:block th:case="'length'">Length:</th:block>
                             <th:block th:case="'release_date'">Released:</th:block>
                             <th:block th:case="'first_listened'">First Listened:</th:block>
                             <th:block th:case="'last_listened'">Last Listened:</th:block>
                             <th:block th:case="'track_number'">Track #:</th:block>
                             <th:block th:case="'trl_days'">TRL Days:</th:block>
+                            <th:block th:case="'trl_days_at_peak'">TRL @ Peak:</th:block>
                             <th:block th:case="'trl_peak'">TRL Peak:</th:block>
                             <th:block th:case="'vatos_cuntdown_days'">Vato's Days:</th:block>
+                            <th:block th:case="'vatos_cuntdown_days_at_peak'">Vato's @ Peak:</th:block>
                             <th:block th:case="'vatos_cuntdown_peak'">Vato's Peak:</th:block>
                             <th:block th:case="'age_at_release'">Age at Release:</th:block>
                             <th:block th:case="'birth_date'">Born:</th:block>
@@ -1846,6 +1921,7 @@
                             <th:block th:case="'seasonal_chart_peak'">Seasonal Peak:</th:block>
                             <th:block th:case="'weeks_listened'">Weeks Listened:</th:block>
                             <th:block th:case="'weekly_chart_peak'">Weekly Peak:</th:block>
+                            <th:block th:case="'weekly_chart_peak_weeks'">Weekly @ Peak:</th:block>
                             <th:block th:case="'weekly_chart_weeks'">Weekly Weeks:</th:block>
                             <th:block th:case="'years_listened'">Years Listened:</th:block>
                             <th:block th:case="'yearly_chart_peak'">Yearly Peak:</th:block>
@@ -1853,14 +1929,17 @@
                         <span class="sort-metric-value" th:switch="${sortBy}">
                             <th:block th:case="'billboard_peak'" th:text="${song.billboardPeak != null ? '#' + song.billboardPeak : 'N/A'}"></th:block>
                             <th:block th:case="'billboard_weeks'" th:text="${song.billboardWeeks != null ? song.billboardWeeks + (song.billboardWeeks == 1 ? ' week' : ' weeks') : 'N/A'}"></th:block>
+                            <th:block th:case="'billboard_weeks_at_peak'" th:text="${song.billboardWeeksAtPeak != null ? song.billboardWeeksAtPeak + (song.billboardWeeksAtPeak == 1 ? ' week' : ' weeks') : 'N/A'}"></th:block>
                             <th:block th:case="'length'" th:text="${song.lengthFormatted != null ? song.lengthFormatted : 'N/A'}"></th:block>
                             <th:block th:case="'release_date'" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}"></th:block>
                             <th:block th:case="'first_listened'" th:text="${song.firstListenedDate != null ? song.firstListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'last_listened'" th:text="${song.lastListenedDate != null ? song.lastListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'track_number'" th:text="${song.trackNumber != null ? song.trackNumber : 'N/A'}"></th:block>
                             <th:block th:case="'trl_days'" th:text="${song.trlDays != null ? song.trlDays + (song.trlDays == 1 ? ' day' : ' days') : 'N/A'}"></th:block>
+                            <th:block th:case="'trl_days_at_peak'" th:text="${song.trlDaysAtPeak != null ? song.trlDaysAtPeak + (song.trlDaysAtPeak == 1 ? ' day' : ' days') : 'N/A'}"></th:block>
                             <th:block th:case="'trl_peak'" th:text="${song.trlPeak != null ? '#' + song.trlPeak : 'N/A'}"></th:block>
                             <th:block th:case="'vatos_cuntdown_days'" th:text="${song.vatosCuntdownDays != null ? song.vatosCuntdownDays + (song.vatosCuntdownDays == 1 ? ' day' : ' days') : 'N/A'}"></th:block>
+                            <th:block th:case="'vatos_cuntdown_days_at_peak'" th:text="${song.vatosCuntdownDaysAtPeak != null ? song.vatosCuntdownDaysAtPeak + (song.vatosCuntdownDaysAtPeak == 1 ? ' day' : ' days') : 'N/A'}"></th:block>
                             <th:block th:case="'vatos_cuntdown_peak'" th:text="${song.vatosCuntdownPeak != null ? '#' + song.vatosCuntdownPeak : 'N/A'}"></th:block>
                             <th:block th:case="'age_at_release'" th:text="${song.ageAtRelease != null ? song.ageAtRelease : 'N/A'}"></th:block>
                             <th:block th:case="'birth_date'" th:text="${song.birthDate != null ? song.birthDate : 'N/A'}"></th:block>
@@ -1871,6 +1950,7 @@
                             <th:block th:case="'seasonal_chart_peak'" th:text="${song.seasonalChartPeak != null ? '#' + song.seasonalChartPeak + ' for ' + song.seasonalChartPeakSeasons + (song.seasonalChartPeakSeasons == 1 ? ' season' : ' seasons') + (song.seasonalChartPeakPeriod != null ? ' (' + song.seasonalChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
                             <th:block th:case="'weeks_listened'" th:text="${song.weeksListened + (song.weeksListened == 1 ? ' week' : ' weeks')}"></th:block>
                             <th:block th:case="'weekly_chart_peak'" th:text="${song.weeklyChartPeak != null ? '#' + song.weeklyChartPeak + ' for ' + song.weeklyChartPeakWeeks + (song.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks') + (song.weeklyChartPeakStartDate != null ? ' (' + song.weeklyChartPeakStartDate + ')' : '') : 'N/A'}"></th:block>
+                            <th:block th:case="'weekly_chart_peak_weeks'" th:text="${song.weeklyChartPeakWeeks != null ? song.weeklyChartPeakWeeks + (song.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks') : 'N/A'}"></th:block>
                             <th:block th:case="'weekly_chart_weeks'" th:text="${song.weeklyChartWeeks}"></th:block>
                             <th:block th:case="'years_listened'" th:text="${song.yearsListened + (song.yearsListened == 1 ? ' year' : ' years')}"></th:block>
                             <th:block th:case="'yearly_chart_peak'" th:text="${song.yearlyChartPeak != null ? '#' + song.yearlyChartPeak + ' for ' + song.yearlyChartPeakYears + (song.yearlyChartPeakYears == 1 ? ' year' : ' years') + (song.yearlyChartPeakPeriod != null ? ' (' + song.yearlyChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
@@ -2097,12 +2177,16 @@
                             <th data-sort="seasonalChartPeak" data-col="seasonalChartPeak" style="text-align:right;display:none;">Seasonal Peak</th>
                             <th data-sort="weeklyChartPeak" data-col="weeklyChartPeak" style="text-align:right;display:none;">Weekly Peak</th>
                             <th data-sort="weeklyChartWeeks" data-col="weeklyChartWeeks" style="text-align:right;display:none;">Weekly Weeks</th>
+                            <th data-sort="weeklyChartPeakWeeks" data-col="weeklyChartPeakWeeks" style="text-align:right;display:none;">Weekly Weeks @ Peak</th>
                             <th data-sort="trlPeak" data-col="trlPeak" style="text-align:right;display:none;">TRL Peak</th>
                             <th data-sort="trlDays" data-col="trlDays" style="text-align:right;display:none;">TRL Days</th>
+                            <th data-sort="trlDaysAtPeak" data-col="trlDaysAtPeak" style="text-align:right;display:none;">TRL Days @ Peak</th>
                             <th data-sort="vatosCuntdownPeak" data-col="vatosCuntdownPeak" style="text-align:right;display:none;">Vato's Peak</th>
                             <th data-sort="vatosCuntdownDays" data-col="vatosCuntdownDays" style="text-align:right;display:none;">Vato's Days</th>
+                            <th data-sort="vatosCuntdownDaysAtPeak" data-col="vatosCuntdownDaysAtPeak" style="text-align:right;display:none;">Vato's Days @ Peak</th>
                             <th data-sort="billboardPeak" data-col="billboardPeak" style="text-align:right;display:none;">Billboard Peak</th>
                             <th data-sort="billboardWeeks" data-col="billboardWeeks" style="text-align:right;display:none;">Billboard Weeks</th>
+                            <th data-sort="billboardWeeksAtPeak" data-col="billboardWeeksAtPeak" style="text-align:right;display:none;">Billboard Weeks @ Peak</th>
                             <th data-sort="yearlyChartPeak" data-col="yearlyChartPeak" style="text-align:right;display:none;">Yearly Peak</th>
                             <th data-sort="genre" data-col="genre" style="display:none;">Genre</th>
                             <th data-sort="subgenre" data-col="subgenre" style="display:none;">Subgenre</th>

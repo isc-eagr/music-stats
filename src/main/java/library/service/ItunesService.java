@@ -756,7 +756,7 @@ public class ItunesService {
      * Create strict lookup key for artist + album + song for iTunes Only page.
      * Only normalizes case and punctuation - no removal of parentheses, brackets, or featuring text.
      */
-    private String createStrictSongLookupKey(String artist, String album, String song) {
+    String createStrictSongLookupKey(String artist, String album, String song) {
         String a = normalizeForStrictMatch(artist);
         String al = normalizeForStrictMatch(album);
         String s = normalizeForStrictMatch(song);
@@ -767,7 +767,7 @@ public class ItunesService {
      * Normalize for strict matching: lowercase + strip accents + trim + remove punctuation only.
      * Does NOT remove parentheses, brackets, or featuring text.
      */
-    private String normalizeForStrictMatch(String input) {
+    String normalizeForStrictMatch(String input) {
         if (input == null || input.isBlank()) {
             return "";
         }

@@ -329,28 +329,110 @@ public final class SqlFilterHelper {
                                               Integer peak, Integer countMin,
                                               String dateFrom, String dateTo,
                                               String season) {
-        if (peak == null && countMin == null && !hasValue(dateFrom) && !hasValue(dateTo) && !hasValue(season)) {
+        appendChartStatsFilter(sql, params, chartEntryItemColumn, outerItemIdExpression, chartType, periodType,
+                countAlias, peak, countMin, dateFrom, dateTo, season, null);
+    }
+
+    public static void appendChartStatsFilter(StringBuilder sql, List<Object> params,
+                                              String chartEntryItemColumn, String outerItemIdExpression,
+                                              String chartType, String periodType, String countAlias,
+                                              Integer peak, Integer countMin,
+                                              String dateFrom, String dateTo,
+                                              String season, Integer atPeakMin) {
+        appendChartStatsFilter(sql, params, chartEntryItemColumn, outerItemIdExpression, chartType, periodType,
+                countAlias, peak, null, countMin, dateFrom, dateTo, season, atPeakMin, null);
+    }
+
+    public static void appendChartStatsFilter(StringBuilder sql, List<Object> params,
+                                              String chartEntryItemColumn, String outerItemIdExpression,
+                                              String chartType, String periodType, String countAlias,
+                                              Integer peak, String peakMode, Integer countMin,
+                                              String dateFrom, String dateTo,
+                                              String season, Integer atPeakValue, String atPeakMode) {
+        boolean hasStatsFilter = peak != null || countMin != null || hasValue(dateFrom) || hasValue(dateTo) || hasValue(season);
+        if (!hasStatsFilter && atPeakValue == null) {
             return;
         }
 
-        sql.append(" AND EXISTS (SELECT 1 FROM (");
-        sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as ").append(countAlias).append(" ");
-        sql.append("FROM ChartEntry ce ");
-        sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-        sql.append("WHERE ").append(chartEntryItemColumn).append(" = ").append(outerItemIdExpression);
-        sql.append(" AND c.chart_type = '").append(chartType).append("' AND c.period_type = '").append(periodType).append("'");
-        appendChartDateOverlapFilter(sql, params, "c.period_start_date", "c.period_end_date", dateFrom, dateTo);
-        appendChartSeasonFilter(sql, params, periodType, season);
-        sql.append(") chart_stats WHERE chart_stats.").append(countAlias).append(" > 0");
-        if (peak != null) {
-            sql.append(" AND chart_stats.peak <= ?");
-            params.add(peak);
+        if (hasStatsFilter) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as ").append(countAlias).append(" ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ").append(chartEntryItemColumn).append(" = ").append(outerItemIdExpression);
+            sql.append(" AND c.chart_type = '").append(chartType).append("' AND c.period_type = '").append(periodType).append("'");
+            appendChartDateOverlapFilter(sql, params, "c.period_start_date", "c.period_end_date", dateFrom, dateTo);
+            appendChartSeasonFilter(sql, params, periodType, season);
+            sql.append(") chart_stats WHERE chart_stats.").append(countAlias).append(" > 0");
+            if (peak != null) {
+                appendChartPeakComparison(sql, params, "chart_stats.peak", peak, peakMode);
+            }
+            if (countMin != null) {
+                sql.append(" AND chart_stats.").append(countAlias).append(" >= ?");
+                params.add(countMin);
+            }
+            sql.append(")");
         }
-        if (countMin != null) {
-            sql.append(" AND chart_stats.").append(countAlias).append(" >= ?");
-            params.add(countMin);
+
+        if (atPeakValue != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM (");
+            sql.append("SELECT ce.position, COUNT(DISTINCT c.id) as at_peak ");
+            sql.append("FROM ChartEntry ce ");
+            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
+            sql.append("WHERE ").append(chartEntryItemColumn).append(" = ").append(outerItemIdExpression);
+            sql.append(" AND c.chart_type = '").append(chartType).append("' AND c.period_type = '").append(periodType).append("'");
+            appendChartDateOverlapFilter(sql, params, "c.period_start_date", "c.period_end_date", dateFrom, dateTo);
+            appendChartSeasonFilter(sql, params, periodType, season);
+            sql.append(" GROUP BY ce.position ORDER BY ce.position ASC LIMIT 1");
+            sql.append(") chart_peak_stats WHERE 1=1");
+            appendNumericComparison(sql, params, "chart_peak_stats.at_peak", atPeakValue, atPeakMode, ">=");
+            sql.append(")");
         }
-        sql.append(")");
+    }
+
+    public static void appendChartPeakComparison(StringBuilder sql, List<Object> params,
+                                                 String expression, Integer value, String mode) {
+        if (value == null) {
+            return;
+        }
+        String normalizedMode = mode == null || mode.isBlank() ? "top" : mode.toLowerCase();
+        switch (normalizedMode) {
+            case "exact", "eq", "=" -> {
+                sql.append(" AND ").append(expression).append(" = ?");
+                params.add(value);
+            }
+            case "lower", "worse", "lt", "<" -> {
+                sql.append(" AND ").append(expression).append(" > ?");
+                params.add(value);
+            }
+            case "higher", "better", "gt", ">" -> {
+                sql.append(" AND ").append(expression).append(" < ?");
+                params.add(value);
+            }
+            default -> {
+                sql.append(" AND ").append(expression).append(" <= ?");
+                params.add(value);
+            }
+        }
+    }
+
+    public static void appendNumericComparison(StringBuilder sql, List<Object> params,
+                                               String expression, Integer value, String mode,
+                                               String defaultOperator) {
+        if (value == null) {
+            return;
+        }
+        String normalizedMode = mode == null || mode.isBlank() ? defaultOperator : mode.toLowerCase();
+        String operator = switch (normalizedMode) {
+            case "exact", "eq", "=" -> "=";
+            case "lt", "<" -> "<";
+            case "lte", "<=" -> "<=";
+            case "gt", ">" -> ">";
+            case "gte", ">=" -> ">=";
+            default -> defaultOperator;
+        };
+        sql.append(" AND ").append(expression).append(" ").append(operator).append(" ?");
+        params.add(value);
     }
 
     public static void appendDateRangeBounds(StringBuilder sql, List<Object> params,

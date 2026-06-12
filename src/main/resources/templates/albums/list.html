@@ -87,6 +87,7 @@
                             <option value="plays" th:selected="${sortBy == 'plays'}">Total Plays</option>
                             <option value="weeks_listened" th:selected="${sortBy == 'weeks_listened'}">Weeks Listened</option>
                             <option value="weekly_chart_peak" th:selected="${sortBy == 'weekly_chart_peak'}">Weekly Chart Peak</option>
+                            <option value="weekly_chart_peak_weeks" th:selected="${sortBy == 'weekly_chart_peak_weeks'}">Weekly Chart Weeks @ Peak</option>
                             <option value="weekly_chart_weeks" th:selected="${sortBy == 'weekly_chart_weeks'}">Weekly Chart Total Weeks</option>
                             <option value="years_listened" th:selected="${sortBy == 'years_listened'}">Years Listened</option>
                             <option value="yearly_chart_peak" th:selected="${sortBy == 'yearly_chart_peak'}">Yearly Chart Peak</option>
@@ -1008,10 +1009,25 @@
                                     <div class="filter-item-content">
                                         <div class="filter-group">
                                             <label class="field"><span>Peak Position ≤</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeak" data-mode="top" th:classappend="${weeklyChartPeakMode == null or weeklyChartPeakMode == 'top' ? 'active' : ''}">Top N</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeak" data-mode="exact" th:classappend="${weeklyChartPeakMode == 'exact' ? 'active' : ''}">Exact</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeak" data-mode="lower" th:classappend="${weeklyChartPeakMode == 'lower' ? 'active' : ''}">Below N</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="weeklyChartPeakMode" id="weeklyChartPeakMode" th:value="${weeklyChartPeakMode ?: 'top'}" />
                                                 <input type="number" autocomplete="off" name="weeklyChartPeak" th:value="${weeklyChartPeak}" placeholder="e.g. 10" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Total Weeks ≥</span>
                                                 <input type="number" autocomplete="off" name="weeklyChartWeeks" th:value="${weeklyChartWeeks}" placeholder="e.g. 5" min="1" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Weeks @ Peak &ge;</span>
+                                                <div class="filter-modifiers">
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeakWeeks" data-mode="gte" th:classappend="${weeklyChartPeakWeeksMode == null or weeklyChartPeakWeeksMode == 'gte' ? 'active' : ''}">&gt;=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeakWeeks" data-mode="exact" th:classappend="${weeklyChartPeakWeeksMode == 'exact' ? 'active' : ''}">=</button>
+                                                    <button type="button" class="filter-modifier" data-filter="weeklyChartPeakWeeks" data-mode="lte" th:classappend="${weeklyChartPeakWeeksMode == 'lte' ? 'active' : ''}">&lt;=</button>
+                                                </div>
+                                                <input type="hidden" autocomplete="off" name="weeklyChartPeakWeeksMode" id="weeklyChartPeakWeeksMode" th:value="${weeklyChartPeakWeeksMode ?: 'gte'}" />
+                                                <input type="number" autocomplete="off" name="weeklyChartPeakWeeks" th:value="${weeklyChartPeakWeeks}" placeholder="e.g. 2" min="1" style="width: 100%;" />
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>Charted From</span>
                                                 <input type="text" autocomplete="off" name="weeklyChartDateFrom" th:value="${weeklyChartDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
@@ -1502,18 +1518,20 @@
             </div>
             
             <!-- Weekly Chart filter chip -->
-            <div class="filter-chip" th:if="${weeklyChartPeak != null or weeklyChartWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()) or (weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty())}">
+            <div class="filter-chip" th:if="${weeklyChartPeak != null or weeklyChartWeeks != null or weeklyChartPeakWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()) or (weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty())}">
                 <span class="filter-chip-label">
                     📊 Weekly Chart:
                     <span th:if="${weeklyChartPeak != null}">Peak ≤ <span th:text="${weeklyChartPeak}"></span></span>
                     <span th:if="${weeklyChartPeak != null and weeklyChartWeeks != null}">, </span>
                     <span th:if="${weeklyChartWeeks != null}">Weeks ≥ <span th:text="${weeklyChartWeeks}"></span></span>
-                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null) and weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}">, </span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null) and weeklyChartPeakWeeks != null}">, </span>
+                    <span th:if="${weeklyChartPeakWeeks != null}">Weeks @ Peak &ge; <span th:text="${weeklyChartPeakWeeks}"></span></span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null or weeklyChartPeakWeeks != null) and weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}">, </span>
                     <span th:if="${weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty()}">From <span th:text="${weeklyChartDateFrom}"></span></span>
-                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty())) and weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}">, </span>
+                    <span th:if="${(weeklyChartPeak != null or weeklyChartWeeks != null or weeklyChartPeakWeeks != null or (weeklyChartDateFrom != null and !weeklyChartDateFrom.isEmpty())) and weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}">, </span>
                     <span th:if="${weeklyChartDateTo != null and !weeklyChartDateTo.isEmpty()}">To <span th:text="${weeklyChartDateTo}"></span></span>
                 </span>
-                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartWeeks', 'weeklyChartDateFrom', 'weeklyChartDateTo')" type="button">×</button>
+                <button class="filter-chip-remove" onclick="removeFilter('weeklyChartPeak', 'weeklyChartPeakMode', 'weeklyChartWeeks', 'weeklyChartPeakWeeks', 'weeklyChartPeakWeeksMode', 'weeklyChartDateFrom', 'weeklyChartDateTo')" type="button">×</button>
             </div>
 
             <div class="filter-chip" th:if="${weeklyChartSeason != null and !weeklyChartSeason.isEmpty()}">
@@ -1682,6 +1700,7 @@
                             <th:block th:case="'seasonal_chart_peak'">Seasonal Peak:</th:block>
                             <th:block th:case="'weeks_listened'">Weeks Listened:</th:block>
                             <th:block th:case="'weekly_chart_peak'">Weekly Peak:</th:block>
+                            <th:block th:case="'weekly_chart_peak_weeks'">Weekly @ Peak:</th:block>
                             <th:block th:case="'weekly_chart_weeks'">Weekly Weeks:</th:block>
                             <th:block th:case="'years_listened'">Years Listened:</th:block>
                             <th:block th:case="'yearly_chart_peak'">Yearly Peak:</th:block>
@@ -1704,6 +1723,7 @@
                             <th:block th:case="'seasonal_chart_peak'" th:text="${album.seasonalChartPeak != null ? '#' + album.seasonalChartPeak + ' for ' + album.seasonalChartPeakSeasons + (album.seasonalChartPeakSeasons == 1 ? ' season' : ' seasons') + (album.seasonalChartPeakPeriod != null ? ' (' + album.seasonalChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
                             <th:block th:case="'weeks_listened'" th:text="${album.weeksListened + (album.weeksListened == 1 ? ' week' : ' weeks')}"></th:block>
                             <th:block th:case="'weekly_chart_peak'" th:text="${album.weeklyChartPeak != null ? '#' + album.weeklyChartPeak + ' for ' + album.weeklyChartPeakWeeks + (album.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks') + (album.weeklyChartPeakStartDate != null ? ' (' + album.weeklyChartPeakStartDate + ')' : '') : 'N/A'}"></th:block>
+                            <th:block th:case="'weekly_chart_peak_weeks'" th:text="${album.weeklyChartPeakWeeks != null ? album.weeklyChartPeakWeeks + (album.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks') : 'N/A'}"></th:block>
                             <th:block th:case="'weekly_chart_weeks'" th:text="${album.weeklyChartWeeks}"></th:block>
                             <th:block th:case="'years_listened'" th:text="${album.yearsListened + (album.yearsListened == 1 ? ' year' : ' years')}"></th:block>
                             <th:block th:case="'yearly_chart_peak'" th:text="${album.yearlyChartPeak != null ? '#' + album.yearlyChartPeak + ' for ' + album.yearlyChartPeakYears + (album.yearlyChartPeakYears == 1 ? ' year' : ' years') + (album.yearlyChartPeakPeriod != null ? ' (' + album.yearlyChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
@@ -1960,6 +1980,7 @@
                             <th data-sort="songsWithFeatCount" data-col="songsWithFeatCount" style="text-align:right;display:none;">Songs W/ Features</th>
                             <th data-sort="weeklyChartPeak" data-col="weeklyChartPeak" style="text-align:right;display:none;">Weekly Peak</th>
                             <th data-sort="weeklyChartWeeks" data-col="weeklyChartWeeks" style="text-align:right;display:none;">Weekly Weeks</th>
+                            <th data-sort="weeklyChartPeakWeeks" data-col="weeklyChartPeakWeeks" style="text-align:right;display:none;">Weekly Weeks @ Peak</th>
                             <th data-sort="yearlyChartPeak" data-col="yearlyChartPeak" style="text-align:right;display:none;">Yearly Peak</th>
                             <th data-sort="genre" data-col="genre" style="display:none;">Genre</th>
                             <th data-sort="subgenre" data-col="subgenre" style="display:none;">Subgenre</th>

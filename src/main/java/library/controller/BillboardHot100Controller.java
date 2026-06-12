@@ -117,7 +117,14 @@ public class BillboardHot100Controller {
     @PostMapping("/import")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> importCharts() {
-        return ResponseEntity.ok(billboardHot100Service.importIncrementalCharts());
+        try {
+            return ResponseEntity.ok(billboardHot100Service.importIncrementalCharts());
+        } catch (Exception e) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("ok", false);
+            result.put("error", e.getMessage() != null ? e.getMessage() : "Billboard import failed");
+            return ResponseEntity.internalServerError().body(result);
+        }
     }
 
     @PostMapping("/auto-link")

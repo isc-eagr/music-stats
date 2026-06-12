@@ -190,6 +190,23 @@
         .bb-match-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(126, 208, 255, 0.45); background: rgba(126, 208, 255, 0.08); color: #7ed0ff; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
         .bb-match-btn:hover { border-color: rgba(126, 208, 255, 0.8); color: #b7ebff; }
         .bb-empty { text-align: center; padding: 55px 20px; color: #666; font-size: 0.95rem; }
+        .bb-index-col {
+            width: 48px;
+            min-width: 48px;
+            max-width: 48px;
+            text-align: center;
+            color: #8b8e98;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+        }
+        .bb-import-status {
+            color: #8f96a3;
+            font-size: 0.84rem;
+            font-weight: 700;
+            min-height: 1.2em;
+        }
+        .bb-import-status.success { color: #7fe9a5; }
+        .bb-import-status.error { color: #fca5a5; }
         .bb-infinite-loading {
             display: none;
             text-align: center;
@@ -333,6 +350,7 @@
 
         <div class="bb-toolbar">
             <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbImportBtn" onclick="runBillboardImport(this)">Incremental Refresh</button>
+            <div th:if="${overviewTab == 'song'}" id="billboardImportStatus" class="bb-import-status" role="status" aria-live="polite"></div>
             <button id="billboardLoadAllButton" type="button" class="bb-btn" hidden th:if="${resultTotal > size}" onclick="window.loadAllBillboardOverviewResults && window.loadAllBillboardOverviewResults()">Load all</button>
             <a th:if="${overviewTab == 'artist'}"
                class="bb-btn"
@@ -364,6 +382,7 @@
             <table class="bb-table" id="billboardTable">
                 <thead>
                     <tr>
+                        <th class="bb-index-col" data-no-sort>#</th>
                         <th class="center bb-image-col" data-no-sort></th>
                         <th></th>
                         <th class="center" th:classappend="${sort == 'weeks'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
@@ -402,6 +421,7 @@
                         th:data-song-id="${entry.songId}"
                         th:data-bb-idx="${iterStat.index}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="bb-index-col row-num-col" th:text="${iterStat.count}">1</td>
                         <td class="center bb-overview-image-cell">
                             <div th:if="${entry.songId != null and entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="bb-overview-song-image-stack">
                                 <img th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
@@ -462,7 +482,7 @@
                         </td>
                     </tr>
                     <tr class="detail-row bb-detail-row">
-                        <td colspan="12" class="bb-detail-cell">
+                        <td colspan="13" class="bb-detail-cell">
                             <div class="bb-run-stats">
                                 <div class="bb-run-stat"><div class="bb-run-stat-label">#1</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop1}">0</div></div>
                                 <div class="bb-run-stat"><div class="bb-run-stat-label">Top 5</div><div class="bb-run-stat-value" th:text="${entry.weeksAtTop5}">0</div></div>
@@ -476,7 +496,7 @@
                     </tr>
                     </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="12" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
+                        <td colspan="13" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
                     </tr>
                 </tbody>
             </table>
@@ -489,6 +509,7 @@
             <table class="bb-table" id="billboardAlbumTable">
                 <thead>
                     <tr>
+                        <th class="bb-index-col" data-no-sort>#</th>
                         <th class="center bb-image-col" data-no-sort></th>
                         <th th:classappend="${sort == 'artist'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'artist'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='album',page=1,size=${size},sort='artist',dir=${sort == 'artist' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Artist</a>
@@ -521,6 +542,7 @@
                 </thead>
                 <tbody id="billboardAlbumTableBody">
                     <tr th:each="entry : ${albumEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="bb-index-col row-num-col" th:text="${entryStat.count}">1</td>
                         <td class="center bb-overview-image-cell">
                             <img th:if="${entry.albumId != null and entry.hasImage}"
                                  th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
@@ -563,7 +585,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumEntries)}">
-                        <td colspan="10" class="bb-empty">No linked albums have charted on the Billboard Hot 100 yet.</td>
+                        <td colspan="11" class="bb-empty">No linked albums have charted on the Billboard Hot 100 yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -576,6 +598,7 @@
             <table class="bb-table" id="billboardArtistTable">
                 <thead>
                     <tr>
+                        <th class="bb-index-col" data-no-sort>#</th>
                         <th class="center bb-image-col" data-no-sort></th>
                         <th th:classappend="${sort == 'artist'} ? (dir == 'asc' ? ' sorted-asc' : ' sorted-desc') : ''">
                             <a class="bb-sort-link" th:classappend="${sort == 'artist'} ? 'active' : ''" th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort='artist',dir=${sort == 'artist' and dir == 'asc' ? 'desc' : 'asc'},q=${q})}">Artist</a>
@@ -605,6 +628,7 @@
                 </thead>
                 <tbody id="billboardArtistTableBody">
                     <tr th:each="entry : ${artistEntries}" th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="bb-index-col row-num-col" th:text="${entryStat.count}">1</td>
                         <td class="center bb-overview-image-cell">
                             <img th:if="${entry.resolvedArtistId != null and entry.hasImage}"
                                  th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId}, thumbnail=true)}"
@@ -643,7 +667,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistEntries)}">
-                        <td colspan="9" class="bb-empty">No artist overview rows found yet.</td>
+                        <td colspan="10" class="bb-empty">No artist overview rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -682,6 +706,20 @@
             if (overviewTab === 'album') return document.getElementById('billboardAlbumTableBody');
             if (overviewTab === 'artist') return document.getElementById('billboardArtistTableBody');
             return document.getElementById('billboardTableBody');
+        }
+
+        function updateBillboardRowCounters() {
+            const container = document.getElementById('billboardOverviewContainer');
+            const overviewTab = container?.dataset?.overviewTab || 'song';
+            const tbody = getBillboardOverviewBody(overviewTab);
+            if (!tbody) return;
+            let counter = 0;
+            tbody.querySelectorAll('tr').forEach(row => {
+                const cell = row.querySelector('.row-num-col');
+                if (!cell) return;
+                const hidden = row.style.display === 'none';
+                cell.textContent = hidden ? '' : String(++counter);
+            });
         }
 
         function preserveBillboardFeaturedLinks() {
@@ -867,6 +905,7 @@
                     + ' data-song-id="' + (entry.songId != null ? entry.songId : '') + '"'
                     + ' data-bb-idx="' + idx + '"'
                     + ' class="' + genderClass.trim() + '">'
+                    + '<td class="bb-index-col row-num-col"></td>'
                     + renderBillboardSongImageCell(entry)
                     + '<td class="center"><button class="bb-expand-btn" onclick="toggleBbExpand(this)" title="Show chart tier stats">+</button></td>'
                     + '<td class="center" data-value="' + entry.weeksOnChart + '">' + entry.weeksOnChart + '</td>'
@@ -881,7 +920,7 @@
                     + '<td>' + libraryButton + '</td>'
                     + '</tr>'
                     + '<tr class="detail-row bb-detail-row">'
-                    + '<td colspan="12" class="bb-detail-cell">'
+                    + '<td colspan="13" class="bb-detail-cell">'
                     + '<div class="bb-run-stats">'
                     + '<div class="bb-run-stat"><div class="bb-run-stat-label">#1</div><div class="bb-run-stat-value">' + entry.weeksAtTop1 + '</div></div>'
                     + '<div class="bb-run-stat"><div class="bb-run-stat-label">Top 5</div><div class="bb-run-stat-value">' + entry.weeksAtTop5 + '</div></div>'
@@ -908,6 +947,7 @@
                 const numberOnesCell = buildBillboardNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
+                    + '<td class="bb-index-col row-num-col"></td>'
                     + renderBillboardImageCell('album', entry.albumId, entry.hasImage)
                     + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td data-value="' + escapeBillboardHtml(entry.albumName) + '">' + albumCell + '</td>'
@@ -931,6 +971,7 @@
                 const numberOneSpanCell = buildBillboardNumberOneTooltipTrigger(String(entry.totalSpanAtNumberOne), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr' + genderClass + '>'
+                    + '<td class="bb-index-col row-num-col"></td>'
                     + renderBillboardImageCell('artist', entry.resolvedArtistId, entry.hasImage)
                     + '<td data-value="' + escapeBillboardHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
@@ -1043,6 +1084,7 @@
                         : renderBillboardSongRows(entries);
                     tbody.insertAdjacentHTML('beforeend', html);
                     initializeBillboardNumberOneTooltips(tbody);
+                    updateBillboardRowCounters();
                     addedCount = entries.length;
                     loadedCount += addedCount;
                     nextPage = data.nextPage || (nextPage + 1);
@@ -1086,23 +1128,88 @@
             updateLoadAllButton();
         }
 
+        const BILLBOARD_IMPORT_TOAST_KEY = 'musicStats.billboardImportToast';
+
+        function queueBillboardImportToast(type, message) {
+            try {
+                sessionStorage.setItem(BILLBOARD_IMPORT_TOAST_KEY, JSON.stringify({ type, message }));
+            } catch (error) {
+                const status = document.getElementById('billboardImportStatus');
+                if (status) {
+                    status.className = 'bb-import-status ' + (type === 'error' ? 'error' : 'success');
+                    status.textContent = message;
+                }
+            }
+        }
+
+        function showQueuedBillboardImportToast() {
+            let payload = null;
+            try {
+                const raw = sessionStorage.getItem(BILLBOARD_IMPORT_TOAST_KEY);
+                if (!raw) {
+                    return;
+                }
+                sessionStorage.removeItem(BILLBOARD_IMPORT_TOAST_KEY);
+                payload = JSON.parse(raw);
+            } catch (error) {
+                return;
+            }
+
+            if (!payload || !payload.message) {
+                return;
+            }
+
+            if (payload.type === 'success' && typeof showSuccessToast === 'function') {
+                showSuccessToast(payload.message, 7000);
+            } else if (payload.type === 'error' && typeof showErrorToast === 'function') {
+                showErrorToast(payload.message, 8000);
+            } else if (typeof showToast === 'function') {
+                showToast(payload.message, payload.type || 'info', 7000);
+            }
+        }
+
         function runBillboardImport(btn) {
+            const status = document.getElementById('billboardImportStatus');
+            if (status) {
+                status.className = 'bb-import-status';
+                status.textContent = 'Checking GitHub for new chart weeks...';
+            }
             btn.disabled = true;
             btn.textContent = 'Refreshing...';
             showPageBusyOverlay('Refreshing Billboard overview', 'Checking for new chart weeks on GitHub...');
             fetch('/misc/billboard-hot-100/import', { method: 'POST' })
-                .then(r => r.json())
+                .then(r => r.json().then(data => {
+                    if (!r.ok || data.ok === false) {
+                        throw new Error(data.error || data.message || ('HTTP ' + r.status));
+                    }
+                    return data;
+                }))
                 .then(data => {
+                    hidePageBusyOverlay();
+                    const weeksImported = Number(data.chartsImported || 0);
+                    const rowsImported = Number(data.rowsImported || 0);
+                    const message = weeksImported > 0
+                        ? 'Imported ' + weeksImported + ' week' + (weeksImported === 1 ? '' : 's') + ' (' + rowsImported + ' rows).'
+                        : 'Billboard overview is already current: 0 new weeks imported.';
+                    queueBillboardImportToast('success', message);
+                    if (status) {
+                        status.className = 'bb-import-status';
+                        status.textContent = 'Refreshing Billboard overview...';
+                    }
                     btn.textContent = data.rowsImported > 0
                         ? 'Added ' + data.rowsImported + ' rows'
                         : 'Already current';
-                    window.location.reload();
+                    setTimeout(() => window.location.reload(), 250);
                 })
-                .catch(() => {
+                .catch(error => {
                     hidePageBusyOverlay();
-                    btn.disabled = false;
-                    btn.textContent = 'Incremental Refresh';
-                    alert('Billboard import failed.');
+                    const message = 'Billboard import failed: ' + (error && error.message ? error.message : 'Unknown error');
+                    queueBillboardImportToast('error', message);
+                    if (status) {
+                        status.className = 'bb-import-status';
+                        status.textContent = 'Refreshing Billboard overview...';
+                    }
+                    setTimeout(() => window.location.reload(), 250);
                 });
         }
 
@@ -1361,9 +1468,11 @@
         }
 
         window.addEventListener('load', function() {
+            showQueuedBillboardImportToast();
             preserveBillboardFeaturedLinks();
             setupBillboardInfiniteScroll();
             initializeBillboardNumberOneTooltips(document);
+            updateBillboardRowCounters();
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });

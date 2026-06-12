@@ -1647,6 +1647,9 @@ public class ChartService {
      * Get chart history for a song (the song's own chart entries).
      */
     public List<ChartHistoryDTO> getSongChartHistory(Integer songId) {
+        List<Integer> songIds = songLinkService.getLinkedSongIds(songId);
+        String placeholders = String.join(",", songIds.stream().map(id -> "?").toList());
+
         String sql = """
             SELECT s.id, s.name, MIN(ce.position) as peak_position, 
                    COUNT(*) as total_weeks,
@@ -1655,11 +1658,11 @@ public class ChartService {
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
-            WHERE s.id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
+            WHERE s.id IN (%s) AND c.chart_type = 'song' AND c.period_type = 'weekly'
             GROUP BY s.id, s.name, s.album_id
-            """;
+            """.formatted(placeholders);
         
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, songId);
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, songIds.toArray());
         List<ChartHistoryDTO> result = new ArrayList<>();
         
         for (Map<String, Object> row : rows) {
@@ -1696,7 +1699,7 @@ public class ChartService {
             result.add(dto);
         }
         
-        return result;
+        return combineLinkedSongChartHistory(result);
     }
     
     /**
@@ -2684,15 +2687,23 @@ public class ChartService {
      */
     public List<Map<String, Object>> getChartHistoryForItem(Integer itemId, String chartType, String periodType) {
         String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
+        List<Integer> itemIds = "song".equals(chartType) ? songLinkService.getLinkedSongIds(itemId) : List.of(itemId);
+        String placeholders = String.join(",", itemIds.stream().map(id -> "?").toList());
+
         // Exclude extra songs (position > 30) from chart history
         String sql = String.format("""
-            SELECT ce.position, c.period_key
+            SELECT MIN(ce.position) as position, c.period_key
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
-            WHERE ce.%s = ? AND c.period_type = ? AND c.chart_type = ? AND c.is_finalized = 1
+            WHERE ce.%s IN (%s) AND c.period_type = ? AND c.chart_type = ? AND c.is_finalized = 1
               AND ce.position <= %d
+            GROUP BY c.period_key, c.period_start_date
             ORDER BY c.period_start_date DESC
-            """, idColumn, SEASONAL_YEARLY_SONGS_COUNT);
+            """, idColumn, placeholders, SEASONAL_YEARLY_SONGS_COUNT);
+
+        List<Object> params = new ArrayList<>(itemIds);
+        params.add(periodType);
+        params.add(chartType);
         
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> entry = new HashMap<>();
@@ -2703,7 +2714,7 @@ public class ChartService {
             entry.put("displayName", "#" + position + " in " + 
                 ("seasonal".equals(periodType) ? formatSeasonPeriodKey(periodKey) : periodKey));
             return entry;
-        }, itemId, periodType, chartType);
+        }, params.toArray());
     }
 
     /**

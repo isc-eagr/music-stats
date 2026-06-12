@@ -129,6 +129,7 @@ const listViewSortParamMap = {
         songsWithFeatCount: 'songs_with_features',
         weeklyChartPeak: 'weekly_chart_peak',
         weeklyChartWeeks: 'weekly_chart_weeks',
+        weeklyChartPeakWeeks: 'weekly_chart_peak_weeks',
         yearlyChartPeak: 'yearly_chart_peak',
         genre: 'genre',
         subgenre: 'subgenre',
@@ -160,12 +161,16 @@ const listViewSortParamMap = {
         seasonalChartPeak: 'seasonal_chart_peak',
         weeklyChartPeak: 'weekly_chart_peak',
         weeklyChartWeeks: 'weekly_chart_weeks',
+        weeklyChartPeakWeeks: 'weekly_chart_peak_weeks',
         trlPeak: 'trl_peak',
         trlDays: 'trl_days',
+        trlDaysAtPeak: 'trl_days_at_peak',
         vatosCuntdownPeak: 'vatos_cuntdown_peak',
         vatosCuntdownDays: 'vatos_cuntdown_days',
+        vatosCuntdownDaysAtPeak: 'vatos_cuntdown_days_at_peak',
         billboardPeak: 'billboard_peak',
         billboardWeeks: 'billboard_weeks',
+        billboardWeeksAtPeak: 'billboard_weeks_at_peak',
         yearlyChartPeak: 'yearly_chart_peak',
         genre: 'genre',
         subgenre: 'subgenre',
@@ -240,6 +245,7 @@ const topColumnConfig = {
         { key: 'songsWithFeatCount', label: 'Songs w/ Features', defaultVisible: false, align: 'right' },
         { key: 'weeklyChartPeak', label: 'Weekly Peak', defaultVisible: false, align: 'right' },
         { key: 'weeklyChartWeeks', label: 'Weekly Weeks', defaultVisible: false, align: 'right' },
+        { key: 'weeklyChartPeakWeeks', label: 'Weekly Weeks @ Peak', defaultVisible: false, align: 'right' },
         { key: 'yearlyChartPeak', label: 'Yearly Peak', defaultVisible: false, align: 'right' },
         { key: 'genre', label: 'Genre', defaultVisible: false, align: 'left' },
         { key: 'subgenre', label: 'Subgenre', defaultVisible: false, align: 'left' },
@@ -250,6 +256,7 @@ const topColumnConfig = {
     songs: [
         { key: 'billboardPeak', label: 'Billboard Peak', defaultVisible: false, align: 'right' },
         { key: 'billboardWeeks', label: 'Billboard Weeks', defaultVisible: false, align: 'right' },
+        { key: 'billboardWeeksAtPeak', label: 'Billboard Weeks @ Peak', defaultVisible: false, align: 'right' },
         { key: 'plays', label: 'Total Plays', defaultVisible: true, align: 'right' },
         { key: 'primaryPlays', label: 'Primary Plays', defaultVisible: true, align: 'right' },
         { key: 'legacyPlays', label: 'Legacy Plays', defaultVisible: true, align: 'right' },
@@ -267,11 +274,14 @@ const topColumnConfig = {
         { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
         { key: 'seasonalChartPeak', label: 'Seasonal Peak', defaultVisible: false, align: 'right' },
         { key: 'trlDays', label: 'TRL Days', defaultVisible: false, align: 'right' },
+        { key: 'trlDaysAtPeak', label: 'TRL Days @ Peak', defaultVisible: false, align: 'right' },
         { key: 'trlPeak', label: 'TRL Peak', defaultVisible: false, align: 'right' },
         { key: 'vatosCuntdownDays', label: 'Vato\'s Days', defaultVisible: false, align: 'right' },
+        { key: 'vatosCuntdownDaysAtPeak', label: 'Vato\'s Days @ Peak', defaultVisible: false, align: 'right' },
         { key: 'vatosCuntdownPeak', label: 'Vato\'s Peak', defaultVisible: false, align: 'right' },
         { key: 'weeklyChartPeak', label: 'Weekly Peak', defaultVisible: false, align: 'right' },
         { key: 'weeklyChartWeeks', label: 'Weekly Weeks', defaultVisible: false, align: 'right' },
+        { key: 'weeklyChartPeakWeeks', label: 'Weekly Weeks @ Peak', defaultVisible: false, align: 'right' },
         { key: 'yearlyChartPeak', label: 'Yearly Peak', defaultVisible: false, align: 'right' },
         { key: 'genre', label: 'Genre', defaultVisible: false, align: 'left' },
         { key: 'subgenre', label: 'Subgenre', defaultVisible: false, align: 'left' },
@@ -1962,6 +1972,7 @@ function buildAlbumRow(album, rank) {
             <td style="text-align:right;display:${vis('songsWithFeatCount')};">${cellVal(album.songsWithFeatCount)}</td>
             <td style="text-align:right;display:${vis('weeklyChartPeak')};">${cellVal(album.weeklyChartPeak)}</td>
             <td style="text-align:right;display:${vis('weeklyChartWeeks')};">${cellVal(album.weeklyChartWeeks)}</td>
+            <td style="text-align:right;display:${vis('weeklyChartPeakWeeks')};">${cellVal(album.weeklyChartPeakWeeks)}</td>
             <td style="text-align:right;display:${vis('yearlyChartPeak')};">${cellVal(album.yearlyChartPeak)}</td>
             <td style="display:${vis('genre')};">${album.genre || '-'}</td>
             <td style="display:${vis('subgenre')};">${album.subgenre || '-'}</td>
@@ -2062,12 +2073,16 @@ function buildSongRow(song, rank) {
             <td style="text-align:right;display:${vis('seasonalChartPeak')};">${cellVal(song.seasonalChartPeak)}</td>
             <td style="text-align:right;display:${vis('weeklyChartPeak')};">${cellVal(song.weeklyChartPeak)}</td>
             <td style="text-align:right;display:${vis('weeklyChartWeeks')};">${cellVal(song.weeklyChartWeeks)}</td>
+            <td style="text-align:right;display:${vis('weeklyChartPeakWeeks')};">${cellVal(song.weeklyChartPeakWeeks)}</td>
             <td style="text-align:right;display:${vis('trlPeak')};">${cellVal(song.trlPeak)}</td>
             <td style="text-align:right;display:${vis('trlDays')};">${cellVal(song.trlDays)}</td>
+            <td style="text-align:right;display:${vis('trlDaysAtPeak')};">${cellVal(song.trlDaysAtPeak)}</td>
             <td style="text-align:right;display:${vis('vatosCuntdownPeak')};">${cellVal(song.vatosCuntdownPeak)}</td>
             <td style="text-align:right;display:${vis('vatosCuntdownDays')};">${cellVal(song.vatosCuntdownDays)}</td>
+            <td style="text-align:right;display:${vis('vatosCuntdownDaysAtPeak')};">${cellVal(song.vatosCuntdownDaysAtPeak)}</td>
             <td style="text-align:right;display:${vis('billboardPeak')};">${cellVal(song.billboardPeak)}</td>
             <td style="text-align:right;display:${vis('billboardWeeks')};">${cellVal(song.billboardWeeks)}</td>
+            <td style="text-align:right;display:${vis('billboardWeeksAtPeak')};">${cellVal(song.billboardWeeksAtPeak)}</td>
             <td style="text-align:right;display:${vis('yearlyChartPeak')};">${cellVal(song.yearlyChartPeak)}</td>
             <td style="display:${vis('genre')};">${song.genre || '-'}</td>
             <td style="display:${vis('subgenre')};">${song.subgenre || '-'}</td>
@@ -2127,9 +2142,9 @@ const numericSortColumns = new Set([
     'trackNumber', 'daysListened', 'weeksListened', 'monthsListened', 'yearsListened',
     'age', 'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
-    'ageAtRelease', 'billboardPeak', 'billboardWeeks', 'seasonalChartPeak',
-    'trlDays', 'trlPeak', 'vatosCuntdownDays', 'vatosCuntdownPeak',
-    'weeklyChartPeak', 'weeklyChartWeeks', 'yearlyChartPeak'
+    'ageAtRelease', 'billboardPeak', 'billboardWeeks', 'billboardWeeksAtPeak', 'seasonalChartPeak',
+    'trlDays', 'trlDaysAtPeak', 'trlPeak', 'vatosCuntdownDays', 'vatosCuntdownDaysAtPeak', 'vatosCuntdownPeak',
+    'weeklyChartPeak', 'weeklyChartWeeks', 'weeklyChartPeakWeeks', 'yearlyChartPeak'
 ]);
 
 const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'lastFullListen', 'birthDate', 'deathDate']);

@@ -83,7 +83,10 @@ public class AlbumRepository {
         Integer lengthMax = query.lengthMax();
         String lengthMode = query.lengthMode();
         Integer weeklyChartPeak = query.weeklyChartPeak();
+        String weeklyChartPeakMode = query.weeklyChartPeakMode();
         Integer weeklyChartWeeks = query.weeklyChartWeeks();
+        Integer weeklyChartPeakWeeks = query.weeklyChartPeakWeeks();
+        String weeklyChartPeakWeeksMode = query.weeklyChartPeakWeeksMode();
         String weeklyChartDateFrom = query.weeklyChartDateFrom();
         String weeklyChartDateTo = query.weeklyChartDateTo();
         String weeklyChartSeason = query.weeklyChartSeason();
@@ -806,7 +809,8 @@ public class AlbumRepository {
         }
         
         SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "weekly", "weeks",
-                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason);
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                weeklyChartPeakWeeks, weeklyChartPeakWeeksMode);
 
         SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "seasonal", "seasons",
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason);
@@ -894,6 +898,7 @@ public class AlbumRepository {
                     ? "weekly_chart_peak " + direction + " NULLS LAST, weekly_chart_peak_start_date DESC NULLS LAST"
                     : "weekly_chart_peak " + direction + " NULLS LAST";
             case "weekly_chart_weeks" -> "weekly_chart_weeks " + direction;
+            case "weekly_chart_peak_weeks" -> "weekly_chart_peak_weeks " + direction + " NULLS LAST";
                 case "yearly_chart_peak" -> allowInternalTieBreakers
                     ? "yearly_chart_peak " + direction + " NULLS LAST, yearly_chart_peak_period DESC NULLS LAST"
                     : "yearly_chart_peak " + direction + " NULLS LAST";
@@ -927,7 +932,8 @@ public class AlbumRepository {
                                        String deathDate, String deathDateFrom, String deathDateTo, String deathDateMode,
                                        Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
-                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       Integer weeklyChartPeak, String weeklyChartPeakMode, Integer weeklyChartWeeks,
+                                       Integer weeklyChartPeakWeeks, String weeklyChartPeakWeeksMode,
                                        String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                        Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                        String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
@@ -1616,24 +1622,9 @@ public class AlbumRepository {
             }
         }
         
-        // Weekly chart filter (peak position <= specified, total weeks >= specified)
-        if (weeklyChartPeak != null || weeklyChartWeeks != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as weeks ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.album_id = a.id AND c.chart_type = 'album' AND c.period_type = 'weekly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (weeklyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(weeklyChartPeak);
-            }
-            if (weeklyChartWeeks != null) {
-                sql.append(" AND chart_stats.weeks >= ?");
-                params.add(weeklyChartWeeks);
-            }
-            sql.append(")");
-        }
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "weekly", "weeks",
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                weeklyChartPeakWeeks, weeklyChartPeakWeeksMode);
         
         // Seasonal chart filter (peak position <= specified, total seasons >= specified)
         if (seasonalChartPeak != null || seasonalChartSeasons != null) {
@@ -1713,7 +1704,8 @@ public class AlbumRepository {
                                        String itunesIdsJson, String inItunes,
                                        Integer playCountMin, Integer playCountMax, Integer songCountMin, Integer songCountMax,
                                        Integer lengthMin, Integer lengthMax, String lengthMode,
-                                       Integer weeklyChartPeak, Integer weeklyChartWeeks,
+                                       Integer weeklyChartPeak, String weeklyChartPeakMode, Integer weeklyChartWeeks,
+                                               Integer weeklyChartPeakWeeks, String weeklyChartPeakWeeksMode,
                                                String weeklyChartDateFrom, String weeklyChartDateTo, String weeklyChartSeason,
                                                Integer seasonalChartPeak, Integer seasonalChartSeasons,
                                                String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
@@ -1980,7 +1972,8 @@ public class AlbumRepository {
         }
         
         SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "weekly", "weeks",
-                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason);
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                weeklyChartPeakWeeks, weeklyChartPeakWeeksMode);
 
         SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.album_id", "a.id", "album", "seasonal", "seasons",
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason);

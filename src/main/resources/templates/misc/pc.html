@@ -143,6 +143,7 @@
         .pc-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
         .pc-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
         .pc-table td.right, .pc-table th.right { text-align: right; }
+        .pc-index-col { width: 48px; min-width: 48px; max-width: 48px; text-align: center; color: #8b8e98; font-variant-numeric: tabular-nums; font-weight: 700; }
         .pc-image-col { width: 58px; }
         .pc-overview-image-cell { width: 58px; min-width: 58px; }
         .pc-overview-thumb {
@@ -407,6 +408,7 @@
             <table class="pc-table" id="pcTable">
                 <thead>
                     <tr>
+                        <th class="pc-index-col" data-no-sort>#</th>
                         <th class="center pc-image-col" data-no-sort></th>
                         <th data-no-sort></th>
                         <th class="center" th:classappend="${selectedSort == 'days'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='song',page=1,size=${pageSize},sort='days',dir=${selectedSort == 'days' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Days</a></th>
@@ -433,6 +435,7 @@
                         th:data-pc-idx="${iterStat.index}"
                         onclick="togglePcRow(this)"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="pc-index-col row-num-col" th:text="${iterStat.count}">1</td>
                         <td class="center pc-overview-image-cell">
                             <div th:if="${entry.songId != null and entry.hasImage and entry.albumHasImage and entry.albumId != null}" class="pc-overview-song-image-stack">
                                 <img th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
@@ -490,7 +493,7 @@
                             <button th:if="${entry.songId == null}" class="pc-match-btn" onclick="openPcMatchModal(event, this)">Library</button>
                         </td>
                     </tr>                      <tr class="detail-row pc-detail-row">
-                          <td colspan="12" class="pc-detail-cell">
+                          <td colspan="13" class="pc-detail-cell">
                               <div class="pc-run-stats">
                                   <div class="pc-run-stat"><div class="pc-run-stat-label">#1</div><div class="pc-run-stat-value" th:text="${entry.daysAtTop1 != null ? entry.daysAtTop1 : 0}">0</div></div>
                                   <div class="pc-run-stat"><div class="pc-run-stat-label">Top 5</div><div class="pc-run-stat-value" th:text="${entry.daysAtTop5 != null ? entry.daysAtTop5 : 0}">0</div></div>
@@ -500,7 +503,7 @@
                           </td>
                       </tr>                    </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="12" class="pc-empty">No Vato's Cuntdown rows found yet.</td>
+                        <td colspan="13" class="pc-empty">No Vato's Cuntdown rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -513,6 +516,7 @@
             <table class="pc-table" id="pcAlbumOverviewTable">
                 <thead>
                     <tr>
+                        <th class="pc-index-col" data-no-sort>#</th>
                         <th class="center pc-image-col" data-no-sort></th>
                         <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th th:classappend="${selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='album',page=1,size=${pageSize},sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Album Name</a></th>
@@ -530,6 +534,7 @@
                         th:data-artist-name="${entry.artistName}"
                         th:data-album-name="${entry.albumName}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="pc-index-col row-num-col">1</td>
                         <td class="center pc-overview-image-cell">
                             <img th:if="${entry.albumId != null and entry.hasImage}"
                                  th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}"
@@ -572,7 +577,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumOverviewRows)}">
-                        <td colspan="10" class="pc-empty">No linked albums have charted on Vato's Cuntdown yet.</td>
+                        <td colspan="11" class="pc-empty">No linked albums have charted on Vato's Cuntdown yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -585,6 +590,7 @@
             <table class="pc-table" id="pcArtistOverviewTable">
                 <thead>
                     <tr>
+                        <th class="pc-index-col" data-no-sort>#</th>
                         <th class="center pc-image-col" data-no-sort></th>
                         <th th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Artist</a></th>
                         <th class="right" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''"><a class="pc-sort-link" th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'})}">Songs Charted</a></th>
@@ -600,6 +606,7 @@
                     <tr th:each="entry : ${artistOverviewRows}"
                         th:data-artist-name="${entry.artistName}"
                         th:classappend="${entry.genderClass != null ? entry.genderClass : ''}">
+                        <td class="pc-index-col row-num-col">1</td>
                         <td class="center pc-overview-image-cell">
                             <img th:if="${entry.resolvedArtistId != null and entry.hasImage}"
                                  th:src="@{/artists/{id}/image(id=${entry.resolvedArtistId}, thumbnail=true)}"
@@ -638,7 +645,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistOverviewRows)}">
-                        <td colspan="9" class="pc-empty">No artist overview rows found yet.</td>
+                        <td colspan="10" class="pc-empty">No artist overview rows found yet.</td>
                     </tr>
                 </tbody>
             </table>
@@ -697,6 +704,20 @@
             return document.getElementById('pcTableBody');
         }
 
+        function updatePcRowCounters() {
+            const container = document.getElementById('pcOverviewContainer');
+            const overviewTab = container?.dataset?.overviewTab || 'song';
+            const tbody = getPcOverviewBody(overviewTab);
+            if (!tbody) return;
+            let counter = 0;
+            tbody.querySelectorAll('tr').forEach(row => {
+                const cell = row.querySelector('.row-num-col');
+                if (!cell) return;
+                const hidden = row.classList.contains('pc-hidden') || row.style.display === 'none';
+                cell.textContent = hidden ? '' : String(++counter);
+            });
+        }
+
         function preservePcFeaturedLinks() {
             const container = document.getElementById('pcOverviewContainer');
             if (!container || container.dataset.overviewTab !== 'artist' || container.dataset.includeFeatured !== 'true') {
@@ -735,6 +756,7 @@
                 const matches = !query || artist.includes(query);
                 row.classList.toggle('pc-hidden', !matches);
             });
+            updatePcRowCounters();
         }
 
         function renderOvChartRun(entries, chartType, toneClass) {
@@ -845,13 +867,13 @@
 
             if (row === pcSourceRow) {
                 row.classList.remove('pc-source-row');
-                row.cells[8].innerHTML = '';
+                row.cells[9].innerHTML = '';
                 pcSourceRow = null;
                 if (pcTargetRows.length > 0) {
                     pcSourceRow = pcTargetRows.shift();
                     pcSourceRow.classList.remove('pc-target-row');
                     pcSourceRow.classList.add('pc-source-row');
-                    pcSourceRow.cells[8].innerHTML = '<span class="pc-select-label source">Source</span>';
+                    pcSourceRow.cells[9].innerHTML = '<span class="pc-select-label source">Source</span>';
                 }
                 updatePcSelectionUi();
                 return;
@@ -860,7 +882,7 @@
             const targetIndex = pcTargetRows.indexOf(row);
             if (targetIndex !== -1) {
                 row.classList.remove('pc-target-row');
-                row.cells[8].innerHTML = '';
+                row.cells[9].innerHTML = '';
                 pcTargetRows.splice(targetIndex, 1);
                 updatePcSelectionUi();
                 return;
@@ -869,11 +891,11 @@
             if (!pcSourceRow) {
                 pcSourceRow = row;
                 row.classList.add('pc-source-row');
-                row.cells[8].innerHTML = '<span class="pc-select-label source">Source</span>';
+                row.cells[9].innerHTML = '<span class="pc-select-label source">Source</span>';
             } else {
                 pcTargetRows.push(row);
                 row.classList.add('pc-target-row');
-                row.cells[8].innerHTML = '<span class="pc-select-label target">Target</span>';
+                row.cells[9].innerHTML = '<span class="pc-select-label target">Target</span>';
             }
             updatePcSelectionUi();
         }
@@ -881,12 +903,12 @@
         function clearPcSelection() {
             if (pcSourceRow) {
                 pcSourceRow.classList.remove('pc-source-row');
-                pcSourceRow.cells[8].innerHTML = '';
+                pcSourceRow.cells[9].innerHTML = '';
                 pcSourceRow = null;
             }
             pcTargetRows.forEach(row => {
                 row.classList.remove('pc-target-row');
-                row.cells[8].innerHTML = '';
+                row.cells[9].innerHTML = '';
             });
             pcTargetRows = [];
             updatePcSelectionUi();
@@ -1230,6 +1252,7 @@
                     + ' data-pc-idx="' + idx + '"'
                     + ' onclick="togglePcRow(this)"'
                     + ' class="' + genderClass.trim() + '">'
+                    + '<td class="pc-index-col row-num-col"></td>'
                     + renderPcSongImageCell(entry)
                     + '<td class="center"><button class="pc-expand-btn" onclick="event.stopPropagation(); togglePcExpand(this)" title="Show chart tier stats">+</button></td>'
                     + '<td class="center" data-value="' + entry.daysOnCountdown + '">' + entry.daysOnCountdown + '</td>'
@@ -1244,7 +1267,7 @@
                     + '<td>' + libraryButton + '</td>'
                     + '</tr>'
                     + '<tr class="detail-row pc-detail-row">'
-                    + '<td colspan="12" class="pc-detail-cell">'
+                    + '<td colspan="13" class="pc-detail-cell">'
                     + '<div class="pc-run-stats">'
                     + '<div class="pc-run-stat"><div class="pc-run-stat-label">#1</div><div class="pc-run-stat-value">' + (entry.daysAtTop1 != null ? entry.daysAtTop1 : 0) + '</div></div>'
                     + '<div class="pc-run-stat"><div class="pc-run-stat-label">Top 5</div><div class="pc-run-stat-value">' + (entry.daysAtTop5 != null ? entry.daysAtTop5 : 0) + '</div></div>'
@@ -1268,6 +1291,7 @@
                 const numberOnesCell = buildPcNumberOneTooltipTrigger(String(entry.numberOneSongsCount), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '" data-album-name="' + escapePcHtml(entry.albumName) + '"' + genderClass + '>'
+                    + '<td class="pc-index-col row-num-col"></td>'
                     + renderPcImageCell('album', entry.albumId, entry.hasImage)
                     + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td data-value="' + escapePcHtml(entry.albumName) + '">' + albumCell + '</td>'
@@ -1291,6 +1315,7 @@
                 const numberOneSpanCell = buildPcNumberOneTooltipTrigger(String(entry.totalSpanAtNumberOne), entry.numberOneSongTitles, 'Songs that reached #1:', '🏆');
                 return ''
                     + '<tr data-artist-name="' + escapePcHtml(entry.artistName) + '"' + genderClass + '>'
+                    + '<td class="pc-index-col row-num-col"></td>'
                     + renderPcImageCell('artist', entry.resolvedArtistId, entry.hasImage)
                     + '<td data-value="' + escapePcHtml(entry.artistName) + '">' + artistCell + '</td>'
                     + '<td class="right" data-value="' + entry.chartedSongsCount + '">' + entry.chartedSongsCount + '</td>'
@@ -1466,6 +1491,7 @@
             preservePcFeaturedLinks();
             setupPcInfiniteScroll();
             initializePcNumberOneTooltips(document);
+            updatePcRowCounters();
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });

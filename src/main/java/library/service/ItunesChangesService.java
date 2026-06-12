@@ -4,7 +4,6 @@ import library.dto.*;
 import library.entity.ItunesSnapshot;
 import library.repository.ItunesSnapshotRepository;
 import library.service.ItunesService.ItunesSong;
-import library.util.StringNormalizer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -274,10 +273,7 @@ public class ItunesChangesService {
     }
 
     private String createSongLookupKey(String artist, String album, String song) {
-        String a = StringNormalizer.normalizeForSearch(artist != null ? artist : "");
-        String al = StringNormalizer.normalizeForSearch(album != null ? album : "");
-        String s = StringNormalizer.normalizeForSearch(song != null ? song : "");
-        return a + "||" + al + "||" + s;
+        return itunesService.createStrictSongLookupKey(artist, album, song);
     }
 
     private Set<String> buildDatabaseLookup() {

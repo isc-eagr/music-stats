@@ -1494,7 +1494,7 @@ public class ChartsController {
     }
 
     private boolean matchesSongOverviewFilters(ChartSongOverviewRowDTO row, List<String> filters, String periodType) {
-        int artistIndex = 1;
+        int artistIndex = 2;
         if ("weekly".equals(periodType)) {
             artistIndex++;
         }
@@ -1523,33 +1523,33 @@ public class ChartsController {
     }
 
     private boolean matchesAlbumOverviewFilters(ChartAlbumOverviewRowDTO row, List<String> filters, String periodType) {
-        boolean matches = matchesTextOverviewFilter(getOverviewFilterValue(filters, 1), row.getArtistName(), row.getArtistName())
-            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 2), row.getAlbumName(), row.getAlbumName())
-            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 3), row.getTotalChartSpan())
-            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 4), row.getHighestPeak())
-            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 5), row.getSpanAtPeak())
-            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 6), row.getFirstDebutDate(), row.getFirstDebutSortValue())
-            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 7), row.getDebutPosition());
+        boolean matches = matchesTextOverviewFilter(getOverviewFilterValue(filters, 2), row.getArtistName(), row.getArtistName())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 3), row.getAlbumName(), row.getAlbumName())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 4), row.getTotalChartSpan())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 5), row.getHighestPeak())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 6), row.getSpanAtPeak())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 7), row.getFirstDebutDate(), row.getFirstDebutSortValue())
+            && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 8), row.getDebutPosition());
 
         if (!"weekly".equals(periodType)) {
             return matches;
         }
 
         return matches
-            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 8), row.getPeakAppearanceDate(), row.getPeakAppearanceSortValue())
-            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 9), row.getLastAppearanceDate(), row.getLastAppearanceSortValue());
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 9), row.getPeakAppearanceDate(), row.getPeakAppearanceSortValue())
+            && matchesTextOverviewFilter(getOverviewFilterValue(filters, 10), row.getLastAppearanceDate(), row.getLastAppearanceSortValue());
     }
 
     private boolean matchesWeeklyArtistOverviewFilters(ChartArtistOverviewRowDTO row, List<String> filters, Integer topSongThreshold, Integer topAlbumThreshold) {
-        return matchesTextOverviewFilter(getOverviewFilterValue(filters, 1), row.getArtistName(), row.getArtistName())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 2), resolveArtistThresholdValue(row.getTopSongCounts(), topSongThreshold, row.getChartedSongsCount()))
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 3), resolveArtistThresholdValue(row.getTopSongWeeks(), topSongThreshold, row.getTotalChartSpan()))
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 4), row.getNumberOneSongsCount())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 5), row.getTotalSpanAtNumberOne())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 6), resolveArtistThresholdValue(row.getTopAlbumCounts(), topAlbumThreshold, row.getChartedAlbumsCount()))
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 7), resolveArtistThresholdValue(row.getTopAlbumWeeks(), topAlbumThreshold, row.getAlbumTotalChartSpan()))
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 8), row.getNumberOneAlbumsCount())
-                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 9), row.getAlbumTotalSpanAtNumberOne());
+        return matchesTextOverviewFilter(getOverviewFilterValue(filters, 2), row.getArtistName(), row.getArtistName())
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 3), resolveArtistThresholdValue(row.getTopSongCounts(), topSongThreshold, row.getChartedSongsCount()))
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 4), resolveArtistThresholdValue(row.getTopSongWeeks(), topSongThreshold, row.getTotalChartSpan()))
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 5), row.getNumberOneSongsCount())
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 6), row.getTotalSpanAtNumberOne())
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 7), resolveArtistThresholdValue(row.getTopAlbumCounts(), topAlbumThreshold, row.getChartedAlbumsCount()))
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 8), resolveArtistThresholdValue(row.getTopAlbumWeeks(), topAlbumThreshold, row.getAlbumTotalChartSpan()))
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 9), row.getNumberOneAlbumsCount())
+                && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 10), row.getAlbumTotalSpanAtNumberOne());
     }
 
     private String getOverviewFilterValue(List<String> filters, int index) {
@@ -1583,7 +1583,11 @@ public class ChartsController {
             return false;
         }
 
-        String normalizedQuery = query.trim();
+        String normalizedQuery = query.trim()
+                .replace("\u2264", "<=")
+                .replace("\u2265", ">=")
+                .replace('\u2013', '-')
+                .replace('\u2014', '-');
         Matcher rangeMatcher = OVERVIEW_RANGE_PATTERN.matcher(normalizedQuery);
         if (rangeMatcher.matches()) {
             double min = Double.parseDouble(rangeMatcher.group(1));

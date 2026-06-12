@@ -170,7 +170,10 @@ public class AlbumController {
             @RequestParam(required = false) Integer lengthMax,
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
+            @RequestParam(required = false) String weeklyChartPeakMode,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) Integer weeklyChartPeakWeeks,
+            @RequestParam(required = false) String weeklyChartPeakWeeksMode,
             @RequestParam(required = false) String weeklyChartDateFrom,
             @RequestParam(required = false) String weeklyChartDateTo,
             @RequestParam(required = false) String weeklyChartSeason,
@@ -248,7 +251,7 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
@@ -271,7 +274,7 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
@@ -293,7 +296,7 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
@@ -372,7 +375,10 @@ public class AlbumController {
         
         // Chart filter attributes
         model.addAttribute("weeklyChartPeak", weeklyChartPeak);
+        model.addAttribute("weeklyChartPeakMode", weeklyChartPeakMode != null ? weeklyChartPeakMode : "top");
         model.addAttribute("weeklyChartWeeks", weeklyChartWeeks);
+        model.addAttribute("weeklyChartPeakWeeks", weeklyChartPeakWeeks);
+        model.addAttribute("weeklyChartPeakWeeksMode", weeklyChartPeakWeeksMode != null ? weeklyChartPeakWeeksMode : "gte");
         model.addAttribute("weeklyChartDateFrom", weeklyChartDateFrom);
         model.addAttribute("weeklyChartDateTo", weeklyChartDateTo);
         model.addAttribute("weeklyChartDateFromFormatted", formatDateForDisplay(weeklyChartDateFrom));
@@ -516,7 +522,10 @@ public class AlbumController {
             @RequestParam(required = false) Integer lengthMax,
             @RequestParam(required = false) String lengthMode,
             @RequestParam(required = false) Integer weeklyChartPeak,
+            @RequestParam(required = false) String weeklyChartPeakMode,
             @RequestParam(required = false) Integer weeklyChartWeeks,
+            @RequestParam(required = false) Integer weeklyChartPeakWeeks,
+            @RequestParam(required = false) String weeklyChartPeakWeeksMode,
             @RequestParam(required = false) String weeklyChartDateFrom,
             @RequestParam(required = false) String weeklyChartDateTo,
             @RequestParam(required = false) String weeklyChartSeason,
@@ -589,7 +598,7 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
@@ -611,7 +620,7 @@ public class AlbumController {
                 itunesIdsJson, inItunes,
                 playCountMin, playCountMax, songCountMin, songCountMax,
                 lengthMin, lengthMax, lengthMode,
-                weeklyChartPeak, weeklyChartWeeks, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
+                weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
