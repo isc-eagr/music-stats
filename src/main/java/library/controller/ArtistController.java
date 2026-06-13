@@ -275,9 +275,7 @@ public class ArtistController {
         // Add data to model
         model.addAttribute("currentSection", "artists");
         model.addAttribute("artists", artists);
-        model.addAttribute("artistRankings", artistService.getBatchRankingsForArtists(
-                artists.stream().map(library.dto.ArtistCardDTO::getId).collect(java.util.stream.Collectors.toList())
-        ));
+        model.addAttribute("artistRankings", java.util.Collections.emptyMap());
         model.addAttribute("genderCounts", genderCounts);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);

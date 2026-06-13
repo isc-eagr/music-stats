@@ -68,6 +68,10 @@ public class SongService {
         return itunesService.getAllItunesSongIdsJson();
     }
 
+    private record SongPresenceRequest(Integer id, String artistName, String albumName, String songName)
+            implements ItunesService.SongPresenceLookup {
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Long> getCombinedSongCountRequestCache() {
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
@@ -247,8 +251,13 @@ public class SongService {
             return;
         }
 
+        List<SongPresenceRequest> presenceRequests = songs.stream()
+                .map(song -> new SongPresenceRequest(song.getId(), song.getArtistName(), song.getAlbumName(), song.getName()))
+                .toList();
+        Map<Integer, Boolean> presenceById = itunesService.getSongPresenceById(presenceRequests);
+
         for (SongCardDTO song : songs) {
-            song.setInItunes(itunesService.songExistsInItunes(song.getArtistName(), song.getAlbumName(), song.getName()));
+            song.setInItunes(Boolean.TRUE.equals(presenceById.get(song.getId())));
         }
     }
     
@@ -299,7 +308,10 @@ public class SongService {
         if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         
         boolean combineLinkedSongs = appConfigService.isCombineLinkedSongsEnabled();
-        int queryLimit = combineLinkedSongs ? 100000 : perPage;
+        List<Integer> linkedSongIds = combineLinkedSongs ? songLinkService.getAllLinkedSongIds() : List.of();
+        int queryLimit = combineLinkedSongs
+                ? (int) Math.min(100000L, ((long) page + 1L) * perPage + linkedSongIds.size())
+                : perPage;
         int queryOffset = combineLinkedSongs ? 0 : page * perPage;
         String combinedSongsCacheKey = combineLinkedSongs
             ? buildCombinedSongsFilterCacheKey(
@@ -373,12 +385,52 @@ public class SongService {
                 sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, queryLimit, queryOffset,
                 includeExpensiveStats, null
         ));
+
+        if (combineLinkedSongs && !linkedSongIds.isEmpty()) {
+            Map<Integer, SongStatsRow> rowsById = results.stream()
+                    .collect(Collectors.toMap(SongStatsRow::id, Function.identity(), (existing, replacement) -> existing, java.util.LinkedHashMap::new));
+            List<SongStatsRow> linkedRows = songRepository.findSongsWithStats(new SongStatsQuery(
+                    name, artistName, albumName, genreIds, genreMode,
+                    subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
+                    ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
+                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                    listenedDateFrom, listenedDateTo,
+                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                    itunesIdsJson, inItunes,
+                    ageMin, ageMax, ageMode,
+                    ageAtReleaseMin, ageAtReleaseMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    playCountMin, playCountMax,
+                    trackNumber, trackNumberMode,
+                    lengthMin, lengthMax, lengthMode,
+                    weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
+                    weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                    trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
+                    trlDateFrom, trlDateTo,
+                    vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
+                    vatosCuntdownDateFrom, vatosCuntdownDateTo,
+                    billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
+                    billboardDateFrom, billboardDateTo,
+                    seasonalChartPeak, seasonalChartSeasons,
+                    seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                    yearlyChartPeak, yearlyChartYears,
+                    yearlyChartDateFrom, yearlyChartDateTo,
+                    sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3,
+                    linkedSongIds.size(), 0, includeExpensiveStats, linkedSongIds
+            ));
+            for (SongStatsRow linkedRow : linkedRows) {
+                rowsById.putIfAbsent(linkedRow.id(), linkedRow);
+            }
+            results = new ArrayList<>(rowsById.values());
+        }
         
         List<SongCardDTO> songs = mapSongRows(results);
         
         if (combineLinkedSongs) {
             songs = combineLinkedSongCards(songs, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
-            cacheCombinedSongCount(combinedSongsCacheKey, songs.size());
             int fromIndex = Math.min(page * perPage, songs.size());
             int toIndex = Math.min(fromIndex + perPage, songs.size());
             List<SongCardDTO> pagedSongs = new ArrayList<>(songs.subList(fromIndex, toIndex));
@@ -545,6 +597,7 @@ public class SongService {
             }
             switch (sortField) {
                 case "billboard_peak", "billboard_weeks", "billboard_weeks_at_peak",
+                        "days_listened", "weeks_listened", "months_listened", "years_listened",
                         "seasonal_chart_peak",
                         "trl_days", "trl_days_at_peak", "trl_peak",
                         "vatos_cuntdown_days", "vatos_cuntdown_days_at_peak", "vatos_cuntdown_peak",
@@ -557,24 +610,6 @@ public class SongService {
             }
         }
         return false;
-    }
-
-    private long countCombinedRows(List<SongStatsRow> rows) {
-        if (rows == null || rows.isEmpty()) {
-            return 0;
-        }
-        List<Integer> songIds = rows.stream()
-                .map(SongStatsRow::id)
-                .toList();
-        Map<Integer, Integer> groupIds = songLinkService.getGroupIdsForSongs(songIds);
-        return rows.stream()
-                .map(row -> {
-                    Integer songId = row.id();
-                    Integer groupId = groupIds.get(songId);
-                    return groupId != null ? "g:" + groupId : "s:" + songId;
-                })
-                .distinct()
-                .count();
     }
 
     private List<SongCardDTO> combineLinkedSongCards(List<SongCardDTO> songs,
@@ -931,7 +966,42 @@ public class SongService {
                 return cachedCount;
             }
 
-            List<SongStatsRow> results = songRepository.findSongsWithStats(new SongStatsQuery(
+            long rawCount = songRepository.countSongsWithFilters(name, artistName, albumName,
+                    genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
+                    genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
+                    releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
+                    firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
+                    lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
+                    listenedDateFrom, listenedDateTo,
+                    organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
+                    itunesIdsJson, inItunes,
+                    ageMin, ageMax, ageMode,
+                    ageAtReleaseMin, ageAtReleaseMax,
+                    birthDate, birthDateFrom, birthDateTo, birthDateMode,
+                    deathDate, deathDateFrom, deathDateTo, deathDateMode,
+                    playCountMin, playCountMax,
+                    trackNumber, trackNumberMode,
+                    lengthMin, lengthMax, lengthMode,
+                    weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
+                    weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
+                    trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
+                    trlDateFrom, trlDateTo,
+                    vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
+                    vatosCuntdownDateFrom, vatosCuntdownDateTo,
+                    billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
+                    billboardDateFrom, billboardDateTo,
+                    seasonalChartPeak, seasonalChartSeasons,
+                    seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
+                    yearlyChartPeak, yearlyChartYears,
+                    yearlyChartDateFrom, yearlyChartDateTo);
+
+            List<Integer> linkedSongIds = songLinkService.getAllLinkedSongIds();
+            if (linkedSongIds.isEmpty()) {
+                cacheCombinedSongCount(combinedSongsCacheKey, rawCount);
+                return rawCount;
+            }
+
+            List<SongStatsRow> linkedRows = songRepository.findSongsWithStats(new SongStatsQuery(
                     name, artistName, albumName,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                     genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
@@ -960,11 +1030,11 @@ public class SongService {
                         seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                         yearlyChartPeak, yearlyChartYears,
                         yearlyChartDateFrom, yearlyChartDateTo,
-                    "plays", "desc", null, null, null, null, 100000, 0, false, null
+                    "plays", "desc", null, null, null, null, linkedSongIds.size(), 0, false, linkedSongIds
             ));
-                    long combinedCount = countCombinedRows(results);
-                    cacheCombinedSongCount(combinedSongsCacheKey, combinedCount);
-                    return combinedCount;
+            long combinedCount = rawCount - countLinkedDuplicateRows(linkedRows);
+            cacheCombinedSongCount(combinedSongsCacheKey, combinedCount);
+            return combinedCount;
         }
 
         return songRepository.countSongsWithFilters(name, artistName, albumName, 
@@ -1742,6 +1812,43 @@ public class SongService {
         }
         params[ids.size()] = value;
         return params;
+    }
+
+    private long countCombinedRows(List<SongStatsRow> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return 0;
+        }
+        List<Integer> songIds = rows.stream()
+                .map(SongStatsRow::id)
+                .toList();
+        Map<Integer, Integer> groupIds = songLinkService.getGroupIdsForSongs(songIds);
+        return rows.stream()
+                .map(row -> {
+                    Integer songId = row.id();
+                    Integer groupId = groupIds.get(songId);
+                    return groupId != null ? "g:" + groupId : "s:" + songId;
+                })
+                .distinct()
+                .count();
+    }
+
+    private long countLinkedDuplicateRows(List<SongStatsRow> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return 0;
+        }
+        List<Integer> songIds = rows.stream()
+                .map(SongStatsRow::id)
+                .toList();
+        Map<Integer, Integer> groupIds = songLinkService.getGroupIdsForSongs(songIds);
+        return rows.stream()
+                .map(SongStatsRow::id)
+                .map(groupIds::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                .values()
+                .stream()
+                .mapToLong(count -> Math.max(0L, count - 1L))
+                .sum();
     }
 
     // Delete song (only if play count is 0)

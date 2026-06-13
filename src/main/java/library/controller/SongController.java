@@ -373,9 +373,7 @@ public class SongController {
         // Add data to model
         model.addAttribute("currentSection", "songs");
         model.addAttribute("songs", songs);
-        model.addAttribute("songRankings", songService.getBatchRankingsForSongs(
-                songs.stream().map(library.dto.SongCardDTO::getId).collect(java.util.stream.Collectors.toList())
-        ));
+        model.addAttribute("songRankings", java.util.Collections.emptyMap());
         model.addAttribute("genderCounts", genderCounts);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);

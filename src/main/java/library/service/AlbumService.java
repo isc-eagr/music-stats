@@ -50,6 +50,10 @@ public class AlbumService {
         if (inItunes == null || inItunes.isEmpty()) return null;
         return itunesService.getAllItunesAlbumIdsJson();
     }
+
+    private record AlbumPresenceRequest(Integer id, String artistName, String albumName)
+            implements ItunesService.AlbumPresenceLookup {
+    }
     
     public List<AlbumCardDTO> getAlbums(String name, List<Integer> artistName,
                                          List<Integer> genreIds, String genreMode,
@@ -183,11 +187,10 @@ public class AlbumService {
             dto.setLastFullListenDate(row.lastFullListenDate() != null ? formatDate(row.lastFullListenDate()) : null);
             dto.setItunesPresenceRatio(row.itunesPresenceRatio());
 
-            // Check iTunes presence for badge display
-            dto.setInItunes(itunesService.albumExistsInItunes(dto.getArtistName(), dto.getName()));
-            
             albums.add(dto);
         }
+
+        populateAlbumItunesPresence(albums);
 
         if (albums.stream().anyMatch(album -> album.getItunesPresenceRatio() == null)) {
             Map<Integer, Double> ratioByAlbumId = itunesService.getAlbumItunesPresenceRatios(
@@ -200,6 +203,21 @@ public class AlbumService {
         }
         
         return albums;
+    }
+
+    private void populateAlbumItunesPresence(List<AlbumCardDTO> albums) {
+        if (albums == null || albums.isEmpty()) {
+            return;
+        }
+
+        List<AlbumPresenceRequest> presenceRequests = albums.stream()
+                .map(album -> new AlbumPresenceRequest(album.getId(), album.getArtistName(), album.getName()))
+                .toList();
+        Map<Integer, Boolean> presenceById = itunesService.getAlbumPresenceById(presenceRequests);
+
+        for (AlbumCardDTO album : albums) {
+            album.setInItunes(Boolean.TRUE.equals(presenceById.get(album.getId())));
+        }
     }
     
     public long countAlbums(String name, List<Integer> artistName,

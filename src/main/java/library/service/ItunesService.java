@@ -606,6 +606,90 @@ public class ItunesService {
         }
     }
 
+    public Map<Integer, Boolean> getSongPresenceById(List<? extends SongPresenceLookup> songs) {
+        if (!libraryExists() || songs == null || songs.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        try {
+            ensureCacheLoaded();
+        } catch (Exception e) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, Boolean> presenceById = new HashMap<>();
+        for (SongPresenceLookup song : songs) {
+            if (song == null || song.id() == null) {
+                continue;
+            }
+            String key = createStrictSongLookupKey(song.artistName(), song.albumName(), song.songName());
+            presenceById.put(song.id(), cachedSongKeys.contains(key));
+        }
+        return presenceById;
+    }
+
+    public interface SongPresenceLookup {
+        Integer id();
+        String artistName();
+        String albumName();
+        String songName();
+    }
+
+    public Map<Integer, Boolean> getAlbumPresenceById(List<? extends AlbumPresenceLookup> albums) {
+        if (!libraryExists() || albums == null || albums.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        try {
+            ensureCacheLoaded();
+        } catch (Exception e) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, Boolean> presenceById = new HashMap<>();
+        for (AlbumPresenceLookup album : albums) {
+            if (album == null || album.id() == null) {
+                continue;
+            }
+            String key = createStrictAlbumLookupKey(album.artistName(), album.albumName());
+            presenceById.put(album.id(), cachedAlbumKeys.contains(key));
+        }
+        return presenceById;
+    }
+
+    public interface AlbumPresenceLookup {
+        Integer id();
+        String artistName();
+        String albumName();
+    }
+
+    public Map<Integer, Boolean> getArtistPresenceById(List<? extends ArtistPresenceLookup> artists) {
+        if (!libraryExists() || artists == null || artists.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        try {
+            ensureCacheLoaded();
+        } catch (Exception e) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, Boolean> presenceById = new HashMap<>();
+        for (ArtistPresenceLookup artist : artists) {
+            if (artist == null || artist.id() == null) {
+                continue;
+            }
+            String key = normalizeForStrictMatch(artist.artistName());
+            presenceById.put(artist.id(), cachedArtistKeys.contains(key));
+        }
+        return presenceById;
+    }
+
+    public interface ArtistPresenceLookup {
+        Integer id();
+        String artistName();
+    }
+
     /**
      * Check if at least one song from an album exists in iTunes library.
      * Uses strict matching - only case and punctuation differences are ignored.

@@ -166,6 +166,14 @@ public class SongRepository {
             listenedDateFilterClause.append(" AND DATE(p.play_date) <= DATE(?)");
             listenedDateParams.add(listenedDateTo);
         }
+
+        StringBuilder playStatsSongFilterClause = new StringBuilder();
+        List<Object> playStatsSongParams = new ArrayList<>();
+        if (songIdsFilter != null && !songIdsFilter.isEmpty()) {
+            String placeholders = String.join(",", songIdsFilter.stream().map(id -> "?").toList());
+            playStatsSongFilterClause.append(" AND p.song_id IN (").append(placeholders).append(") ");
+            playStatsSongParams.addAll(songIdsFilter);
+        }
         
         StringBuilder sql = new StringBuilder();
         sql.append("""
@@ -287,16 +295,30 @@ public class SongRepository {
                     COUNT(*) as play_count,
                     SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
                     SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count,
+                    """);
+        if (includeExpensiveStats) {
+            sql.append("""
                     COUNT(DISTINCT DATE(p.play_date)) as days_listened,
                     COUNT(DISTINCT strftime('%Y-%W', p.play_date)) as weeks_listened,
                     COUNT(DISTINCT strftime('%Y-%m', p.play_date)) as months_listened,
                     COUNT(DISTINCT strftime('%Y', p.play_date)) as years_listened,
+                    """);
+        } else {
+            sql.append("""
+                    0 as days_listened,
+                    0 as weeks_listened,
+                    0 as months_listened,
+                    0 as years_listened,
+                    """);
+        }
+        sql.append("""
                     MIN(p.play_date) as first_listened,
                     MAX(p.play_date) as last_listened
                 FROM Play p
                 WHERE 1=1 """);
         sql.append(accountFilterClause);
         sql.append(listenedDateFilterClause);
+        sql.append(playStatsSongFilterClause);
         sql.append("""
                 GROUP BY p.song_id
             ) play_stats ON play_stats.song_id = s.id
@@ -308,6 +330,8 @@ public class SongRepository {
         params.addAll(accountParams);
         // Add listened date params
         params.addAll(listenedDateParams);
+        // Add song-id params for the play_stats subquery before outer WHERE params.
+        params.addAll(playStatsSongParams);
 
         if (songIdsFilter != null && !songIdsFilter.isEmpty()) {
             String placeholders = String.join(",", songIdsFilter.stream().map(id -> "?").toList());

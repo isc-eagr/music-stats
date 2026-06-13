@@ -96,6 +96,13 @@ public class SongLinkService {
         );
     }
 
+    public List<Integer> getAllLinkedSongIds() {
+        return jdbcTemplate.queryForList(
+                "SELECT song_id FROM song_link_group_member ORDER BY song_id",
+                Integer.class
+        );
+    }
+
     public List<LinkedSongDTO> getLinkedSongs(Integer songId) {
         List<Integer> ids = getLinkedSongIds(songId);
         if (ids.isEmpty()) {

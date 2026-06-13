@@ -66,6 +66,10 @@ public class ArtistService {
         if (inItunes == null || inItunes.isEmpty()) return null;
         return itunesService.getAllItunesArtistIdsJson();
     }
+
+    private record ArtistPresenceRequest(Integer id, String artistName)
+            implements ItunesService.ArtistPresenceLookup {
+    }
     
     public List<ArtistCardDTO> getArtists(String name, List<Integer> genderIds, String genderMode,
                                           List<Integer> ethnicityIds, String ethnicityMode,
@@ -173,11 +177,10 @@ public class ArtistService {
             dto.setHasThemeImage(row.hasThemeImage());
             dto.setItunesPresenceRatio(row.itunesPresenceRatio());
 
-            // Check iTunes presence for badge display
-            dto.setInItunes(itunesService.artistExistsInItunes(dto.getName()));
-            
             artists.add(dto);
         }
+
+        populateArtistItunesPresence(artists);
 
         if (artists.stream().anyMatch(artist -> artist.getItunesPresenceRatio() == null)) {
             Map<Integer, Double> ratioByArtistId = itunesService.getArtistItunesPresenceRatios(
@@ -190,6 +193,21 @@ public class ArtistService {
         }
         
         return artists;
+    }
+
+    private void populateArtistItunesPresence(List<ArtistCardDTO> artists) {
+        if (artists == null || artists.isEmpty()) {
+            return;
+        }
+
+        List<ArtistPresenceRequest> presenceRequests = artists.stream()
+                .map(artist -> new ArtistPresenceRequest(artist.getId(), artist.getName()))
+                .toList();
+        Map<Integer, Boolean> presenceById = itunesService.getArtistPresenceById(presenceRequests);
+
+        for (ArtistCardDTO artist : artists) {
+            artist.setInItunes(Boolean.TRUE.equals(presenceById.get(artist.getId())));
+        }
     }
     
     public long countArtists(String name, List<Integer> genderIds, String genderMode,
