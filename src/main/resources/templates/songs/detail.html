@@ -1685,12 +1685,10 @@
                     releaseChip.style.background = chipGradient;
                     releaseChip.style.boxShadow = chipShadow;
                     releaseChip.style.display = 'block';
-                    console.log('Showing release chip:', text, 'at', releaseChip.style.left, releaseChip.style.top);
                 }
                 
                 function hideReleaseChip() {
                     releaseChip.style.display = 'none';
-                    console.log('Hiding release chip');
                 }
                 
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1818,10 +1816,8 @@
                             
                             // Show release chip if release is before chart range
                             if (releaseBeforeChart && releaseDisplayText) {
-                                console.log('Should show chip - releaseBeforeChart:', releaseBeforeChart, 'text:', releaseDisplayText);
                                 showReleaseChip(releaseDisplayText);
                             } else {
-                                console.log('Hiding chip - releaseBeforeChart:', releaseBeforeChart, 'text:', releaseDisplayText);
                                 hideReleaseChip();
                             }
                             
@@ -2809,7 +2805,6 @@
                 .then(response => response.json())
                 .then(data => {
                     const imageIds = data.map(img => img.id);
-                    console.log('Gallery images loaded:', imageIds, 'Has default:', hasDefaultImage);
 
                     if (hasDefaultImage) {
                         galleryImages = [0, ...imageIds];
@@ -2817,7 +2812,6 @@
                         galleryImages = imageIds.length > 0 ? imageIds : [0];
                     }
 
-                    console.log('Total gallery images:', galleryImages.length);
                     updateGalleryUI();
                 })
                 .catch(error => {

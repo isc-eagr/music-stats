@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class EthnicityService {
@@ -320,33 +321,35 @@ public class EthnicityService {
             ethnicityIds.toArray()
         );
 
-        // Map results to ethnicities
+        Map<Integer, Object[]> artistByEthnicityId = artistResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+        Map<Integer, Object[]> albumByEthnicityId = albumResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+        Map<Integer, Object[]> songByEthnicityId = songResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+
         for (EthnicityCardDTO eth : ethnicities) {
-            for (Object[] row : artistResults) {
-                if (eth.getId().equals(row[0])) {
-                    eth.setTopArtistId((Integer) row[1]);
-                    eth.setTopArtistName((String) row[2]);
-                    eth.setTopArtistGenderId((Integer) row[3]);
-                    break;
-                }
+            Object[] artistRow = artistByEthnicityId.get(eth.getId());
+            if (artistRow != null) {
+                eth.setTopArtistId((Integer) artistRow[1]);
+                eth.setTopArtistName((String) artistRow[2]);
+                eth.setTopArtistGenderId((Integer) artistRow[3]);
             }
-            for (Object[] row : albumResults) {
-                if (eth.getId().equals(row[0])) {
-                    eth.setTopAlbumId((Integer) row[1]);
-                    eth.setTopAlbumName((String) row[2]);
-                    eth.setTopAlbumArtistName((String) row[3]);
-                    eth.setTopAlbumGenderId((Integer) row[4]);
-                    break;
-                }
+
+            Object[] albumRow = albumByEthnicityId.get(eth.getId());
+            if (albumRow != null) {
+                eth.setTopAlbumId((Integer) albumRow[1]);
+                eth.setTopAlbumName((String) albumRow[2]);
+                eth.setTopAlbumArtistName((String) albumRow[3]);
+                eth.setTopAlbumGenderId((Integer) albumRow[4]);
             }
-            for (Object[] row : songResults) {
-                if (eth.getId().equals(row[0])) {
-                    eth.setTopSongId((Integer) row[1]);
-                    eth.setTopSongName((String) row[2]);
-                    eth.setTopSongArtistName((String) row[3]);
-                    eth.setTopSongGenderId((Integer) row[4]);
-                    break;
-                }
+
+            Object[] songRow = songByEthnicityId.get(eth.getId());
+            if (songRow != null) {
+                eth.setTopSongId((Integer) songRow[1]);
+                eth.setTopSongName((String) songRow[2]);
+                eth.setTopSongArtistName((String) songRow[3]);
+                eth.setTopSongGenderId((Integer) songRow[4]);
             }
         }
     }

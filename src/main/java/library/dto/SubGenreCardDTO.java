@@ -361,7 +361,6 @@ public class SubGenreCardDTO extends CatalogWinningPeriodStatsDTO {
     }
 
     // Computed male percentages (for sorting and display)
-    // Computed male percentages (for sorting and display)
     // These include "other" in the denominator to match UI display
     public Double getMaleArtistPercentage() {
         int total = (maleArtistCount != null ? maleArtistCount : 0) +

@@ -2050,7 +2050,6 @@
             dropdown.classList.remove('above');
             requestAnimationFrame(() => {
                 const rect = dropdown.getBoundingClientRect();
-                const options = dropdown.querySelectorAll('.multi-select-option').length;
                 const viewportSpaceBelow = window.innerHeight - rect.bottom;
                 const viewportSpaceAbove = rect.top;
                 // Space inside the scroll container (.filters)
@@ -2062,9 +2061,8 @@
                     insideSpaceBelow = cRect.bottom - rect.bottom; // space until container bottom
                     insideSpaceAbove = rect.top - cRect.top;       // space above within container
                 }
-                console.log(`[${filterName}] rect=`, rect, 'options=', options, 'viewportBelow=', viewportSpaceBelow, 'viewportAbove=', viewportSpaceAbove, 'insideBelow=', insideSpaceBelow, 'insideAbove=', insideSpaceAbove);
                 const needFlip = (insideSpaceBelow < 40 || viewportSpaceBelow < 40) && insideSpaceAbove > insideSpaceBelow;
-                if (needFlip) { dropdown.classList.add('above'); console.log(`[${filterName}] positioned above due to container clipping`); }
+                if (needFlip) { dropdown.classList.add('above'); }
                 if (rect.height === 0) {
                     console.warn(`[${filterName}] dropdown height 0 after open. Forcing inline styles.`);
                     dropdown.style.display = 'block'; dropdown.style.visibility = 'visible'; dropdown.style.opacity = '1';

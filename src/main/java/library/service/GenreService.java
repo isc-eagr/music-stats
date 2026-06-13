@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class GenreService {
@@ -341,33 +342,35 @@ public class GenreService {
             genreIds.toArray()
         );
 
-        // Map results to genres
+        Map<Integer, Object[]> artistByGenreId = artistResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+        Map<Integer, Object[]> albumByGenreId = albumResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+        Map<Integer, Object[]> songByGenreId = songResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+
         for (GenreCardDTO genre : genres) {
-            for (Object[] row : artistResults) {
-                if (genre.getId().equals(row[0])) {
-                    genre.setTopArtistId((Integer) row[1]);
-                    genre.setTopArtistName((String) row[2]);
-                    genre.setTopArtistGenderId((Integer) row[3]);
-                    break;
-                }
+            Object[] artistRow = artistByGenreId.get(genre.getId());
+            if (artistRow != null) {
+                genre.setTopArtistId((Integer) artistRow[1]);
+                genre.setTopArtistName((String) artistRow[2]);
+                genre.setTopArtistGenderId((Integer) artistRow[3]);
             }
-            for (Object[] row : albumResults) {
-                if (genre.getId().equals(row[0])) {
-                    genre.setTopAlbumId((Integer) row[1]);
-                    genre.setTopAlbumName((String) row[2]);
-                    genre.setTopAlbumArtistName((String) row[3]);
-                    genre.setTopAlbumGenderId((Integer) row[4]);
-                    break;
-                }
+
+            Object[] albumRow = albumByGenreId.get(genre.getId());
+            if (albumRow != null) {
+                genre.setTopAlbumId((Integer) albumRow[1]);
+                genre.setTopAlbumName((String) albumRow[2]);
+                genre.setTopAlbumArtistName((String) albumRow[3]);
+                genre.setTopAlbumGenderId((Integer) albumRow[4]);
             }
-            for (Object[] row : songResults) {
-                if (genre.getId().equals(row[0])) {
-                    genre.setTopSongId((Integer) row[1]);
-                    genre.setTopSongName((String) row[2]);
-                    genre.setTopSongArtistName((String) row[3]);
-                    genre.setTopSongGenderId((Integer) row[4]);
-                    break;
-                }
+
+            Object[] songRow = songByGenreId.get(genre.getId());
+            if (songRow != null) {
+                genre.setTopSongId((Integer) songRow[1]);
+                genre.setTopSongName((String) songRow[2]);
+                genre.setTopSongArtistName((String) songRow[3]);
+                genre.setTopSongGenderId((Integer) songRow[4]);
             }
         }
     }

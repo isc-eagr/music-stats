@@ -2924,7 +2924,6 @@
                 .then(data => {
                     // data is array of {id, displayOrder}
                     const imageIds = data.map(img => img.id);
-                    console.log('Gallery images loaded:', imageIds, 'Has default:', hasDefaultImage);
 
                     // Only include 0 (default) if there is a default image
                     if (hasDefaultImage) {
@@ -2933,7 +2932,6 @@
                         galleryImages = imageIds.length > 0 ? imageIds : [0];
                     }
 
-                    console.log('Total gallery images:', galleryImages.length);
                     updateGalleryUI();
                 })
                 .catch(error => {

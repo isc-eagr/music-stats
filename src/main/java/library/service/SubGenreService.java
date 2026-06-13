@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class SubGenreService {
@@ -261,17 +262,17 @@ public class SubGenreService {
         String topArtistSql =
             "WITH artist_plays AS ( " +
             "    SELECT " +
-            "        COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) as subgenre_id, " +
+            "        COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) as subgenre_id, " +
             "        ar.id as artist_id, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) IN (" + placeholders + ") " +
+            "    WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) IN (" + placeholders + ") " +
             "    GROUP BY subgenre_id, ar.id, ar.name, ar.gender_id " +
             ") " +
             "SELECT subgenre_id, artist_id, artist_name, gender_id FROM artist_plays WHERE rn = 1";
@@ -286,18 +287,18 @@ public class SubGenreService {
         String topAlbumSql =
             "WITH album_plays AS ( " +
             "    SELECT " +
-            "        COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) as subgenre_id, " +
+            "        COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) as subgenre_id, " +
             "        al.id as album_id, " +
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE al.id IS NOT NULL AND COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) IN (" + placeholders + ") " +
+            "    WHERE al.id IS NOT NULL AND COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) IN (" + placeholders + ") " +
             "    GROUP BY subgenre_id, al.id, al.name, ar.name, ar.gender_id " +
             ") " +
             "SELECT subgenre_id, album_id, album_name, artist_name, gender_id FROM album_plays WHERE rn = 1";
@@ -312,18 +313,18 @@ public class SubGenreService {
         String topSongSql =
             "WITH song_plays AS ( " +
             "    SELECT " +
-            "        COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) as subgenre_id, " +
+            "        COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) as subgenre_id, " +
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
             "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) ORDER BY COUNT(*) DESC) as rn " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY COUNT(*) DESC) as rn " +
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.sub_genre_id)) IN (" + placeholders + ") " +
+            "    WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) IN (" + placeholders + ") " +
             "    GROUP BY subgenre_id, s.id, s.name, ar.name, ar.gender_id " +
             ") " +
             "SELECT subgenre_id, song_id, song_name, artist_name, gender_id FROM song_plays WHERE rn = 1";
@@ -334,33 +335,35 @@ public class SubGenreService {
             subGenreIds.toArray()
         );
 
-        // Map results to subgenres
+        Map<Integer, Object[]> artistBySubGenreId = artistResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+        Map<Integer, Object[]> albumBySubGenreId = albumResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+        Map<Integer, Object[]> songBySubGenreId = songResults.stream()
+            .collect(Collectors.toMap(row -> (Integer) row[0], row -> row));
+
         for (SubGenreCardDTO sg : subGenres) {
-            for (Object[] row : artistResults) {
-                if (sg.getId().equals(row[0])) {
-                    sg.setTopArtistId((Integer) row[1]);
-                    sg.setTopArtistName((String) row[2]);
-                    sg.setTopArtistGenderId((Integer) row[3]);
-                    break;
-                }
+            Object[] artistRow = artistBySubGenreId.get(sg.getId());
+            if (artistRow != null) {
+                sg.setTopArtistId((Integer) artistRow[1]);
+                sg.setTopArtistName((String) artistRow[2]);
+                sg.setTopArtistGenderId((Integer) artistRow[3]);
             }
-            for (Object[] row : albumResults) {
-                if (sg.getId().equals(row[0])) {
-                    sg.setTopAlbumId((Integer) row[1]);
-                    sg.setTopAlbumName((String) row[2]);
-                    sg.setTopAlbumArtistName((String) row[3]);
-                    sg.setTopAlbumGenderId((Integer) row[4]);
-                    break;
-                }
+
+            Object[] albumRow = albumBySubGenreId.get(sg.getId());
+            if (albumRow != null) {
+                sg.setTopAlbumId((Integer) albumRow[1]);
+                sg.setTopAlbumName((String) albumRow[2]);
+                sg.setTopAlbumArtistName((String) albumRow[3]);
+                sg.setTopAlbumGenderId((Integer) albumRow[4]);
             }
-            for (Object[] row : songResults) {
-                if (sg.getId().equals(row[0])) {
-                    sg.setTopSongId((Integer) row[1]);
-                    sg.setTopSongName((String) row[2]);
-                    sg.setTopSongArtistName((String) row[3]);
-                    sg.setTopSongGenderId((Integer) row[4]);
-                    break;
-                }
+
+            Object[] songRow = songBySubGenreId.get(sg.getId());
+            if (songRow != null) {
+                sg.setTopSongId((Integer) songRow[1]);
+                sg.setTopSongName((String) songRow[2]);
+                sg.setTopSongArtistName((String) songRow[3]);
+                sg.setTopSongGenderId((Integer) songRow[4]);
             }
         }
     }
