@@ -16,6 +16,47 @@
 CREATE INDEX IF NOT EXISTS idx_play_date_song_id ON Play(play_date, song_id)
 WHERE play_date IS NOT NULL;
 
+-- Expression indexes for timeframe period keys.
+-- The list pages group and filter by these exact expressions, so indexing them
+-- avoids recomputing period buckets across the full Play table on every load.
+CREATE INDEX IF NOT EXISTS idx_play_period_day_song
+    ON Play(SUBSTR(play_date, 1, 10), play_date, song_id)
+    WHERE play_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_play_period_week_song
+    ON Play(strftime('%Y-W%W', play_date), play_date, song_id)
+    WHERE play_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_play_period_month_song
+    ON Play(SUBSTR(play_date, 1, 7), play_date, song_id)
+    WHERE play_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_play_period_season_song
+    ON Play(
+        CASE
+            WHEN SUBSTR(play_date, 6, 2) = '12'
+                THEN (SUBSTR(play_date, 1, 4) + 1) || '-Winter'
+            WHEN SUBSTR(play_date, 6, 2) <= '02'
+                THEN SUBSTR(play_date, 1, 4) || '-Winter'
+            WHEN SUBSTR(play_date, 6, 2) <= '05'
+                THEN SUBSTR(play_date, 1, 4) || '-Spring'
+            WHEN SUBSTR(play_date, 6, 2) <= '08'
+                THEN SUBSTR(play_date, 1, 4) || '-Summer'
+            ELSE SUBSTR(play_date, 1, 4) || '-Fall'
+        END,
+        play_date,
+        song_id
+    )
+    WHERE play_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_play_period_year_song
+    ON Play(SUBSTR(play_date, 1, 4), play_date, song_id)
+    WHERE play_date IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_play_period_decade_song
+    ON Play((SUBSTR(play_date, 1, 4) / 10 * 10) || 's', play_date, song_id)
+    WHERE play_date IS NOT NULL;
+
 -- ===========================================
 -- INDEX 2: Song covering index for joins
 -- ===========================================

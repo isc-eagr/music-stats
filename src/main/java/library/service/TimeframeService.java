@@ -14,7 +14,6 @@ import java.util.*;
 
 @Service
 public class TimeframeService {
-    
     private final JdbcTemplate jdbcTemplate;
     
     public TimeframeService(JdbcTemplate jdbcTemplate) {
@@ -533,7 +532,7 @@ public class TimeframeService {
             return new TimeframeResultDTO(results, totalCount);
         }
     }
-    
+
     /**
      * Populates the top artist, album, and song for each timeframe in the list.
      */
@@ -898,10 +897,6 @@ public class TimeframeService {
         return new String[]{minDate, maxDate};
     }
 
-    /**
-     * Populates maleDays (days where male plays > female plays) and totalDays for each timeframe.
-     * Only meaningful for non-"days" period types (weeks, months, seasons, years, decades).
-     */
     private void populateMaleDays(List<TimeframeCardDTO> timeframes, String periodType) {
         // Get the first ever scrobble date so that the opening period's totalDays starts there
         // (e.g., 2005 should not be counted as a full 365-day year if scrobbling started in Feb 2005)
