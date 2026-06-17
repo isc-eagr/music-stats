@@ -575,7 +575,7 @@ public class TimeframeService {
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
+            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
             "), " +
             "top_artists AS ( " +
             "    SELECT period_key, artist_id as item_id, artist_name as item_name, " +
@@ -692,7 +692,7 @@ public class TimeframeService {
             "    INNER JOIN Song s ON p.song_id = s.id " +
             "    INNER JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
+            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
             "    GROUP BY period_key, eff_gender_id, eff_genre_id, eff_ethnicity_id, eff_language_id, eff_country " +
             "), " +
             "winning_gender AS ( " +
@@ -974,7 +974,7 @@ public class TimeframeService {
             "    FROM Play p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    WHERE " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
+            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
             "    GROUP BY " + periodKeyExpr + ", DATE(p.play_date) " +
             ") " +
             "SELECT period_key, SUM(CASE WHEN male_plays > female_plays THEN 1 ELSE 0 END) as male_days " +
