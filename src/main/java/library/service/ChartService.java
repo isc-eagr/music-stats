@@ -361,6 +361,7 @@ public class ChartService {
         if (appConfigService.isCombineLinkedSongsEnabled()) {
             List<ChartEntryDTO> preview = getCombinedWeeklySongChartPreview(startDate, endDate);
             applySongPlayBreakdowns(preview, startDate, endDate);
+            enrichWeeklySongPreviewStats(preview, periodKey);
             return preview;
         }
 
@@ -410,6 +411,7 @@ public class ChartService {
             result.add(dto);
         }, startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
 
+        enrichWeeklySongPreviewStats(result, periodKey);
         return result;
     }
 
@@ -491,6 +493,7 @@ public class ChartService {
             result.add(dto);
         }, startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
 
+        enrichWeeklySongPreviewStats(result, startDate);
         return result;
     }
 
@@ -802,7 +805,171 @@ public class ChartService {
             result.add(dto);
         }, startDate.toString(), endDate.toString(), TOP_ALBUMS_COUNT);
 
+        enrichWeeklyAlbumPreviewStats(result, periodKey);
         return result;
+    }
+
+    private void enrichWeeklySongPreviewStats(List<ChartEntryDTO> entries, String previewPeriodKey) {
+        enrichWeeklySongPreviewStats(entries, parsePeriodKeyToDateRange(previewPeriodKey)[0]);
+    }
+
+    private void enrichWeeklySongPreviewStats(List<ChartEntryDTO> entries, LocalDate previewStartDate) {
+        if (entries == null || entries.isEmpty()) {
+            return;
+        }
+
+        Optional<String> previousPeriodKey = findLatestWeeklyPeriodKeyBefore("song", previewStartDate);
+        Map<Integer, Integer> previousPositions = previousPeriodKey
+                .map(periodKey -> getWeeklyPositionsForPeriod(periodKey, "song", "song_id"))
+                .orElseGet(Collections::emptyMap);
+
+        for (ChartEntryDTO entry : entries) {
+            Integer songId = entry.getSongId();
+            if (songId == null) {
+                continue;
+            }
+            applyPreviewMovement(entry, songId, previousPositions, "song", "song_id", previewStartDate);
+            applyPreviewHistoryStats(entry, songId, "song", "song_id", previewStartDate);
+        }
+    }
+
+    private void enrichWeeklyAlbumPreviewStats(List<ChartEntryDTO> entries, String previewPeriodKey) {
+        if (entries == null || entries.isEmpty()) {
+            return;
+        }
+
+        LocalDate previewStartDate = parsePeriodKeyToDateRange(previewPeriodKey)[0];
+        Optional<String> previousPeriodKey = findLatestWeeklyPeriodKeyBefore("album", previewStartDate);
+        Map<Integer, Integer> previousPositions = previousPeriodKey
+                .map(periodKey -> getWeeklyPositionsForPeriod(periodKey, "album", "album_id"))
+                .orElseGet(Collections::emptyMap);
+
+        for (ChartEntryDTO entry : entries) {
+            Integer albumId = entry.getAlbumId();
+            if (albumId == null) {
+                continue;
+            }
+            applyPreviewMovement(entry, albumId, previousPositions, "album", "album_id", previewStartDate);
+            applyPreviewHistoryStats(entry, albumId, "album", "album_id", previewStartDate);
+        }
+    }
+
+    private Map<Integer, Integer> getWeeklyPositionsForPeriod(String periodKey, String chartType, String idColumn) {
+        String sql = """
+            SELECT ce.%s as item_id, ce.position
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            WHERE c.chart_type = ?
+              AND c.period_type = 'weekly'
+              AND c.period_key = ?
+              AND ce.%s IS NOT NULL
+            """.formatted(idColumn, idColumn);
+
+        return jdbcTemplate.query(sql, rs -> {
+            Map<Integer, Integer> positions = new HashMap<>();
+            while (rs.next()) {
+                positions.put(rs.getInt("item_id"), rs.getInt("position"));
+            }
+            return positions;
+        }, chartType, periodKey);
+    }
+
+    private void applyPreviewMovement(ChartEntryDTO entry, Integer itemId, Map<Integer, Integer> previousPositions,
+            String chartType, String idColumn, LocalDate previewStartDate) {
+        if (previousPositions.containsKey(itemId)) {
+            entry.setLastWeekPosition(previousPositions.get(itemId));
+            return;
+        }
+
+        if (hasWeeklyChartHistoryBefore(itemId, chartType, idColumn, previewStartDate)) {
+            entry.setLastWeekPosition(-1);
+        }
+    }
+
+    private void applyPreviewHistoryStats(ChartEntryDTO entry, Integer itemId, String chartType, String idColumn,
+            LocalDate previewStartDate) {
+        List<Map<String, Object>> history = getWeeklyChartHistoryBefore(itemId, chartType, idColumn, previewStartDate);
+
+        if (history.isEmpty()) {
+            entry.setPeakPosition(null);
+            entry.setTimesAtPeak(0);
+            entry.setWeeksOnChart(0);
+            return;
+        }
+
+        int peak = Integer.MAX_VALUE;
+        int timesAtPeak = 0;
+        for (Map<String, Object> row : history) {
+            int position = ((Number) row.get("position")).intValue();
+            if (position < peak) {
+                peak = position;
+                timesAtPeak = 1;
+            } else if (position == peak) {
+                timesAtPeak++;
+            }
+        }
+
+        entry.setPeakPosition(peak);
+        entry.setTimesAtPeak(timesAtPeak);
+        entry.setWeeksOnChart(history.size());
+    }
+
+    private boolean hasWeeklyChartHistoryBefore(Integer itemId, String chartType, String idColumn, LocalDate beforeDate) {
+        String sql = """
+            SELECT COUNT(*)
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            WHERE ce.%s = ?
+              AND c.chart_type = ?
+              AND c.period_type = 'weekly'
+              AND c.period_start_date < ?
+            """.formatted(idColumn);
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, itemId, chartType, beforeDate.toString());
+        return count != null && count > 0;
+    }
+
+    private List<Map<String, Object>> getWeeklyChartHistoryBefore(Integer itemId, String chartType, String idColumn,
+            LocalDate beforeDate) {
+        String sql = """
+            SELECT ce.position, c.period_key, c.period_start_date, c.period_end_date
+            FROM ChartEntry ce
+            INNER JOIN Chart c ON ce.chart_id = c.id
+            WHERE ce.%s = ?
+              AND c.chart_type = ?
+              AND c.period_type = 'weekly'
+              AND c.period_start_date < ?
+            ORDER BY c.period_start_date ASC
+            """.formatted(idColumn);
+        return jdbcTemplate.queryForList(sql, itemId, chartType, beforeDate.toString());
+    }
+
+    private Optional<String> findLatestWeeklyPeriodKeyBefore(String chartType, LocalDate beforeDate) {
+        String sql = """
+            SELECT period_key
+            FROM Chart
+            WHERE chart_type = ?
+              AND period_type = 'weekly'
+              AND period_start_date < ?
+            ORDER BY period_start_date DESC
+            LIMIT 1
+            """;
+        List<String> periodKeys = jdbcTemplate.queryForList(sql, String.class, chartType, beforeDate.toString());
+        return periodKeys.isEmpty() ? Optional.empty() : Optional.of(periodKeys.get(0));
+    }
+
+    private String resolveWeeklyChartRunEndPeriod(String chartType, String requestedPeriodKey) {
+        if (requestedPeriodKey == null) {
+            return getLatestWeeklyChart(chartType)
+                    .map(Chart::getPeriodKey)
+                    .orElse(null);
+        }
+
+        if (chartRepository.findByChartTypeAndPeriodKey(chartType, requestedPeriodKey).isPresent()) {
+            return requestedPeriodKey;
+        }
+
+        LocalDate requestedStartDate = parsePeriodKeyToDateRange(requestedPeriodKey)[0];
+        return findLatestWeeklyPeriodKeyBefore(chartType, requestedStartDate).orElse(null);
     }
     
     /**
@@ -948,6 +1115,8 @@ public class ChartService {
             dto.setSongName((String) nameRows.get(0).get("song_name"));
             dto.setArtistName((String) nameRows.get(0).get("artist_name"));
         }
+
+        currentPeriodKey = resolveWeeklyChartRunEndPeriod("song", currentPeriodKey);
         
         String historySql = """
             SELECT c.period_key, ce.position, c.period_start_date, c.period_end_date
@@ -968,7 +1137,7 @@ public class ChartService {
             if (row.get("position") != null && firstAppearanceIndex == -1) {
                 firstAppearanceIndex = i;
             }
-            if (currentPeriodKey.equals(row.get("period_key"))) {
+            if (Objects.equals(currentPeriodKey, row.get("period_key"))) {
                 currentIndex = i;
             }
         }
@@ -4076,6 +4245,8 @@ public class ChartService {
                 return dto;
             }
         }
+
+        currentPeriodKey = resolveWeeklyChartRunEndPeriod("album", currentPeriodKey);
         
         String historySql = """
             SELECT c.period_key, ce.position, c.period_start_date, c.period_end_date
@@ -4096,7 +4267,7 @@ public class ChartService {
             if (row.get("position") != null && firstAppearanceIndex == -1) {
                 firstAppearanceIndex = i;
             }
-            if (currentPeriodKey.equals(row.get("period_key"))) {
+            if (Objects.equals(currentPeriodKey, row.get("period_key"))) {
                 currentIndex = i;
             }
         }

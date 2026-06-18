@@ -2210,7 +2210,10 @@
         function openWeeklySongsPlaylistGenerator() {
             // Get song data from the table
             const songs = [];
-            const rows = document.querySelectorAll('#songsSection .charts-table tbody tr:not(.chart-run-row):not(.mobile-table-detail-row)');
+            const chartTable = document.querySelector('#songsSection > .charts-table-container .charts-table');
+            const rows = chartTable
+                ? chartTable.querySelectorAll('tbody tr[data-song-id]:not(.chart-run-row):not(.mobile-table-detail-row)')
+                : [];
             
             rows.forEach(row => {
                 const songId = row.getAttribute('data-song-id');
@@ -2543,20 +2546,24 @@
             const counts = {};
             table.querySelectorAll('tbody tr').forEach(row => {
                 if (skipRowClass && row.classList.contains(skipRowClass.replace('.', ''))) return;
+                if (row.classList.contains('chart-run-row') || row.classList.contains('mobile-table-detail-row')) return;
+                if (!row.dataset.genre) return;
                 const genre = row.dataset.genre || '(none)';
                 counts[genre] = (counts[genre] || 0) + 1;
             });
 
             const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
             const total = entries.reduce((s, [, c]) => s + c, 0);
+            const topCount = entries.length > 0 ? entries[0][1] : 0;
 
             // Build table HTML
             let html = '<table class="gb-table"><thead><tr><th>Genre</th><th></th><th>Count</th><th>%</th></tr></thead><tbody>';
             entries.forEach(([genre, count]) => {
                 const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                const barPct = topCount > 0 ? Math.round((count / topCount) * 100) : 0;
                 html += `<tr>
                     <td>${genre}</td>
-                    <td class="gb-bar-cell"><div class="gb-bar-wrap"><div class="gb-bar" style="width:${pct}%"></div></div></td>
+                    <td class="gb-bar-cell"><div class="gb-bar-wrap"><div class="gb-bar" style="width:${barPct}%"></div></div></td>
                     <td class="gb-count">${count}</td>
                     <td><span class="gb-pct">${pct}%</span></td>
                 </tr>`;
