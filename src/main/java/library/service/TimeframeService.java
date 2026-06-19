@@ -72,9 +72,9 @@ public class TimeframeService {
         boolean needsJavaSorting = "maledays".equalsIgnoreCase(sortBy);
         boolean skipSqlPagination = needsMergeWithAllPeriods || needsJavaPostFilter || needsJavaSorting || hasAnyWinningFilters;
         
-        // Determine if we can defer winning attribute computation to after pagination.
-        // This is safe whenever no winning attribute filters are active (including excludes).
-        boolean deferWinningAttributes = !hasAnyWinningFilters;
+        // Determine if we can defer winning attribute computation to after pagination
+        // This is safe only when no winning attribute filters are active (including excludes)
+        boolean deferWinningAttributes = skipSqlPagination && !hasAnyWinningFilters;
         
         // Determine if maleDays can be deferred to after pagination
         boolean needsMaleDaysPrePagination = (maleDaysMin != null || maleDaysMax != null || "maledays".equalsIgnoreCase(sortBy));
@@ -92,51 +92,37 @@ public class TimeframeService {
         List<Object> params = new ArrayList<>();
         
         sql.append(String.format("""
-            WITH song_period_counts AS (
-                SELECT
+            WITH period_summary AS (
+                SELECT 
                     %s as period_key,
-                    s.id as song_id,
-                    s.album_id as album_id,
-                    ar.id as artist_id,
-                    COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
-                    COALESCE(s.length_seconds, 0) as length_seconds,
                     MIN(p.play_date) as bound_min,
                     MAX(p.play_date) as bound_max,
-                    COUNT(*) as play_count
+                    COUNT(*) as play_count,
+                    COALESCE(SUM(s.length_seconds), 0) as time_listened,
+                    COUNT(DISTINCT ar.id) as artist_count,
+                    COUNT(DISTINCT CASE WHEN s.album_id IS NOT NULL THEN s.album_id END) as album_count,
+                    COUNT(DISTINCT s.id) as song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN s.id END) as male_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN s.id END) as female_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN s.id END) as other_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN ar.id END) as male_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN ar.id END) as female_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN ar.id END) as other_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 AND s.album_id IS NOT NULL THEN s.album_id END) as male_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 AND s.album_id IS NOT NULL THEN s.album_id END) as female_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL AND s.album_id IS NOT NULL THEN s.album_id END) as other_album_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN 1 ELSE 0 END) as other_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
                 FROM Play p
                 INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 WHERE p.play_date IS NOT NULL
-                GROUP BY period_key, s.id
-                HAVING period_key IS NOT NULL
-            ),
-            period_summary AS (
-                SELECT
-                    period_key,
-                    MIN(bound_min) as bound_min,
-                    MAX(bound_max) as bound_max,
-                    SUM(play_count) as play_count,
-                    COALESCE(SUM(play_count * length_seconds), 0) as time_listened,
-                    COUNT(DISTINCT artist_id) as artist_count,
-                    COUNT(DISTINCT CASE WHEN album_id IS NOT NULL THEN album_id END) as album_count,
-                    COUNT(*) as song_count,
-                    SUM(CASE WHEN gender_id = 2 THEN 1 ELSE 0 END) as male_song_count,
-                    SUM(CASE WHEN gender_id = 1 THEN 1 ELSE 0 END) as female_song_count,
-                    SUM(CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN 1 ELSE 0 END) as other_song_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 2 THEN artist_id END) as male_artist_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 1 THEN artist_id END) as female_artist_count,
-                    COUNT(DISTINCT CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN artist_id END) as other_artist_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 2 AND album_id IS NOT NULL THEN album_id END) as male_album_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 1 AND album_id IS NOT NULL THEN album_id END) as female_album_count,
-                    COUNT(DISTINCT CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL AND album_id IS NOT NULL THEN album_id END) as other_album_count,
-                    SUM(CASE WHEN gender_id = 2 THEN play_count ELSE 0 END) as male_play_count,
-                    SUM(CASE WHEN gender_id = 1 THEN play_count ELSE 0 END) as female_play_count,
-                    SUM(CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN play_count ELSE 0 END) as other_play_count,
-                    SUM(CASE WHEN gender_id = 2 THEN play_count * length_seconds ELSE 0 END) as male_time_listened,
-                    SUM(CASE WHEN gender_id = 1 THEN play_count * length_seconds ELSE 0 END) as female_time_listened,
-                    SUM(CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN play_count * length_seconds ELSE 0 END) as other_time_listened
-                FROM song_period_counts
                 GROUP BY period_key
+                HAVING period_key IS NOT NULL
             ),
             filtered_periods AS (
                 SELECT 
@@ -508,11 +494,10 @@ public class TimeframeService {
             
             // Step 6: Populate deferred data for the paginated page only
             if (!results.isEmpty()) {
+                populateTopItems(results, periodType);
                 // Compute winning attributes post-pagination if deferred
                 if (deferWinningAttributes) {
-                    populateTopItemsAndWinningAttributes(results, periodType);
-                } else {
-                    populateTopItems(results, periodType);
+                    populateWinningAttributes(results, periodType);
                 }
                 // Compute maleDays post-pagination if not needed for filtering/sorting
                 if (!"days".equals(periodType) && !needsMaleDaysPrePagination) {
@@ -535,10 +520,9 @@ public class TimeframeService {
                 dateFrom, dateTo, maleDaysMin, maleDaysMax);
             
             if (!results.isEmpty()) {
+                populateTopItems(results, periodType);
                 if (deferWinningAttributes) {
-                    populateTopItemsAndWinningAttributes(results, periodType);
-                } else {
-                    populateTopItems(results, periodType);
+                    populateWinningAttributes(results, periodType);
                 }
                 if (!"days".equals(periodType)) {
                     populateMaleDays(results, periodType);
@@ -547,183 +531,6 @@ public class TimeframeService {
             
             return new TimeframeResultDTO(results, totalCount);
         }
-    }
-
-    private void populateTopItemsAndWinningAttributes(List<TimeframeCardDTO> timeframes, String periodType) {
-        List<String> periodKeys = timeframes.stream()
-            .filter(t -> t.getPlayCount() != null && t.getPlayCount() > 0)
-            .map(TimeframeCardDTO::getPeriodKey)
-            .toList();
-        if (periodKeys.isEmpty()) return;
-
-        String periodKeyExpr = getPeriodKeyExpression(periodType);
-        String placeholders = String.join(",", periodKeys.stream().map(pk -> "?").toList());
-
-        String[] dateBounds = computeDateBounds(timeframes);
-        StringBuilder dateBoundsClause = new StringBuilder();
-        List<Object> extraParams = new ArrayList<>();
-        if (dateBounds[0] != null) {
-            dateBoundsClause.append(" AND p.play_date >= ?");
-            extraParams.add(dateBounds[0]);
-        }
-        if (dateBounds[1] != null) {
-            dateBoundsClause.append(" AND p.play_date <= ?");
-            extraParams.add(dateBounds[1]);
-        }
-
-        String sql =
-            "WITH song_period_counts AS ( " +
-            "    SELECT " +
-            "        " + periodKeyExpr + " as period_key, " +
-            "        s.id as song_id, " +
-            "        s.name as song_name, " +
-            "        ar.id as artist_id, " +
-            "        ar.name as artist_name, " +
-            "        ar.gender_id as display_gender_id, " +
-            "        al.id as album_id, " +
-            "        al.name as album_name, " +
-            "        COALESCE(s.override_gender_id, ar.gender_id) as eff_gender_id, " +
-            "        COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as eff_genre_id, " +
-            "        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as eff_ethnicity_id, " +
-            "        COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as eff_language_id, " +
-            "        ar.country as eff_country, " +
-            "        COUNT(*) as play_count " +
-            "    FROM Play p " +
-            "    JOIN Song s ON p.song_id = s.id " +
-            "    JOIN Artist ar ON s.artist_id = ar.id " +
-            "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
-            "    GROUP BY period_key, s.id " +
-            "), " +
-            "top_artists AS ( " +
-            "    SELECT period_key, artist_id as item_id, artist_name as item_name, " +
-            "        NULL as secondary_name, display_gender_id as gender_id, " +
-            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY SUM(play_count) DESC) as rn " +
-            "    FROM song_period_counts " +
-            "    GROUP BY period_key, artist_id, artist_name, display_gender_id " +
-            "), " +
-            "top_albums AS ( " +
-            "    SELECT period_key, album_id as item_id, album_name as item_name, " +
-            "        artist_name as secondary_name, display_gender_id as gender_id, " +
-            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY SUM(play_count) DESC) as rn " +
-            "    FROM song_period_counts " +
-            "    WHERE album_id IS NOT NULL " +
-            "    GROUP BY period_key, album_id, album_name, artist_name, display_gender_id " +
-            "), " +
-            "top_songs AS ( " +
-            "    SELECT period_key, song_id as item_id, song_name as item_name, " +
-            "        artist_name as secondary_name, display_gender_id as gender_id, " +
-            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY play_count DESC) as rn " +
-            "    FROM song_period_counts " +
-            "), " +
-            "winning_gender AS ( " +
-            "    SELECT spc.period_key, spc.eff_gender_id as attr_id, gn.name as attr_name, " +
-            "        ROW_NUMBER() OVER (PARTITION BY spc.period_key ORDER BY SUM(spc.play_count) DESC) as rn " +
-            "    FROM song_period_counts spc " +
-            "    LEFT JOIN Gender gn ON spc.eff_gender_id = gn.id " +
-            "    WHERE spc.eff_gender_id IS NOT NULL " +
-            "    GROUP BY spc.period_key, spc.eff_gender_id, gn.name " +
-            "), " +
-            "winning_genre AS ( " +
-            "    SELECT spc.period_key, spc.eff_genre_id as attr_id, gr.name as attr_name, " +
-            "        ROW_NUMBER() OVER (PARTITION BY spc.period_key ORDER BY SUM(spc.play_count) DESC) as rn " +
-            "    FROM song_period_counts spc " +
-            "    LEFT JOIN Genre gr ON spc.eff_genre_id = gr.id " +
-            "    WHERE spc.eff_genre_id IS NOT NULL " +
-            "    GROUP BY spc.period_key, spc.eff_genre_id, gr.name " +
-            "), " +
-            "winning_ethnicity AS ( " +
-            "    SELECT spc.period_key, spc.eff_ethnicity_id as attr_id, eth.name as attr_name, " +
-            "        ROW_NUMBER() OVER (PARTITION BY spc.period_key ORDER BY SUM(spc.play_count) DESC) as rn " +
-            "    FROM song_period_counts spc " +
-            "    LEFT JOIN Ethnicity eth ON spc.eff_ethnicity_id = eth.id " +
-            "    WHERE spc.eff_ethnicity_id IS NOT NULL " +
-            "    GROUP BY spc.period_key, spc.eff_ethnicity_id, eth.name " +
-            "), " +
-            "winning_language AS ( " +
-            "    SELECT spc.period_key, spc.eff_language_id as attr_id, lang.name as attr_name, " +
-            "        ROW_NUMBER() OVER (PARTITION BY spc.period_key ORDER BY SUM(spc.play_count) DESC) as rn " +
-            "    FROM song_period_counts spc " +
-            "    LEFT JOIN Language lang ON spc.eff_language_id = lang.id " +
-            "    WHERE spc.eff_language_id IS NOT NULL " +
-            "    GROUP BY spc.period_key, spc.eff_language_id, lang.name " +
-            "), " +
-            "winning_country AS ( " +
-            "    SELECT spc.period_key, spc.eff_country as attr_name, " +
-            "        ROW_NUMBER() OVER (PARTITION BY spc.period_key ORDER BY SUM(spc.play_count) DESC) as rn " +
-            "    FROM song_period_counts spc " +
-            "    WHERE spc.eff_country IS NOT NULL " +
-            "    GROUP BY spc.period_key, spc.eff_country " +
-            ") " +
-            "SELECT 'top_artist' as result_type, period_key, item_id, item_name, secondary_name, gender_id, NULL as attr_id, NULL as attr_name FROM top_artists WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'top_album' as result_type, period_key, item_id, item_name, secondary_name, gender_id, NULL as attr_id, NULL as attr_name FROM top_albums WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'top_song' as result_type, period_key, item_id, item_name, secondary_name, gender_id, NULL as attr_id, NULL as attr_name FROM top_songs WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'winning_gender' as result_type, period_key, NULL, NULL, NULL, NULL, attr_id, attr_name FROM winning_gender WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'winning_genre' as result_type, period_key, NULL, NULL, NULL, NULL, attr_id, attr_name FROM winning_genre WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'winning_ethnicity' as result_type, period_key, NULL, NULL, NULL, NULL, attr_id, attr_name FROM winning_ethnicity WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'winning_language' as result_type, period_key, NULL, NULL, NULL, NULL, attr_id, attr_name FROM winning_language WHERE rn = 1 " +
-            "UNION ALL " +
-            "SELECT 'winning_country' as result_type, period_key, NULL, NULL, NULL, NULL, NULL, attr_name FROM winning_country WHERE rn = 1";
-
-        List<Object> allParamsList = new ArrayList<>(periodKeys);
-        allParamsList.addAll(extraParams);
-
-        Map<String, TimeframeCardDTO> tfMap = new HashMap<>();
-        for (TimeframeCardDTO tf : timeframes) {
-            if (tf.getPeriodKey() != null) {
-                tfMap.put(tf.getPeriodKey(), tf);
-            }
-        }
-
-        jdbcTemplate.query(sql, (rs) -> {
-            String resultType = rs.getString("result_type");
-            String periodKey = rs.getString("period_key");
-            TimeframeCardDTO tf = tfMap.get(periodKey);
-            if (tf == null) return;
-
-            switch (resultType) {
-                case "top_artist" -> {
-                    tf.setTopArtistId(rs.getInt("item_id"));
-                    tf.setTopArtistName(rs.getString("item_name"));
-                    tf.setTopArtistGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-                }
-                case "top_album" -> {
-                    tf.setTopAlbumId(rs.getInt("item_id"));
-                    tf.setTopAlbumName(rs.getString("item_name"));
-                    tf.setTopAlbumArtistName(rs.getString("secondary_name"));
-                    tf.setTopAlbumGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-                }
-                case "top_song" -> {
-                    tf.setTopSongId(rs.getInt("item_id"));
-                    tf.setTopSongName(rs.getString("item_name"));
-                    tf.setTopSongArtistName(rs.getString("secondary_name"));
-                    tf.setTopSongGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-                }
-                case "winning_gender" -> {
-                    tf.setWinningGenderId(rs.getObject("attr_id") != null ? rs.getInt("attr_id") : null);
-                    tf.setWinningGenderName(rs.getString("attr_name"));
-                }
-                case "winning_genre" -> {
-                    tf.setWinningGenreId(rs.getObject("attr_id") != null ? rs.getInt("attr_id") : null);
-                    tf.setWinningGenreName(rs.getString("attr_name"));
-                }
-                case "winning_ethnicity" -> {
-                    tf.setWinningEthnicityId(rs.getObject("attr_id") != null ? rs.getInt("attr_id") : null);
-                    tf.setWinningEthnicityName(rs.getString("attr_name"));
-                }
-                case "winning_language" -> {
-                    tf.setWinningLanguageId(rs.getObject("attr_id") != null ? rs.getInt("attr_id") : null);
-                    tf.setWinningLanguageName(rs.getString("attr_name"));
-                }
-                case "winning_country" -> tf.setWinningCountry(rs.getString("attr_name"));
-            }
-        }, allParamsList.toArray());
     }
 
     /**
@@ -1314,51 +1121,37 @@ public class TimeframeService {
         boolean needWinningCountry = winningCountryMode != null && winningCountry != null && !winningCountry.isEmpty();
         
         sql.append(String.format("""
-            WITH song_period_counts AS (
-                SELECT
+            WITH period_summary AS (
+                SELECT 
                     %s as period_key,
-                    s.id as song_id,
-                    s.album_id as album_id,
-                    ar.id as artist_id,
-                    COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
-                    COALESCE(s.length_seconds, 0) as length_seconds,
                     MIN(p.play_date) as bound_min,
                     MAX(p.play_date) as bound_max,
-                    COUNT(*) as play_count
+                    COUNT(*) as play_count,
+                    COALESCE(SUM(s.length_seconds), 0) as time_listened,
+                    COUNT(DISTINCT ar.id) as artist_count,
+                    COUNT(DISTINCT CASE WHEN s.album_id IS NOT NULL THEN s.album_id END) as album_count,
+                    COUNT(DISTINCT s.id) as song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN s.id END) as male_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN s.id END) as female_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN s.id END) as other_song_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN ar.id END) as male_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN ar.id END) as female_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN ar.id END) as other_artist_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 AND s.album_id IS NOT NULL THEN s.album_id END) as male_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 AND s.album_id IS NOT NULL THEN s.album_id END) as female_album_count,
+                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL AND s.album_id IS NOT NULL THEN s.album_id END) as other_album_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN 1 ELSE 0 END) as other_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
                 FROM Play p
                 INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 WHERE p.play_date IS NOT NULL
-                GROUP BY period_key, s.id
-                HAVING period_key IS NOT NULL
-            ),
-            period_summary AS (
-                SELECT
-                    period_key,
-                    MIN(bound_min) as bound_min,
-                    MAX(bound_max) as bound_max,
-                    SUM(play_count) as play_count,
-                    COALESCE(SUM(play_count * length_seconds), 0) as time_listened,
-                    COUNT(DISTINCT artist_id) as artist_count,
-                    COUNT(DISTINCT CASE WHEN album_id IS NOT NULL THEN album_id END) as album_count,
-                    COUNT(*) as song_count,
-                    SUM(CASE WHEN gender_id = 2 THEN 1 ELSE 0 END) as male_song_count,
-                    SUM(CASE WHEN gender_id = 1 THEN 1 ELSE 0 END) as female_song_count,
-                    SUM(CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN 1 ELSE 0 END) as other_song_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 2 THEN artist_id END) as male_artist_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 1 THEN artist_id END) as female_artist_count,
-                    COUNT(DISTINCT CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN artist_id END) as other_artist_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 2 AND album_id IS NOT NULL THEN album_id END) as male_album_count,
-                    COUNT(DISTINCT CASE WHEN gender_id = 1 AND album_id IS NOT NULL THEN album_id END) as female_album_count,
-                    COUNT(DISTINCT CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL AND album_id IS NOT NULL THEN album_id END) as other_album_count,
-                    SUM(CASE WHEN gender_id = 2 THEN play_count ELSE 0 END) as male_play_count,
-                    SUM(CASE WHEN gender_id = 1 THEN play_count ELSE 0 END) as female_play_count,
-                    SUM(CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN play_count ELSE 0 END) as other_play_count,
-                    SUM(CASE WHEN gender_id = 2 THEN play_count * length_seconds ELSE 0 END) as male_time_listened,
-                    SUM(CASE WHEN gender_id = 1 THEN play_count * length_seconds ELSE 0 END) as female_time_listened,
-                    SUM(CASE WHEN gender_id NOT IN (1,2) AND gender_id IS NOT NULL THEN play_count * length_seconds ELSE 0 END) as other_time_listened
-                FROM song_period_counts
                 GROUP BY period_key
+                HAVING period_key IS NOT NULL
             ),
             filtered_periods AS (
                 SELECT 
