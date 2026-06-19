@@ -77,3 +77,29 @@ the service-level timings were noisy. Re-run these when the machine is quieter.
 Only keep a change if the second-load HTTP timing improves meaningfully for at
 least the affected pages, especially `seasons`, without making another timeframe
 page worse. If the win is not clear, revert it.
+
+## 2026-06-19 Retry Result
+
+Kept:
+
+- Pre-aggregated main summary using `song_period_counts`.
+- Combined post-page top items + winning attributes helper.
+- Winning attributes are deferred whenever no winning filters are active.
+
+Direct `TimeframeService` second-run timings improved from:
+
+- months: `3000ms -> 1789ms`
+- seasons: `6027ms -> 3843ms`
+- years: `4948ms -> 3081ms`
+- decades: `6795ms -> 3070ms`
+
+HTTP second-run timings after restart improved from:
+
+- months: `5.05s -> 2.66s`
+- seasons: `9.38s -> 5.31s`
+- years: `8.84s -> 5.05s`
+- decades: `12.11s -> 10.09s`
+
+Extra decades HTTP checks were noisy (`7.9s`, then `17-18s`), while direct
+service checks settled near `3.1s`, so the remaining decades variance likely
+sits outside the core timeframe service query.
