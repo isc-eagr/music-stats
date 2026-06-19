@@ -2071,11 +2071,7 @@
             });
             
             // Initialize Flatpickr on date filter inputs
-            const dateConfig = {
-                dateFormat: 'd/m/Y',
-                allowInput: true,
-                theme: 'dark'
-            };
+            const dateConfig = getListDatePickerConfig();
             
             // First Listened Date
             const firstListenedDateInput = document.querySelector('input[name="firstListenedDate"]');

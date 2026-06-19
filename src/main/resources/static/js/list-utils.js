@@ -119,6 +119,49 @@ function ensureHiddenInput(form, name) {
     return input;
 }
 
+function parseListDate(value) {
+    if (!value || typeof value !== 'string') {
+        return null;
+    }
+
+    const trimmed = value.trim();
+    let match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+        return new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10));
+    }
+
+    match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (match) {
+        return new Date(parseInt(match[3], 10), parseInt(match[2], 10) - 1, parseInt(match[1], 10));
+    }
+
+    return null;
+}
+
+function formatListDate(date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return '';
+    }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return day + '/' + month + '/' + date.getFullYear();
+}
+
+function getListDatePickerConfig(overrides) {
+    return Object.assign({
+        dateFormat: 'd/m/Y',
+        allowInput: true,
+        theme: 'dark',
+        parseDate: function(dateStr) {
+            return parseListDate(dateStr);
+        },
+        formatDate: function(date) {
+            return formatListDate(date);
+        }
+    }, overrides || {});
+}
+
 function getSortParamName(level) {
     return level === 1 ? 'sortby' : 'sortby' + level;
 }
@@ -569,6 +612,13 @@ function preserveListStateOnFilterSubmit(form) {
         });
         perPageInput.value = pageSizeInput ? pageSizeInput.value : (url.searchParams.get('perpage') || perPageInput.value || '');
         pageInput.value = '0';
+
+        ['view', 'tab', 'periodLabel'].forEach(function(paramName) {
+            const currentValue = url.searchParams.get(paramName);
+            if (currentValue) {
+                ensureHiddenInput(form, paramName).value = currentValue;
+            }
+        });
 
         if ((form.getAttribute('method') || 'get').toLowerCase() !== 'get') {
             return;

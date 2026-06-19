@@ -130,6 +130,26 @@
             background: #1a1a1a;
             color: #e0e0e0;
         }
+        .recap-playlist-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 211, 238, 0.42);
+            background: rgba(34, 211, 238, 0.08);
+            color: #a8edf4;
+            font-size: 0.84rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+        .recap-playlist-btn:hover {
+            border-color: rgba(34, 211, 238, 0.72);
+            background: rgba(34, 211, 238, 0.14);
+            color: #edfdff;
+        }
         .recap-section-header {
             font-size: 0.78rem;
             font-weight: 600;
@@ -733,6 +753,7 @@
             <select id="recapDay" class="recap-date-select" title="Day"></select>
             <select id="recapYear" class="recap-date-select" title="Year"></select>
             <button id="recapNext" class="recap-nav-btn" title="Next chart" disabled>&#8594;</button>
+            <button type="button" class="recap-playlist-btn" onclick="openBillboardRecapPlaylistGenerator()">Generate Playlist</button>
         </div>
 
         <div id="recapContent">
@@ -886,6 +907,8 @@
         </div>
     </div>
 
+    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+
     <script th:inline="javascript">
         const availableDates = /*[[${availableDates}]]*/ [];
         const selectedDate = /*[[${selectedDate}]]*/ null;
@@ -897,6 +920,40 @@
             if (titleDate) {
                 titleDate.textContent = date || 'Select a chart week';
             }
+        }
+
+        function openBillboardRecapPlaylistGenerator() {
+            const songs = getLinkedRecapSongs();
+            if (songs.length === 0) {
+                showWarningToast('No linked library songs found for this Billboard Hot 100 recap');
+                return;
+            }
+
+            const defaultName = 'Billboard Hot 100 Recap' + (currentRecapDate ? ' - ' + currentRecapDate : '');
+            openPlaylistGeneratorModal(songs, defaultName);
+        }
+
+        function getLinkedRecapSongs() {
+            const rows = document.querySelectorAll('#recapContent .recap-table-wrap:first-of-type tbody tr[data-song-id]');
+            const songs = [];
+
+            rows.forEach(function(row) {
+                const songId = row.getAttribute('data-song-id');
+                if (!songId) return;
+
+                const songTitle = row.getAttribute('data-raw-song') || '';
+                const artistName = row.getAttribute('data-raw-artist') || '';
+                if (!songTitle || !artistName) return;
+
+                songs.push({
+                    id: parseInt(songId, 10),
+                    name: songTitle,
+                    artist: artistName,
+                    album: ''
+                });
+            });
+
+            return songs;
         }
 
         let initYear = null, initMonth = null, initDay = null;

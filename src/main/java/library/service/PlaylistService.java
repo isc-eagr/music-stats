@@ -98,6 +98,10 @@ public class PlaylistService {
         if (str == null) return "";
         return str.replace("\t", " ").replace("\n", " ").replace("\r", "");
     }
+
+    public Map<String, Object> getSongDataForPlaylist(Integer songId) {
+        return getSongData(songId);
+    }
     
     /**
      * Get song data with artist and album names using a join query.

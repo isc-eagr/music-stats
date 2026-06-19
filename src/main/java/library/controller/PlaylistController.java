@@ -52,6 +52,13 @@ public class PlaylistController {
             Integer id = song.get("id") instanceof Integer ? (Integer) song.get("id") : 
                          Integer.parseInt(song.get("id").toString());
 
+            Map<String, Object> localSong = playlistService.getSongDataForPlaylist(id);
+            if (localSong != null) {
+                name = (String) localSong.get("song_name");
+                artist = (String) localSong.get("artist_name");
+                album = (String) localSong.get("album_name");
+            }
+
             iTunesLibraryService.iTunesTrack track = iTunesLibraryService.findMatch(library, name, artist, album);
             
             Map<String, Object> songResult = new HashMap<>();

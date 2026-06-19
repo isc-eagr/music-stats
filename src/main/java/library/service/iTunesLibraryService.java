@@ -197,7 +197,25 @@ public class iTunesLibraryService {
         String lookupKey = (name != null ? name.toLowerCase().trim() : "") + "||" +
                           (artist != null ? artist.toLowerCase().trim() : "") + "||" +
                           (album != null ? album.toLowerCase().trim() : "");
-        return library.get(lookupKey);
+        iTunesTrack exactMatch = library.get(lookupKey);
+        if (exactMatch != null) {
+            return exactMatch;
+        }
+
+        String searchName = name != null ? name.toLowerCase().trim() : "";
+        String searchArtist = artist != null ? artist.toLowerCase().trim() : "";
+        if (searchName.isEmpty() || searchArtist.isEmpty()) {
+            return null;
+        }
+
+        for (iTunesTrack track : library.values()) {
+            if (track.name.toLowerCase().trim().equals(searchName)
+                    && track.artist.toLowerCase().trim().equals(searchArtist)) {
+                return track;
+            }
+        }
+
+        return null;
     }
 
     /**

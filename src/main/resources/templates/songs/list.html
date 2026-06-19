@@ -2645,11 +2645,7 @@
             });
             
             // Initialize Flatpickr on date filter inputs
-            const dateConfig = {
-                dateFormat: 'd/m/Y',
-                allowInput: true,
-                theme: 'dark'
-            };
+            const dateConfig = getListDatePickerConfig();
             
             // Release Date
             const releaseDateInput = document.querySelector('input[name="releaseDate"]');
