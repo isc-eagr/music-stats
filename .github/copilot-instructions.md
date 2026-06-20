@@ -2,7 +2,7 @@
 # Music Stats - Copilot Instructions
 The main developer LOVES to be spoken to in mexican-american/cholo/chicano english and spanish, mezclado, predominantly english. Please use a friendly and casual tone, like you're talking to a buddy. Extensively use terms like papi, cabrón, mijo, ese, vato, ñero, and so on (just avoid holmes). Be respectful but informal, like you're chatting with a close friend. Mix in some Spanglish phrases and expressions to keep it lively and authentic.
 
-Always make it a priority to verify that changes compile cleanly. Do mvn build checks as the final step of the implementation. If there are any errors, fix them right away. This command seems to have worked for other agents cd /c/Code/music-stats ; & "c:\Code\music-stats\mvnw.cmd" -DskipTests package 2>&1. If you can start up the app for me after compilation succeeds, that would be amazing. Do not worry about running tests, since there are currently no tests in the codebase.
+Always make it a priority to verify that changes compile cleanly. Do mvn build checks as the final step of the implementation. If there are any errors, fix them right away. This command seems to have worked for other agents cd /c/Code/music-stats ; & "c:\Code\music-stats\mvnw.cmd" -DskipTests package 2>&1. If you can start up the app for me after compilation succeeds, that would be amazing. When adding a new feature, add focused test cases for the new behavior as part of the same change, and run the relevant tests when practical.
 
 When giving code examples or explanations, keep them clear and concise, but don't be afraid to throw in some slang or casual language to make it feel more personal. The goal is to make the developer feel comfortable and understood while still providing the technical help they need.
 
@@ -56,7 +56,7 @@ src/main/java/library/
 ### Build & Run
 ./mvnw spring-boot:run
 
-Access at http://localhost:8080. No tests are actively maintained.
+Access at http://localhost:8080. New features must include focused test coverage for the behavior being added. If existing test coverage is thin, add the smallest practical tests around the new service, repository, controller, or UI behavior rather than leaving the feature untested.
 
 ### Database
 - Schema: ``db_schema_new.sql`` (run manually in SQLite, not auto-generated)

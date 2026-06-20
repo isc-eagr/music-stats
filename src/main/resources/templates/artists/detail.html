@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${artist.name} + ' - Music Stats'">Artist Detail</title>
+    <script>document.documentElement.classList.add('js');</script>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
@@ -51,6 +52,7 @@
         body.gender-other .detail-save-overlay {
             background: rgba(16, 19, 24, 0.74);
         }
+        html.js body.artist-detail-loading .detail-save-overlay,
         body.detail-save-busy .detail-save-overlay {
             opacity: 1;
             visibility: visible;
@@ -111,6 +113,15 @@
         body.gender-female .detail-save-text span {
             color: rgba(251, 233, 242, 0.74);
         }
+        .detail-load-text {
+            display: none;
+        }
+        body.artist-detail-loading .detail-save-text-save {
+            display: none;
+        }
+        body.artist-detail-loading .detail-load-text {
+            display: flex;
+        }
         @keyframes detail-save-spin {
             to {
                 transform: rotate(360deg);
@@ -118,14 +129,18 @@
         }
     </style>
 </head>
-<body class="artist-detail-page artist-mobile-toggles-pending" th:classappend="${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male') and !genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-female' : 'gender-other')">
+<body class="artist-detail-page artist-mobile-toggles-pending artist-detail-loading" th:classappend="${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('male') and !genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderId != null and genders.get(artist.genderId) != null and genders.get(artist.genderId).toLowerCase().contains('female')} ? 'gender-female' : 'gender-other')">
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     <div class="detail-save-overlay" id="detailSaveOverlay" aria-hidden="true">
         <div class="detail-save-card" role="status" aria-live="polite">
             <div class="detail-save-spinner"></div>
-            <div class="detail-save-text">
+            <div class="detail-save-text detail-save-text-save">
                 <strong>Saving changes...</strong>
                 <span>Updating artist details and linked stats.</span>
+            </div>
+            <div class="detail-save-text detail-load-text">
+                <strong>Loading artist...</strong>
+                <span>Preparing artist details and stats.</span>
             </div>
         </div>
     </div>
@@ -3419,7 +3434,7 @@
         }
         
         /* Artist detail toggles reuse detail-tabs.css and only override page-specific values here */
-        body.artist-detail-page .detail-tabs {
+        body.artist-detail-page {
             --detail-toggle-container-gap: 20px;
             --detail-toggle-container-gap-compact: 12px;
             --detail-toggle-gap: 10px;
@@ -3434,12 +3449,12 @@
             --detail-toggle-text-active-color: #94a3b8;
         }
 
-        body.artist-detail-page.gender-male .detail-tabs {
+        body.artist-detail-page.gender-male {
             --detail-toggle-slider-active-bg: #1e40af;
             --detail-toggle-text-active-color: #60a5fa;
         }
 
-        body.artist-detail-page.gender-female .detail-tabs {
+        body.artist-detail-page.gender-female {
             --detail-toggle-slider-active-bg: #9d174d;
             --detail-toggle-text-active-color: #f472b6;
         }
@@ -3859,6 +3874,12 @@
             } else if (typeof mobileQuery.addListener === 'function') {
                 mobileQuery.addListener(syncArtistMobileTopbarToggles);
             }
+        });
+
+        window.addEventListener('load', function() {
+            requestAnimationFrame(function() {
+                document.body.classList.remove('artist-detail-loading');
+            });
         });
         
         // Toggle include groups functionality

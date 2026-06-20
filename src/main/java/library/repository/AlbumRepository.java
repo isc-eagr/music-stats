@@ -364,8 +364,7 @@ public class AlbumRepository {
                     params.addAll(genreIds);
                     params.addAll(genreIds);
                 } else if ("excludes".equals(genreMode)) {
-                    sql.append(" AND ((a.override_genre_id NOT IN (").append(placeholders).append(") OR a.override_genre_id IS NULL) AND (ar.genre_id NOT IN (").append(placeholders).append(") OR ar.genre_id IS NULL))");
-                    params.addAll(genreIds);
+                    sql.append(" AND (COALESCE(a.override_genre_id, ar.genre_id) NOT IN (").append(placeholders).append(") OR COALESCE(a.override_genre_id, ar.genre_id) IS NULL)");
                     params.addAll(genreIds);
                 }
             }
@@ -383,8 +382,7 @@ public class AlbumRepository {
                     params.addAll(subgenreIds);
                     params.addAll(subgenreIds);
                 } else if ("excludes".equals(subgenreMode)) {
-                    sql.append(" AND ((a.override_subgenre_id NOT IN (").append(placeholders).append(") OR a.override_subgenre_id IS NULL) AND (ar.subgenre_id NOT IN (").append(placeholders).append(") OR ar.subgenre_id IS NULL))");
-                    params.addAll(subgenreIds);
+                    sql.append(" AND (COALESCE(a.override_subgenre_id, ar.subgenre_id) NOT IN (").append(placeholders).append(") OR COALESCE(a.override_subgenre_id, ar.subgenre_id) IS NULL)");
                     params.addAll(subgenreIds);
                 }
             }
@@ -403,8 +401,7 @@ public class AlbumRepository {
                     params.addAll(languageIds);
                     params.addAll(languageIds);
                 } else if ("excludes".equals(languageMode)) {
-                    sql.append(" AND ((a.override_language_id NOT IN (").append(placeholders).append(") OR a.override_language_id IS NULL) AND (ar.language_id NOT IN (").append(placeholders).append(") OR ar.language_id IS NULL))");
-                    params.addAll(languageIds);
+                    sql.append(" AND (COALESCE(a.override_language_id, ar.language_id) NOT IN (").append(placeholders).append(") OR COALESCE(a.override_language_id, ar.language_id) IS NULL)");
                     params.addAll(languageIds);
                 }
             }
@@ -1182,8 +1179,7 @@ public class AlbumRepository {
                     params.addAll(genreIds);
                     params.addAll(genreIds);
                 } else if ("excludes".equals(genreMode)) {
-                    sql.append(" AND ((a.override_genre_id NOT IN (").append(placeholders).append(") OR a.override_genre_id IS NULL) AND (ar.genre_id NOT IN (").append(placeholders).append(") OR ar.genre_id IS NULL))");
-                    params.addAll(genreIds);
+                    sql.append(" AND (COALESCE(a.override_genre_id, ar.genre_id) NOT IN (").append(placeholders).append(") OR COALESCE(a.override_genre_id, ar.genre_id) IS NULL)");
                     params.addAll(genreIds);
                 }
             }
@@ -1201,8 +1197,7 @@ public class AlbumRepository {
                     params.addAll(subgenreIds);
                     params.addAll(subgenreIds);
                 } else if ("excludes".equals(subgenreMode)) {
-                    sql.append(" AND ((a.override_subgenre_id NOT IN (").append(placeholders).append(") OR a.override_subgenre_id IS NULL) AND (ar.subgenre_id NOT IN (").append(placeholders).append(") OR ar.subgenre_id IS NULL))");
-                    params.addAll(subgenreIds);
+                    sql.append(" AND (COALESCE(a.override_subgenre_id, ar.subgenre_id) NOT IN (").append(placeholders).append(") OR COALESCE(a.override_subgenre_id, ar.subgenre_id) IS NULL)");
                     params.addAll(subgenreIds);
                 }
             }
@@ -1220,8 +1215,7 @@ public class AlbumRepository {
                     params.addAll(languageIds);
                     params.addAll(languageIds);
                 } else if ("excludes".equals(languageMode)) {
-                    sql.append(" AND ((a.override_language_id NOT IN (").append(placeholders).append(") OR a.override_language_id IS NULL) AND (ar.language_id NOT IN (").append(placeholders).append(") OR ar.language_id IS NULL))");
-                    params.addAll(languageIds);
+                    sql.append(" AND (COALESCE(a.override_language_id, ar.language_id) NOT IN (").append(placeholders).append(") OR COALESCE(a.override_language_id, ar.language_id) IS NULL)");
                     params.addAll(languageIds);
                 }
             }

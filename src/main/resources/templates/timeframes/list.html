@@ -1478,6 +1478,10 @@
                 url.searchParams.delete('view');
             }
             window.history.replaceState({}, '', url.toString());
+
+            if (normalizedView === 'table') {
+                window.requestTimeframeTableAutoLoad?.();
+            }
         }
 
         function sortTimeframeList(sortKey) {
@@ -1796,7 +1800,7 @@
             let loading = false;
             let listLoading = false;
             let loadAllInProgress = false;
-            let listUserHasScrolled = false;
+            let listUserHasScrolled = isTableViewActive();
             let cardLoadAllCompleted = false;
             let listLoadAllCompleted = false;
 
@@ -1885,6 +1889,26 @@
                 overlayTitle.textContent = 'Loading more...';
             }
 
+            function isListNearBottom() {
+                if (!listSentinel) return false;
+                const sentinelRect = listSentinel.getBoundingClientRect();
+                return sentinelRect.top <= window.innerHeight + 300;
+            }
+
+            function shouldAutoLoadListPage() {
+                return isTableViewActive()
+                    && !listLoading
+                    && listCurrentPage < totalPages - 1
+                    && (listUserHasScrolled || loadAllInProgress)
+                    && isListNearBottom();
+            }
+
+            function maybeLoadNextListPage() {
+                if (shouldAutoLoadListPage()) {
+                    loadNextListPage();
+                }
+            }
+
             const observer = new IntersectionObserver(function(entries) {
                 if (entries[0].isIntersecting && !loading && isCardViewActive()) {
                     loadNextPage();
@@ -1896,16 +1920,23 @@
             let listObserver = null;
             if (listBody && listSentinel) {
                 listObserver = new IntersectionObserver(function(entries) {
-                    if (entries[0].isIntersecting && !listLoading && isTableViewActive() && (listUserHasScrolled || loadAllInProgress)) {
-                        loadNextListPage();
+                    if (entries[0].isIntersecting) {
+                        maybeLoadNextListPage();
                     }
                 }, { rootMargin: '300px' });
                 listObserver.observe(listSentinel);
             }
 
+            window.addEventListener('scroll', function() {
+                if (!isTableViewActive()) return;
+                listUserHasScrolled = true;
+                maybeLoadNextListPage();
+            }, { passive: true });
+
             if (listContainer) {
                 listContainer.addEventListener('scroll', function() {
                     listUserHasScrolled = true;
+                    maybeLoadNextListPage();
                 }, { passive: true });
             }
 
@@ -1987,8 +2018,14 @@
 
                 listLoading = false;
                 updateLoadAllButton();
+                requestAnimationFrame(maybeLoadNextListPage);
                 return addedCount > 0;
             }
+
+            window.requestTimeframeTableAutoLoad = function() {
+                listUserHasScrolled = true;
+                requestAnimationFrame(maybeLoadNextListPage);
+            };
 
             window.loadAllInfiniteResults = async function() {
                 if (loadAllInProgress || loading || listLoading) {
@@ -2029,6 +2066,9 @@
             };
 
             updateLoadAllButton();
+            if (isTableViewActive()) {
+                window.requestTimeframeTableAutoLoad();
+            }
         })();
     </script>
 </body>

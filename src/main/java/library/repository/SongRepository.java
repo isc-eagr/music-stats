@@ -372,9 +372,7 @@ public class SongRepository {
                     params.addAll(genreIds);
                     params.addAll(genreIds);
                 } else if ("excludes".equals(genreMode)) {
-                    sql.append(" AND ((s.override_genre_id NOT IN (").append(placeholders).append(") OR s.override_genre_id IS NULL) AND (alb.override_genre_id NOT IN (").append(placeholders).append(") OR alb.override_genre_id IS NULL) AND (ar.genre_id NOT IN (").append(placeholders).append(") OR ar.genre_id IS NULL))");
-                    params.addAll(genreIds);
-                    params.addAll(genreIds);
+                    sql.append(" AND (COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) IS NULL)");
                     params.addAll(genreIds);
                 }
             }
@@ -394,9 +392,7 @@ public class SongRepository {
                     params.addAll(subgenreIds);
                     params.addAll(subgenreIds);
                 } else if ("excludes".equals(subgenreMode)) {
-                    sql.append(" AND ((s.override_subgenre_id NOT IN (").append(placeholders).append(") OR s.override_subgenre_id IS NULL) AND (alb.override_subgenre_id NOT IN (").append(placeholders).append(") OR alb.override_subgenre_id IS NULL) AND (ar.subgenre_id NOT IN (").append(placeholders).append(") OR ar.subgenre_id IS NULL))");
-                    params.addAll(subgenreIds);
-                    params.addAll(subgenreIds);
+                    sql.append(" AND (COALESCE(s.override_subgenre_id, alb.override_subgenre_id, ar.subgenre_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_subgenre_id, alb.override_subgenre_id, ar.subgenre_id) IS NULL)");
                     params.addAll(subgenreIds);
                 }
             }
@@ -416,9 +412,7 @@ public class SongRepository {
                     params.addAll(languageIds);
                     params.addAll(languageIds);
                 } else if ("excludes".equals(languageMode)) {
-                    sql.append(" AND ((s.override_language_id NOT IN (").append(placeholders).append(") OR s.override_language_id IS NULL) AND (alb.override_language_id NOT IN (").append(placeholders).append(") OR alb.override_language_id IS NULL) AND (ar.language_id NOT IN (").append(placeholders).append(") OR ar.language_id IS NULL))");
-                    params.addAll(languageIds);
-                    params.addAll(languageIds);
+                    sql.append(" AND (COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) IS NULL)");
                     params.addAll(languageIds);
                 }
             }
@@ -517,6 +511,11 @@ public class SongRepository {
             sql.append(" AND DATE(COALESCE(s.release_date, alb.release_date)) >= DATE(?) AND DATE(COALESCE(s.release_date, alb.release_date)) <= DATE(?)");
             params.add(releaseDateFrom);
             params.add(releaseDateTo);
+        }
+        if ("isnull".equals(releaseDateMode)) {
+            sql.append(" AND COALESCE(s.release_date, alb.release_date) IS NULL");
+        } else if ("isnotnull".equals(releaseDateMode)) {
+            sql.append(" AND COALESCE(s.release_date, alb.release_date) IS NOT NULL");
         }
         
         // First listened date filter
@@ -1023,9 +1022,7 @@ public class SongRepository {
                     params.addAll(genreIds);
                     params.addAll(genreIds);
                 } else if ("excludes".equals(genreMode)) {
-                    sql.append(" AND ((s.override_genre_id NOT IN (").append(placeholders).append(") OR s.override_genre_id IS NULL) AND (alb.override_genre_id NOT IN (").append(placeholders).append(") OR alb.override_genre_id IS NULL) AND (ar.genre_id NOT IN (").append(placeholders).append(") OR ar.genre_id IS NULL))");
-                    params.addAll(genreIds);
-                    params.addAll(genreIds);
+                    sql.append(" AND (COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) IS NULL)");
                     params.addAll(genreIds);
                 }
             }
@@ -1044,9 +1041,7 @@ public class SongRepository {
                     params.addAll(subgenreIds);
                     params.addAll(subgenreIds);
                 } else if ("excludes".equals(subgenreMode)) {
-                    sql.append(" AND ((s.override_subgenre_id NOT IN (").append(placeholders).append(") OR s.override_subgenre_id IS NULL) AND (alb.override_subgenre_id NOT IN (").append(placeholders).append(") OR alb.override_subgenre_id IS NULL) AND (ar.subgenre_id NOT IN (").append(placeholders).append(") OR ar.subgenre_id IS NULL))");
-                    params.addAll(subgenreIds);
-                    params.addAll(subgenreIds);
+                    sql.append(" AND (COALESCE(s.override_subgenre_id, alb.override_subgenre_id, ar.subgenre_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_subgenre_id, alb.override_subgenre_id, ar.subgenre_id) IS NULL)");
                     params.addAll(subgenreIds);
                 }
             }
@@ -1065,9 +1060,7 @@ public class SongRepository {
                     params.addAll(languageIds);
                     params.addAll(languageIds);
                 } else if ("excludes".equals(languageMode)) {
-                    sql.append(" AND ((s.override_language_id NOT IN (").append(placeholders).append(") OR s.override_language_id IS NULL) AND (alb.override_language_id NOT IN (").append(placeholders).append(") OR alb.override_language_id IS NULL) AND (ar.language_id NOT IN (").append(placeholders).append(") OR ar.language_id IS NULL))");
-                    params.addAll(languageIds);
-                    params.addAll(languageIds);
+                    sql.append(" AND (COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) IS NULL)");
                     params.addAll(languageIds);
                 }
             }
@@ -1190,6 +1183,8 @@ public class SongRepository {
                         params.add(releaseDateTo);
                     }
                 }
+                case "isnull" -> sql.append(" AND COALESCE(s.release_date, alb.release_date) IS NULL");
+                case "isnotnull" -> sql.append(" AND COALESCE(s.release_date, alb.release_date) IS NOT NULL");
             }
         }
 
@@ -2021,9 +2016,7 @@ public class SongRepository {
                     params.addAll(genreIds);
                     params.addAll(genreIds);
                 } else if ("excludes".equals(genreMode)) {
-                    sql.append(" AND ((s.override_genre_id NOT IN (").append(placeholders).append(") OR s.override_genre_id IS NULL) AND (alb.override_genre_id NOT IN (").append(placeholders).append(") OR alb.override_genre_id IS NULL) AND (ar.genre_id NOT IN (").append(placeholders).append(") OR ar.genre_id IS NULL))");
-                    params.addAll(genreIds);
-                    params.addAll(genreIds);
+                    sql.append(" AND (COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_genre_id, alb.override_genre_id, ar.genre_id) IS NULL)");
                     params.addAll(genreIds);
                 }
             }
@@ -2043,9 +2036,7 @@ public class SongRepository {
                     params.addAll(subgenreIds);
                     params.addAll(subgenreIds);
                 } else if ("excludes".equals(subgenreMode)) {
-                    sql.append(" AND ((s.override_subgenre_id NOT IN (").append(placeholders).append(") OR s.override_subgenre_id IS NULL) AND (alb.override_subgenre_id NOT IN (").append(placeholders).append(") OR alb.override_subgenre_id IS NULL) AND (ar.subgenre_id NOT IN (").append(placeholders).append(") OR ar.subgenre_id IS NULL))");
-                    params.addAll(subgenreIds);
-                    params.addAll(subgenreIds);
+                    sql.append(" AND (COALESCE(s.override_subgenre_id, alb.override_subgenre_id, ar.subgenre_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_subgenre_id, alb.override_subgenre_id, ar.subgenre_id) IS NULL)");
                     params.addAll(subgenreIds);
                 }
             }
@@ -2065,9 +2056,7 @@ public class SongRepository {
                     params.addAll(languageIds);
                     params.addAll(languageIds);
                 } else if ("excludes".equals(languageMode)) {
-                    sql.append(" AND ((s.override_language_id NOT IN (").append(placeholders).append(") OR s.override_language_id IS NULL) AND (alb.override_language_id NOT IN (").append(placeholders).append(") OR alb.override_language_id IS NULL) AND (ar.language_id NOT IN (").append(placeholders).append(") OR ar.language_id IS NULL))");
-                    params.addAll(languageIds);
-                    params.addAll(languageIds);
+                    sql.append(" AND (COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) NOT IN (").append(placeholders).append(") OR COALESCE(s.override_language_id, alb.override_language_id, ar.language_id) IS NULL)");
                     params.addAll(languageIds);
                 }
             }
@@ -2467,6 +2456,11 @@ public class SongRepository {
                     params.add(from);
                     params.add(to);
                 }
+            }
+            if ("isnull".equals(releaseDateMode)) {
+                sql.append(" AND ").append(dateExpr).append(" IS NULL");
+            } else if ("isnotnull".equals(releaseDateMode)) {
+                sql.append(" AND ").append(dateExpr).append(" IS NOT NULL");
             }
         }
         

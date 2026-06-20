@@ -14,6 +14,10 @@ import library.service.PcService;
 import library.service.TrlService;
 import library.dto.WeeklyChartStatsDTO;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -579,6 +583,7 @@ public class NowPlayingLookupController {
             if (first.length() > 10) first = first.substring(0, 10);
             String last = safe(resp.get("songLastListened"));
             if (last.length() > 10) last = last.substring(0, 10);
+            String lastWithDaysSince = last + formatDaysSinceDate(last);
             
             String artistUrlS = safe(resp.get("artistUrl"));
             String albumUrlS = safe(resp.get("albumUrl"));
@@ -639,7 +644,7 @@ public class NowPlayingLookupController {
             h.append("<div class=\"date-tile\"><div class=\"num\">").append(arPlays).append("</div><div class=\"lbl\">Artist Plays</div></div>");
             h.append("<div class=\"date-tile\"><div class=\"num\">").append(release).append("</div><div class=\"lbl\">Release</div></div>");
             h.append("<div class=\"date-tile\"><div class=\"num\">").append(first).append("</div><div class=\"lbl\">First Listened</div></div>");
-            h.append("<div class=\"date-tile\"><div class=\"num\">").append(last).append("</div><div class=\"lbl\">Last Listened</div></div>");
+            h.append("<div class=\"date-tile\"><div class=\"num\">").append(lastWithDaysSince).append("</div><div class=\"lbl\">Last Listened</div></div>");
             h.append("</div>");
 
             // Combined Ranks Section (current + projected together)
@@ -833,6 +838,17 @@ public class NowPlayingLookupController {
     private String safe(Object o) {
         if (o == null) return "";
         return o.toString();
+    }
+
+    private String formatDaysSinceDate(String isoDate) {
+        if (isoDate == null || isoDate.isBlank()) return "";
+        try {
+            LocalDate date = LocalDate.parse(isoDate, DateTimeFormatter.ISO_LOCAL_DATE);
+            long days = ChronoUnit.DAYS.between(date, LocalDate.now(ZoneId.of("America/Mexico_City")));
+            return " (" + days + " " + (days == 1 ? "day" : "days") + ")";
+        } catch (Exception ignored) {
+            return "";
+        }
     }
 
     private String escapeHtml(String value) {
