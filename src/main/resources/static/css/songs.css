@@ -1,6 +1,161 @@
 /* Songs List Page - Page-specific styles only */
 /* Base card styles are in global.css */
 
+.bulk-tag-panel {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bulk-tag-title {
+    color: #aeb7c4;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.bulk-tag-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.bulk-tag-count {
+    color: #9ca3af;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.song-select-all,
+.song-select-cell {
+    align-items: center;
+    display: inline-flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.song-select-all input,
+.song-select-cell input {
+    cursor: pointer;
+    height: 15px;
+    margin: 0;
+    width: 15px;
+}
+
+#topSongsTable tr.song-row-selected td {
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.bulk-tag-modal-content {
+    max-width: 520px;
+}
+
+.bulk-tag-modal-summary {
+    color: #d1d5db;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.bulk-tag-picker-header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.bulk-tag-picker-header label {
+    color: #f3f4f6;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.bulk-tag-picker-tools {
+    display: flex;
+    gap: 8px;
+}
+
+.bulk-tag-picker-tools button {
+    background: transparent;
+    border: 0;
+    color: #93c5fd;
+    cursor: pointer;
+    font-size: 0.78rem;
+    padding: 0;
+}
+
+.bulk-tag-picker-tools button:hover {
+    color: #bfdbfe;
+}
+
+.bulk-tag-search {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    color: #f9fafb;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    padding: 9px 10px;
+    width: 100%;
+}
+
+.bulk-tag-search:focus {
+    border-color: #60a5fa;
+    outline: none;
+}
+
+.bulk-tag-options {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    display: grid;
+    gap: 0;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.bulk-tag-option {
+    align-items: center;
+    color: #e5e7eb;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    padding: 9px 12px;
+}
+
+.bulk-tag-option + .bulk-tag-option {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bulk-tag-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.bulk-tag-option input {
+    cursor: pointer;
+    margin: 0;
+}
+
+.bulk-tag-empty {
+    color: #9ca3af;
+    font-size: 0.88rem;
+    padding: 16px;
+    text-align: center;
+}
+
+.bulk-tag-status {
+    color: #86efac;
+    font-size: 0.86rem;
+    min-height: 20px;
+    padding-top: 10px;
+}
+
+.bulk-tag-status.error {
+    color: #fca5a5;
+}
+
 /* Single indicator diamond icon */
 .single-indicator {
     font-size: 12px;

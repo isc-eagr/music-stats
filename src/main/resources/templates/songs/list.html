@@ -127,6 +127,18 @@
                     </div>
                         </div>
                         <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
+                        <div class="bulk-tag-panel" id="songBulkTagPanel">
+                            <div class="bulk-tag-title">Bulk Tags</div>
+                            <div class="bulk-tag-actions">
+                                <button type="button" class="toolbar-btn toolbar-btn-soft" onclick="openBulkTagModal()" id="bulkTagOpenButton" disabled>
+                                    Tag Selected
+                                </button>
+                                <button type="button" class="toolbar-btn toolbar-btn-muted" onclick="clearSongBulkSelection()" id="bulkTagClearButton" disabled>
+                                    Clear
+                                </button>
+                                <span class="bulk-tag-count" id="bulkTagSelectionCount">0 selected</span>
+                            </div>
+                        </div>
                 </div>
                 
                 <div class="catalog-toolbar-control-actions">
@@ -2156,7 +2168,12 @@
                 <table class="top-table" id="topSongsTable">
                     <thead>
                         <tr>
-                            <th class="rank-col">#</th>
+                            <th class="rank-col">
+                                <label class="song-select-all" title="Select all songs matching the current filters">
+                                    <input type="checkbox" autocomplete="off" id="selectAllSongsTableCheckbox" onchange="toggleAllVisibleSongsForBulkTagging(this)">
+                                    <span>All</span>
+                                </label>
+                            </th>
                             <th class="cover-col"></th>
                             <th data-sort="artistName" data-col="artistName" class="hide-mobile">Artist Name</th>
                             <th data-sort="albumName" data-col="albumName" class="hide-mobile">Album Name</th>
@@ -2514,6 +2531,201 @@
             url.searchParams.delete(paramName + 'Mode');
             window.location.href = url.toString();
         }
+
+        const selectedSongIdsForBulkTags = new Set();
+        let selectingAllFilteredSongs = false;
+
+        function getSongTableSelectionCheckboxes() {
+            return Array.from(document.querySelectorAll('#topSongsTable tbody .song-bulk-select'));
+        }
+
+        function getSelectedSongIdsForBulkTags() {
+            return Array.from(selectedSongIdsForBulkTags);
+        }
+
+        function updateBulkTagSummaryText() {
+            const count = selectedSongIdsForBulkTags.size;
+            const text = count + ' selected';
+            const countEl = document.getElementById('bulkTagSelectionCount');
+            const modalSummaryEl = document.getElementById('bulkTagModalSummary');
+            if (countEl) countEl.textContent = text;
+            if (modalSummaryEl) modalSummaryEl.textContent = count + (count === 1 ? ' song selected' : ' songs selected');
+
+            const openButton = document.getElementById('bulkTagOpenButton');
+            const clearButton = document.getElementById('bulkTagClearButton');
+            if (openButton) openButton.disabled = count === 0;
+            if (clearButton) clearButton.disabled = count === 0;
+        }
+
+        function syncSongTableSelectionControls() {
+            const checkboxes = getSongTableSelectionCheckboxes();
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectedSongIdsForBulkTags.has(checkbox.value);
+                const row = checkbox.closest('tr');
+                if (row) row.classList.toggle('song-row-selected', checkbox.checked);
+            });
+
+            const selectAll = document.getElementById('selectAllSongsTableCheckbox');
+            if (selectAll) {
+                const selectedVisibleCount = checkboxes.filter(checkbox => checkbox.checked).length;
+                selectAll.checked = checkboxes.length > 0 && selectedVisibleCount === checkboxes.length;
+                selectAll.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < checkboxes.length;
+                selectAll.disabled = selectingAllFilteredSongs || checkboxes.length === 0;
+            }
+
+            updateBulkTagSummaryText();
+        }
+
+        function selectLoadedSongsForBulkTagging(checked) {
+            getSongTableSelectionCheckboxes().forEach(rowCheckbox => {
+                rowCheckbox.checked = checked;
+                if (checked) {
+                    selectedSongIdsForBulkTags.add(rowCheckbox.value);
+                } else {
+                    selectedSongIdsForBulkTags.delete(rowCheckbox.value);
+                }
+            });
+        }
+
+        async function toggleAllVisibleSongsForBulkTagging(checkbox) {
+            if (!checkbox.checked) {
+                selectLoadedSongsForBulkTagging(false);
+                syncSongTableSelectionControls();
+                return;
+            }
+
+            selectingAllFilteredSongs = true;
+            const countEl = document.getElementById('bulkTagSelectionCount');
+            if (countEl) countEl.textContent = 'Loading filtered songs...';
+            checkbox.disabled = true;
+
+            try {
+                if (typeof window.loadAllTableViewResults === 'function') {
+                    await window.loadAllTableViewResults();
+                }
+                selectLoadedSongsForBulkTagging(true);
+            } finally {
+                selectingAllFilteredSongs = false;
+            }
+            syncSongTableSelectionControls();
+        }
+
+        function clearSongBulkSelection() {
+            selectedSongIdsForBulkTags.clear();
+            syncSongTableSelectionControls();
+        }
+
+        function openBulkTagModal() {
+            if (selectedSongIdsForBulkTags.size === 0) {
+                alert('Select at least one song first.');
+                return;
+            }
+
+            document.querySelectorAll('input[name="bulkTagId"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            const searchInput = document.getElementById('bulkTagSearchInput');
+            if (searchInput) {
+                searchInput.value = '';
+                filterBulkTagOptions('');
+                setTimeout(() => searchInput.focus(), 0);
+            }
+            const statusEl = document.getElementById('bulkTagStatus');
+            if (statusEl) statusEl.textContent = '';
+            updateBulkTagSummaryText();
+            document.getElementById('bulkTagModal').style.display = 'flex';
+        }
+
+        function closeBulkTagModal() {
+            document.getElementById('bulkTagModal').style.display = 'none';
+        }
+
+        function showBulkTagStatus(message, isError) {
+            const statusEl = document.getElementById('bulkTagStatus');
+            if (!statusEl) return;
+            statusEl.textContent = message;
+            statusEl.classList.toggle('error', Boolean(isError));
+        }
+
+        function filterBulkTagOptions(query) {
+            const normalizedQuery = (query || '').trim().toLowerCase();
+            document.querySelectorAll('.bulk-tag-option').forEach(option => {
+                const label = option.textContent.trim().toLowerCase();
+                option.hidden = normalizedQuery.length > 0 && !label.includes(normalizedQuery);
+            });
+        }
+
+        function setAllVisibleBulkTags(checked) {
+            document.querySelectorAll('.bulk-tag-option:not([hidden]) input[name="bulkTagId"]').forEach(checkbox => {
+                checkbox.checked = checked;
+            });
+        }
+
+        async function applyBulkTags() {
+            const songIds = getSelectedSongIdsForBulkTags().map(value => parseInt(value, 10)).filter(Number.isFinite);
+            const tagIds = Array.from(document.querySelectorAll('input[name="bulkTagId"]:checked'))
+                .map(checkbox => parseInt(checkbox.value, 10))
+                .filter(Number.isFinite);
+
+            if (songIds.length === 0) {
+                showBulkTagStatus('Select at least one song.', true);
+                return;
+            }
+            if (tagIds.length === 0) {
+                showBulkTagStatus('Select at least one tag.', true);
+                return;
+            }
+
+            const applyButton = document.getElementById('applyBulkTagsButton');
+            if (applyButton) applyButton.disabled = true;
+            showBulkTagStatus('Applying tags...', false);
+
+            try {
+                const response = await fetch('/songs/bulk-tags', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ songIds, tagIds })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.message || 'Could not apply tags.');
+                }
+
+                closeBulkTagModal();
+                clearSongBulkSelection();
+                const message = 'Tags applied to ' + songIds.length + (songIds.length === 1 ? ' song.' : ' songs.');
+                if (typeof window.showToast === 'function') {
+                    window.showToast(message, 'success');
+                } else {
+                    alert(message);
+                }
+            } catch (error) {
+                showBulkTagStatus(error.message || 'Could not apply tags.', true);
+            } finally {
+                if (applyButton) applyButton.disabled = false;
+            }
+        }
+
+        window.isSongBulkSelectionEnabled = function() {
+            return Boolean(document.getElementById('selectAllSongsTableCheckbox'));
+        };
+        window.isSongSelectedForBulkTagging = function(songId) {
+            return selectedSongIdsForBulkTags.has(String(songId));
+        };
+        window.onSongBulkSelectionChanged = function(checkbox) {
+            if (checkbox.checked) {
+                selectedSongIdsForBulkTags.add(checkbox.value);
+            } else {
+                selectedSongIdsForBulkTags.delete(checkbox.value);
+            }
+            syncSongTableSelectionControls();
+        };
+        window.syncSongTableSelectionControls = syncSongTableSelectionControls;
+
+        document.addEventListener('DOMContentLoaded', syncSongTableSelectionControls);
         
         function goToPage(pageNum) {
             const url = new URL(window.location);
@@ -3029,6 +3241,38 @@
     <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
     <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
     
+    <div id="bulkTagModal" class="modal">
+        <div class="modal-content bulk-tag-modal-content">
+            <div class="modal-header">
+                <h2>Tag Selected Songs</h2>
+                <span class="modal-close" onclick="closeBulkTagModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="bulk-tag-modal-summary" id="bulkTagModalSummary">0 songs selected</div>
+                <div class="bulk-tag-picker-header">
+                    <label for="bulkTagSearchInput">Choose Tags</label>
+                    <div class="bulk-tag-picker-tools">
+                        <button type="button" onclick="setAllVisibleBulkTags(true)">Select visible</button>
+                        <button type="button" onclick="setAllVisibleBulkTags(false)">Clear visible</button>
+                    </div>
+                </div>
+                <input type="search" autocomplete="off" id="bulkTagSearchInput" class="bulk-tag-search" placeholder="Search tags..." oninput="filterBulkTagOptions(this.value)">
+                <div class="bulk-tag-options">
+                    <label class="bulk-tag-option" th:each="entry : ${tags}">
+                        <input type="checkbox" autocomplete="off" name="bulkTagId" th:value="${entry.key}">
+                        <span th:text="${entry.value}">Tag</span>
+                    </label>
+                    <div class="bulk-tag-empty" th:if="${tags == null or tags.isEmpty()}">No tags found</div>
+                </div>
+                <div class="bulk-tag-status" id="bulkTagStatus" aria-live="polite"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-negative" onclick="closeBulkTagModal()">Cancel</button>
+                <button type="button" class="btn-positive" onclick="applyBulkTags()" id="applyBulkTagsButton">Apply Tags</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Create Song Modal -->
     <div id="createSongModal" class="modal">
         <div class="modal-content">

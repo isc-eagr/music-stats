@@ -1007,6 +1007,31 @@ public class SongController {
         return "redirect:/songs/" + id;
     }
 
+    @PostMapping("/bulk-tags")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> addBulkSongTags(@RequestBody BulkSongTagRequest request) {
+        List<Integer> songIds = request != null ? request.songIds() : List.of();
+        List<Integer> tagIds = request != null ? request.tagIds() : List.of();
+
+        if (songIds == null || songIds.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Select at least one song"));
+        }
+        if (tagIds == null || tagIds.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Select at least one tag"));
+        }
+
+        int appliedCount = tagService.addSongTags(songIds, tagIds);
+        return ResponseEntity.ok(Map.of(
+                "message", "Tags applied",
+                "songCount", songIds.size(),
+                "tagCount", tagIds.size(),
+                "appliedCount", appliedCount
+        ));
+    }
+
+    private record BulkSongTagRequest(List<Integer> songIds, List<Integer> tagIds) {
+    }
+
     @PostMapping("/{id}/linked-songs")
     public String updateLinkedSongs(@PathVariable Integer id,
                                     @RequestParam(required = false) List<Integer> linkedSongIds) {

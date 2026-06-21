@@ -250,6 +250,32 @@ public class TagService {
         saveEntityTags("SongTag", "song_id", songId, tagIds);
     }
 
+    @Transactional
+    public int addSongTags(List<Integer> songIds, List<Integer> tagIds) {
+        Set<Integer> distinctSongIds = distinctIds(songIds);
+        Set<Integer> distinctTagIds = distinctIds(tagIds);
+        if (distinctSongIds.isEmpty() || distinctTagIds.isEmpty()) {
+            return 0;
+        }
+
+        List<Object[]> batchArgs = new ArrayList<>();
+        for (Integer songId : distinctSongIds) {
+            for (Integer tagId : distinctTagIds) {
+                batchArgs.add(new Object[]{songId, tagId});
+            }
+        }
+
+        int[] inserted = jdbcTemplate.batchUpdate(
+                "INSERT OR IGNORE INTO SongTag (song_id, tag_id) VALUES (?, ?)",
+                batchArgs
+        );
+        int appliedCount = 0;
+        for (int count : inserted) {
+            appliedCount += count;
+        }
+        return appliedCount;
+    }
+
     private Integer findTagIdByName(String name) {
         List<Integer> ids = jdbcTemplate.query(
                 "SELECT id FROM Tag WHERE LOWER(name) = LOWER(?) LIMIT 1",
@@ -257,6 +283,20 @@ public class TagService {
                 name
         );
         return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    private Set<Integer> distinctIds(List<Integer> ids) {
+        Set<Integer> distinctIds = new LinkedHashSet<>();
+        if (ids == null) {
+            return distinctIds;
+        }
+
+        for (Integer id : ids) {
+            if (id != null) {
+                distinctIds.add(id);
+            }
+        }
+        return distinctIds;
     }
 
     private Integer getNullableInt(java.sql.ResultSet rs, String columnName) throws java.sql.SQLException {

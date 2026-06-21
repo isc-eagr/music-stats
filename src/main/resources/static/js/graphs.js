@@ -2050,16 +2050,27 @@ function buildSongRow(song, rank) {
     const rowClasses = [];
     if (song.featuredOn) rowClasses.push('featured-song-row');
     if (song.fromGroup) rowClasses.push('group-item-row');
-    const rowClassAttr = rowClasses.length > 0 ? ` class="${rowClasses.join(' ')}"` : '';
     let songLabel = '';
     if (song.featuredOn && song.primaryArtistName) {
         songLabel = ` <span class="featured-artist-label">(feat. on <a href="/artists/${song.primaryArtistId}">${escapeHtml(song.primaryArtistName)}</a>)</span>`;
     } else if (song.fromGroup && song.sourceArtistName) {
         songLabel = ` <span class="group-artist-label">(by <a href="/artists/${song.sourceArtistId}">${escapeHtml(song.sourceArtistName)}</a>)</span>`;
     }
+    const selectionEnabled = typeof window.isSongBulkSelectionEnabled === 'function' && window.isSongBulkSelectionEnabled();
+    const isSelected = selectionEnabled
+        && typeof window.isSongSelectedForBulkTagging === 'function'
+        && window.isSongSelectedForBulkTagging(song.id);
+    const selectionCellHtml = selectionEnabled
+        ? `<label class="song-select-cell">
+                <input type="checkbox" autocomplete="off" class="song-bulk-select" value="${song.id}" ${isSelected ? 'checked' : ''} onchange="window.onSongBulkSelectionChanged && window.onSongBulkSelectionChanged(this)">
+                <span>${rank}</span>
+           </label>`
+        : rank;
+    if (isSelected) rowClasses.push('song-row-selected');
+    const finalRowClassAttr = rowClasses.length > 0 ? ` class="${rowClasses.join(' ')}"` : '';
     return `
-        <tr${rowClassAttr} style="${getGenderRowStyle(song.genderId)}">
-            <td class="rank-col">${rank}</td>
+        <tr${finalRowClassAttr} style="${getGenderRowStyle(song.genderId)}">
+            <td class="rank-col">${selectionCellHtml}</td>
             <td class="cover-col">${coverHtml}</td>
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
@@ -2115,6 +2126,9 @@ function renderTopSongsTable() {
     if (data.length === 0) {
         const colCount = document.querySelectorAll('#topSongsTable thead th').length;
         tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: #666; padding: 20px;">No song data available</td></tr>`;
+        if (typeof window.syncSongTableSelectionControls === 'function') {
+            window.syncSongTableSelectionControls();
+        }
         return;
     }
     
@@ -2123,6 +2137,9 @@ function renderTopSongsTable() {
     tbody.innerHTML = rowsToRender.map((song, index) => buildSongRow(song, index + 1)).join('');
     if (typeof window.initializeLinkedSongTooltips === 'function') {
         window.initializeLinkedSongTooltips(tbody);
+    }
+    if (typeof window.syncSongTableSelectionControls === 'function') {
+        window.syncSongTableSelectionControls();
     }
     
     // Add hover event listeners for image swap
@@ -2562,6 +2579,9 @@ function appendTopSongsRows(data, startRank) {
     });
     if (typeof window.initializeLinkedSongTooltips === 'function') {
         window.initializeLinkedSongTooltips(tbody);
+    }
+    if (typeof window.syncSongTableSelectionControls === 'function') {
+        window.syncSongTableSelectionControls();
     }
     // Re-bind hover listeners for image swap on newly appended rows
     tbody.querySelectorAll('.hover-image-container').forEach(container => {
