@@ -108,6 +108,7 @@ public record SongStatsQuery(
         String sortDirection2,
         String sortBy3,
         String sortDirection3,
+        Integer randomSeed,
         int limit,
         int offset,
         boolean includeExpensiveStats,

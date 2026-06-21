@@ -365,6 +365,7 @@
                             <option value="maletimepct" th:selected="${sortBy == 'maletimepct'}">Male Time %</option>
                             <option value="period" th:selected="${sortBy == 'period'}">Period</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                            <option value="random" th:selected="${sortBy == 'random'}">Random</option>
                             <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
                             <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
                         </select>
@@ -376,6 +377,7 @@
                     </div>
                     
                     </div>
+                        <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                         </div>
                 </div>
                 
@@ -1136,7 +1138,7 @@
                     </div>
 
                     <!-- Sort metric display (only for non-visible metrics) -->
-                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs'}">
+                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'random' and sortBy != 'plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
                             <th:block th:case="'maleartistpct'">Male Artist %:</th:block>
                             <th:block th:case="'malealbumpct'">Male Album %:</th:block>
@@ -1686,6 +1688,7 @@
         function changeSortBy(sortValue) {
             const url = new URL(window.location);
             url.searchParams.set('sortby', sortValue);
+            syncRandomSeedParam(url, { refresh: sortValue === 'random' });
             url.searchParams.set('page', '0');
             window.location.href = url.toString();
         }
@@ -1694,12 +1697,17 @@
             const url = new URL(window.location);
             const currentDir = url.searchParams.get('sortdir') || 'desc';
             url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
+            syncRandomSeedParam(url);
             url.searchParams.set('page', '0');
             window.location.href = url.toString();
         }
         
         function clearFilters() {
-            window.location.href = '/' + periodType + '?sortby=' + document.getElementById('sortBySelect').value + '&sortdir=' + (new URL(window.location).searchParams.get('sortdir') || 'desc');
+            const url = new URL('/' + periodType, window.location.origin);
+            url.searchParams.set('sortby', document.getElementById('sortBySelect').value);
+            url.searchParams.set('sortdir', new URL(window.location).searchParams.get('sortdir') || 'desc');
+            syncRandomSeedParam(url);
+            window.location.href = url.toString();
         }
         
         function applyFilters() {

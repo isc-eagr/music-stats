@@ -176,13 +176,13 @@ class CatalogTimeframeChartRegressionTest {
 
             assertThat(service.getNumberOneSongsCount(1)).isEqualTo(1);
             assertThat(service.getNumberOneWeeksCount(1)).isEqualTo(1);
-            assertThat(service.getNumberOneSongNames(1)).containsExactly("Bidi Bidi Bom Bom");
+            assertThat(service.getNumberOneSongNames(1)).containsExactly("Bidi Bidi Bom Bom (1 week at #1)");
 
             assertThat(service.getNumberOneSongsCount(2)).isEqualTo(1);
-            assertThat(service.getNumberOneSongNames(2)).containsExactly("Titi Me Pregunto");
+            assertThat(service.getNumberOneSongNames(2)).containsExactly("Titi Me Pregunto (1 week at #1)");
 
             assertThat(service.getNumberOneAlbumsCount(1)).isEqualTo(1);
-            assertThat(service.getNumberOneAlbumNames(1)).containsExactly("Amor Prohibido");
+            assertThat(service.getNumberOneAlbumNames(1)).containsExactly("Amor Prohibido (1 week at #1)");
 
             List<NumberOneRunDTO> runs = service.getNumberOneRuns("song");
             assertThat(runs).extracting(NumberOneRunDTO::getName)
@@ -191,6 +191,31 @@ class CatalogTimeframeChartRegressionTest {
             assertThat(runs.get(0).getRunEndDate()).isEqualTo("14/01/2024");
             assertThat(runs.get(0).getTotalWeeks()).isEqualTo(1);
             assertThat(runs.get(1).getRunStartDate()).isEqualTo("01/01/2024");
+        }
+    }
+
+    @Test
+    void chartNumberOneTooltipNamesIncludePluralWeeksAtNumberOne() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            db.jdbcTemplate.update("""
+                    INSERT INTO Chart (id, chart_type, period_type, period_key, period_start_date, period_end_date, is_finalized)
+                    VALUES
+                        (8, 'song', 'weekly', '2024-W03', '2024-01-15', '2024-01-21', 1),
+                        (9, 'song', 'weekly', '2024-W04', '2024-01-22', '2024-01-28', 1)
+                    """);
+            db.jdbcTemplate.update("""
+                    INSERT INTO ChartEntry (id, chart_id, position, song_id, album_id, play_count)
+                    VALUES
+                        (9, 8, 1, 2, NULL, 4),
+                        (10, 9, 1, 2, NULL, 5)
+                    """);
+
+            ChartService service = chartService(db);
+
+            assertThat(service.getNumberOneSongNames(1))
+                    .contains("No Me Queda Mas (2 weeks at #1)");
+            assertThat(service.getNumberOneFeaturedSongNames(4))
+                    .containsExactly("No Me Queda Mas (by Selena) (2 weeks at #1)");
         }
     }
 

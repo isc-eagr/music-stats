@@ -28,10 +28,11 @@ public class SubGenreController {
             @RequestParam(required = false) Integer parentGenre,
             @RequestParam(defaultValue = "name") String sortby,
             @RequestParam(defaultValue = "asc") String sortdir,
+            @RequestParam(required = false) Integer randomSeed,
             Model model) {
         
         // Get filtered and sorted subgenres
-        List<SubGenreCardDTO> subgenres = subGenreService.getSubGenres(q, parentGenre, sortby, sortdir);
+        List<SubGenreCardDTO> subgenres = subGenreService.getSubGenres(q, parentGenre, sortby, sortdir, randomSeed);
 
         long totalCount = subGenreService.countSubGenres(q, parentGenre);
         
@@ -47,6 +48,7 @@ public class SubGenreController {
         model.addAttribute("selectedParentGenre", parentGenre);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         // Add filter options

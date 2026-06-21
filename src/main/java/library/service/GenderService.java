@@ -2,6 +2,7 @@ package library.service;
 
 import library.dto.GenderCardDTO;
 import library.repository.LookupRepository;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,10 @@ public class GenderService {
     }
     
     public List<GenderCardDTO> getGenders(String name, String sortBy, String sortDir) {
+        return getGenders(name, sortBy, sortDir, null);
+    }
+
+    public List<GenderCardDTO> getGenders(String name, String sortBy, String sortDir, Integer randomSeed) {
 
         // Determine sort direction
         String sortColumn = "g.name";
@@ -46,6 +51,10 @@ public class GenderService {
                     break;
                 case "albums":
                     sortColumn = "album_count";
+                    break;
+                case "random":
+                    sortColumn = RandomSortUtils.sqliteNumericExpression("g.id", randomSeed);
+                    sortDirection = "";
                     break;
                 default:
                     sortColumn = "g.name";

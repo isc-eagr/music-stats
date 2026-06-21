@@ -4905,11 +4905,13 @@ public class ChartService {
     
     /**
      * Get the list of songs that reached #1 on the weekly songs chart for an artist.
-     * Returns song names sorted by the first week they reached #1 (most recent first).
+     * Returns song names with weeks at #1, sorted by the first week they reached #1 (most recent first).
      */
     public List<String> getNumberOneSongNames(Integer artistId) {
         String sql = """
-            SELECT DISTINCT s.name, MIN(c.period_key) as first_number_one_week
+            SELECT s.name,
+                   COUNT(*) as weeks_at_number_one,
+                   MIN(c.period_key) as first_number_one_week
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Song s ON ce.song_id = s.id
@@ -4921,7 +4923,8 @@ public class ChartService {
             ORDER BY first_number_one_week DESC
             """;
         
-        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("name"), artistId);
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+                formatNumberOneTooltipLabel(rs.getString("name"), rs.getInt("weeks_at_number_one")), artistId);
     }
     
     /**
@@ -4964,11 +4967,13 @@ public class ChartService {
     
     /**
      * Get the list of albums that reached #1 on the weekly albums chart for an artist.
-     * Returns album names sorted by the first week they reached #1 (most recent first).
+     * Returns album names with weeks at #1, sorted by the first week they reached #1 (most recent first).
      */
     public List<String> getNumberOneAlbumNames(Integer artistId) {
         String sql = """
-            SELECT DISTINCT al.name, MIN(c.period_key) as first_number_one_week
+            SELECT al.name,
+                   COUNT(*) as weeks_at_number_one,
+                   MIN(c.period_key) as first_number_one_week
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
             INNER JOIN Album al ON ce.album_id = al.id
@@ -4980,7 +4985,8 @@ public class ChartService {
             ORDER BY first_number_one_week DESC
             """;
         
-        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("name"), artistId);
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+                formatNumberOneTooltipLabel(rs.getString("name"), rs.getInt("weeks_at_number_one")), artistId);
     }
     
     /**
@@ -5025,11 +5031,12 @@ public class ChartService {
     
     /**
      * Get the list of featured songs that reached #1 on the weekly songs chart for an artist.
-     * Returns song names (with primary artist name) sorted by the first week they reached #1 (most recent first).
+     * Returns song names with weeks at #1 (with primary artist name), sorted by the first week they reached #1 (most recent first).
      */
     public List<String> getNumberOneFeaturedSongNames(Integer artistId) {
         String sql = """
             SELECT DISTINCT s.name || ' (by ' || ar.name || ')' as display_name, 
+                   COUNT(*) as weeks_at_number_one,
                    MIN(c.period_key) as first_number_one_week
             FROM ChartEntry ce
             INNER JOIN Chart c ON ce.chart_id = c.id
@@ -5044,7 +5051,12 @@ public class ChartService {
             ORDER BY first_number_one_week DESC
             """;
         
-        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("display_name"), artistId);
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+                formatNumberOneTooltipLabel(rs.getString("display_name"), rs.getInt("weeks_at_number_one")), artistId);
+    }
+
+    private String formatNumberOneTooltipLabel(String name, int weeksAtNumberOne) {
+        return name + " (" + weeksAtNumberOne + " " + (weeksAtNumberOne == 1 ? "week" : "weeks") + " at #1)";
     }
     
     // ========== WEEKLY NUMBER ONES ==========

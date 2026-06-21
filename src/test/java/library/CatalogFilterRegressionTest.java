@@ -243,6 +243,114 @@ class CatalogFilterRegressionTest {
         }
     }
 
+    @Test
+    void remainingCatalogFilterBoundsAndWindowsAreCovered() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            assertArtistNames(db, mapOf("albumCountMax", 0), "Guest Singer");
+            assertArtistNames(db, mapOf("songCountMin", 3), "Selena");
+            assertArtistNames(db, mapOf(
+                    "firstListenedDateFrom", "2024-01-01",
+                    "firstListenedDateTo", "2024-01-04",
+                    "firstListenedDateMode", "between"),
+                    "Bad Bunny", "Selena");
+            assertArtistNames(db, mapOf(
+                    "lastListenedDateFrom", "2024-04-01",
+                    "lastListenedDateTo", "2024-05-01",
+                    "lastListenedDateMode", "between"),
+                    "Legacy Legend", "Selena");
+            assertArtistNames(db, mapOf(
+                    "deathDateFrom", "2020-01-01",
+                    "deathDateTo", "2021-01-01",
+                    "deathDateMode", "between"),
+                    "Legacy Legend");
+            assertThat(db.artistRepository.findArtistsWithStats(artistQueryWith(mapOf(
+                    "itunesPresenceMax", 0,
+                    "itunesSongIdsJson", "[3,4]"))))
+                    .extracting(ArtistStatsRow::name)
+                    .contains("Legacy Legend", "Mystery Artist", "Selena", "The Static Hearts");
+
+            assertAlbumNames(db, mapOf("imageCountMax", 0), "Legacy Collection", "Silent Record", "Un Verano Sin Ti", "Unknown Album");
+            assertAlbumNames(db, mapOf("ageAtReleaseMin", 25), "Silent Record", "Un Verano Sin Ti");
+            assertAlbumNames(db, mapOf("playCountMax", 1), "Legacy Collection", "Silent Record", "Unknown Album");
+            assertAlbumNames(db, mapOf("songCountMax", 1), "Legacy Collection", "Silent Record", "Unknown Album");
+            assertAlbumNames(db, mapOf("lengthMax", 240, "lengthMode", "range"), "Legacy Collection", "Silent Record", "Unknown Album");
+            assertAlbumNames(db, mapOf("weeklyChartWeeks", 1), "Amor Prohibido");
+            assertAlbumNames(db, mapOf("weeklyChartPeakWeeks", 1, "weeklyChartPeakWeeksMode", "exact"), "Amor Prohibido");
+            assertAlbumNames(db, mapOf(
+                    "weeklyChartPeak", 1,
+                    "weeklyChartDateFrom", "2024-01-01",
+                    "weeklyChartDateTo", "2024-01-07"),
+                    "Amor Prohibido");
+            assertAlbumNames(db, mapOf("seasonalChartSeasons", 1), "Un Verano Sin Ti");
+            assertAlbumNames(db, mapOf(
+                    "seasonalChartPeak", 1,
+                    "seasonalChartDateFrom", "2024-03-01",
+                    "seasonalChartDateTo", "2024-05-31"),
+                    "Un Verano Sin Ti");
+            assertAlbumNames(db, mapOf("yearlyChartYears", 1), "Amor Prohibido");
+            assertAlbumNames(db, mapOf(
+                    "yearlyChartPeak", 2,
+                    "yearlyChartDateFrom", "2024-01-01",
+                    "yearlyChartDateTo", "2024-12-31"),
+                    "Amor Prohibido");
+            assertAlbumNames(db, mapOf(
+                    "lastFullListenDateFrom", "2024-02-01",
+                    "lastFullListenDateTo", "2024-05-01",
+                    "lastFullListenDateMode", "between"),
+                    "Amor Prohibido", "Legacy Collection");
+            assertAlbumNames(db, mapOf(
+                    "itunesPresenceMax", 0,
+                    "itunesSongIdsJson", "[1,2,3,4,8]"),
+                    "Silent Record", "Unknown Album");
+
+            assertSongNames(db, mapOf("imageCountMax", 0),
+                    "Ojitos Lindos", "Old Hit", "Quiet Track", "Standalone Jam", "Titi Me Pregunto", "Unknown Silence");
+            assertSongNames(db, mapOf("ageAtReleaseMin", 24),
+                    "Ojitos Lindos", "Old Hit", "Quiet Track", "Titi Me Pregunto");
+            assertSongNames(db, mapOf("playCountMax", 1),
+                    "No Me Queda Mas", "Ojitos Lindos", "Old Hit", "Quiet Track", "Unknown Silence");
+            assertSongNames(db, mapOf("lengthMax", 200, "lengthMode", "range"),
+                    "No Me Queda Mas", "Quiet Track", "Standalone Jam");
+            assertSongNames(db, mapOf("trackNumberMode", "isnotnull"),
+                    "Bidi Bidi Bom Bom", "No Me Queda Mas", "Ojitos Lindos", "Old Hit", "Quiet Track", "Titi Me Pregunto");
+            assertSongNames(db, mapOf(
+                    "firstListenedDateFrom", "2024-01-01",
+                    "firstListenedDateTo", "2024-01-03",
+                    "firstListenedDateMode", "between"),
+                    "Bidi Bidi Bom Bom", "Titi Me Pregunto");
+            assertSongNames(db, mapOf(
+                    "lastListenedDateFrom", "2024-04-01",
+                    "lastListenedDateTo", "2024-05-01",
+                    "lastListenedDateMode", "between"),
+                    "Old Hit", "Standalone Jam");
+            assertSongNames(db, mapOf(
+                    "deathDateFrom", "2020-01-01",
+                    "deathDateTo", "2021-01-01",
+                    "deathDateMode", "between"),
+                    "Old Hit");
+            assertSongNames(db, mapOf("weeklyChartPeakWeeks", 1, "weeklyChartPeakWeeksMode", "exact", "includeExpensiveStats", true),
+                    "Bidi Bidi Bom Bom", "Titi Me Pregunto");
+            assertSongNames(db, mapOf(
+                    "trlPeak", 1,
+                    "trlDateFrom", "2024-01-01",
+                    "trlDateTo", "2024-01-31",
+                    "includeExpensiveStats", true),
+                    "Bidi Bidi Bom Bom");
+            assertSongNames(db, mapOf("vatosCuntdownDays", 1, "includeExpensiveStats", true),
+                    "Bidi Bidi Bom Bom", "Titi Me Pregunto");
+            assertSongNames(db, mapOf(
+                    "billboardPeak", 1,
+                    "billboardDateFrom", "2024-03-11",
+                    "billboardDateTo", "2024-03-25",
+                    "includeExpensiveStats", true),
+                    "Titi Me Pregunto");
+            assertSongNames(db, mapOf("seasonalChartSeasons", 1, "includeExpensiveStats", true), "Titi Me Pregunto");
+            assertSongNames(db, mapOf("yearlyChartYears", 1, "includeExpensiveStats", true), "Bidi Bidi Bom Bom");
+            assertSongNames(db, mapOf("itunesIdsJson", "[1,3]", "inItunes", "false"),
+                    "No Me Queda Mas", "Ojitos Lindos", "Old Hit", "Quiet Track", "Standalone Jam", "Unknown Silence");
+        }
+    }
+
     private static void assertArtistNames(TestDatabaseSupport db, Map<String, Object> overrides, String... expectedNames) {
         List<String> actual = db.artistRepository.findArtistsWithStats(artistQueryWith(overrides)).stream()
                 .map(ArtistStatsRow::name)

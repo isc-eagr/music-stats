@@ -4,6 +4,7 @@ import library.dto.SubGenreCardDTO;
 import library.entity.SubGenre;
 import library.repository.SubGenreRepository;
 import library.repository.LookupRepository;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,10 @@ public class SubGenreService {
     }
     
     public List<SubGenreCardDTO> getSubGenres(String name, Integer parentGenreId, String sortBy, String sortDir) {
+        return getSubGenres(name, parentGenreId, sortBy, sortDir, null);
+    }
+
+    public List<SubGenreCardDTO> getSubGenres(String name, Integer parentGenreId, String sortBy, String sortDir, Integer randomSeed) {
 
         // Determine sort direction
         String sortColumn = "sg.name";
@@ -77,6 +82,11 @@ public class SubGenreService {
                     break;
                 case "maletimepct":
                     sortColumn = "male_time_pct";
+                    break;
+                case "random":
+                    sortColumn = RandomSortUtils.sqliteNumericExpression("sg.id", randomSeed);
+                    sortDirection = "";
+                    nullsHandling = "";
                     break;
                 default:
                     sortColumn = "sg.name";

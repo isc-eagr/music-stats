@@ -49,11 +49,53 @@ class TemplateContractTest {
     }
 
     @Test
+    void filteredListPagesExposeSavedFilterControls() throws IOException {
+        for (String path : filteredListPages()) {
+            Document doc = parse(path);
+            String html = read(path);
+
+            assertThat(html)
+                    .describedAs(path)
+                    .contains("fragments/saved-filters :: saved-filters");
+            Element sortPanel = doc.selectFirst(".toolbar-sort-panel");
+            List<Element> sortPanelChildren = sortPanel.children();
+            int sortListIndex = -1;
+            int savedFiltersIndex = -1;
+            for (int i = 0; i < sortPanelChildren.size(); i++) {
+                Element child = sortPanelChildren.get(i);
+                if (child.hasClass("toolbar-sort-list")) {
+                    sortListIndex = i;
+                }
+                if (child.attr("th:replace").contains("fragments/saved-filters :: saved-filters")) {
+                    savedFiltersIndex = i;
+                }
+            }
+            assertThat(savedFiltersIndex)
+                    .describedAs(path + " keeps saved filters after sort controls")
+                    .isGreaterThan(sortListIndex);
+        }
+
+        String fragment = read("fragments/saved-filters.html");
+        assertThat(fragment)
+                .contains("data-saved-filter-widget")
+                .contains("saved-filter-select")
+                .contains("saved-filter-save")
+                .contains("saved-filter-apply")
+                .contains("saved-filter-delete");
+
+        String listUtils = Files.readString(Path.of("src/main/resources/static/js/list-utils.js"), StandardCharsets.UTF_8);
+        assertThat(listUtils)
+                .contains("/api/saved-filters")
+                .contains("function initSavedFilters()")
+                .contains("initSavedFilters();");
+    }
+
+    @Test
     void catalogTablesExposeStableColumnsForVisibleAndExtendedStats() throws IOException {
         assertColumns(
                 "artists/list.html",
                 Set.of(
-                        "name", "plays", "primaryPlays", "legacyPlays", "timeListened",
+                        "name", "random", "plays", "primaryPlays", "legacyPlays", "timeListened",
                         "firstListened", "lastListened", "daysListened", "weeksListened",
                         "monthsListened", "yearsListened", "age", "albumCount",
                         "avgLength", "avgPlays", "avgPlaysAlbum", "birthDate", "deathDate",
@@ -65,7 +107,7 @@ class TemplateContractTest {
         assertColumns(
                 "albums/list.html",
                 Set.of(
-                        "artistName", "name", "plays", "primaryPlays", "legacyPlays", "length",
+                        "artistName", "name", "random", "plays", "primaryPlays", "legacyPlays", "length",
                         "timeListened", "releaseDate", "firstListened", "lastListened",
                         "daysListened", "weeksListened", "monthsListened", "yearsListened",
                         "lastFullListen", "ageAtRelease", "avgLength", "avgPlays",
@@ -79,7 +121,7 @@ class TemplateContractTest {
         assertColumns(
                 "songs/list.html",
                 Set.of(
-                        "artistName", "albumName", "name", "plays", "primaryPlays", "legacyPlays",
+                        "artistName", "albumName", "name", "random", "plays", "primaryPlays", "legacyPlays",
                         "length", "timeListened", "releaseDate", "firstListened", "lastListened",
                         "daysListened", "weeksListened", "monthsListened", "yearsListened",
                         "trackNumber", "ageAtRelease", "featuredArtistCount", "seasonalChartPeak",
@@ -100,7 +142,7 @@ class TemplateContractTest {
                         "last_listened", "days_listened", "weeks_listened", "months_listened",
                         "years_listened", "songs", "albums", "featured", "featured_artist_count",
                         "solo_songs", "songs_with_features", "genre", "subgenre", "ethnicity",
-                        "country", "language", "itunes_presence"
+                        "country", "language", "itunes_presence", "random"
                 ),
                 "albums/list.html", Set.of(
                         "name", "artist", "plays", "primary_plays", "legacy_plays", "album_length",
@@ -109,7 +151,7 @@ class TemplateContractTest {
                         "song_count", "featured_artist_count", "solo_songs", "songs_with_features",
                         "weekly_chart_peak", "weekly_chart_weeks", "weekly_chart_peak_weeks",
                         "yearly_chart_peak", "genre", "subgenre", "ethnicity", "country",
-                        "language", "itunes_presence"
+                        "language", "itunes_presence", "random"
                 ),
                 "songs/list.html", Set.of(
                         "name", "artist", "album", "plays", "primary_plays", "legacy_plays",
@@ -120,7 +162,7 @@ class TemplateContractTest {
                         "trl_peak", "trl_days", "trl_days_at_peak", "vatos_cuntdown_peak",
                         "vatos_cuntdown_days", "vatos_cuntdown_days_at_peak", "billboard_peak",
                         "billboard_weeks", "billboard_weeks_at_peak", "yearly_chart_peak",
-                        "genre", "subgenre", "ethnicity", "country", "language"
+                        "genre", "subgenre", "ethnicity", "country", "language", "random"
                 )
         );
 
@@ -190,6 +232,21 @@ class TemplateContractTest {
                 new CatalogPage("artists/list.html", "artists", "#topArtistsTable", ".artist-card"),
                 new CatalogPage("albums/list.html", "albums", "#topAlbumsTable", ".album-card"),
                 new CatalogPage("songs/list.html", "songs", "#topSongsTable", ".song-card")
+        );
+    }
+
+    private static List<String> filteredListPages() {
+        return List.of(
+                "artists/list.html",
+                "albums/list.html",
+                "songs/list.html",
+                "timeframes/list.html",
+                "countries/list.html",
+                "ethnicities/list.html",
+                "genders/list.html",
+                "genres/list.html",
+                "languages/list.html",
+                "subgenres/list.html"
         );
     }
 

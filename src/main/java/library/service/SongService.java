@@ -302,6 +302,7 @@ public class SongService {
                                        String sortBy, String sortDirection,
                                        String sortBy2, String sortDirection2,
                                        String sortBy3, String sortDirection3,
+                                       Integer randomSeed,
                                        int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
@@ -382,7 +383,7 @@ public class SongService {
                 seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears,
                 yearlyChartDateFrom, yearlyChartDateTo,
-                sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, queryLimit, queryOffset,
+                sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, randomSeed, queryLimit, queryOffset,
                 includeExpensiveStats, null
         ));
 
@@ -419,7 +420,7 @@ public class SongService {
                     yearlyChartPeak, yearlyChartYears,
                     yearlyChartDateFrom, yearlyChartDateTo,
                     sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3,
-                    linkedSongIds.size(), 0, includeExpensiveStats, linkedSongIds
+                    randomSeed, linkedSongIds.size(), 0, includeExpensiveStats, linkedSongIds
             ));
             for (SongStatsRow linkedRow : linkedRows) {
                 rowsById.putIfAbsent(linkedRow.id(), linkedRow);
@@ -470,7 +471,7 @@ public class SongService {
                         yearlyChartPeak, yearlyChartYears,
                         yearlyChartDateFrom, yearlyChartDateTo,
                         sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3,
-                        pageSongIds.size(), 0, true, pageSongIds
+                        randomSeed, pageSongIds.size(), 0, true, pageSongIds
                 ));
                 Map<Integer, SongCardDTO> fullStatsById = mapSongRows(fullRows).stream()
                         .collect(Collectors.toMap(SongCardDTO::getId, Function.identity()));
@@ -1030,7 +1031,7 @@ public class SongService {
                         seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                         yearlyChartPeak, yearlyChartYears,
                         yearlyChartDateFrom, yearlyChartDateTo,
-                    "plays", "desc", null, null, null, null, linkedSongIds.size(), 0, false, linkedSongIds
+                    "plays", "desc", null, null, null, null, null, linkedSongIds.size(), 0, false, linkedSongIds
             ));
             long combinedCount = rawCount - countLinkedDuplicateRows(linkedRows);
             cacheCombinedSongCount(combinedSongsCacheKey, combinedCount);

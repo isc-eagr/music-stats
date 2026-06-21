@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="saved-filters" class="saved-filters" data-saved-filter-widget>
+    <span class="saved-filters-title">Saved</span>
+    <select class="saved-filter-select" aria-label="Saved filters">
+        <option value="">None</option>
+    </select>
+    <input type="text" class="saved-filter-name" maxlength="80" autocomplete="off" placeholder="Name">
+    <button type="button" class="toolbar-btn toolbar-btn-soft saved-filter-save">Save</button>
+    <button type="button" class="toolbar-btn toolbar-btn-muted saved-filter-apply" disabled>Apply</button>
+    <button type="button" class="toolbar-btn toolbar-btn-muted saved-filter-delete" disabled>Del</button>
+    <div class="saved-filter-status" aria-live="polite"></div>
+</div>
+</body>
+</html>

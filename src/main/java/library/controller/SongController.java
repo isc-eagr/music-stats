@@ -239,6 +239,7 @@ public class SongController {
             @RequestParam(required = false) String sortdir2,
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
+            @RequestParam(required = false) Integer randomSeed,
             HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
@@ -308,7 +309,7 @@ public class SongController {
                 seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears,
                 yearlyChartDateFromConverted, yearlyChartDateToConverted,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
         );
         
         // Get total count for pagination
@@ -532,6 +533,7 @@ public class SongController {
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "plays");
         model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         
@@ -550,7 +552,7 @@ public class SongController {
     private boolean hasActiveFilters(HttpServletRequest request) {
         return request.getParameterMap().entrySet().stream().anyMatch(entry -> {
             String key = entry.getKey();
-            if (java.util.Set.of("sortby", "sortdir", "sortby2", "sortdir2", "sortby3", "sortdir3", "page", "perpage", "view", "tab").contains(key)) {
+            if (java.util.Set.of("sortby", "sortdir", "sortby2", "sortdir2", "sortby3", "sortdir3", "randomSeed", "page", "perpage", "view", "tab").contains(key)) {
                 return false;
             }
             return java.util.Arrays.stream(entry.getValue()).anyMatch(value -> value != null && !value.isBlank());
@@ -663,6 +665,7 @@ public class SongController {
             @RequestParam(required = false) String sortdir2,
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
+            @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage) {
 
@@ -727,7 +730,7 @@ public class SongController {
                 seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears,
                 yearlyChartDateFromConverted, yearlyChartDateToConverted,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
         );
 
         long totalCount = songService.countSongs(q, artist, album,
@@ -3206,6 +3209,7 @@ public class SongController {
             @RequestParam(required = false) String sortdir2,
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
+            @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "10000") int limit) {
         
         // Convert date formats
@@ -3270,7 +3274,7 @@ public class SongController {
             seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
             yearlyChartPeak, yearlyChartYears,
             yearlyChartDateFromConverted, yearlyChartDateToConverted,
-            sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, 0, limit
+            sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, 0, limit
         );
         
         // Convert to minimal export format

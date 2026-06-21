@@ -198,6 +198,7 @@ public class AlbumController {
             @RequestParam(required = false) String sortdir2,
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
+            @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
             HttpServletRequest request,
@@ -256,7 +257,7 @@ public class AlbumController {
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
         );
         
         // Get total count for pagination
@@ -443,6 +444,7 @@ public class AlbumController {
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "plays");
         model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         
@@ -548,6 +550,7 @@ public class AlbumController {
             @RequestParam(required = false) String sortdir2,
             @RequestParam(required = false) String sortby3,
             @RequestParam(required = false) String sortdir3,
+            @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage) {
 
@@ -601,7 +604,7 @@ public class AlbumController {
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
         );
 
         long totalCount = albumService.countAlbums(q, artist, genre,

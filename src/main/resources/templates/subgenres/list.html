@@ -70,6 +70,7 @@
                                 <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                                 <option value="genre" th:selected="${sortBy == 'genre'}">Parent Genre</option>
                                 <option value="plays" th:selected="${sortBy == 'plays'}">Play Count</option>
+                                <option value="random" th:selected="${sortBy == 'random'}">Random</option>
                                 <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
                                 <option value="time" th:selected="${sortBy == 'time'}">Time Listened</option>
                             </select>
@@ -80,6 +81,7 @@
                             </button>
                         </div>
                     </div>
+                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
             </div>
         </div>
@@ -133,7 +135,7 @@
                     </div>
                     
                     <!-- Sort metric display (only for non-visible metrics) -->
-                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs' and sortBy != 'genre'}">
+                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'random' and sortBy != 'plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs' and sortBy != 'genre'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
                             <th:block th:case="'maleartistpct'">Male Artist %:</th:block>
                             <th:block th:case="'malealbumpct'">Male Album %:</th:block>
@@ -318,6 +320,7 @@
         function changeSortBy(sortValue) {
             const url = new URL(window.location);
             url.searchParams.set('sortby', sortValue);
+            syncRandomSeedParam(url, { refresh: sortValue === 'random' });
             window.location.href = url.toString();
         }
         
@@ -325,6 +328,7 @@
             const url = new URL(window.location);
             const currentDir = url.searchParams.get('sortdir') || 'asc';
             url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
+            syncRandomSeedParam(url);
             window.location.href = url.toString();
         }
         
@@ -340,7 +344,10 @@
         
         function clearFilters() {
             const sortBy = document.getElementById('sortBySelect').value;
-            window.location.href = '/subgenres?sortby=' + sortBy;
+            const url = new URL('/subgenres', window.location.origin);
+            url.searchParams.set('sortby', sortBy);
+            syncRandomSeedParam(url);
+            window.location.href = url.toString();
         }
         
         function removeFilter(paramName) {

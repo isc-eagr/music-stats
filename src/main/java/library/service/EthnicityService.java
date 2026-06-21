@@ -4,6 +4,7 @@ import library.dto.EthnicityCardDTO;
 import library.entity.Ethnicity;
 import library.repository.EthnicityRepository;
 import library.repository.LookupRepository;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,10 @@ public class EthnicityService {
     }
     
     public List<EthnicityCardDTO> getEthnicities(String name, String sortBy, String sortDir) {
+        return getEthnicities(name, sortBy, sortDir, null);
+    }
+
+    public List<EthnicityCardDTO> getEthnicities(String name, String sortBy, String sortDir, Integer randomSeed) {
 
         // Determine sort direction
         String sortColumn = "e.name";
@@ -73,6 +78,11 @@ public class EthnicityService {
                     break;
                 case "maletimepct":
                     sortColumn = "male_time_pct";
+                    break;
+                case "random":
+                    sortColumn = RandomSortUtils.sqliteNumericExpression("e.id", randomSeed);
+                    sortDirection = "";
+                    nullsHandling = "";
                     break;
                 default:
                     sortColumn = "e.name";

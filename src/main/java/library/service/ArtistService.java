@@ -93,6 +93,7 @@ public class ArtistService {
                                           String sortBy, String sortDir,
                                           String sortBy2, String sortDir2,
                                           String sortBy3, String sortDir3,
+                                          Integer randomSeed,
                                           int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
@@ -120,7 +121,7 @@ public class ArtistService {
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
-                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, perPage, page * perPage
+                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, randomSeed, perPage, page * perPage
         ));
         
         List<ArtistCardDTO> artists = new ArrayList<>();
@@ -253,7 +254,7 @@ public class ArtistService {
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
-                null, null, null, null, null, null, 0, 0));
+                null, null, null, null, null, null, null, 0, 0));
     }
     
     /**
@@ -304,7 +305,7 @@ public class ArtistService {
                 playCountMin, playCountMax, albumCountMin, albumCountMax,
                 birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
-                null, null, null, null, null, null, 0, 0));
+                null, null, null, null, null, null, null, 0, 0));
         
         // Gender ID 1 = Female, Gender ID 2 = Male
         long femaleCount = genderCounts.getOrDefault(1, 0L);

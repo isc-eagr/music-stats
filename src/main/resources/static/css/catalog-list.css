@@ -978,9 +978,14 @@ a.winning-chip:hover {
 
 .toolbar-sort-list {
     display: flex;
+    flex: 1 1 auto;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+}
+
+.toolbar-sort-panel > .saved-filters {
+    flex: 0 0 auto;
 }
 
 .toolbar-sort-row {
@@ -1376,6 +1381,83 @@ a.winning-chip:hover {
     padding: 24px;
     text-align: center;
     color: var(--text-muted);
+}
+
+.saved-filters {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.saved-filters-title {
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.saved-filter-select,
+.saved-filter-name {
+    min-width: 0;
+    height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 5px;
+    background: #161616;
+    color: #f3f4f6;
+    font-size: 0.8rem;
+}
+
+.saved-filter-select {
+    width: 132px;
+    padding: 0 6px;
+}
+
+.saved-filter-name {
+    width: 118px;
+    padding: 0 8px;
+}
+
+.saved-filter-status {
+    max-width: 96px;
+    color: rgba(154, 205, 50, 0.9);
+    font-size: 0.72rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.saved-filters .toolbar-btn {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.saved-filters .toolbar-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+@media (max-width: 768px) {
+    .saved-filters {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .saved-filter-select {
+        flex: 1 1 132px;
+    }
+
+    .saved-filter-name {
+        flex: 1 1 118px;
+    }
 }
 
 /* Graphs view chart tabs */

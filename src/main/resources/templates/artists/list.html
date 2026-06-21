@@ -79,6 +79,7 @@
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Total Plays</option>
                             <option value="primary_plays" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
+                            <option value="random" th:selected="${sortBy == 'random'}">Random</option>
                             <option value="solo_songs" th:selected="${sortBy == 'solo_songs'}">Solo Songs</option>
                             <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
                             <option value="songs_with_features" th:selected="${sortBy == 'songs_with_features'}">Songs with Features</option>
@@ -114,6 +115,7 @@
                         </button>
                     </div>
                         </div>
+                        <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
                 
                 <div class="catalog-toolbar-control-actions">
@@ -1610,6 +1612,7 @@
                             <th class="rank-col">#</th>
                             <th class="cover-col"></th>
                             <th data-sort="name" data-col="name">Artist Name</th>
+                            <th data-sort="random" data-col="random" style="text-align:right;display:none;">Random</th>
                             <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
                             <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
                             <th data-sort="legacyPlays" data-col="legacyPlays" style="text-align:right;" class="hide-mobile">Legacy</th>

@@ -108,6 +108,239 @@ function changePerPage(newPerPage) {
     window.location.href = url.toString();
 }
 
+const SAVED_FILTERS_API_URL = '/api/saved-filters';
+
+function getSavedFilterPageKey(widget) {
+    const explicitKey = widget && widget.dataset.savedFilterKey;
+    if (explicitKey) {
+        return explicitKey;
+    }
+
+    return window.location.pathname.replace(/\/$/, '') || '/';
+}
+
+function normalizeSavedFilterQuery(search) {
+    const params = search instanceof URLSearchParams ? new URLSearchParams(search) : new URLSearchParams(search || '');
+    params.delete('page');
+
+    const entries = Array.from(params.entries())
+        .filter(entry => entry[1] !== null && entry[1] !== undefined && entry[1] !== '')
+        .sort((left, right) => {
+            const keyCompare = left[0].localeCompare(right[0]);
+            return keyCompare !== 0 ? keyCompare : left[1].localeCompare(right[1]);
+        });
+
+    const normalizedParams = new URLSearchParams();
+    entries.forEach(entry => normalizedParams.append(entry[0], entry[1]));
+    return normalizedParams.toString();
+}
+
+function getCurrentSavedFilterQuery() {
+    return normalizeSavedFilterQuery(window.location.search);
+}
+
+function setSavedFilterStatus(widget, message) {
+    const status = widget.querySelector('.saved-filter-status');
+    if (!status) {
+        return;
+    }
+
+    status.textContent = message || '';
+    if (message) {
+        window.setTimeout(() => {
+            if (status.textContent === message) {
+                status.textContent = '';
+            }
+        }, 2500);
+    }
+}
+
+function getSavedFilterApiUrl(widget) {
+    const url = new URL(SAVED_FILTERS_API_URL, window.location.origin);
+    url.searchParams.set('pageKey', getSavedFilterPageKey(widget));
+    return url;
+}
+
+function getSavedFiltersFromWidget(widget) {
+    try {
+        return JSON.parse(widget.dataset.savedFilters || '[]');
+    } catch (error) {
+        return [];
+    }
+}
+
+function setSavedFilterBusy(widget, isBusy) {
+    widget.querySelectorAll('select, input, button').forEach(element => {
+        element.disabled = isBusy || (element.classList.contains('saved-filter-apply') || element.classList.contains('saved-filter-delete'))
+            && widget.querySelector('.saved-filter-select').value === '';
+    });
+}
+
+async function loadSavedFilters(widget) {
+    try {
+        const response = await fetch(getSavedFilterApiUrl(widget).toString(), { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) {
+            throw new Error('Could not load saved filters.');
+        }
+        const filters = await response.json();
+        widget.dataset.savedFilters = JSON.stringify(Array.isArray(filters) ? filters : []);
+        renderSavedFilterOptions(widget);
+    } catch (error) {
+        widget.dataset.savedFilters = '[]';
+        renderSavedFilterOptions(widget);
+        setSavedFilterStatus(widget, 'Saved filters unavailable.');
+    }
+}
+
+function renderSavedFilterOptions(widget) {
+    const select = widget.querySelector('.saved-filter-select');
+    const currentQuery = getCurrentSavedFilterQuery();
+    const filters = getSavedFiltersFromWidget(widget).sort((left, right) => left.name.localeCompare(right.name));
+
+    select.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = filters.length ? 'Choose' : 'None';
+    select.appendChild(placeholder);
+
+    filters.forEach((filter, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = filter.name;
+        if (filter.query === currentQuery) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+
+    updateSavedFilterSelection(widget);
+}
+
+function updateSavedFilterSelection(widget) {
+    const select = widget.querySelector('.saved-filter-select');
+    const applyButton = widget.querySelector('.saved-filter-apply');
+    const deleteButton = widget.querySelector('.saved-filter-delete');
+    const hasSelection = select.value !== '';
+
+    applyButton.disabled = !hasSelection;
+    deleteButton.disabled = !hasSelection;
+}
+
+function getSelectedSavedFilter(widget) {
+    const select = widget.querySelector('.saved-filter-select');
+    const filters = getSavedFiltersFromWidget(widget);
+    const index = parseInt(select.value, 10);
+    return Number.isInteger(index) ? filters[index] : null;
+}
+
+async function saveCurrentFilter(widget) {
+    const nameInput = widget.querySelector('.saved-filter-name');
+    const selectedFilter = getSelectedSavedFilter(widget);
+    const name = (nameInput.value || (selectedFilter ? selectedFilter.name : '')).trim();
+
+    if (!name) {
+        setSavedFilterStatus(widget, 'Name the filter first.');
+        nameInput.focus();
+        return;
+    }
+
+    const query = getCurrentSavedFilterQuery();
+    if (!query && !window.confirm('Save an empty filter set?')) {
+        return;
+    }
+
+    setSavedFilterBusy(widget, true);
+    try {
+        const response = await fetch(SAVED_FILTERS_API_URL, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ pageKey: getSavedFilterPageKey(widget), name: name, query: query })
+        });
+        if (!response.ok) {
+            throw new Error('Could not save filter.');
+        }
+        nameInput.value = '';
+        await loadSavedFilters(widget);
+        setSavedFilterStatus(widget, 'Saved.');
+    } catch (error) {
+        setSavedFilterStatus(widget, 'Could not save.');
+    } finally {
+        setSavedFilterBusy(widget, false);
+        updateSavedFilterSelection(widget);
+    }
+}
+
+function applySavedFilter(widget) {
+    const selectedFilter = getSelectedSavedFilter(widget);
+    if (!selectedFilter) {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.search = selectedFilter.query ? '?' + selectedFilter.query : '';
+    window.location.href = url.toString();
+}
+
+async function deleteSavedFilter(widget) {
+    const selectedFilter = getSelectedSavedFilter(widget);
+    if (!selectedFilter || !window.confirm('Delete saved filter "' + selectedFilter.name + '"?')) {
+        return;
+    }
+
+    setSavedFilterBusy(widget, true);
+    try {
+        const url = getSavedFilterApiUrl(widget);
+        url.searchParams.set('name', selectedFilter.name);
+        const response = await fetch(url.toString(), {
+            method: 'DELETE',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+            throw new Error('Could not delete filter.');
+        }
+        await loadSavedFilters(widget);
+        setSavedFilterStatus(widget, 'Deleted.');
+    } catch (error) {
+        setSavedFilterStatus(widget, 'Could not delete.');
+    } finally {
+        setSavedFilterBusy(widget, false);
+        updateSavedFilterSelection(widget);
+    }
+}
+
+function initSavedFilters() {
+    document.querySelectorAll('[data-saved-filter-widget]').forEach(widget => {
+        if (widget.dataset.savedFilterInitialized === 'true') {
+            return;
+        }
+
+        const select = widget.querySelector('.saved-filter-select');
+        const saveButton = widget.querySelector('.saved-filter-save');
+        const applyButton = widget.querySelector('.saved-filter-apply');
+        const deleteButton = widget.querySelector('.saved-filter-delete');
+        const nameInput = widget.querySelector('.saved-filter-name');
+
+        select.addEventListener('change', () => updateSavedFilterSelection(widget));
+        saveButton.addEventListener('click', () => saveCurrentFilter(widget));
+        applyButton.addEventListener('click', () => applySavedFilter(widget));
+        deleteButton.addEventListener('click', () => deleteSavedFilter(widget));
+        nameInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                saveCurrentFilter(widget);
+            }
+        });
+
+        widget.dataset.savedFilterInitialized = 'true';
+        widget.dataset.savedFilters = '[]';
+        renderSavedFilterOptions(widget);
+        loadSavedFilters(widget);
+    });
+}
+
 function ensureHiddenInput(form, name) {
     let input = form.querySelector(`input[type="hidden"][name="${name}"]`);
     if (!input) {
@@ -168,6 +401,56 @@ function getSortParamName(level) {
 
 function getSortDirParamName(level) {
     return level === 1 ? 'sortdir' : 'sortdir' + level;
+}
+
+function generateRandomSortSeed() {
+    return String(Math.floor(Math.random() * 2147483647) + 1);
+}
+
+function hasRandomSortParam(searchParams) {
+    return [1, 2, 3].some(function(level) {
+        return searchParams.get(getSortParamName(level)) === 'random';
+    });
+}
+
+function syncRandomSeedParam(url, options) {
+    const shouldRefresh = options && options.refresh === true;
+    if (hasRandomSortParam(url.searchParams)) {
+        if (shouldRefresh || !url.searchParams.get('randomSeed')) {
+            url.searchParams.set('randomSeed', generateRandomSortSeed());
+        }
+    } else {
+        url.searchParams.delete('randomSeed');
+    }
+}
+
+window.syncRandomSeedParam = syncRandomSeedParam;
+
+function preserveRandomSeedOnLinks() {
+    const currentUrl = new URL(window.location.href);
+    const currentSeed = currentUrl.searchParams.get('randomSeed');
+    document.querySelectorAll('a[href]').forEach(function(link) {
+        let linkUrl;
+        try {
+            linkUrl = new URL(link.getAttribute('href'), window.location.origin);
+        } catch (error) {
+            return;
+        }
+        if (linkUrl.origin !== window.location.origin) {
+            return;
+        }
+        if (hasRandomSortParam(linkUrl.searchParams)) {
+            if (currentSeed) {
+                linkUrl.searchParams.set('randomSeed', currentSeed);
+            } else {
+                syncRandomSeedParam(linkUrl);
+            }
+            link.href = linkUrl.toString();
+        } else {
+            linkUrl.searchParams.delete('randomSeed');
+            link.href = linkUrl.toString();
+        }
+    });
 }
 
 function getSortSelectId(level) {
@@ -489,6 +772,7 @@ function changeListSort(level, sortValue) {
         url.searchParams.delete(dirParam);
     }
 
+    syncRandomSeedParam(url, { refresh: sortValue === 'random' });
     url.searchParams.set('page', '0');
     window.location.href = url.toString();
 }
@@ -508,6 +792,7 @@ function toggleListSortDirection(level) {
 
     const currentDir = url.searchParams.get(dirParam) || 'asc';
     url.searchParams.set(dirParam, currentDir === 'asc' ? 'desc' : 'asc');
+    syncRandomSeedParam(url);
     url.searchParams.set('page', '0');
     window.location.href = url.toString();
 }
@@ -529,6 +814,7 @@ function buildSortOnlyUrl(basePath) {
         }
     });
 
+    syncRandomSeedParam(url);
     return url.toString();
 }
 
@@ -627,6 +913,7 @@ function preserveListStateOnFilterSubmit(form) {
         event.preventDefault();
         const destination = new URL(form.getAttribute('action') || window.location.pathname, window.location.origin);
         destination.search = buildCleanFilterParams(form).toString();
+        syncRandomSeedParam(destination);
         window.location.href = destination.toString();
     });
 }
@@ -646,6 +933,7 @@ function submitFilterForm(formOrId) {
 
     const destination = new URL(form.getAttribute('action') || window.location.pathname, window.location.origin);
     destination.search = buildCleanFilterParams(form).toString();
+    syncRandomSeedParam(destination);
     window.location.href = destination.toString();
 }
 
@@ -667,6 +955,7 @@ function toggleSort(column) {
         url.searchParams.set('sortdir', 'asc');
     }
     
+    syncRandomSeedParam(url, { refresh: column === 'random' && currentSort !== column });
     url.searchParams.set('page', '0');
     window.location.href = url.toString();
 }
@@ -904,6 +1193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMobileToolbarActions();
     initializeMobileSortPanels();
     initializeCatalogListView();
+    preserveRandomSeedOnLinks();
     preserveListStateOnFilterSubmit(document.getElementById('filterForm'));
 
     window.addEventListener('resize', debounce(function() {
@@ -1071,6 +1361,8 @@ function performSearchWithFilters(searchQuery) {
  * Makes the sidebar stick to the bottom if it's taller than the viewport.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    initSavedFilters();
+
     const sidebar = document.querySelector('.detail-sidebar');
     if (!sidebar) return;
 

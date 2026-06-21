@@ -4,6 +4,7 @@ import library.dto.ChartFilterDTO;
 import library.dto.SongStatsQuery;
 import library.dto.SongStatsRow;
 import library.service.AppConfigService;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import library.util.SqlFilterHelper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -789,7 +790,7 @@ public class SongRepository {
         SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "yearly", "years",
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo, null);
         
-        appendSongSortOrder(sql, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3);
+        appendSongSortOrder(sql, sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3, query.randomSeed());
         
         sql.append(" LIMIT ? OFFSET ?");
         params.add(limit);
@@ -800,7 +801,8 @@ public class SongRepository {
 
     private void appendSongSortOrder(StringBuilder sql, String sortBy, String sortDirection,
                                      String sortBy2, String sortDirection2,
-                                     String sortBy3, String sortDirection3) {
+                                     String sortBy3, String sortDirection3,
+                                     Integer randomSeed) {
         List<String> clauses = new ArrayList<>();
         List<String> appliedSorts = new ArrayList<>();
 
@@ -808,16 +810,16 @@ public class SongRepository {
         boolean hasSecondSort = sortBy2 != null && !sortBy2.isBlank();
         boolean hasThirdSort = sortBy3 != null && !sortBy3.isBlank();
 
-        appendSongSortClause(clauses, appliedSorts, effectiveSortBy, sortDirection, !hasSecondSort);
-        appendSongSortClause(clauses, appliedSorts, sortBy2, sortDirection2, !hasThirdSort);
-        appendSongSortClause(clauses, appliedSorts, sortBy3, sortDirection3, true);
+        appendSongSortClause(clauses, appliedSorts, effectiveSortBy, sortDirection, !hasSecondSort, randomSeed);
+        appendSongSortClause(clauses, appliedSorts, sortBy2, sortDirection2, !hasThirdSort, randomSeed);
+        appendSongSortClause(clauses, appliedSorts, sortBy3, sortDirection3, true, randomSeed);
 
         clauses.add("play_count DESC");
         clauses.add("s.name");
         sql.append(" ORDER BY ").append(String.join(", ", clauses));
     }
 
-    private void appendSongSortClause(List<String> clauses, List<String> appliedSorts, String sortBy, String sortDirection, boolean allowInternalTieBreakers) {
+    private void appendSongSortClause(List<String> clauses, List<String> appliedSorts, String sortBy, String sortDirection, boolean allowInternalTieBreakers, Integer randomSeed) {
         if (sortBy == null || sortBy.isBlank() || appliedSorts.contains(sortBy)) {
             return;
         }
@@ -855,6 +857,7 @@ public class SongRepository {
             case "billboard_weeks_at_peak" -> "billboard_weeks_at_peak " + dir + " NULLS LAST";
             case "death_date" -> "ar.death_date " + dir + " " + nullsOrder;
             case "image_count" -> "image_count " + dir;
+            case "random" -> RandomSortUtils.sqliteNumericExpression("s.id", randomSeed);
                 case "seasonal_chart_peak" -> allowInternalTieBreakers
                     ? "seasonal_chart_peak " + dir + " NULLS LAST, seasonal_chart_peak_start_date DESC NULLS LAST"
                     : "seasonal_chart_peak " + dir + " NULLS LAST";

@@ -23,10 +23,11 @@ public class CountryController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "name") String sortby,
             @RequestParam(defaultValue = "asc") String sortdir,
+            @RequestParam(required = false) Integer randomSeed,
             Model model) {
         
         // Get filtered and sorted countries
-        List<CountryCardDTO> countries = countryService.getCountries(q, sortby, sortdir);
+        List<CountryCardDTO> countries = countryService.getCountries(q, sortby, sortdir, randomSeed);
 
         long totalCount = countryService.countCountries(q);
         
@@ -41,6 +42,7 @@ public class CountryController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         return "countries/list";

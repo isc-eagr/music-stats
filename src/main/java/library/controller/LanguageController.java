@@ -27,10 +27,11 @@ public class LanguageController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "name") String sortby,
             @RequestParam(defaultValue = "asc") String sortdir,
+            @RequestParam(required = false) Integer randomSeed,
             Model model) {
         
         // Get filtered and sorted languages
-        List<LanguageCardDTO> languages = languageService.getLanguages(q, sortby, sortdir);
+        List<LanguageCardDTO> languages = languageService.getLanguages(q, sortby, sortdir, randomSeed);
 
         long totalCount = languageService.countLanguages(q);
         
@@ -45,6 +46,7 @@ public class LanguageController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         return "languages/list";

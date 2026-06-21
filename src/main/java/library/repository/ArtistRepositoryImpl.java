@@ -2,6 +2,7 @@ package library.repository;
 
 import library.dto.ArtistStatsQuery;
 import library.dto.ArtistStatsRow;
+import library.util.RandomSortUtils;
 import library.util.SqlFilterHelper;
 import library.util.StringNormalizer;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -372,7 +373,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             params.add(itunesPresenceMax);
         }
         
-        appendArtistSortOrder(sql, sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3);
+        appendArtistSortOrder(sql, sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, query.randomSeed());
         
         sql.append(" LIMIT ? OFFSET ? ");
         params.add(limit);
@@ -383,20 +384,21 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
 
     private void appendArtistSortOrder(StringBuilder sql, String sortBy, String sortDir,
                                        String sortBy2, String sortDir2,
-                                       String sortBy3, String sortDir3) {
+                                       String sortBy3, String sortDir3,
+                                       Integer randomSeed) {
         List<String> clauses = new ArrayList<>();
         List<String> appliedSorts = new ArrayList<>();
 
-        appendArtistSortClause(clauses, appliedSorts, sortBy != null ? sortBy : "name", sortDir);
-        appendArtistSortClause(clauses, appliedSorts, sortBy2, sortDir2);
-        appendArtistSortClause(clauses, appliedSorts, sortBy3, sortDir3);
+        appendArtistSortClause(clauses, appliedSorts, sortBy != null ? sortBy : "name", sortDir, randomSeed);
+        appendArtistSortClause(clauses, appliedSorts, sortBy2, sortDir2, randomSeed);
+        appendArtistSortClause(clauses, appliedSorts, sortBy3, sortDir3, randomSeed);
 
         clauses.add("play_count DESC");
         clauses.add("a.name ASC");
         sql.append(" ORDER BY ").append(String.join(", ", clauses));
     }
 
-    private void appendArtistSortClause(List<String> clauses, List<String> appliedSorts, String sortBy, String sortDir) {
+    private void appendArtistSortClause(List<String> clauses, List<String> appliedSorts, String sortBy, String sortDir, Integer randomSeed) {
         if (sortBy == null || sortBy.isBlank() || appliedSorts.contains(sortBy)) {
             return;
         }
@@ -421,6 +423,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             case "months_listened" -> "months_listened " + direction;
             case "years_listened" -> "years_listened " + direction;
             case "image_count" -> "image_count " + direction;
+            case "random" -> RandomSortUtils.sqliteNumericExpression("a.id", randomSeed);
             case "country" -> "a.country " + direction + " NULLS LAST";
             case "ethnicity" -> "e.name " + direction + " NULLS LAST";
             case "featured_artist_count" -> "featured_artist_count_stat " + direction;

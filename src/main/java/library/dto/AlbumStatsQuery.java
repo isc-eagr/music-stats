@@ -92,6 +92,7 @@ public record AlbumStatsQuery(
         String sortDir2,
         String sortBy3,
         String sortDir3,
+        Integer randomSeed,
         int limit,
         int offset
 ) {

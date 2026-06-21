@@ -132,7 +132,7 @@ public class PlaylistController {
                 null, null, null,           // seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason
                 null, null,                 // yearlyChartPeak, yearlyChartYears
                 null, null,                 // yearlyChartDateFrom, yearlyChartDateTo
-                "name", "asc", null, null, null, null, page, perpage
+                "name", "asc", null, null, null, null, null, page, perpage
         );
     }
 

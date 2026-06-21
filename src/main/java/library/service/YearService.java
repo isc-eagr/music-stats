@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.YearCardDTO;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,10 @@ public class YearService {
      * Includes empty cards for years with no listens within the range.
      */
     public List<YearCardDTO> getListenYears(String sortBy, String sortDir) {
+        return getListenYears(sortBy, sortDir, null);
+    }
+
+    public List<YearCardDTO> getListenYears(String sortBy, String sortDir, Integer randomSeed) {
         // First, get the min and max years from play data
         String minMaxSql = "SELECT MIN(CAST(strftime('%Y', play_date) AS INTEGER)) as min_year, " +
                           "MAX(CAST(strftime('%Y', play_date) AS INTEGER)) as max_year " +
@@ -165,59 +170,64 @@ public class YearService {
                 case "malesongpct": sortColumn = "malesongpct"; break;
                 case "maleplaypct": sortColumn = "maleplaypct"; break;
                 case "maletimepct": sortColumn = "maletimepct"; break;
+                case "random": sortColumn = "random"; break;
                 default: sortColumn = "year";
             }
         }
 
-        final String finalSortColumn = sortColumn;
-        java.util.Comparator<YearCardDTO> comparator = switch (finalSortColumn) {
-            case "plays" -> {
-                java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getPlayCount);
-                yield descending ? c.reversed() : c;
-            }
-            case "time" -> {
-                java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getTimeListened);
-                yield descending ? c.reversed() : c;
-            }
-            case "artists" -> {
-                java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getArtistCount);
-                yield descending ? c.reversed() : c;
-            }
-            case "albums" -> {
-                java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getAlbumCount);
-                yield descending ? c.reversed() : c;
-            }
-            case "songs" -> {
-                java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getSongCount);
-                yield descending ? c.reversed() : c;
-            }
-            case "maleartistpct" -> {
-                java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
-                yield java.util.Comparator.comparing(YearCardDTO::getMaleArtistPercentage, java.util.Comparator.nullsLast(valueComparator));
-            }
-            case "malealbumpct" -> {
-                java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
-                yield java.util.Comparator.comparing(YearCardDTO::getMaleAlbumPercentage, java.util.Comparator.nullsLast(valueComparator));
-            }
-            case "malesongpct" -> {
-                java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
-                yield java.util.Comparator.comparing(YearCardDTO::getMaleSongPercentage, java.util.Comparator.nullsLast(valueComparator));
-            }
-            case "maleplaypct" -> {
-                java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
-                yield java.util.Comparator.comparing(YearCardDTO::getMalePlayPercentage, java.util.Comparator.nullsLast(valueComparator));
-            }
-            case "maletimepct" -> {
-                java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
-                yield java.util.Comparator.comparing(YearCardDTO::getMaleTimePercentage, java.util.Comparator.nullsLast(valueComparator));
-            }
-            default -> {
-                java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getYear);
-                yield descending ? c.reversed() : c;
-            }
-        };
+        if ("random".equals(sortColumn)) {
+            RandomSortUtils.shuffle(allYearDtos, randomSeed);
+        } else {
+            final String finalSortColumn = sortColumn;
+            java.util.Comparator<YearCardDTO> comparator = switch (finalSortColumn) {
+                case "plays" -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getPlayCount);
+                    yield descending ? c.reversed() : c;
+                }
+                case "time" -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getTimeListened);
+                    yield descending ? c.reversed() : c;
+                }
+                case "artists" -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getArtistCount);
+                    yield descending ? c.reversed() : c;
+                }
+                case "albums" -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getAlbumCount);
+                    yield descending ? c.reversed() : c;
+                }
+                case "songs" -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getSongCount);
+                    yield descending ? c.reversed() : c;
+                }
+                case "maleartistpct" -> {
+                    java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
+                    yield java.util.Comparator.comparing(YearCardDTO::getMaleArtistPercentage, java.util.Comparator.nullsLast(valueComparator));
+                }
+                case "malealbumpct" -> {
+                    java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
+                    yield java.util.Comparator.comparing(YearCardDTO::getMaleAlbumPercentage, java.util.Comparator.nullsLast(valueComparator));
+                }
+                case "malesongpct" -> {
+                    java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
+                    yield java.util.Comparator.comparing(YearCardDTO::getMaleSongPercentage, java.util.Comparator.nullsLast(valueComparator));
+                }
+                case "maleplaypct" -> {
+                    java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
+                    yield java.util.Comparator.comparing(YearCardDTO::getMalePlayPercentage, java.util.Comparator.nullsLast(valueComparator));
+                }
+                case "maletimepct" -> {
+                    java.util.Comparator<Double> valueComparator = descending ? java.util.Comparator.reverseOrder() : java.util.Comparator.naturalOrder();
+                    yield java.util.Comparator.comparing(YearCardDTO::getMaleTimePercentage, java.util.Comparator.nullsLast(valueComparator));
+                }
+                default -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getYear);
+                    yield descending ? c.reversed() : c;
+                }
+            };
 
-        allYearDtos.sort(comparator);
+            allYearDtos.sort(comparator);
+        }
 
         List<YearCardDTO> years = allYearDtos;
 
@@ -237,6 +247,10 @@ public class YearService {
      * Uses song's release_date if available, otherwise falls back to album's release_date.
      */
     public List<YearCardDTO> getReleaseYears(String sortBy, String sortDir) {
+        return getReleaseYears(sortBy, sortDir, null);
+    }
+
+    public List<YearCardDTO> getReleaseYears(String sortBy, String sortDir, Integer randomSeed) {
 
         String sortColumn = "year";
         String sortDirection = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
@@ -254,6 +268,11 @@ public class YearService {
                 case "malesongpct": sortColumn = "male_song_pct"; break;
                 case "maleplaypct": sortColumn = "male_play_pct"; break;
                 case "maletimepct": sortColumn = "male_time_pct"; break;
+                case "random":
+                    sortColumn = RandomSortUtils.sqliteNumericExpression("CAST(strftime('%Y', COALESCE(s.release_date, al.release_date)) AS INTEGER)", randomSeed);
+                    sortDirection = "";
+                    nullsHandling = "";
+                    break;
                 default: sortColumn = "year"; nullsHandling = "";
             }
         }

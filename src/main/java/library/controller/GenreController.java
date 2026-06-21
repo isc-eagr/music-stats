@@ -27,10 +27,11 @@ public class GenreController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "name") String sortby,
             @RequestParam(defaultValue = "asc") String sortdir,
+            @RequestParam(required = false) Integer randomSeed,
             Model model) {
         
         // Get filtered and sorted genres
-        List<GenreCardDTO> genres = genreService.getGenres(q, sortby, sortdir);
+        List<GenreCardDTO> genres = genreService.getGenres(q, sortby, sortdir, randomSeed);
 
         long totalCount = genreService.countGenres(q);
         
@@ -45,6 +46,7 @@ public class GenreController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         return "genres/list";

@@ -2,6 +2,7 @@ package library.service;
 
 import library.dto.TimeframeCardDTO;
 import library.dto.TimeframeResultDTO;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class TimeframeService {
      * Get timeframe cards with aggregated stats, returning both the page of results
      * and the total count in a single pass (eliminating the separate countTimeframes query).
      */
-    public TimeframeResultDTO getTimeframeCardsWithCount(String periodType, 
+    public TimeframeResultDTO getTimeframeCardsWithCount(String periodType,
             List<Integer> winningGender, String winningGenderMode,
             List<Integer> winningGenre, String winningGenreMode,
             List<Integer> winningEthnicity, String winningEthnicityMode,
@@ -43,6 +44,46 @@ public class TimeframeService {
             String dateFrom, String dateTo,
             Integer maleDaysMin, Integer maleDaysMax,
             String sortBy, String sortDir, int page, int perPage) {
+        return getTimeframeCardsWithCount(periodType,
+            winningGender, winningGenderMode,
+            winningGenre, winningGenreMode,
+            winningEthnicity, winningEthnicityMode,
+            winningLanguage, winningLanguageMode,
+            winningCountry, winningCountryMode,
+            artistCountMin, artistCountMax,
+            albumCountMin, albumCountMax,
+            songCountMin, songCountMax,
+            playsMin, playsMax,
+            timeMin, timeMax,
+            maleArtistPctMin, maleArtistPctMax,
+            maleAlbumPctMin, maleAlbumPctMax,
+            maleSongPctMin, maleSongPctMax,
+            malePlayPctMin, malePlayPctMax,
+            maleTimePctMin, maleTimePctMax,
+            dateFrom, dateTo,
+            maleDaysMin, maleDaysMax,
+            sortBy, sortDir, null, page, perPage);
+    }
+
+    public TimeframeResultDTO getTimeframeCardsWithCount(String periodType, 
+            List<Integer> winningGender, String winningGenderMode,
+            List<Integer> winningGenre, String winningGenreMode,
+            List<Integer> winningEthnicity, String winningEthnicityMode,
+            List<Integer> winningLanguage, String winningLanguageMode,
+            List<String> winningCountry, String winningCountryMode,
+            Integer artistCountMin, Integer artistCountMax,
+            Integer albumCountMin, Integer albumCountMax,
+            Integer songCountMin, Integer songCountMax,
+            Integer playsMin, Integer playsMax,
+            Long timeMin, Long timeMax,
+            Double maleArtistPctMin, Double maleArtistPctMax,
+            Double maleAlbumPctMin, Double maleAlbumPctMax,
+            Double maleSongPctMin, Double maleSongPctMax,
+            Double malePlayPctMin, Double malePlayPctMax,
+            Double maleTimePctMin, Double maleTimePctMax,
+            String dateFrom, String dateTo,
+            Integer maleDaysMin, Integer maleDaysMax,
+            String sortBy, String sortDir, Integer randomSeed, int page, int perPage) {
         
         int offset = page * perPage;
         String sortDirection = "asc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
@@ -85,7 +126,7 @@ public class TimeframeService {
         String periodKeyExpr = getPeriodKeyExpression(periodType);
         
         // Build sort column
-        String sortColumn = getSortColumn(sortBy, periodType);
+        String sortColumn = getSortColumn(sortBy, periodType, randomSeed);
         
         // Build the main query
         StringBuilder sql = new StringBuilder();
@@ -478,7 +519,11 @@ public class TimeframeService {
             }
             
             // Step 4: Sort
-            results.sort(getComparator(sortBy, periodType, sortDir));
+            if ("random".equalsIgnoreCase(sortBy)) {
+                RandomSortUtils.shuffle(results, randomSeed);
+            } else {
+                results.sort(getComparator(sortBy, periodType, sortDir));
+            }
             
             // Capture total count BEFORE pagination
             long totalCount = results.size();
@@ -1806,8 +1851,8 @@ public class TimeframeService {
      *
      * For weeks: Merges "Week 00" (partial week before first Monday) into the last week of the previous year.
      */
-    private List<TimeframeCardDTO> mergeWithAllPeriods(String periodType, List<TimeframeCardDTO> existingResults, 
-            String sortBy, String sortDir, int page, int perPage) {
+    private List<TimeframeCardDTO> mergeWithAllPeriods(String periodType, List<TimeframeCardDTO> existingResults,
+            String sortBy, String sortDir, Integer randomSeed, int page, int perPage) {
         
         // For weeks, first merge any Week 00 data into the last week of the previous year
         if ("weeks".equals(periodType)) {
@@ -1845,8 +1890,12 @@ public class TimeframeService {
         }
         
         // Sort the full list
-        Comparator<TimeframeCardDTO> comparator = getComparator(sortBy, periodType, sortDir);
-        fullList.sort(comparator);
+        if ("random".equalsIgnoreCase(sortBy)) {
+            RandomSortUtils.shuffle(fullList, randomSeed);
+        } else {
+            Comparator<TimeframeCardDTO> comparator = getComparator(sortBy, periodType, sortDir);
+            fullList.sort(comparator);
+        }
         
         // Apply pagination
         int start = page * perPage;
@@ -2049,7 +2098,7 @@ public class TimeframeService {
      * - For filtered_periods CTE: .replace("ps.", "")
      * - For final SELECT: .replace("ps.", "fp.")
      */
-    private String getSortColumn(String sortBy, String periodType) {
+    private String getSortColumn(String sortBy, String periodType, Integer randomSeed) {
         // For seasons, use chronological order (year * 10 + season_number)
         // Use ps.period_key so it can be replaced with correct prefix
         String seasonSortExpr = """
@@ -2077,6 +2126,7 @@ public class TimeframeService {
             case "maleplaypct" -> "ps.male_play_pct";
             case "maletimepct" -> "ps.male_time_pct";
             case "maledays" -> "ps.period_key"; // Sorted in Java, use period_key as SQL fallback
+            case "random" -> RandomSortUtils.sqliteTextExpression("ps.period_key", randomSeed);
             default -> "seasons".equals(periodType) ? seasonSortExpr : "ps.period_key";
         };
     }

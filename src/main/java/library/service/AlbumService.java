@@ -88,6 +88,7 @@ public class AlbumService {
                                          String sortBy, String sortDir,
                                          String sortBy2, String sortDir2,
                                          String sortBy3, String sortDir3,
+                                         Integer randomSeed,
                                          int page, int perPage) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
@@ -116,7 +117,7 @@ public class AlbumService {
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
                 lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
-                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, perPage, page * perPage
+                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, randomSeed, perPage, page * perPage
         ));
         
         List<AlbumCardDTO> albums = new ArrayList<>();

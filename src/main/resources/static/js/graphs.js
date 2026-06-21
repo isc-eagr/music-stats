@@ -74,6 +74,7 @@ let topSortState = {
 
 const listViewSortParamMap = {
     artists: {
+        random: 'random',
         name: 'name',
         plays: 'plays',
         primaryPlays: 'primary_plays',
@@ -104,6 +105,7 @@ const listViewSortParamMap = {
         language: 'language'
     },
     albums: {
+        random: 'random',
         artistName: 'artist',
         name: 'name',
         plays: 'plays',
@@ -140,6 +142,7 @@ const listViewSortParamMap = {
         deathDate: 'death_date'
     },
     songs: {
+        random: 'random',
         artistName: 'artist',
         albumName: 'album',
         name: 'name',
@@ -193,6 +196,7 @@ const listViewSortColumnMap = Object.fromEntries(
 // Each column: { key: data field name, label: display name, defaultVisible: boolean, align: 'left'|'right' }
 const topColumnConfig = {
     artists: [
+        { key: 'random', label: 'Random', defaultVisible: false, align: 'right' },
         { key: 'plays', label: 'Total Plays', defaultVisible: true, align: 'right' },
         { key: 'primaryPlays', label: 'Primary Plays', defaultVisible: true, align: 'right' },
         { key: 'legacyPlays', label: 'Legacy Plays', defaultVisible: true, align: 'right' },
@@ -222,6 +226,7 @@ const topColumnConfig = {
         { key: 'language', label: 'Language', defaultVisible: false, align: 'left' }
     ],
     albums: [
+        { key: 'random', label: 'Random', defaultVisible: false, align: 'right' },
         { key: 'plays', label: 'Total Plays', defaultVisible: true, align: 'right' },
         { key: 'primaryPlays', label: 'Primary Plays', defaultVisible: true, align: 'right' },
         { key: 'legacyPlays', label: 'Legacy Plays', defaultVisible: true, align: 'right' },
@@ -254,6 +259,7 @@ const topColumnConfig = {
         { key: 'language', label: 'Language', defaultVisible: false, align: 'left' }
     ],
     songs: [
+        { key: 'random', label: 'Random', defaultVisible: false, align: 'right' },
         { key: 'billboardPeak', label: 'Billboard Peak', defaultVisible: false, align: 'right' },
         { key: 'billboardWeeks', label: 'Billboard Weeks', defaultVisible: false, align: 'right' },
         { key: 'billboardWeeksAtPeak', label: 'Billboard Weeks @ Peak', defaultVisible: false, align: 'right' },
@@ -1874,6 +1880,7 @@ function buildArtistRow(artist, rank) {
                 </div>
             </td>
             <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
+            <td style="text-align:right;display:${vis('random')};">${cellVal(artist.__randomSortValue)}</td>
             <td style="text-align:right;display:${vis('plays')};"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(artist.plays || 0).toLocaleString()}</td>
             <td style="text-align:right;display:${vis('primaryPlays')};">${(artist.primaryPlays || 0).toLocaleString()}</td>
             <td style="text-align:right;display:${vis('legacyPlays')};">${(artist.legacyPlays || 0).toLocaleString()}</td>
@@ -1949,6 +1956,7 @@ function buildAlbumRow(album, rank) {
             </td>
             <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
             <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
+            <td style="text-align:right;display:${vis('random')};">${cellVal(album.__randomSortValue)}</td>
             <td style="text-align:right;display:${vis('plays')};"${(album.plays || 0) >= 500 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
             <td style="text-align:right;display:${vis('primaryPlays')};">${(album.primaryPlays || 0).toLocaleString()}</td>
             <td style="text-align:right;display:${vis('legacyPlays')};">${(album.legacyPlays || 0).toLocaleString()}</td>
@@ -2055,6 +2063,7 @@ function buildSongRow(song, rank) {
             <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
             <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
             <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">&#128313;</span>' : ''}${songLabel}</td>
+            <td style="text-align:right;display:${vis('random')};">${cellVal(song.__randomSortValue)}</td>
             <td style="text-align:right;display:${vis('plays')};"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${buildLinkedSongTooltip((song.plays || 0).toLocaleString(), song.totalPlayBreakdownItems, 'Combined song versions (Total Plays):')}</td>
             <td style="text-align:right;display:${vis('primaryPlays')};">${buildLinkedSongTooltip((song.primaryPlays || 0).toLocaleString(), song.primaryPlayBreakdownItems, 'Combined song versions (Primary Plays):')}</td>
             <td style="text-align:right;display:${vis('legacyPlays')};">${buildLinkedSongTooltip((song.legacyPlays || 0).toLocaleString(), song.legacyPlayBreakdownItems, 'Combined song versions (Legacy Plays):')}</td>
@@ -2149,6 +2158,36 @@ const numericSortColumns = new Set([
 
 const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'lastFullListen', 'birthDate', 'deathDate']);
 
+function getRandomSortValue(item) {
+    const seed = new URLSearchParams(window.location.search).get('randomSeed');
+    if (seed) {
+        const key = [
+            item.id,
+            item.name,
+            item.artistId,
+            item.artistName,
+            item.albumId,
+            item.albumName
+        ].filter(value => value != null && value !== '').join('|');
+        return hashSeededRandomValue(seed + '|' + key);
+    }
+
+    if (item.__randomSortValue == null) {
+        item.__randomSortValue = Math.random();
+    }
+    return item.__randomSortValue;
+}
+
+function hashSeededRandomValue(value) {
+    let hash = 2166136261;
+    const text = String(value || '');
+    for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) / 4294967296;
+}
+
 function parseDisplayDate(dateStr) {
     if (!dateStr || dateStr === '' || dateStr === '-') return 0;
 
@@ -2191,6 +2230,11 @@ function sortTopData(data, sortState) {
     function compareByColumn(a, b, column) {
         let aVal = a[column];
         let bVal = b[column];
+
+        if (column === 'random') {
+            aVal = getRandomSortValue(a);
+            bVal = getRandomSortValue(b);
+        }
 
         if (aVal == null && bVal == null) return 0;
         if (aVal == null) return 1;

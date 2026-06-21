@@ -84,6 +84,7 @@ public class TimeframeController {
             // Sorting and pagination
             @RequestParam(defaultValue = "period") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
             HttpServletRequest request,
@@ -137,7 +138,7 @@ public class TimeframeController {
             effectiveMaleTimePctMin, maleTimePctMax,
             dateFrom, dateTo,
             maleDaysMin, maleDaysMax,
-            sortby, sortdir, page, effectivePerPage
+            sortby, sortdir, randomSeed, page, effectivePerPage
         );
         
         List<TimeframeCardDTO> timeframes = result.getTimeframes();
@@ -252,6 +253,7 @@ public class TimeframeController {
         // Sorting
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "period");
         
         // Lookup data for filters

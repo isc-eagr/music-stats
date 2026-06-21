@@ -4,6 +4,7 @@ import library.dto.LanguageCardDTO;
 import library.entity.Language;
 import library.repository.LanguageRepository;
 import library.repository.LookupRepository;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,10 @@ public class LanguageService {
     }
     
     public List<LanguageCardDTO> getLanguages(String name, String sortBy, String sortDir) {
+        return getLanguages(name, sortBy, sortDir, null);
+    }
+
+    public List<LanguageCardDTO> getLanguages(String name, String sortBy, String sortDir, Integer randomSeed) {
 
         // Determine sort direction
         String sortColumn = "l.name";
@@ -73,6 +78,11 @@ public class LanguageService {
                     break;
                 case "maletimepct":
                     sortColumn = "male_time_pct";
+                    break;
+                case "random":
+                    sortColumn = RandomSortUtils.sqliteNumericExpression("l.id", randomSeed);
+                    sortDirection = "";
+                    nullsHandling = "";
                     break;
                 default:
                     sortColumn = "l.name";

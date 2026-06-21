@@ -22,9 +22,10 @@ public class YearController {
     public String listListenYears(
             @RequestParam(required = false, defaultValue = "year") String sortby,
             @RequestParam(required = false, defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) Integer randomSeed,
             Model model) {
 
-        List<YearCardDTO> years = yearService.getListenYears(sortby, sortdir);
+        List<YearCardDTO> years = yearService.getListenYears(sortby, sortdir, randomSeed);
         long totalCount = yearService.countListenYears();
 
         model.addAttribute("years", years);
@@ -33,6 +34,7 @@ public class YearController {
         model.addAttribute("currentSection", "listen-years");
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "year");
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("startIndex", totalCount > 0 ? 1 : 0);
@@ -45,9 +47,10 @@ public class YearController {
     public String listReleaseYears(
             @RequestParam(required = false, defaultValue = "year") String sortby,
             @RequestParam(required = false, defaultValue = "desc") String sortdir,
+            @RequestParam(required = false) Integer randomSeed,
             Model model) {
 
-        List<YearCardDTO> years = yearService.getReleaseYears(sortby, sortdir);
+        List<YearCardDTO> years = yearService.getReleaseYears(sortby, sortdir, randomSeed);
         long totalCount = yearService.countReleaseYears();
 
         model.addAttribute("years", years);
@@ -56,6 +59,7 @@ public class YearController {
         model.addAttribute("currentSection", "release-years");
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
+        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "year");
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("startIndex", totalCount > 0 ? 1 : 0);

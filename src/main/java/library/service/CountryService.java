@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.CountryCardDTO;
+import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,10 @@ public class CountryService {
     }
     
     public List<CountryCardDTO> getCountries(String name, String sortBy, String sortDir) {
+        return getCountries(name, sortBy, sortDir, null);
+    }
+
+    public List<CountryCardDTO> getCountries(String name, String sortBy, String sortDir, Integer randomSeed) {
 
         // Determine sort direction
         String sortColumn = "country";
@@ -62,6 +67,11 @@ public class CountryService {
                     break;
                 case "maletimepct":
                     sortColumn = "male_time_pct";
+                    break;
+                case "random":
+                    sortColumn = RandomSortUtils.sqliteTextExpression("ar.country", randomSeed);
+                    sortDirection = "";
+                    nullsHandling = "";
                     break;
                 default:
                     sortColumn = "country";
