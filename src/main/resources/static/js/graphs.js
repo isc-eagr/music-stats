@@ -18,6 +18,7 @@ let listViewState = { page: 0, totalCount: 0, loading: false, allLoaded: false }
 let listViewObserver = null;
 let listViewScrollContainer = null;
 let listViewScrollHandler = null;
+let listViewWindowScrollHandler = null;
 let listViewRequestToken = 0;
 let listViewLoadAllInProgress = false;
 let listViewUserHasScrolled = false;
@@ -2633,7 +2634,7 @@ function switchView(viewName) {
         if (cardView) cardView.style.display = '';
     } else if (normalizedView === 'table') {
         if (tableView) tableView.style.display = '';
-        listViewUserHasScrolled = true;
+        listViewUserHasScrolled = false;
         // Load first page if not yet loaded
         if (listViewState.page === 0 && !listViewState.loading && !listViewState.allLoaded) {
             syncListViewSortStateFromUrl(getCurrentEntityType());
@@ -2773,7 +2774,7 @@ function reloadListViewData(entityType = getCurrentEntityType()) {
     listViewState.totalCount = 0;
     listViewState.loading = false;
     listViewState.allLoaded = false;
-    listViewUserHasScrolled = currentView === 'table';
+    listViewUserHasScrolled = false;
 
     topTabData[entityType] = [];
     topSortedData[entityType] = [];
@@ -2804,10 +2805,21 @@ function maybeLoadMoreListRows() {
     const container = getListViewTableContainer();
     if (!container) return;
 
-    const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 120;
-    if (nearBottom) {
+    if (isListViewNearBottom(container)) {
         fetchListPage(listViewState.page);
     }
+}
+
+function isListViewNearBottom(container) {
+    if (!container) return false;
+
+    const threshold = 120;
+    if (container.scrollHeight > container.clientHeight + 4) {
+        return container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+    }
+
+    const rect = container.getBoundingClientRect();
+    return rect.bottom <= window.innerHeight + threshold;
 }
 
 function getListViewLoadedCount() {
@@ -2888,8 +2900,9 @@ function fetchListPage(pageNum) {
 
     const entityType = getCurrentEntityType();
     const params = getListFilterParams();
+    const requestedPageSize = 100;
     params.set('page', pageNum);
-    params.set('perpage', 100);
+    params.set('perpage', requestedPageSize);
     applyListViewSortParams(params, entityType);
 
     const requestToken = ++listViewRequestToken;
@@ -2900,9 +2913,9 @@ function fetchListPage(pageNum) {
             if (requestToken !== listViewRequestToken) return;
             listViewState.loading = false;
             setListViewLoadingIndicator(false);
-            listViewState.totalCount = data.totalCount;
 
             const items = (data.items || []).map(item => normalizeListItem(item, entityType));
+            listViewState.totalCount = data.totalCount;
 
             if (pageNum === 0) {
                 // Full init: replace data, init column toggles, render, setup sorting
@@ -2917,7 +2930,6 @@ function fetchListPage(pageNum) {
                 setupTopTableSorting();
 
                 listViewState.page = 1;
-                listViewState.allLoaded = items.length >= data.totalCount;
             } else {
                 // Append: add items to existing data and append rows to table
                 const startRank = topTabData[entityType].length;
@@ -2930,14 +2942,20 @@ function fetchListPage(pageNum) {
                 else appendTopSongsRows(items, startRank);
 
                 listViewState.page = pageNum + 1;
-                listViewState.allLoaded = topTabData[entityType].length >= data.totalCount;
             }
+
+            const loadedCount = getListViewLoadedCount();
+            const reachedShortPage = items.length < requestedPageSize;
+            if (reachedShortPage && loadedCount < listViewState.totalCount) {
+                listViewState.totalCount = loadedCount;
+            }
+            listViewState.allLoaded = loadedCount >= listViewState.totalCount || reachedShortPage;
 
             const endEl = document.getElementById('tableViewEnd');
             if (endEl) endEl.hidden = !listViewState.allLoaded;
             updateListViewPaginationInfo();
             window.refreshPageLoadAllButtonState?.();
-            if (currentView === 'table') {
+            if (currentView === 'table' && (listViewUserHasScrolled || listViewLoadAllInProgress)) {
                 requestAnimationFrame(maybeLoadMoreListRows);
             }
         })
@@ -3004,6 +3022,8 @@ function getListFilterParams() {
     params.delete('sortdir2');
     params.delete('sortby3');
     params.delete('sortdir3');
+    params.delete('view');
+    params.delete('tab');
     return params;
 }
 
@@ -3076,8 +3096,8 @@ function formatSongLength(totalSeconds) {
 }
 
 /**
- * Setup intersection observer for table view infinite scroll.
- * Watches tableViewEnd marker and fetches more pages from server when visible.
+ * Setup table view infinite scroll.
+ * Watches the table wrapper and page scroll, then fetches more pages near the table bottom.
  */
 function setupListViewInfiniteScroll() {
     const container = getListViewTableContainer();
@@ -3099,6 +3119,15 @@ function setupListViewInfiniteScroll() {
             maybeLoadMoreListRows();
         };
         container.addEventListener('scroll', listViewScrollHandler, { passive: true });
+    }
+
+    if (!listViewWindowScrollHandler) {
+        listViewWindowScrollHandler = () => {
+            if (currentView !== 'table') return;
+            listViewUserHasScrolled = true;
+            maybeLoadMoreListRows();
+        };
+        window.addEventListener('scroll', listViewWindowScrollHandler, { passive: true });
     }
 
     if (currentView === 'table') {

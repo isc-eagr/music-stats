@@ -336,6 +336,7 @@ public class AlbumService {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
+                lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
         
         // Gender ID 1 = Female, Gender ID 2 = Male

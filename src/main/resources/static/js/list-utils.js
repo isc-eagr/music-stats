@@ -1356,6 +1356,77 @@ function performSearchWithFilters(searchQuery) {
     window.location.href = currentUrl.toString();
 }
 
+function isFilterControlActive(control) {
+    if (!control || control.disabled || !control.name) return false;
+
+    const name = control.name;
+    if (['q', 'sortby', 'sortdir', 'sortby2', 'sortdir2', 'sortby3', 'sortdir3', 'page', 'perpage', 'view', 'tab'].includes(name)) {
+        return false;
+    }
+
+    if (control.type === 'hidden') {
+        const value = (control.value || '').trim();
+        return (name.endsWith('Mode') && ['isnull', 'isnotnull'].includes(value.toLowerCase()))
+            || (!name.endsWith('Mode') && value !== '');
+    }
+
+    if (control.type === 'checkbox' || control.type === 'radio') {
+        return control.checked;
+    }
+
+    if (control.tagName === 'SELECT') {
+        return Array.from(control.selectedOptions || []).some(option => (option.value || '').trim() !== '');
+    }
+
+    return (control.value || '').trim() !== '';
+}
+
+function expandFilterItem(filterItem) {
+    if (!filterItem) return;
+
+    const header = filterItem.querySelector('.filter-item-header');
+    const content = header ? header.nextElementSibling : filterItem.querySelector('.filter-item-content');
+    const chevron = header ? header.querySelector('.filter-item-chevron') : null;
+
+    if (content) content.classList.add('expanded');
+    if (chevron) chevron.classList.add('expanded');
+    if (header) header.classList.add('active');
+}
+
+function expandActiveFilterItems() {
+    const panel = document.getElementById('filterPanel');
+    if (!panel || panel.style.display !== 'block') return;
+
+    panel.querySelectorAll('.filter-item').forEach(filterItem => {
+        const hasActiveControl = Array.from(filterItem.querySelectorAll('input, select, textarea')).some(isFilterControlActive);
+        const hasRenderedChip = filterItem.querySelector('.multi-select-chip, .chip-select-chip');
+
+        if (hasActiveControl || hasRenderedChip) {
+            expandFilterItem(filterItem);
+        }
+    });
+}
+
+document.addEventListener('click', event => {
+    if (event.target.closest('.filter-toggle')) {
+        window.setTimeout(expandActiveFilterItems, 0);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.toggleFilters !== 'function' || window.toggleFilters.__expandsActiveFilters) {
+        return;
+    }
+
+    const originalToggleFilters = window.toggleFilters;
+    window.toggleFilters = function() {
+        const result = originalToggleFilters.apply(this, arguments);
+        window.setTimeout(expandActiveFilterItems, 0);
+        return result;
+    };
+    window.toggleFilters.__expandsActiveFilters = true;
+});
+
 /**
  * Handle sticky sidebar logic for detail pages.
  * Makes the sidebar stick to the bottom if it's taller than the viewport.

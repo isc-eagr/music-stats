@@ -1124,18 +1124,10 @@ public class SongRepository {
             }
         }
         
-        // Account filter - filter to songs that have plays from the selected account(s)
+        // Account includes filters rows. Account excludes only scopes play_stats, matching list rows.
         if (accounts != null && !accounts.isEmpty()) {
             if ("includes".equalsIgnoreCase(accountMode)) {
                 sql.append(" AND EXISTS (SELECT 1 FROM Play p WHERE p.song_id = s.id AND p.account IN (");
-                for (int i = 0; i < accounts.size(); i++) {
-                    if (i > 0) sql.append(",");
-                    sql.append("?");
-                    params.add(accounts.get(i));
-                }
-                sql.append("))");
-            } else if ("excludes".equalsIgnoreCase(accountMode)) {
-                sql.append(" AND NOT EXISTS (SELECT 1 FROM Play p WHERE p.song_id = s.id AND p.account IN (");
                 for (int i = 0; i < accounts.size(); i++) {
                     if (i > 0) sql.append(",");
                     sql.append("?");
@@ -1459,43 +1451,11 @@ public class SongRepository {
         appendSongVatosCuntdownFilter(sql, params, vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode, vatosCuntdownDateFrom, vatosCuntdownDateTo);
         appendSongBillboardFilter(sql, params, billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode, billboardDateFrom, billboardDateTo);
         
-        // Seasonal chart filter (peak position <= specified, total seasons >= specified)
-        if (seasonalChartPeak != null || seasonalChartSeasons != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as seasons ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'seasonal'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (seasonalChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(seasonalChartPeak);
-            }
-            if (seasonalChartSeasons != null) {
-                sql.append(" AND chart_stats.seasons >= ?");
-                params.add(seasonalChartSeasons);
-            }
-            sql.append(")");
-        }
-        
-        // Yearly chart filter (peak position <= specified, total years >= specified)
-        if (yearlyChartPeak != null || yearlyChartYears != null) {
-            sql.append(" AND EXISTS (SELECT 1 FROM (");
-            sql.append("SELECT MIN(ce.position) as peak, COUNT(DISTINCT c.id) as years ");
-            sql.append("FROM ChartEntry ce ");
-            sql.append("INNER JOIN Chart c ON ce.chart_id = c.id ");
-            sql.append("WHERE ce.song_id = s.id AND c.chart_type = 'song' AND c.period_type = 'yearly'");
-            sql.append(") chart_stats WHERE 1=1");
-            if (yearlyChartPeak != null) {
-                sql.append(" AND chart_stats.peak <= ?");
-                params.add(yearlyChartPeak);
-            }
-            if (yearlyChartYears != null) {
-                sql.append(" AND chart_stats.years >= ?");
-                params.add(yearlyChartYears);
-            }
-            sql.append(")");
-        }
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "seasonal", "seasons",
+                seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason);
+
+        SqlFilterHelper.appendChartStatsFilter(sql, params, "ce.song_id", "s.id", "song", "yearly", "years",
+                yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo, null);
         
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0;
@@ -1590,7 +1550,8 @@ public class SongRepository {
                 "LEFT JOIN Album al ON s.album_id = al.id ");
             
             if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
-                sql.append("LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Play p WHERE 1=1 ");
+                sql.append(hasListenedDateFilter ? "INNER JOIN (" : "LEFT JOIN (");
+                sql.append("SELECT song_id, COUNT(*) as play_count FROM Play p WHERE 1=1 ");
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
                 sql.append(" GROUP BY song_id) play_stats ON play_stats.song_id = s.id ");
@@ -1603,27 +1564,6 @@ public class SongRepository {
                 sql.append("?");
             }
             sql.append(") ");
-        } else if (accounts != null && !accounts.isEmpty() && "excludes".equalsIgnoreCase(accountMode)) {
-            sql.append(
-                "SELECT COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id, COUNT(DISTINCT s.id) as cnt " +
-                "FROM Song s " +
-                "LEFT JOIN Artist ar ON s.artist_id = ar.id " +
-                "LEFT JOIN Album al ON s.album_id = al.id ");
-            
-            if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
-                sql.append("LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Play p WHERE 1=1 ");
-                sql.append(accountFilterClause);
-                sql.append(listenedDateFilterClause);
-                sql.append(" GROUP BY song_id) play_stats ON play_stats.song_id = s.id ");
-            }
-            
-            sql.append("WHERE NOT EXISTS (" +
-                "SELECT 1 FROM Play p WHERE p.song_id = s.id AND p.account IN (");
-            for (int i = 0; i < accounts.size(); i++) {
-                if (i > 0) sql.append(",");
-                sql.append("?");
-            }
-            sql.append(")) AND 1=1 ");
         } else {
             sql.append(
                 "SELECT COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id, COUNT(*) as cnt " +
@@ -1632,7 +1572,8 @@ public class SongRepository {
                 "LEFT JOIN Album al ON s.album_id = al.id ");
             
             if (playCountMin != null || playCountMax != null || hasListenedDateFilter) {
-                sql.append("LEFT JOIN (SELECT song_id, COUNT(*) as play_count FROM Play p WHERE 1=1 ");
+                sql.append(hasListenedDateFilter ? "INNER JOIN (" : "LEFT JOIN (");
+                sql.append("SELECT song_id, COUNT(*) as play_count FROM Play p WHERE 1=1 ");
                 sql.append(accountFilterClause);
                 sql.append(listenedDateFilterClause);
                 sql.append(" GROUP BY song_id) play_stats ON play_stats.song_id = s.id ");
@@ -1649,8 +1590,8 @@ public class SongRepository {
             params.addAll(listenedDateParams);
         }
         
-        // Account params for main query
-        if (accounts != null && !accounts.isEmpty()) {
+        // Account params for main query if using includes mode
+        if (accounts != null && !accounts.isEmpty() && "includes".equalsIgnoreCase(accountMode)) {
             params.addAll(accounts);
         }
         
