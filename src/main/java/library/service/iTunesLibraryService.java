@@ -236,12 +236,14 @@ public class iTunesLibraryService {
      * Represents iTunes track data (release date and length)
      */
     public static class iTunesTrackData {
+        public final String songName; // exact song name from iTunes
         public final String releaseDate; // YYYY-MM-DD format
         public final Integer lengthSeconds; // song length in seconds
         public final Integer trackNumber; // track number on album
         public final String matchType; // "exact" or "partial" (without album)
 
-        public iTunesTrackData(String releaseDate, Integer lengthSeconds, Integer trackNumber, String matchType) {
+        public iTunesTrackData(String songName, String releaseDate, Integer lengthSeconds, Integer trackNumber, String matchType) {
+            this.songName = songName;
             this.releaseDate = releaseDate;
             this.lengthSeconds = lengthSeconds;
             this.trackNumber = trackNumber;
@@ -352,7 +354,7 @@ public class iTunesLibraryService {
                         }
                     }
 
-                    return new iTunesTrackData(releaseDate, lengthSeconds, trackNumber, matchType);
+                    return new iTunesTrackData(name, releaseDate, lengthSeconds, trackNumber, matchType);
                 }
             }
 

@@ -1584,6 +1584,17 @@
 
                     let message = data.matchType === 'partial' ? '⚠️ Partial match - Found in iTunes: ' : '✓ Found in iTunes: ';
                     const parts = [];
+
+                    // Populate song name with the exact capitalization from iTunes.
+                    if (data.songName) {
+                        const songNameField = document.getElementById('wizardSongNameInput');
+                        const currentValue = songNameField.value;
+                        songNameField.value = data.songName;
+                        parts.push(`Title: ${data.songName}`);
+                        if (currentValue !== data.songName) {
+                            highlightWizardField('wizardSongNameInput');
+                        }
+                    }
                     
                     // Get album release date (from DB if selected, from input if newly created)
                     let albumReleaseDatePromise;

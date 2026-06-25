@@ -1813,6 +1813,7 @@ public class SongController {
             
             if (trackData != null) {
                 response.put("success", true);
+                response.put("songName", trackData.songName);
                 response.put("releaseDate", trackData.releaseDate);
                 response.put("lengthSeconds", trackData.lengthSeconds);
                 response.put("trackNumber", trackData.trackNumber);
@@ -1878,6 +1879,7 @@ public class SongController {
                 }
 
                 response.put("success", true);
+                response.put("songName", trackData.songName);
                 response.put("releaseDate", trackData.releaseDate);
                 response.put("lengthSeconds", trackData.lengthSeconds);
                 response.put("trackNumber", trackData.trackNumber);
