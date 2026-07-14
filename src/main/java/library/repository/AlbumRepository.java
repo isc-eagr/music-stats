@@ -27,6 +27,7 @@ public class AlbumRepository {
     public List<AlbumStatsRow> findAlbumsWithStats(AlbumStatsQuery query) {
         String name = query.name();
         List<Integer> artistName = query.artistName();
+        List<Integer> featuredArtistIds = query.featuredArtistIds();
         List<Integer> genreIds = query.genreIds();
         String genreMode = query.genreMode();
         List<Integer> subgenreIds = query.subgenreIds();
@@ -352,6 +353,8 @@ public class AlbumRepository {
             sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
             params.addAll(artistName);
         }
+
+        appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
         if (genreMode != null) {
             String placeholders = genreIds != null ? String.join(",", genreIds.stream().map(id -> "?").toList()) : null;
@@ -835,6 +838,18 @@ public class AlbumRepository {
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> AlbumStatsRow.from(rs), params.toArray());
     }
 
+    private void appendFeaturedArtistFilter(StringBuilder sql, List<Object> params, List<Integer> featuredArtistIds) {
+        if (featuredArtistIds == null || featuredArtistIds.isEmpty()) {
+            return;
+        }
+        String placeholders = String.join(",", featuredArtistIds.stream().map(id -> "?").toList());
+        sql.append(" AND EXISTS (SELECT 1 FROM Song featured_song ")
+                .append("JOIN SongFeaturedArtist sfa ON sfa.song_id = featured_song.id ")
+                .append("WHERE featured_song.album_id = a.id AND sfa.artist_id IN (")
+                .append(placeholders).append(") )");
+        params.addAll(featuredArtistIds);
+    }
+
     private void appendAlbumSortOrder(StringBuilder sql, String sortBy, String sortDir,
                                       String sortBy2, String sortDir2,
                                       String sortBy3, String sortDir3,
@@ -911,7 +926,7 @@ public class AlbumRepository {
         appliedSorts.add(sortBy);
     }
     
-    public long countAlbumsWithFilters(String name, List<Integer> artistName,
+    public long countAlbumsWithFilters(String name, List<Integer> artistName, List<Integer> featuredArtistIds,
                                        List<Integer> genreIds, String genreMode,
                                        List<Integer> subgenreIds, String subgenreMode,
                                        List<Integer> languageIds, String languageMode,
@@ -1133,6 +1148,8 @@ public class AlbumRepository {
             sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
             params.addAll(artistName);
         }
+
+        appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
         if (genreMode != null) {
             String placeholders = genreIds != null ? String.join(",", genreIds.stream().map(id -> "?").toList()) : null;
@@ -1612,7 +1629,7 @@ public class AlbumRepository {
      * Returns a Map with gender_id as key and count as value.
      * More efficient than loading all albums and counting in memory.
      */
-    public Map<Integer, Long> countAlbumsByGenderWithFilters(String name, List<Integer> artistName,
+    public Map<Integer, Long> countAlbumsByGenderWithFilters(String name, List<Integer> artistName, List<Integer> featuredArtistIds,
                                        List<Integer> genreIds, String genreMode,
                                        List<Integer> subgenreIds, String subgenreMode,
                                        List<Integer> languageIds, String languageMode,
@@ -1801,6 +1818,8 @@ public class AlbumRepository {
             sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
             params.addAll(artistName);
         }
+
+        appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
         // Gender filter (filter on artist gender)
         library.util.SqlFilterHelper.appendIdFilter(sql, params, "ar.gender_id", genderIds, genderMode);

@@ -3,6 +3,12 @@ package library;
 import library.dto.AlbumStatsRow;
 import library.dto.ArtistStatsRow;
 import library.dto.SongStatsRow;
+import library.repository.ArtistImageRepository;
+import library.repository.ArtistRepository;
+import library.repository.LookupRepository;
+import library.service.ArtistService;
+import library.service.ItunesService;
+import library.service.SongLinkService;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -12,13 +18,70 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static library.TestDatabaseSupport.albumQuery;
+import static library.TestDatabaseSupport.albumQueryWith;
 import static library.TestDatabaseSupport.artistQuery;
+import static library.TestDatabaseSupport.artistQueryWith;
+import static library.TestDatabaseSupport.mapOf;
 import static library.TestDatabaseSupport.songQuery;
+import static library.TestDatabaseSupport.songQueryWith;
 import static library.TestDatabaseSupport.songQueryWithExpensiveStats;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class MusicCatalogRepositoryRegressionTest {
+
+    @Test
+    void artistScopeCombinesMainGroupAndFeaturedMetricsWithSourceBreakdowns() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            ArtistStatsRow scoped = db.artistRepository.findArtistsWithStats(artistQueryWith(mapOf(
+                    "name", "Guest Singer",
+                    "includeMain", false,
+                    "includeGroups", true,
+                    "includeFeatured", true,
+                    "sortBy", "plays",
+                    "sortDir", "desc"
+            ))).getFirst();
+
+            assertThat(scoped.songCount()).isEqualTo(2);
+            assertThat(scoped.albumCount()).isEqualTo(1);
+            assertThat(scoped.playCount()).isEqualTo(1);
+            assertThat(scoped.mainPlayCount()).isZero();
+            assertThat(scoped.groupPlayCount()).isZero();
+            assertThat(scoped.featuredPlayCount()).isEqualTo(1);
+            assertThat(scoped.vatitoPlayCount()).isEqualTo(1);
+
+            assertThat(db.artistRepository.countArtistsWithFilters(artistQueryWith(mapOf(
+                    "name", "Guest Singer",
+                    "includeMain", false,
+                    "includeFeatured", true,
+                    "playCountMin", 1
+            )))).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void artistDetailScopedMetricsUseTheSameGroupAndFeaturedCatalog() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            ItunesService itunesService = mock(ItunesService.class);
+            when(itunesService.getAllItunesSongIdsJson()).thenReturn("[]");
+            ArtistService artistService = new ArtistService(
+                    mock(ArtistRepository.class), mock(ArtistImageRepository.class), mock(LookupRepository.class),
+                    db.jdbcTemplate, itunesService, mock(SongLinkService.class));
+
+            ArtistService.ArtistScopedMetrics scoped = artistService.getScopedMetricsForArtist(4, false, true, true);
+
+            assertThat(scoped.songCount()).isEqualTo(2);
+            assertThat(scoped.albumCount()).isEqualTo(1);
+            assertThat(scoped.playCount()).isEqualTo(1);
+            assertThat(scoped.featuredPlayCount()).isEqualTo(1);
+            assertThat(scoped.groupPlayCount()).isZero();
+            assertThat(scoped.totalSongLength()).isEqualTo(320);
+            assertThat(scoped.uniqueDays()).isEqualTo(1);
+            assertThat(scoped.averagePlaysPerSong()).isEqualTo(0.5);
+        }
+    }
 
     @Test
     void songListUsesPlayCountsOverrideFallbacksGenderOverridesAndStableSorts() {
@@ -57,6 +120,25 @@ class MusicCatalogRepositoryRegressionTest {
                     .extracting(SongStatsRow::name)
                     .containsExactly("Bidi Bidi Bom Bom", "No Me Queda Mas", "Ojitos Lindos", "Standalone Jam");
             assertThat(indexBy(femaleRows, SongStatsRow::name).get("Ojitos Lindos").genderName()).isEqualTo("Female");
+        }
+    }
+
+    @Test
+    void songAndAlbumListsFilterByFeaturedArtist() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            List<SongStatsRow> songs = db.songRepository.findSongsWithStats(songQueryWith(mapOf(
+                    "featuredArtistIds", List.of(4),
+                    "sortBy", "name",
+                    "sortDirection", "asc"
+            )));
+            List<AlbumStatsRow> albums = db.albumRepository.findAlbumsWithStats(albumQueryWith(mapOf(
+                    "featuredArtistIds", List.of(4),
+                    "sortBy", "name",
+                    "sortDir", "asc"
+            )));
+
+            assertThat(songs).extracting(SongStatsRow::name).containsExactly("No Me Queda Mas");
+            assertThat(albums).extracting(AlbumStatsRow::name).containsExactly("Amor Prohibido");
         }
     }
 

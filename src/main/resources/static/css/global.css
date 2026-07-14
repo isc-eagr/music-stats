@@ -834,6 +834,22 @@ select:focus {
     flex-direction: column;
 }
 
+.play-breakdown-tooltip-trigger {
+    display: inline-flex;
+    align-items: center;
+    cursor: help;
+    outline: none;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+.play-breakdown-tooltip-trigger:focus-visible {
+    border-radius: 3px;
+    box-shadow: 0 0 0 2px rgba(181, 232, 14, 0.45);
+}
+
 .card-index {
     position: absolute;
     bottom: 7px;
@@ -3104,6 +3120,13 @@ select:focus {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)),
     #1b1b1b;
+}
+
+.app-nav-dropdown-section-divider {
+    height: 1px;
+    margin: 7px 12px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+    pointer-events: none;
 }
 
 .global-search-thumb--artist {

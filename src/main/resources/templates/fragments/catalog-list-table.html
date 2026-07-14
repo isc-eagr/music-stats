@@ -22,6 +22,10 @@
                         th:classappend="${sortBy == 'songs'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Songs</th>
                     <th data-sort-key="plays" class="numeric-cell"
                         th:classappend="${sortBy == 'plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Plays</th>
+                    <th data-sort-key="primary_plays" class="numeric-cell"
+                        th:classappend="${sortBy == 'primary_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Primary Plays</th>
+                    <th data-sort-key="legacy_plays" class="numeric-cell"
+                        th:classappend="${sortBy == 'legacy_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Legacy Plays</th>
                     <th data-sort-key="time" class="numeric-cell"
                         th:classappend="${sortBy == 'time'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Time</th>
                     <th data-sort-key="winningdays" data-default-dir="desc" class="numeric-cell winning-period-cell"
@@ -53,7 +57,7 @@
             </thead>
             <tbody>
                 <tr th:if="${#lists.isEmpty(items)}" class="no-data">
-                    <td th:colspan="${2 + (showParent ? 1 : 0) + 11 + (showMalePercentages ? 5 : 0) + (showTop ? 3 : 0)}"
+                    <td th:colspan="${2 + (showParent ? 1 : 0) + 13 + (showMalePercentages ? 5 : 0) + (showTop ? 3 : 0)}"
                         th:text="'No ' + ${emptyLabel} + ' found'">No records found</td>
                 </tr>
                 <tr th:each="item, iterStat : ${items}"
@@ -71,6 +75,8 @@
                     <td class="numeric-cell" th:text="${item.albumCount}">0</td>
                     <td class="numeric-cell" th:text="${item.songCount}">0</td>
                     <td class="numeric-cell" th:text="${item.playCount}">0</td>
+                    <td class="numeric-cell" th:text="${item.vatitoPlayCount}">0</td>
+                    <td class="numeric-cell" th:text="${item.robertloverPlayCount}">0</td>
                     <td class="numeric-cell" th:text="${item.timeListenedFormatted}">0m</td>
                     <td class="numeric-cell winning-period-cell" th:text="${item.winningDaysCount}">0</td>
                     <td class="numeric-cell winning-period-cell" th:text="${item.winningWeeksCount}">0</td>
@@ -118,6 +124,10 @@
                         th:classappend="${sortBy == 'songs'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Songs</th>
                     <th data-sort-key="plays" class="numeric-cell"
                         th:classappend="${sortBy == 'plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Plays</th>
+                    <th data-sort-key="primary_plays" class="numeric-cell"
+                        th:classappend="${sortBy == 'primary_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Primary Plays</th>
+                    <th data-sort-key="legacy_plays" class="numeric-cell"
+                        th:classappend="${sortBy == 'legacy_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Legacy Plays</th>
                     <th data-sort-key="time" class="numeric-cell"
                         th:classappend="${sortBy == 'time'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Time</th>
                     <th th:if="${showMalePercentages}" data-sort-key="maleartistpct" class="numeric-cell"
@@ -139,7 +149,7 @@
             </thead>
             <tbody>
                 <tr th:if="${#lists.isEmpty(items)}" class="no-data">
-                    <td th:colspan="${2 + 5 + (showMalePercentages ? 5 : 0) + 2 + (showTop ? 3 : 0)}"
+                    <td th:colspan="${2 + 7 + (showMalePercentages ? 5 : 0) + 2 + (showTop ? 3 : 0)}"
                         th:text="'No ' + ${emptyLabel} + ' found'">No records found</td>
                 </tr>
                 <tr th:each="item, iterStat : ${items}" class="catalog-list-row"
@@ -150,6 +160,8 @@
                     <td class="numeric-cell" th:text="${item.albumCount}">0</td>
                     <td class="numeric-cell" th:text="${item.songCount}">0</td>
                     <td class="numeric-cell" th:text="${item.playCount}">0</td>
+                    <td class="numeric-cell" th:text="${item.vatitoPlayCount}">0</td>
+                    <td class="numeric-cell" th:text="${item.robertloverPlayCount}">0</td>
                     <td class="numeric-cell" th:text="${item.timeListenedFormatted}">0m</td>
                     <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleArtistPercentage != null ? #numbers.formatDecimal(item.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
                     <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleAlbumPercentage != null ? #numbers.formatDecimal(item.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>

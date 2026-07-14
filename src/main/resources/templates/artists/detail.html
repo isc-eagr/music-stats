@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/list-utils.js}"></script>
+    <script th:src="@{/js/play-breakdown-tooltip.js}"></script>
     <script th:src="@{/js/top-table-sort.js}" defer></script>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
@@ -224,15 +225,30 @@
                     </div>
                     <div class="stat" title="Total plays">
                         <span class="stat-icon total-plays">⏵</span>
-                        <span class="stat-value" th:text="${artistPlayCount != null ? artistPlayCount : 0}">0</span>
+                        <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Total plays by source:' : null}">
+                            <span th:text="${artistPlayCount != null ? artistPlayCount : 0}">0</span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${mainPlayCount}"></span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${groupPlayCount}"></span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${featuredPlayCount}"></span>
+                        </span>
                     </div>
                     <div class="stat" title="Primary plays">
                         <span class="stat-icon primary-plays">⏵</span>
-                        <span class="stat-value" th:text="${artistVatitoPlayCount != null ? artistVatitoPlayCount : 0}">0</span>
+                        <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Primary plays by source:' : null}">
+                            <span th:text="${artistVatitoPlayCount != null ? artistVatitoPlayCount : 0}">0</span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${mainVatitoPlayCount}"></span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${groupVatitoPlayCount}"></span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${featuredVatitoPlayCount}"></span>
+                        </span>
                     </div>
                     <div class="stat" title="Legacy plays">
                         <span class="stat-icon legacy-plays">⏵</span>
-                        <span class="stat-value" th:text="${artistRobertloverPlayCount != null ? artistRobertloverPlayCount : 0}">0</span>
+                        <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Legacy plays by source:' : null}">
+                            <span th:text="${artistRobertloverPlayCount != null ? artistRobertloverPlayCount : 0}">0</span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${mainRobertloverPlayCount}"></span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${groupRobertloverPlayCount}"></span>
+                            <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${featuredRobertloverPlayCount}"></span>
+                        </span>
                     </div>
                 </div>
                 
@@ -413,8 +429,8 @@
                         <div class="edit-button-container">
                             <button type="button" class="btn-action" id="editBtn" onclick="toggleEdit()">Edit</button>
                             <button type="button" class="btn-negative" id="deleteBtn" 
-                                    th:disabled="${artistPlayCount > 0}"
-                                    th:title="${artistPlayCount > 0 ? 'Cannot delete artist with existing plays' : 'Delete this artist and all associated albums and songs'}"
+                                    th:disabled="${artistOwnPlayCount > 0}"
+                                    th:title="${artistOwnPlayCount > 0 ? 'Cannot delete artist with existing plays' : 'Delete this artist and all associated albums and songs'}"
                                     onclick="confirmDelete()">Delete</button>
                         </div>
                     </div>
@@ -618,15 +634,30 @@
                             <div class="ds-section-title">Plays</div>
                             <div class="ds-row">
                                 <span class="ds-label">Play Count</span>
-                                <span class="ds-value" th:text="${artistPlayCount}">0</span>
+                                <span class="ds-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Total plays by source:' : null}">
+                                    <span th:text="${artistPlayCount}">0</span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${mainPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${groupPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${featuredPlayCount}"></span>
+                                </span>
                             </div>
                             <div class="ds-row">
                                 <span class="ds-label">Primary Plays</span>
-                                <span class="ds-value" th:text="${artistVatitoPlayCount}">0</span>
+                                <span class="ds-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Primary plays by source:' : null}">
+                                    <span th:text="${artistVatitoPlayCount}">0</span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${mainVatitoPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${groupVatitoPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${featuredVatitoPlayCount}"></span>
+                                </span>
                             </div>
                             <div class="ds-row">
                                 <span class="ds-label">Legacy Plays</span>
-                                <span class="ds-value" th:text="${artistRobertloverPlayCount}">0</span>
+                                <span class="ds-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Legacy plays by source:' : null}">
+                                    <span th:text="${artistRobertloverPlayCount}">0</span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${mainRobertloverPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${groupRobertloverPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${featuredRobertloverPlayCount}"></span>
+                                </span>
                             </div>
                             <div class="ds-row">
                                 <span class="ds-label">Total Listening Time</span>

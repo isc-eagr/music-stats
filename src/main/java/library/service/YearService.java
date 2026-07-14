@@ -161,6 +161,8 @@ public class YearService {
         if (sortBy != null) {
             switch (sortBy.toLowerCase()) {
                 case "plays": sortColumn = "plays"; break;
+                case "primary_plays": sortColumn = "primary_plays"; break;
+                case "legacy_plays": sortColumn = "legacy_plays"; break;
                 case "time": sortColumn = "time"; break;
                 case "artists": sortColumn = "artists"; break;
                 case "albums": sortColumn = "albums"; break;
@@ -182,6 +184,14 @@ public class YearService {
             java.util.Comparator<YearCardDTO> comparator = switch (finalSortColumn) {
                 case "plays" -> {
                     java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getPlayCount);
+                    yield descending ? c.reversed() : c;
+                }
+                case "primary_plays" -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getVatitoPlayCount);
+                    yield descending ? c.reversed() : c;
+                }
+                case "legacy_plays" -> {
+                    java.util.Comparator<YearCardDTO> c = java.util.Comparator.comparing(YearCardDTO::getRobertloverPlayCount);
                     yield descending ? c.reversed() : c;
                 }
                 case "time" -> {
@@ -259,6 +269,8 @@ public class YearService {
         if (sortBy != null) {
             switch (sortBy.toLowerCase()) {
                 case "plays": sortColumn = "play_count"; nullsHandling = ""; break;
+                case "primary_plays": sortColumn = "vatito_play_count"; nullsHandling = ""; break;
+                case "legacy_plays": sortColumn = "robertlover_play_count"; nullsHandling = ""; break;
                 case "time": sortColumn = "time_listened"; nullsHandling = ""; break;
                 case "artists": sortColumn = "artist_count"; nullsHandling = ""; break;
                 case "albums": sortColumn = "album_count"; nullsHandling = ""; break;

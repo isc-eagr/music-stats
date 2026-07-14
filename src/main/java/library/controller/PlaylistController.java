@@ -98,7 +98,7 @@ public class PlaylistController {
             @RequestParam(defaultValue = "20") int perpage) {
         
         return songService.getSongs(
-                q, null, null,              // name, artistName, albumName
+                q, null, null, null,        // name, artistName, featuredArtistIds, albumName
                 null, null,                 // genreIds, genreMode
                 null, null,                 // subgenreIds, subgenreMode
                 null, null,                 // languageIds, languageMode

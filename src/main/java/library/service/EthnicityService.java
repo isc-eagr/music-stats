@@ -48,6 +48,14 @@ public class EthnicityService {
                     sortColumn = "play_count";
                     nullsHandling = ""; // No nulls handling needed for numeric columns with COALESCE
                     break;
+                case "primary_plays":
+                    sortColumn = "vatito_play_count";
+                    nullsHandling = "";
+                    break;
+                case "legacy_plays":
+                    sortColumn = "robertlover_play_count";
+                    nullsHandling = "";
+                    break;
                 case "time":
                     sortColumn = "time_listened";
                     nullsHandling = "";

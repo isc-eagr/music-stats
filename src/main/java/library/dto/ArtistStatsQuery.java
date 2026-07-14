@@ -65,6 +65,9 @@ public record ArtistStatsQuery(
         String sortBy3,
         String sortDir3,
         Integer randomSeed,
+        boolean includeMain,
+        boolean includeGroups,
+        boolean includeFeatured,
         int limit,
         int offset
 ) {

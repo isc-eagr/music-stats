@@ -90,6 +90,7 @@ public class ArtistService {
                                           String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                                           Integer songCountMin, Integer songCountMax,
                                           Integer itunesPresenceMin, Integer itunesPresenceMax,
+                                          boolean includeMain, boolean includeGroups, boolean includeFeatured,
                                           String sortBy, String sortDir,
                                           String sortBy2, String sortDir2,
                                           String sortBy3, String sortDir3,
@@ -121,7 +122,8 @@ public class ArtistService {
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
-                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, randomSeed, perPage, page * perPage
+                sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, randomSeed,
+                includeMain, includeGroups, includeFeatured, perPage, page * perPage
         ));
         
         List<ArtistCardDTO> artists = new ArrayList<>();
@@ -146,6 +148,15 @@ public class ArtistService {
             dto.setPlayCount(row.playCount());
             dto.setVatitoPlayCount(row.vatitoPlayCount());
             dto.setRobertloverPlayCount(row.robertloverPlayCount());
+            dto.setMainPlayCount(row.mainPlayCount());
+            dto.setGroupPlayCount(row.groupPlayCount());
+            dto.setFeaturedPlayCount(row.featuredPlayCount());
+            dto.setMainVatitoPlayCount(row.mainVatitoPlayCount());
+            dto.setGroupVatitoPlayCount(row.groupVatitoPlayCount());
+            dto.setFeaturedVatitoPlayCount(row.featuredVatitoPlayCount());
+            dto.setMainRobertloverPlayCount(row.mainRobertloverPlayCount());
+            dto.setGroupRobertloverPlayCount(row.groupRobertloverPlayCount());
+            dto.setFeaturedRobertloverPlayCount(row.featuredRobertloverPlayCount());
             
             long timeListened = row.timeListened();
             dto.setTimeListened(timeListened);
@@ -183,7 +194,8 @@ public class ArtistService {
 
         populateArtistItunesPresence(artists);
 
-        if (artists.stream().anyMatch(artist -> artist.getItunesPresenceRatio() == null)) {
+        if (includeMain && !includeGroups && !includeFeatured
+                && artists.stream().anyMatch(artist -> artist.getItunesPresenceRatio() == null)) {
             Map<Integer, Double> ratioByArtistId = itunesService.getArtistItunesPresenceRatios(
                     artists.stream().map(ArtistCardDTO::getId).toList());
             for (ArtistCardDTO artist : artists) {
@@ -229,7 +241,8 @@ public class ArtistService {
                             Integer albumCountMin, Integer albumCountMax,
                             String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                             Integer songCountMin, Integer songCountMax,
-                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
+                            Integer itunesPresenceMin, Integer itunesPresenceMax,
+                            boolean includeMain, boolean includeGroups, boolean includeFeatured) {
         // Normalize empty lists to null here as well
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -254,7 +267,8 @@ public class ArtistService {
                 albumCountMin, albumCountMax, birthDate, birthDateFrom, birthDateTo, birthDateMode,
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
-                null, null, null, null, null, null, null, 0, 0));
+                null, null, null, null, null, null, null,
+                includeMain, includeGroups, includeFeatured, 0, 0));
     }
     
     /**
@@ -280,7 +294,8 @@ public class ArtistService {
                             Integer albumCountMin, Integer albumCountMax,
                             String birthDate, String birthDateFrom, String birthDateTo, String birthDateMode,
                             Integer songCountMin, Integer songCountMax,
-                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
+                            Integer itunesPresenceMin, Integer itunesPresenceMax,
+                            boolean includeMain, boolean includeGroups, boolean includeFeatured) {
         // Normalize empty lists to null
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -305,7 +320,8 @@ public class ArtistService {
                 playCountMin, playCountMax, albumCountMin, albumCountMax,
                 birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
-                null, null, null, null, null, null, null, 0, 0));
+                null, null, null, null, null, null, null,
+                includeMain, includeGroups, includeFeatured, 0, 0));
         
         // Gender ID 1 = Female, Gender ID 2 = Male
         long femaleCount = genderCounts.getOrDefault(1, 0L);
@@ -2139,6 +2155,106 @@ public class ArtistService {
     // ========================================
     // Aggregated Stats Methods (for includeGroups toggle)
     // ========================================
+
+    public record ArtistScopedMetrics(
+            int songCount, int albumCount,
+            int playCount, int vatitoPlayCount, int robertloverPlayCount,
+            int mainPlayCount, int groupPlayCount, int featuredPlayCount,
+            int mainVatitoPlayCount, int groupVatitoPlayCount, int featuredVatitoPlayCount,
+            int mainRobertloverPlayCount, int groupRobertloverPlayCount, int featuredRobertloverPlayCount,
+            long listeningSeconds, String firstListened, String lastListened,
+            int uniqueDays, int uniqueWeeks, int uniqueMonths, int uniqueYears,
+            long totalSongLength, int soloSongCount, int songsWithFeatCount,
+            int featuredArtistCount, int standaloneSongCount, int itunesSongCount) {
+
+        public Double averagePlaysPerSong() {
+            return songCount > 0 ? (double) playCount / songCount : null;
+        }
+
+        public Double averagePlaysPerAlbum() {
+            return albumCount > 0 ? (double) playCount / albumCount : null;
+        }
+
+        public Double itunesPresenceRatio() {
+            return songCount > 0 ? (double) itunesSongCount * 100.0 / songCount : null;
+        }
+    }
+
+    public ArtistScopedMetrics getScopedMetricsForArtist(int artistId, boolean includeMain,
+                                                          boolean includeGroups, boolean includeFeatured) {
+        List<String> songScopes = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+        if (includeMain) {
+            songScopes.add("SELECT id AS song_id, 'main' AS source_type FROM Song WHERE artist_id = ?");
+            params.add(artistId);
+        }
+        if (includeGroups) {
+            songScopes.add("SELECT s.id AS song_id, 'group' AS source_type FROM ArtistMember am JOIN Song s ON s.artist_id = am.group_artist_id WHERE am.member_artist_id = ?");
+            params.add(artistId);
+        }
+        if (includeFeatured) {
+            songScopes.add("SELECT song_id, 'featured' AS source_type FROM SongFeaturedArtist WHERE artist_id = ?");
+            params.add(artistId);
+        }
+        if (songScopes.isEmpty()) {
+            songScopes.add("SELECT NULL AS song_id, '' AS source_type WHERE 0");
+        }
+
+        List<String> albumScopes = new ArrayList<>();
+        if (includeMain) {
+            albumScopes.add("SELECT id AS album_id FROM Album WHERE artist_id = ?");
+            params.add(artistId);
+        }
+        if (includeGroups) {
+            albumScopes.add("SELECT al.id AS album_id FROM ArtistMember am JOIN Album al ON al.artist_id = am.group_artist_id WHERE am.member_artist_id = ?");
+            params.add(artistId);
+        }
+        if (albumScopes.isEmpty()) {
+            albumScopes.add("SELECT NULL AS album_id WHERE 0");
+        }
+
+        String sql = "WITH song_scope AS (" + String.join(" UNION ALL ", songScopes) + "), "
+                + "album_scope AS (" + String.join(" UNION ALL ", albumScopes) + "), "
+                + "scoped_plays AS (SELECT ss.source_type, s.length_seconds, p.account, p.play_date "
+                + "FROM song_scope ss JOIN Song s ON s.id = ss.song_id JOIN Play p ON p.song_id = ss.song_id) "
+                + "SELECT "
+                + "(SELECT COUNT(*) FROM song_scope) song_count, "
+                + "(SELECT COUNT(*) FROM album_scope) album_count, "
+                + "COUNT(*) play_count, "
+                + "SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) vatito_play_count, "
+                + "SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) robertlover_play_count, "
+                + "SUM(CASE WHEN source_type = 'main' THEN 1 ELSE 0 END) main_play_count, "
+                + "SUM(CASE WHEN source_type = 'group' THEN 1 ELSE 0 END) group_play_count, "
+                + "SUM(CASE WHEN source_type = 'featured' THEN 1 ELSE 0 END) featured_play_count, "
+                + "SUM(CASE WHEN source_type = 'main' AND account = 'vatito' THEN 1 ELSE 0 END) main_vatito_play_count, "
+                + "SUM(CASE WHEN source_type = 'group' AND account = 'vatito' THEN 1 ELSE 0 END) group_vatito_play_count, "
+                + "SUM(CASE WHEN source_type = 'featured' AND account = 'vatito' THEN 1 ELSE 0 END) featured_vatito_play_count, "
+                + "SUM(CASE WHEN source_type = 'main' AND account = 'robertlover' THEN 1 ELSE 0 END) main_robertlover_play_count, "
+                + "SUM(CASE WHEN source_type = 'group' AND account = 'robertlover' THEN 1 ELSE 0 END) group_robertlover_play_count, "
+                + "SUM(CASE WHEN source_type = 'featured' AND account = 'robertlover' THEN 1 ELSE 0 END) featured_robertlover_play_count, "
+                + "COALESCE(SUM(length_seconds), 0) listening_seconds, MIN(play_date) first_listened, MAX(play_date) last_listened, "
+                + "COUNT(DISTINCT DATE(play_date)) unique_days, COUNT(DISTINCT strftime('%Y-%W', play_date)) unique_weeks, "
+                + "COUNT(DISTINCT strftime('%Y-%m', play_date)) unique_months, COUNT(DISTINCT strftime('%Y', play_date)) unique_years, "
+                + "(SELECT COALESCE(SUM(s.length_seconds), 0) FROM song_scope ss JOIN Song s ON s.id = ss.song_id) total_song_length, "
+                + "(SELECT COUNT(*) FROM song_scope ss WHERE NOT EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = ss.song_id)) solo_song_count, "
+                + "(SELECT COUNT(*) FROM song_scope ss WHERE EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = ss.song_id)) songs_with_feat_count, "
+                + "(SELECT COUNT(DISTINCT sfa.artist_id) FROM song_scope ss JOIN SongFeaturedArtist sfa ON sfa.song_id = ss.song_id) featured_artist_count, "
+                + "(SELECT COUNT(*) FROM song_scope ss JOIN Song s ON s.id = ss.song_id WHERE s.album_id IS NULL) standalone_song_count, "
+                + "(SELECT COUNT(*) FROM song_scope WHERE song_id IN (SELECT value FROM json_each(?))) itunes_song_count "
+                + "FROM scoped_plays";
+        params.add(itunesService.getAllItunesSongIdsJson());
+
+        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> new ArtistScopedMetrics(
+                rs.getInt("song_count"), rs.getInt("album_count"), rs.getInt("play_count"),
+                rs.getInt("vatito_play_count"), rs.getInt("robertlover_play_count"),
+                rs.getInt("main_play_count"), rs.getInt("group_play_count"), rs.getInt("featured_play_count"),
+                rs.getInt("main_vatito_play_count"), rs.getInt("group_vatito_play_count"), rs.getInt("featured_vatito_play_count"),
+                rs.getInt("main_robertlover_play_count"), rs.getInt("group_robertlover_play_count"), rs.getInt("featured_robertlover_play_count"),
+                rs.getLong("listening_seconds"), rs.getString("first_listened"), rs.getString("last_listened"),
+                rs.getInt("unique_days"), rs.getInt("unique_weeks"), rs.getInt("unique_months"), rs.getInt("unique_years"),
+                rs.getLong("total_song_length"), rs.getInt("solo_song_count"), rs.getInt("songs_with_feat_count"),
+                rs.getInt("featured_artist_count"), rs.getInt("standalone_song_count"), rs.getInt("itunes_song_count")), params.toArray());
+    }
     
     /**
      * Get aggregated play count for an artist including all groups they belong to

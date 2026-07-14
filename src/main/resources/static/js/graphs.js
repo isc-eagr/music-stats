@@ -1871,6 +1871,14 @@ function cellVal(val, fallback) {
  */
 function buildArtistRow(artist, rank) {
     const vis = (col) => getColDisplay('artists', col);
+    const breakdownItems = (main, groups, featured) => [
+        window.artistScopeIncludeMain ? `Main: ${(main || 0).toLocaleString()}` : null,
+        window.artistScopeIncludeGroups ? `Groups: ${(groups || 0).toLocaleString()}` : null,
+        window.artistScopeIncludeFeatured ? `Featured: ${(featured || 0).toLocaleString()}` : null
+    ].filter(Boolean);
+    const withBreakdown = (value, items, title) => typeof window.buildPlayBreakdownTooltip === 'function'
+        ? window.buildPlayBreakdownTooltip((value || 0).toLocaleString(), items, title)
+        : (value || 0).toLocaleString();
     return `
         <tr style="${getGenderRowStyle(artist.genderId)}">
             <td class="rank-col">${rank}</td>
@@ -1882,9 +1890,9 @@ function buildArtistRow(artist, rank) {
             </td>
             <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
             <td style="text-align:right;display:${vis('random')};">${cellVal(artist.__randomSortValue)}</td>
-            <td style="text-align:right;display:${vis('plays')};"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${(artist.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;display:${vis('primaryPlays')};">${(artist.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;display:${vis('legacyPlays')};">${(artist.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('plays')};"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${withBreakdown(artist.plays, breakdownItems(artist.mainPlayCount, artist.groupPlayCount, artist.featuredPlayCount), 'Total plays by source:')}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${withBreakdown(artist.primaryPlays, breakdownItems(artist.mainVatitoPlayCount, artist.groupVatitoPlayCount, artist.featuredVatitoPlayCount), 'Primary plays by source:')}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};">${withBreakdown(artist.legacyPlays, breakdownItems(artist.mainRobertloverPlayCount, artist.groupRobertloverPlayCount, artist.featuredRobertloverPlayCount), 'Legacy plays by source:')}</td>
             <td style="text-align:right;display:${vis('timeListened')};">${artist.timeListenedFormatted || '-'}</td>
             <td style="display:${vis('firstListened')};">${artist.firstListened || '-'}</td>
             <td style="display:${vis('lastListened')};">${artist.lastListened || '-'}</td>
@@ -1934,6 +1942,9 @@ function renderTopArtistsTable() {
     const rowsToRender = data.slice(0, topInfiniteScrollState.artists.displayedRows);
     
     tbody.innerHTML = rowsToRender.map((artist, index) => buildArtistRow(artist, index + 1)).join('');
+    if (typeof window.initializePlayBreakdownTooltips === 'function') {
+        window.initializePlayBreakdownTooltips(tbody);
+    }
 
     updateSortIndicators('topArtistsTable', topSortState.artists);
 }
@@ -2555,6 +2566,9 @@ function appendTopArtistsRows(data, startRank) {
     data.forEach((artist, index) => {
         tbody.insertAdjacentHTML('beforeend', buildArtistRow(artist, startRank + index + 1));
     });
+    if (typeof window.initializePlayBreakdownTooltips === 'function') {
+        window.initializePlayBreakdownTooltips(tbody);
+    }
 }
 
 /**
@@ -2638,6 +2652,7 @@ function switchView(viewName) {
     const cardView = document.getElementById('cardView');
     const tableView = document.getElementById('tableView');
     const graphsView = document.getElementById('graphsView');
+    const artistScopeToggles = document.querySelector('.artist-list-scope-toggles');
 
     // Hide all
     if (cardView) cardView.style.display = 'none';
@@ -2649,6 +2664,9 @@ function switchView(viewName) {
         const btn = document.getElementById('viewBtn-' + v);
         if (btn) btn.classList.toggle('active', v === normalizedView);
     });
+    if (artistScopeToggles) {
+        artistScopeToggles.style.display = normalizedView === 'graphs' ? 'none' : '';
+    }
 
     if (normalizedView === 'card') {
         if (cardView) cardView.style.display = '';

@@ -126,6 +126,7 @@ final class TestDatabaseSupport implements AutoCloseable {
                 )
                 """,
                 "CREATE TABLE SongFeaturedArtist (song_id INTEGER NOT NULL, artist_id INTEGER NOT NULL)",
+                "CREATE TABLE ArtistMember (group_artist_id INTEGER NOT NULL, member_artist_id INTEGER NOT NULL)",
                 "CREATE TABLE ArtistImage (id INTEGER PRIMARY KEY, artist_id INTEGER NOT NULL, image BLOB, display_order INTEGER)",
                 "CREATE TABLE AlbumImage (id INTEGER PRIMARY KEY, album_id INTEGER NOT NULL, image BLOB, display_order INTEGER)",
                 "CREATE TABLE SongImage (id INTEGER PRIMARY KEY, song_id INTEGER NOT NULL, image BLOB, display_order INTEGER)",
@@ -233,6 +234,7 @@ final class TestDatabaseSupport implements AutoCloseable {
                 """);
 
         jdbcTemplate.update("INSERT INTO SongFeaturedArtist (song_id, artist_id) VALUES (2, 4)");
+        jdbcTemplate.update("INSERT INTO ArtistMember (group_artist_id, member_artist_id) VALUES (3, 4)");
         jdbcTemplate.update("INSERT INTO ArtistImage (id, artist_id, image, display_order) VALUES (1, 1, X'04', 1)");
         jdbcTemplate.update("INSERT INTO AlbumImage (id, album_id, image, display_order) VALUES (1, 1, X'05', 1)");
         jdbcTemplate.update("INSERT INTO SongImage (id, song_id, image, display_order) VALUES (1, 2, X'06', 1)");
@@ -387,6 +389,7 @@ final class TestDatabaseSupport implements AutoCloseable {
 
     static ArtistStatsQuery artistQuery(String sortBy, String sortDir) {
         return recordQuery(ArtistStatsQuery.class, mapOf(
+                "includeMain", true,
                 "sortBy", sortBy,
                 "sortDir", sortDir
         ));
@@ -402,6 +405,7 @@ final class TestDatabaseSupport implements AutoCloseable {
             String sortBy,
             String sortDir) {
         return recordQuery(ArtistStatsQuery.class, mapOf(
+                "includeMain", true,
                 "genderIds", genderIds,
                 "genderMode", genderMode,
                 "accounts", accounts,
@@ -417,6 +421,7 @@ final class TestDatabaseSupport implements AutoCloseable {
         Map<String, Object> values = new HashMap<>(overrides);
         values.putIfAbsent("sortBy", "name");
         values.putIfAbsent("sortDir", "asc");
+        values.putIfAbsent("includeMain", true);
         values.putIfAbsent("limit", 100);
         values.putIfAbsent("offset", 0);
         return recordQuery(ArtistStatsQuery.class, values);

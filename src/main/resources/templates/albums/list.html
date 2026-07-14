@@ -224,6 +224,19 @@
                                         <div id="artistChipSelect"></div>
                                     </div>
                                 </div>
+
+                                <!-- Featured Artist Filter (chip search) -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Featured Artist
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div id="featuredArtistChipSelect"></div>
+                                    </div>
+                                </div>
                                 
                                 <!-- Birth Date Filter -->
                                 <div class="filter-item">
@@ -1118,6 +1131,16 @@
                     </th:block>
                 </span>
                 <button class="filter-chip-remove" onclick="removeFilterGroup('artist')" type="button">×</button>
+            </div>
+
+            <div class="filter-chip" th:if="${selectedFeaturedArtist != null and !selectedFeaturedArtist.isEmpty()}">
+                <span class="filter-chip-label">Featured Artist includes</span>
+                <span class="filter-chip-value">
+                    <th:block th:each="a, iterStat : ${selectedFeaturedArtistDetails}">
+                        <span th:text="${a['name']}"></span><span th:if="${!iterStat.last}">, </span>
+                    </th:block>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilterGroup('featuredArtist')" type="button">×</button>
             </div>
             
             <div class="filter-chip" th:if="${selectedGenders != null and !selectedGenders.isEmpty()}">
@@ -2924,7 +2947,8 @@
     </div>
     <script th:src="@{/js/chip-select.js}"></script>
     <script th:inline="javascript">
-    /*<![CDATA[*/var artistFilterInitialValues = /*[[${selectedArtistDetails}]]*/ [];/*]]>*/
+    /*<![CDATA[*/var artistFilterInitialValues = /*[[${selectedArtistDetails}]]*/ [];
+    var featuredArtistFilterInitialValues = /*[[${selectedFeaturedArtistDetails}]]*/ [];/*]]>*/
     </script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -2940,6 +2964,22 @@
                 genderField: 'genderId',
                 minChars: 2,
                 initialValues: artistFilterInitialValues.map(function(a) {
+                    return {value: a.id, label: a.name, genderId: a.genderId};
+                })
+            });
+        }
+        if (document.getElementById('featuredArtistChipSelect')) {
+            initChipSelect({
+                containerId: 'featuredArtistChipSelect',
+                inputName: 'featuredArtist',
+                placeholder: 'Search featured artists...',
+                searchUrl: '/artists/api/search',
+                searchParam: 'q',
+                valueField: 'id',
+                labelField: 'name',
+                genderField: 'genderId',
+                minChars: 2,
+                initialValues: featuredArtistFilterInitialValues.map(function(a) {
                     return {value: a.id, label: a.name, genderId: a.genderId};
                 })
             });

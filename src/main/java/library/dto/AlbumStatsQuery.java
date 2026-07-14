@@ -5,6 +5,7 @@ import java.util.List;
 public record AlbumStatsQuery(
         String name,
         List<Integer> artistName,
+        List<Integer> featuredArtistIds,
         List<Integer> genreIds,
         String genreMode,
         List<Integer> subgenreIds,

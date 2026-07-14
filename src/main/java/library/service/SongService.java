@@ -105,7 +105,7 @@ public class SongService {
         return values == null ? null : List.copyOf(values);
     }
 
-    private String buildCombinedSongsFilterCacheKey(String name, List<Integer> artistName, String albumName,
+    private String buildCombinedSongsFilterCacheKey(String name, List<Integer> artistName, List<Integer> featuredArtistIds, String albumName,
                                                     List<Integer> genreIds, String genreMode,
                                                     List<Integer> subgenreIds, String subgenreMode,
                                                     List<Integer> languageIds, String languageMode,
@@ -146,6 +146,7 @@ public class SongService {
         List<Object> parts = new ArrayList<>();
         parts.add(name);
         parts.add(snapshotList(artistName));
+        parts.add(snapshotList(featuredArtistIds));
         parts.add(albumName);
         parts.add(snapshotList(genreIds));
         parts.add(genreMode);
@@ -261,7 +262,7 @@ public class SongService {
         }
     }
     
-    public List<SongCardDTO> getSongs(String name, List<Integer> artistName, String albumName,
+    public List<SongCardDTO> getSongs(String name, List<Integer> artistName, List<Integer> featuredArtistIds, String albumName,
                                        List<Integer> genreIds, String genreMode,
                                        List<Integer> subgenreIds, String subgenreMode,
                                        List<Integer> languageIds, String languageMode,
@@ -316,7 +317,7 @@ public class SongService {
         int queryOffset = combineLinkedSongs ? 0 : page * perPage;
         String combinedSongsCacheKey = combineLinkedSongs
             ? buildCombinedSongsFilterCacheKey(
-                name, artistName, albumName,
+                name, artistName, featuredArtistIds, albumName,
                 genreIds, genreMode,
                 subgenreIds, subgenreMode,
                 languageIds, languageMode,
@@ -355,7 +356,7 @@ public class SongService {
         boolean includeExpensiveStats = !combineLinkedSongs || requiresExpensiveStatsForSort(sortBy, sortBy2, sortBy3);
 
         List<SongStatsRow> results = songRepository.findSongsWithStats(new SongStatsQuery(
-                name, artistName, albumName, genreIds, genreMode, 
+                name, artistName, featuredArtistIds, albumName, genreIds, genreMode,
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
                 ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -391,7 +392,7 @@ public class SongService {
             Map<Integer, SongStatsRow> rowsById = results.stream()
                     .collect(Collectors.toMap(SongStatsRow::id, Function.identity(), (existing, replacement) -> existing, java.util.LinkedHashMap::new));
             List<SongStatsRow> linkedRows = songRepository.findSongsWithStats(new SongStatsQuery(
-                    name, artistName, albumName, genreIds, genreMode,
+                    name, artistName, featuredArtistIds, albumName, genreIds, genreMode,
                     subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
                     ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                     releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -442,7 +443,7 @@ public class SongService {
                         .distinct()
                         .toList();
                 List<SongStatsRow> fullRows = songRepository.findSongsWithStats(new SongStatsQuery(
-                        name, artistName, albumName, genreIds, genreMode,
+                        name, artistName, featuredArtistIds, albumName, genreIds, genreMode,
                         subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
                         ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                         releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -889,7 +890,7 @@ public class SongService {
         return label.toString();
     }
     
-    public long countSongs(String name, List<Integer> artistName, String albumName,
+    public long countSongs(String name, List<Integer> artistName, List<Integer> featuredArtistIds, String albumName,
                           List<Integer> genreIds, String genreMode,
                           List<Integer> subgenreIds, String subgenreMode,
                           List<Integer> languageIds, String languageMode,
@@ -933,7 +934,7 @@ public class SongService {
         
         if (appConfigService.isCombineLinkedSongsEnabled()) {
             String combinedSongsCacheKey = buildCombinedSongsFilterCacheKey(
-                    name, artistName, albumName,
+                    name, artistName, featuredArtistIds, albumName,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                     genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                     releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -967,7 +968,7 @@ public class SongService {
                 return cachedCount;
             }
 
-            long rawCount = songRepository.countSongsWithFilters(name, artistName, albumName,
+            long rawCount = songRepository.countSongsWithFilters(name, artistName, featuredArtistIds, albumName,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                     genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                     releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -1003,7 +1004,7 @@ public class SongService {
             }
 
             List<SongStatsRow> linkedRows = songRepository.findSongsWithStats(new SongStatsQuery(
-                    name, artistName, albumName,
+                    name, artistName, featuredArtistIds, albumName,
                     genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                     genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                     releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -1038,7 +1039,7 @@ public class SongService {
             return combinedCount;
         }
 
-        return songRepository.countSongsWithFilters(name, artistName, albumName, 
+        return songRepository.countSongsWithFilters(name, artistName, featuredArtistIds, albumName,
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                 genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -1073,7 +1074,7 @@ public class SongService {
      * Returns a GenderCountDTO with male, female, and other counts.
      * Uses efficient SQL GROUP BY instead of loading all records.
      */
-    public GenderCountDTO countSongsByGender(String name, List<Integer> artistName, String albumName,
+    public GenderCountDTO countSongsByGender(String name, List<Integer> artistName, List<Integer> featuredArtistIds, String albumName,
                           List<Integer> genreIds, String genreMode,
                           List<Integer> subgenreIds, String subgenreMode,
                           List<Integer> languageIds, String languageMode,
@@ -1117,7 +1118,7 @@ public class SongService {
 
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = songRepository.countSongsByGenderWithFilters(
-                name, artistName, albumName, genreIds, genreMode,
+                name, artistName, featuredArtistIds, albumName, genreIds, genreMode,
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
                 ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,

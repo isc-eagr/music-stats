@@ -21,6 +21,15 @@ public class ArtistCardDTO {
     private Integer playCount;
     private Integer vatitoPlayCount;
     private Integer robertloverPlayCount;
+    private Integer mainPlayCount;
+    private Integer groupPlayCount;
+    private Integer featuredPlayCount;
+    private Integer mainVatitoPlayCount;
+    private Integer groupVatitoPlayCount;
+    private Integer featuredVatitoPlayCount;
+    private Integer mainRobertloverPlayCount;
+    private Integer groupRobertloverPlayCount;
+    private Integer featuredRobertloverPlayCount;
     private Long timeListened; // in seconds
     private String timeListenedFormatted;
     private boolean hasImage;
@@ -196,6 +205,25 @@ public class ArtistCardDTO {
     public void setRobertloverPlayCount(Integer robertloverPlayCount) {
         this.robertloverPlayCount = robertloverPlayCount;
     }
+
+    public Integer getMainPlayCount() { return mainPlayCount; }
+    public void setMainPlayCount(Integer value) { this.mainPlayCount = value; }
+    public Integer getGroupPlayCount() { return groupPlayCount; }
+    public void setGroupPlayCount(Integer value) { this.groupPlayCount = value; }
+    public Integer getFeaturedPlayCount() { return featuredPlayCount; }
+    public void setFeaturedPlayCount(Integer value) { this.featuredPlayCount = value; }
+    public Integer getMainVatitoPlayCount() { return mainVatitoPlayCount; }
+    public void setMainVatitoPlayCount(Integer value) { this.mainVatitoPlayCount = value; }
+    public Integer getGroupVatitoPlayCount() { return groupVatitoPlayCount; }
+    public void setGroupVatitoPlayCount(Integer value) { this.groupVatitoPlayCount = value; }
+    public Integer getFeaturedVatitoPlayCount() { return featuredVatitoPlayCount; }
+    public void setFeaturedVatitoPlayCount(Integer value) { this.featuredVatitoPlayCount = value; }
+    public Integer getMainRobertloverPlayCount() { return mainRobertloverPlayCount; }
+    public void setMainRobertloverPlayCount(Integer value) { this.mainRobertloverPlayCount = value; }
+    public Integer getGroupRobertloverPlayCount() { return groupRobertloverPlayCount; }
+    public void setGroupRobertloverPlayCount(Integer value) { this.groupRobertloverPlayCount = value; }
+    public Integer getFeaturedRobertloverPlayCount() { return featuredRobertloverPlayCount; }
+    public void setFeaturedRobertloverPlayCount(Integer value) { this.featuredRobertloverPlayCount = value; }
 
     public Long getTimeListened() {
         return timeListened;

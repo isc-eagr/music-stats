@@ -39,3 +39,18 @@
 .stat-icon svg path {
     fill: currentColor;
 }
+.artist-list-scope-toggles {
+    margin-left: 14px;
+    padding-left: 14px;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 900px) {
+    .artist-list-scope-toggles {
+        width: 100%;
+        margin: 10px 0 0;
+        padding: 10px 0 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        border-left: 0;
+    }
+}

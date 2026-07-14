@@ -40,6 +40,12 @@ public class GenderService {
                 case "plays":
                     sortColumn = "play_count";
                     break;
+                case "primary_plays":
+                    sortColumn = "vatito_play_count";
+                    break;
+                case "legacy_plays":
+                    sortColumn = "robertlover_play_count";
+                    break;
                 case "time":
                     sortColumn = "time_listened";
                     break;

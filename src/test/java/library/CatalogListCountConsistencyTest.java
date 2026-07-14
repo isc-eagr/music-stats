@@ -130,6 +130,7 @@ class CatalogListCountConsistencyTest {
         return namedCases(
                 entry("name", mapOf("name", "verano")),
                 entry("artist", mapOf("artistName", List.of(1))),
+                entry("featured artist", mapOf("featuredArtistIds", List.of(4))),
                 entry("genre includes", mapOf("genreIds", List.of(2), "genreMode", "includes")),
                 entry("genre excludes", mapOf("genreIds", List.of(1), "genreMode", "excludes")),
                 entry("genre is null", mapOf("genreMode", "isnull")),
@@ -188,6 +189,7 @@ class CatalogListCountConsistencyTest {
         return namedCases(
                 entry("name", mapOf("name", "titi")),
                 entry("artist", mapOf("artistName", List.of(1))),
+                entry("featured artist", mapOf("featuredArtistIds", List.of(4))),
                 entry("album name", mapOf("albumName", "Verano")),
                 entry("genre includes", mapOf("genreIds", List.of(2), "genreMode", "includes")),
                 entry("genre excludes", mapOf("genreIds", List.of(1), "genreMode", "excludes")),
@@ -273,7 +275,7 @@ class CatalogListCountConsistencyTest {
     }
 
     private static long countAlbums(TestDatabaseSupport db, AlbumStatsQuery q) {
-        return db.albumRepository.countAlbumsWithFilters(q.name(), q.artistName(), q.genreIds(), q.genreMode(),
+        return db.albumRepository.countAlbumsWithFilters(q.name(), q.artistName(), q.featuredArtistIds(), q.genreIds(), q.genreMode(),
                 q.subgenreIds(), q.subgenreMode(), q.languageIds(), q.languageMode(), q.genderIds(), q.genderMode(),
                 q.ethnicityIds(), q.ethnicityMode(), q.countries(), q.countryMode(), q.tagIds(), q.tagMode(),
                 q.accounts(), q.accountMode(), q.releaseDate(), q.releaseDateFrom(), q.releaseDateTo(), q.releaseDateMode(),
@@ -293,7 +295,7 @@ class CatalogListCountConsistencyTest {
     }
 
     private static Map<Integer, Long> countAlbumsByGender(TestDatabaseSupport db, AlbumStatsQuery q) {
-        return db.albumRepository.countAlbumsByGenderWithFilters(q.name(), q.artistName(), q.genreIds(), q.genreMode(),
+        return db.albumRepository.countAlbumsByGenderWithFilters(q.name(), q.artistName(), q.featuredArtistIds(), q.genreIds(), q.genreMode(),
                 q.subgenreIds(), q.subgenreMode(), q.languageIds(), q.languageMode(), q.genderIds(), q.genderMode(),
                 q.ethnicityIds(), q.ethnicityMode(), q.countries(), q.countryMode(), q.tagIds(), q.tagMode(),
                 q.accounts(), q.accountMode(), q.releaseDate(), q.releaseDateFrom(), q.releaseDateTo(), q.releaseDateMode(),
@@ -314,7 +316,7 @@ class CatalogListCountConsistencyTest {
     }
 
     private static long countSongs(TestDatabaseSupport db, SongStatsQuery q) {
-        return db.songRepository.countSongsWithFilters(q.name(), q.artistName(), q.albumName(), q.genreIds(), q.genreMode(),
+        return db.songRepository.countSongsWithFilters(q.name(), q.artistName(), q.featuredArtistIds(), q.albumName(), q.genreIds(), q.genreMode(),
                 q.subgenreIds(), q.subgenreMode(), q.languageIds(), q.languageMode(), q.genderIds(), q.genderMode(),
                 q.ethnicityIds(), q.ethnicityMode(), q.countries(), q.countryMode(), q.tagIds(), q.tagMode(),
                 q.accounts(), q.accountMode(), q.releaseDate(), q.releaseDateFrom(), q.releaseDateTo(), q.releaseDateMode(),
@@ -338,7 +340,7 @@ class CatalogListCountConsistencyTest {
     }
 
     private static Map<Integer, Long> countSongsByGender(TestDatabaseSupport db, SongStatsQuery q) {
-        return db.songRepository.countSongsByGenderWithFilters(q.name(), q.artistName(), q.albumName(), q.genreIds(),
+        return db.songRepository.countSongsByGenderWithFilters(q.name(), q.artistName(), q.featuredArtistIds(), q.albumName(), q.genreIds(),
                 q.genreMode(), q.subgenreIds(), q.subgenreMode(), q.languageIds(), q.languageMode(), q.genderIds(),
                 q.genderMode(), q.ethnicityIds(), q.ethnicityMode(), q.countries(), q.countryMode(), q.tagIds(),
                 q.tagMode(), q.accounts(), q.accountMode(), q.releaseDate(), q.releaseDateFrom(), q.releaseDateTo(),

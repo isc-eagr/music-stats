@@ -118,6 +118,7 @@ public class AlbumController {
             @RequestParam(required = false) Integer ageAtReleaseMin,
             @RequestParam(required = false) Integer ageAtReleaseMax,
             @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> featuredArtist,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -238,7 +239,7 @@ public class AlbumController {
         
         // Get filtered and sorted albums
         List<AlbumCardDTO> albums = albumService.getAlbums(
-                q, artist, genre, genreMode, subgenre, subgenreMode,
+                q, artist, featuredArtist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
                 country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -261,7 +262,7 @@ public class AlbumController {
         );
         
         // Get total count for pagination
-        long totalCount = albumService.countAlbums(q, artist, genre, 
+        long totalCount = albumService.countAlbums(q, artist, featuredArtist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
                 genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -283,7 +284,7 @@ public class AlbumController {
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = albumService.countAlbumsByGender(q, artist, genre, 
+        GenderCountDTO genderCounts = albumService.countAlbumsByGender(q, artist, featuredArtist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
                 genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -321,6 +322,10 @@ public class AlbumController {
         List<Map<String, Object>> artistDetails = (artist != null && !artist.isEmpty()) ?
             artistService.getArtistDetailsForIds(artist) : List.of();
         model.addAttribute("selectedArtistDetails", artistDetails);
+        model.addAttribute("selectedFeaturedArtist", featuredArtist);
+        List<Map<String, Object>> featuredArtistDetails = (featuredArtist != null && !featuredArtist.isEmpty()) ?
+            artistService.getArtistDetailsForIds(featuredArtist) : List.of();
+        model.addAttribute("selectedFeaturedArtistDetails", featuredArtistDetails);
         model.addAttribute("selectedGenres", genre);
         model.addAttribute("genreMode", genreMode != null ? genreMode : "includes");
         model.addAttribute("selectedSubgenres", subgenre);
@@ -470,6 +475,7 @@ public class AlbumController {
             @RequestParam(required = false) Integer ageAtReleaseMin,
             @RequestParam(required = false) Integer ageAtReleaseMax,
             @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) List<Integer> featuredArtist,
             @RequestParam(required = false) List<Integer> genre,
             @RequestParam(required = false) String genreMode,
             @RequestParam(required = false) List<Integer> subgenre,
@@ -585,7 +591,7 @@ public class AlbumController {
         String itunesIdsJson = albumService.getItunesAlbumIdsJson(inItunes);
 
         List<AlbumCardDTO> albums = albumService.getAlbums(
-                q, artist, genre, genreMode, subgenre, subgenreMode,
+                q, artist, featuredArtist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
                 country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -607,7 +613,7 @@ public class AlbumController {
                 sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
         );
 
-        long totalCount = albumService.countAlbums(q, artist, genre,
+        long totalCount = albumService.countAlbums(q, artist, featuredArtist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender,
                 genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,

@@ -29,6 +29,7 @@ public class SongRepository {
     public List<SongStatsRow> findSongsWithStats(SongStatsQuery query) {
         String name = query.name();
         List<Integer> artistName = query.artistName();
+        List<Integer> featuredArtistIds = query.featuredArtistIds();
         String albumName = query.albumName();
         List<Integer> genreIds = query.genreIds();
         String genreMode = query.genreMode();
@@ -352,6 +353,8 @@ public class SongRepository {
             sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
             params.addAll(artistName);
         }
+
+        appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
         // Album name filter
         if (albumName != null && !albumName.trim().isEmpty()) {
@@ -799,6 +802,17 @@ public class SongRepository {
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> SongStatsRow.from(rs), params.toArray());
     }
 
+    private void appendFeaturedArtistFilter(StringBuilder sql, List<Object> params, List<Integer> featuredArtistIds) {
+        if (featuredArtistIds == null || featuredArtistIds.isEmpty()) {
+            return;
+        }
+        String placeholders = String.join(",", featuredArtistIds.stream().map(id -> "?").toList());
+        sql.append(" AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa ")
+                .append("WHERE sfa.song_id = s.id AND sfa.artist_id IN (")
+                .append(placeholders).append(") )");
+        params.addAll(featuredArtistIds);
+    }
+
     private void appendSongSortOrder(StringBuilder sql, String sortBy, String sortDirection,
                                      String sortBy2, String sortDirection2,
                                      String sortBy3, String sortDirection3,
@@ -886,7 +900,7 @@ public class SongRepository {
         appliedSorts.add(sortBy);
     }
     
-    public long countSongsWithFilters(String name, List<Integer> artistName, String albumName,
+    public long countSongsWithFilters(String name, List<Integer> artistName, List<Integer> featuredArtistIds, String albumName,
                                       List<Integer> genreIds, String genreMode,
                                       List<Integer> subgenreIds, String subgenreMode,
                                       List<Integer> languageIds, String languageMode,
@@ -1005,6 +1019,8 @@ public class SongRepository {
             sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
             params.addAll(artistName);
         }
+
+        appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
         // Album name filter
         if (albumName != null && !albumName.trim().isEmpty()) {
@@ -1467,7 +1483,7 @@ public class SongRepository {
      * More efficient than loading all songs and counting in memory.
      * Uses COALESCE(s.override_gender_id, ar.gender_id) as the effective gender.
      */
-    public Map<Integer, Long> countSongsByGenderWithFilters(String name, List<Integer> artistName, String albumName,
+    public Map<Integer, Long> countSongsByGenderWithFilters(String name, List<Integer> artistName, List<Integer> featuredArtistIds, String albumName,
                                               List<Integer> genreIds, String genreMode,
                                               List<Integer> subgenreIds, String subgenreMode,
                                               List<Integer> languageIds, String languageMode,
@@ -1607,6 +1623,8 @@ public class SongRepository {
             sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
             params.addAll(artistName);
         }
+
+        appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
         // Album name filter
         if (albumName != null && !albumName.trim().isEmpty()) {

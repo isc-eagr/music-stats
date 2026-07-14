@@ -135,6 +135,51 @@ class TemplateContractTest {
     }
 
     @Test
+    void artistScopeControlsAndPlayBreakdownIndicatorsStayWired() throws IOException {
+        Document list = parse("artists/list.html");
+        String listHtml = read("artists/list.html");
+
+        assertThat(list.select("#artistIncludeMainToggle")).hasSize(1);
+        assertThat(list.select("#artistIncludeGroupsToggle")).hasSize(1);
+        assertThat(list.select("#artistIncludeFeaturedToggle")).hasSize(1);
+        assertThat(listHtml).contains("/css/detail-tabs.css")
+                .contains("toggleArtistScope('includeMain'")
+                .contains("toggleArtistScope('includeGroups'")
+                .contains("toggleArtistScope('includeFeatured'")
+                .contains("name=\"includeMain\"")
+                .contains("name=\"includeGroups\"")
+                .contains("name=\"includeFeatured\"");
+
+        Document detail = parse("artists/detail.html");
+        String detailHtml = read("artists/detail.html");
+        assertThat(detail.select(".play-breakdown-tooltip-trigger")).isEmpty();
+        assertThat(listHtml).contains("showPlayBreakdown")
+                .contains("th:classappend=\"${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''\"");
+        assertThat(detailHtml).contains("showPlayBreakdown")
+                .contains("th:classappend=\"${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''\"");
+        assertThat(detail.select(".play-breakdown-tooltip-item-source")).hasSizeGreaterThanOrEqualTo(18);
+
+        String tooltipJs = Files.readString(
+                Path.of("src/main/resources/static/js/play-breakdown-tooltip.js"), StandardCharsets.UTF_8);
+        assertThat(tooltipJs).contains("linked-song-tooltip-trigger")
+                .contains("initializePlayBreakdownTooltips")
+                .contains("data-tooltip-title")
+                .contains("safeItems.length <= 1");
+    }
+
+    @Test
+    void chartsNavigationUsesQuietSectionDividersInsteadOfLabels() throws IOException {
+        Document navigation = parse("fragments/navigation.html");
+        assertThat(navigation.select(".app-nav-dropdown-section-divider")).hasSize(6);
+        assertThat(navigation.select(".app-nav-dropdown-section-label")).isEmpty();
+
+        String css = Files.readString(
+                Path.of("src/main/resources/static/css/global.css"), StandardCharsets.UTF_8);
+        assertThat(css).contains(".app-nav-dropdown-section-divider")
+                .contains("linear-gradient(90deg, transparent");
+    }
+
+    @Test
     void catalogPrimarySortOptionsRemainUniqueAndCoverExpectedRegressionMetrics() throws IOException {
         Map<String, Set<String>> expectedSortOptions = Map.of(
                 "artists/list.html", Set.of(
@@ -173,6 +218,36 @@ class TemplateContractTest {
             assertThat(values).doesNotHaveDuplicates();
             assertThat(values).containsAll(entry.getValue());
         }
+    }
+
+    @Test
+    void songsAndAlbumsKeepFeaturedArtistPickerAndCatalogPlaySortsWired() throws IOException {
+        for (String path : List.of("albums/list.html", "songs/list.html")) {
+            Document doc = parse(path);
+            String html = read(path);
+
+            assertThat(doc.select("#featuredArtistChipSelect")).hasSize(1);
+            assertThat(html)
+                    .contains("inputName: 'featuredArtist'")
+                    .contains("selectedFeaturedArtistDetails")
+                    .contains("removeFilterGroup('featuredArtist')");
+        }
+
+        for (String path : List.of(
+                "countries/list.html", "ethnicities/list.html", "genders/list.html", "genres/list.html",
+                "languages/list.html", "subgenres/list.html", "years/list.html")) {
+            String html = read(path);
+            assertThat(html)
+                    .contains("<option value=\"primary_plays\"")
+                    .contains("<option value=\"legacy_plays\"");
+        }
+
+        String catalogTable = read("fragments/catalog-list-table.html");
+        assertThat(catalogTable)
+                .contains("data-sort-key=\"primary_plays\"")
+                .contains("data-sort-key=\"legacy_plays\"")
+                .contains("item.vatitoPlayCount")
+                .contains("item.robertloverPlayCount");
     }
 
     @Test

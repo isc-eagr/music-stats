@@ -55,7 +55,7 @@ public class AlbumService {
             implements ItunesService.AlbumPresenceLookup {
     }
     
-    public List<AlbumCardDTO> getAlbums(String name, List<Integer> artistName,
+    public List<AlbumCardDTO> getAlbums(String name, List<Integer> artistName, List<Integer> featuredArtistIds,
                                          List<Integer> genreIds, String genreMode,
                                          List<Integer> subgenreIds, String subgenreMode,
                                          List<Integer> languageIds, String languageMode,
@@ -97,7 +97,7 @@ public class AlbumService {
         String itunesSongIdsJson = itunesService.getAllItunesSongIdsJson();
         
         List<AlbumStatsRow> results = albumRepository.findAlbumsWithStats(new AlbumStatsQuery(
-                name, artistName, genreIds, genreMode, 
+                name, artistName, featuredArtistIds, genreIds, genreMode,
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
                 ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -221,7 +221,7 @@ public class AlbumService {
         }
     }
     
-    public long countAlbums(String name, List<Integer> artistName,
+    public long countAlbums(String name, List<Integer> artistName, List<Integer> featuredArtistIds,
                            List<Integer> genreIds, String genreMode,
                            List<Integer> subgenreIds, String subgenreMode,
                            List<Integer> languageIds, String languageMode,
@@ -255,7 +255,7 @@ public class AlbumService {
         if (accounts != null && accounts.isEmpty()) accounts = null;
         if (tagIds != null && tagIds.isEmpty()) tagIds = null;
         
-        return albumRepository.countAlbumsWithFilters(name, artistName, 
+        return albumRepository.countAlbumsWithFilters(name, artistName, featuredArtistIds,
                 genreIds, genreMode, subgenreIds, subgenreMode, languageIds, languageMode,
                 genderIds, genderMode, ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
@@ -282,7 +282,7 @@ public class AlbumService {
      * Returns a GenderCountDTO with male, female, and other counts.
      * Uses efficient SQL GROUP BY instead of loading all records.
      */
-    public GenderCountDTO countAlbumsByGender(String name, List<Integer> artistName,
+    public GenderCountDTO countAlbumsByGender(String name, List<Integer> artistName, List<Integer> featuredArtistIds,
                            List<Integer> genreIds, String genreMode,
                            List<Integer> subgenreIds, String subgenreMode,
                            List<Integer> languageIds, String languageMode,
@@ -318,7 +318,7 @@ public class AlbumService {
 
         // Use efficient SQL-based counting with GROUP BY
         Map<Integer, Long> genderCounts = albumRepository.countAlbumsByGenderWithFilters(
-                name, artistName, genreIds, genreMode,
+                name, artistName, featuredArtistIds, genreIds, genreMode,
                 subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
                 ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
                 releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,

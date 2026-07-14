@@ -9,12 +9,14 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/artists.css}">
+    <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/graphs-view.css}">
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/list-utils.js}"></script>
+    <script th:src="@{/js/play-breakdown-tooltip.js}"></script>
     <!-- Chart.js for Graphs view -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
@@ -32,6 +34,29 @@
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
                         <button type="button" class="view-btn" id="viewBtn-table" onclick="switchView('table')">Table</button>
                         <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
+                    </div>
+                    <div class="toggles-container artist-list-scope-toggles" aria-label="Included artist sources">
+                        <div class="include-groups-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" autocomplete="off" id="artistIncludeMainToggle"
+                                       th:checked="${includeMain}" onchange="toggleArtistScope('includeMain', this.checked)">
+                                <span class="toggle-slider"></span><span class="toggle-text"><span class="toggle-prefix">Include </span>Main</span>
+                            </label>
+                        </div>
+                        <div class="include-groups-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" autocomplete="off" id="artistIncludeGroupsToggle"
+                                       th:checked="${includeGroups}" onchange="toggleArtistScope('includeGroups', this.checked)">
+                                <span class="toggle-slider"></span><span class="toggle-text"><span class="toggle-prefix">Include </span>Groups</span>
+                            </label>
+                        </div>
+                        <div class="include-groups-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" autocomplete="off" id="artistIncludeFeaturedToggle"
+                                       th:checked="${includeFeatured}" onchange="toggleArtistScope('includeFeatured', this.checked)">
+                                <span class="toggle-slider"></span><span class="toggle-text"><span class="toggle-prefix">Include </span>Featured</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
@@ -135,6 +160,9 @@
                                 <input type="hidden" name="sortby3" th:if="${sortBy3 != null and !sortBy3.isEmpty()}" th:value="${sortBy3}">
                                 <input type="hidden" name="sortdir3" th:if="${sortBy3 != null and !sortBy3.isEmpty()}" th:value="${sortDir3Param}">
                                 <input type="hidden" name="perpage" th:value="${perPage}">
+                                <input type="hidden" name="includeMain" th:value="${includeMain}">
+                                <input type="hidden" name="includeGroups" th:value="${includeGroups}">
+                                <input type="hidden" name="includeFeatured" th:value="${includeFeatured}">
                                 
                                 <!-- Account Filter -->
                                 <div class="filter-item">
@@ -1236,11 +1264,11 @@
         <!-- Pagination controls (top) - center-aligned -->
         <div class="pagination" th:if="${totalPages > 1}">
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2Param}, sortby3=${sortBy3}, sortdir3=${sortDir3Param}, page=0, perpage=${perPage})}"
+               href="#" onclick="event.preventDefault();goToPage(0)"
                class="page-btn">«</a>
             
             <a th:if="${currentPage > 0}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2Param}, sortby3=${sortBy3}, sortdir3=${sortDir3Param}, page=${currentPage - 1}, perpage=${perPage})}"
+               href="#" th:onclick="|event.preventDefault();goToPage(${currentPage - 1})|"
                class="page-btn">‹</a>
             
             <span class="page-info">
@@ -1250,11 +1278,11 @@
             </span>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2Param}, sortby3=${sortBy3}, sortdir3=${sortDir3Param}, page=${currentPage + 1}, perpage=${perPage})}"
+               href="#" th:onclick="|event.preventDefault();goToPage(${currentPage + 1})|"
                class="page-btn">›</a>
             
             <a th:if="${currentPage < totalPages - 1}" 
-               th:href="@{/artists(q=${searchQuery}, gender=${selectedGenders}, genderMode=${genderMode}, ethnicity=${selectedEthnicities}, ethnicityMode=${ethnicityMode}, genre=${selectedGenres}, genreMode=${genreMode}, tag=${selectedTags}, tagMode=${tagMode}, subgenre=${selectedSubgenres}, subgenreMode=${subgenreMode}, language=${selectedLanguages}, languageMode=${languageMode}, country=${selectedCountries}, countryMode=${countryMode}, account=${selectedAccounts}, accountMode=${accountMode}, firstListenedDate=${firstListenedDate}, firstListenedDateFrom=${firstListenedDateFrom}, firstListenedDateTo=${firstListenedDateTo}, firstListenedDateMode=${firstListenedDateMode}, lastListenedDate=${lastListenedDate}, lastListenedDateFrom=${lastListenedDateFrom}, lastListenedDateTo=${lastListenedDateTo}, lastListenedDateMode=${lastListenedDateMode}, listenedDateFrom=${listenedDateFrom}, listenedDateTo=${listenedDateTo}, organized=${selectedOrganized}, imageCountMin=${imageCountMin}, imageCountMax=${imageCountMax}, imageTheme=${selectedImageTheme}, imageThemeMode=${imageThemeMode}, isBand=${selectedIsBand}, inItunes=${selectedInItunes}, playCountMin=${playCountMin}, playCountMax=${playCountMax}, albumCountMin=${albumCountMin}, albumCountMax=${albumCountMax}, songCountMin=${songCountMin}, songCountMax=${songCountMax}, itunesPresenceMin=${itunesPresenceMin}, itunesPresenceMax=${itunesPresenceMax}, sortby=${sortBy}, sortdir=${sortDir}, sortby2=${sortBy2}, sortdir2=${sortDir2Param}, sortby3=${sortBy3}, sortdir3=${sortDir3Param}, page=${totalPages - 1}, perpage=${perPage})}"
+               href="#" th:onclick="|event.preventDefault();goToPage(${totalPages - 1})|"
                class="page-btn">»</a>
         </div>
         
@@ -1298,7 +1326,7 @@
                 
                 <div class="artist-info">
                     <div class="card-index" th:text="${startIndex + iterStat.index}"></div>
-                    <a th:href="@{'/artists/' + ${artist.id}}">
+                    <a th:href="@{/artists/{id}(id=${artist.id},includeMain=${includeMain ? null : 'false'},includeGroups=${includeGroups ? 'true' : null},includeFeatured=${includeFeatured ? 'true' : null})}">
                         <h3 class="artist-name">
                             <span th:if="${artist.inItunes != null}" 
                                   th:classappend="${artist.inItunes ? 'in-itunes' : 'not-in-itunes'}"
@@ -1365,15 +1393,30 @@
                     <div class="artist-stats artist-stats-plays">
                         <div class="stat" title="Total plays">
                             <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:text="${artist.playCount}">0</span>
+                            <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Total plays by source:' : null}">
+                                <span th:text="${artist.playCount}">0</span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainPlayCount}"></span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupPlayCount}"></span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredPlayCount}"></span>
+                            </span>
                         </div>
                         <div class="stat" title="Primary plays">
                             <span class="stat-icon primary-plays">⏵</span>
-                            <span class="stat-value" th:text="${artist.vatitoPlayCount}">0</span>
+                            <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Primary plays by source:' : null}">
+                                <span th:text="${artist.vatitoPlayCount}">0</span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainVatitoPlayCount}"></span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupVatitoPlayCount}"></span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredVatitoPlayCount}"></span>
+                            </span>
                         </div>
                         <div class="stat" title="Legacy plays">
                             <span class="stat-icon legacy-plays">⏵</span>
-                            <span class="stat-value" th:text="${artist.robertloverPlayCount}">0</span>
+                            <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Legacy plays by source:' : null}">
+                                <span th:text="${artist.robertloverPlayCount}">0</span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainRobertloverPlayCount}"></span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupRobertloverPlayCount}"></span>
+                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredRobertloverPlayCount}"></span>
+                            </span>
                         </div>
                     </div>
                     <div class="artist-stats artist-stats-row2">
@@ -1929,6 +1972,17 @@
         
         function applyFilters() {
             submitFilterForm('filterForm');
+        }
+
+        function toggleArtistScope(paramName, enabled) {
+            const url = new URL(window.location.href);
+            if (paramName === 'includeMain') {
+                enabled ? url.searchParams.delete(paramName) : url.searchParams.set(paramName, 'false');
+            } else {
+                enabled ? url.searchParams.set(paramName, 'true') : url.searchParams.delete(paramName);
+            }
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
         }
         
         function changeSortBy(level, sortValue) {
@@ -2494,6 +2548,9 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
         var activeThemeIsSet = /*[[${activeTheme != null}]]*/ false;
+        window.artistScopeIncludeMain = /*[[${includeMain}]]*/ true;
+        window.artistScopeIncludeGroups = /*[[${includeGroups}]]*/ false;
+        window.artistScopeIncludeFeatured = /*[[${includeFeatured}]]*/ false;
         /*]]>*/
     </script>
 
@@ -2749,6 +2806,9 @@
                     const newCards = doc.querySelectorAll('#artistGrid .artist-card');
                     addedCount = newCards.length;
                     newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
+                    if (typeof window.initializePlayBreakdownTooltips === 'function') {
+                        window.initializePlayBreakdownTooltips(grid);
+                    }
                     updateCounterText(addedCount);
                     updateLoadAllButton();
                 } catch (e) {
