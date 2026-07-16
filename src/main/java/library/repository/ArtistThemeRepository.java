@@ -17,6 +17,8 @@ public interface ArtistThemeRepository extends JpaRepository<ArtistTheme, Intege
 
     Optional<ArtistTheme> findByIsActiveTrue();
 
+    Optional<ArtistTheme> findFirstByNameIgnoreCase(String name);
+
     @Modifying
     @Transactional
     @Query("UPDATE ArtistTheme t SET t.isActive = false WHERE t.isActive = true")

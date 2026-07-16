@@ -43,6 +43,17 @@ public class ThemeService {
         return themeRepository.findByIsActiveTrue();
     }
 
+    /**
+     * Assigns an artist's main image to the built-in Default theme when it exists.
+     * This keeps artists created after the theme initialization migration visible
+     * while that theme is active.
+     */
+    @Transactional
+    public void assignDefaultImageToDefaultTheme(Integer artistId) {
+        themeRepository.findFirstByNameIgnoreCase("Default")
+                .ifPresent(defaultTheme -> assignImageToTheme(defaultTheme.getId(), artistId, null));
+    }
+
     @Transactional
     public ArtistTheme createTheme(String name) {
         ArtistTheme theme = new ArtistTheme();

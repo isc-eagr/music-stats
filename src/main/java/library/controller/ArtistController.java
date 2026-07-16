@@ -1061,6 +1061,9 @@ public class ArtistController {
             }
             
             artistService.updateArtistImage(id, file.getBytes());
+            if (artistService.getSecondaryImageCount(id) == 0) {
+                themeService.assignDefaultImageToDefaultTheme(id);
+            }
             return "success";
         } catch (Exception e) {
             e.printStackTrace();

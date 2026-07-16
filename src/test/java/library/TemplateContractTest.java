@@ -168,6 +168,19 @@ class TemplateContractTest {
     }
 
     @Test
+    void detailAchievementChipsOpenFilteredCatalogTablesInsteadOfGraphs() throws IOException {
+        for (String path : List.of("artists/detail.html", "albums/detail.html", "songs/detail.html")) {
+            String html = read(path);
+            assertThat(html)
+                    .describedAs(path + " achievement chips should not open the graphs layout")
+                    .doesNotContain("view='graphs'");
+        }
+
+        assertThat(read("artists/detail.html")).contains("view='table'");
+        assertThat(read("albums/detail.html")).contains("view='table'");
+    }
+
+    @Test
     void chartsNavigationUsesQuietSectionDividersInsteadOfLabels() throws IOException {
         Document navigation = parse("fragments/navigation.html");
         assertThat(navigation.select(".app-nav-dropdown-section-divider")).hasSize(6);
