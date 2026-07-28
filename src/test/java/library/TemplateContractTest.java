@@ -22,6 +22,47 @@ class TemplateContractTest {
     private static final Path TEMPLATES = Path.of("src/main/resources/templates");
 
     @Test
+    void chartLibraryLinksReplaceOnlyTheAffectedOverviewRow() throws IOException {
+        String pcHtml = read("misc/pc.html");
+        String pcMatchFlow = functionBody(pcHtml, "function linkPcMatch", "function escapePcHtml");
+        assertThat(pcMatchFlow)
+                .contains("replacePcMatchedRow(targetRow, data.row)")
+                .doesNotContain("reloadWithSearch()")
+                .doesNotContain("location.reload");
+        assertThat(pcHtml).contains("function replacePcMatchedRow(targetRow, entry)");
+        String pcMergeFlow = functionBody(pcHtml, "function mergePcEntries", "function runPcAutoLink");
+        assertThat(pcMergeFlow)
+                .contains("replacePcMergedRows(sourceRow, mergedTargets, latestRow)")
+                .doesNotContain("reloadWithSearch()")
+                .doesNotContain("location.reload");
+        assertThat(pcHtml).contains("function replacePcMergedRows(sourceRow, targetRows, entry)");
+
+        String trlHtml = read("misc/trl.html");
+        String trlMatchFlow = functionBody(trlHtml, "function selectSong", "function escapeHtml");
+        assertThat(trlMatchFlow)
+                .contains("replaceTrlMatchedRow(targetRow, data.row)")
+                .doesNotContain("refreshTrlOverviewInPlace()")
+                .doesNotContain("location.reload");
+        assertThat(trlHtml).contains("function replaceTrlMatchedRow(targetRow, entry)");
+    }
+
+    @Test
+    void pcLibraryModalDoesNotCloseAfterTextSelectionDragLeavesDialog() throws IOException {
+        String pcHtml = read("misc/pc.html");
+        String dismissalFlow = functionBody(
+                pcHtml,
+                "function setupPcMatchModalBackdropDismissal",
+                "function reloadWithSearch"
+        );
+
+        assertThat(dismissalFlow)
+                .contains("modal.addEventListener('mousedown'")
+                .contains("mouseDownTarget = event.target")
+                .contains("mouseDownTarget === modal && event.target === modal")
+                .contains("closePcMatchModal()");
+    }
+
+    @Test
     void catalogListPagesKeepCoreLayoutAnchorsInPlace() throws IOException {
         for (CatalogPage page : catalogPages()) {
             Document doc = parse(page.path());
@@ -344,6 +385,14 @@ class TemplateContractTest {
 
     private static String read(String relativePath) throws IOException {
         return Files.readString(TEMPLATES.resolve(relativePath), StandardCharsets.UTF_8);
+    }
+
+    private static String functionBody(String source, String startMarker, String endMarker) {
+        int start = source.indexOf(startMarker);
+        int end = source.indexOf(endMarker, start);
+        assertThat(start).describedAs("start marker " + startMarker).isNotNegative();
+        assertThat(end).describedAs("end marker " + endMarker).isGreaterThan(start);
+        return source.substring(start, end);
     }
 
     private record CatalogPage(String path, String entityType, String tableSelector, String cardSelector) {

@@ -602,15 +602,21 @@ public class PcService {
             canonArtist, canonSong, songId, rawArtist, rawSong
         );
 
-        return Map.of(
-            "ok", true,
-            "updatedEntries", updatedEntries,
-            "canonArtist", canonArtist,
-            "canonSong", canonSong
-        );
+        PcOverviewRowDTO updatedRow = getOverviewRows().stream()
+            .filter(row -> songId.equals(row.getSongId()))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Linked Vato's Cuntdown row was not found"));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("ok", true);
+        result.put("updatedEntries", updatedEntries);
+        result.put("canonArtist", canonArtist);
+        result.put("canonSong", canonSong);
+        result.put("row", updatedRow);
+        return result;
     }
 
-    public int mergeEntries(String sourceArtist, String sourceSong, String targetArtist, String targetSong) {
+    public Map<String, Object> mergeEntries(String sourceArtist, String sourceSong, String targetArtist, String targetSong) {
         Integer sourceSongId = jdbcTemplate.query(
             "SELECT song_id FROM vatos_cuntdown_entry " +
             "WHERE artist_name = ? AND song_title = ? AND song_id IS NOT NULL LIMIT 1",
@@ -640,7 +646,28 @@ public class PcService {
                 sourceArtist, sourceSong, sourceArtist, sourceSong
             );
         }
-        return updated;
+
+        Integer mergedSongId = sourceSongId != null ? sourceSongId : jdbcTemplate.query(
+            "SELECT song_id FROM vatos_cuntdown_entry " +
+            "WHERE artist_name = ? AND song_title = ? AND song_id IS NOT NULL LIMIT 1",
+            rs -> rs.next() ? rs.getInt("song_id") : null,
+            sourceArtist,
+            sourceSong
+        );
+        PcOverviewRowDTO updatedRow = getOverviewRows().stream()
+            .filter(row -> mergedSongId != null
+                ? mergedSongId.equals(row.getSongId())
+                : row.getSongId() == null
+                    && sourceArtist.equalsIgnoreCase(row.getArtistName())
+                    && sourceSong.equalsIgnoreCase(row.getSongTitle()))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Merged Vato's Cuntdown row was not found"));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("ok", true);
+        result.put("updated", updated);
+        result.put("row", updatedRow);
+        return result;
     }
 
     public int normalizeCaseDifferences() {

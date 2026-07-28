@@ -119,8 +119,7 @@ public class PcController {
             @RequestParam String sourceSong,
             @RequestParam String targetArtist,
             @RequestParam String targetSong) {
-        int updated = pcService.mergeEntries(sourceArtist, sourceSong, targetArtist, targetSong);
-        return ResponseEntity.ok(Map.of("ok", true, "updated", updated));
+        return ResponseEntity.ok(pcService.mergeEntries(sourceArtist, sourceSong, targetArtist, targetSong));
     }
 
     /** Search songs by title/artist for the match modal. */

@@ -139,6 +139,7 @@
         .pc-sort-link:hover { color: #e8e8e8; }
         .pc-table tbody tr { border-bottom: 1px solid #1f1f1f; transition: background 0.12s; }
         .pc-table tbody tr:hover { background: #1c1c1c; }
+        .pc-table tbody tr.pc-row-refreshing { opacity: 0.4; pointer-events: none; }
         .pc-table tbody tr.gender-male { background: rgba(74, 144, 226, 0.06); border-left: 3px solid rgba(74, 144, 226, 0.5); }
         .pc-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
         .pc-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
@@ -685,6 +686,7 @@
         let pcTargetRows = [];
         let pcOpenSourceRow = null;
         let pcRowIndexCounter = 0;
+        let pcMergeInProgress = false;
 
         function showPageBusyOverlay(title, subtitle) {
             const titleEl = document.getElementById('pcOverlayTitle');
@@ -863,7 +865,7 @@
         }
 
         function togglePcRow(row) {
-            if (!row || !row.dataset.rawArtist) return;
+            if (pcMergeInProgress || !row || !row.dataset.rawArtist) return;
 
             if (row === pcSourceRow) {
                 row.classList.remove('pc-source-row');
@@ -901,6 +903,7 @@
         }
 
         function clearPcSelection() {
+            if (pcMergeInProgress) return;
             if (pcSourceRow) {
                 pcSourceRow.classList.remove('pc-source-row');
                 pcSourceRow.cells[9].innerHTML = '';
@@ -937,8 +940,9 @@
         function mergePcEntries() {
             if (!pcSourceRow || pcTargetRows.length === 0) return;
 
-            const sourceArtist = pcSourceRow.dataset.rawArtist || '';
-            const sourceSong = pcSourceRow.dataset.rawSong || '';
+            const sourceRow = pcSourceRow;
+            const sourceArtist = sourceRow.dataset.rawArtist || '';
+            const sourceSong = sourceRow.dataset.rawSong || '';
             const targets = pcTargetRows.slice();
             const targetList = targets.map(row => '  ' + row.dataset.rawArtist + ' - ' + row.dataset.rawSong).join('\n');
             const message = 'Merge ' + targets.length + ' target(s) into Source:\n\n'
@@ -948,12 +952,16 @@
 
             if (!confirm(message)) return;
 
+            pcMergeInProgress = true;
             const mergeBtn = document.getElementById('pcMergeBtn');
             mergeBtn.style.pointerEvents = 'none';
             mergeBtn.textContent = 'Merging...';
-            showPageBusyOverlay('Refreshing Vato\'s Cuntdown overview', 'Merging selected entries...');
+            const affectedRows = [sourceRow].concat(targets);
+            affectedRows.forEach(row => row.classList.add('pc-row-refreshing'));
 
             let chain = Promise.resolve();
+            let latestRow = null;
+            const mergedTargets = [];
             targets.forEach(targetRow => {
                 chain = chain.then(() => {
                     const params = new URLSearchParams();
@@ -965,16 +973,37 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: params.toString()
-                    }).then(r => r.json());
+                    })
+                        .then(r => {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.json();
+                        })
+                        .then(data => {
+                            if (!data.ok || !data.row || data.updated < 1) {
+                                throw new Error('Merged row was not returned');
+                            }
+                            latestRow = data.row;
+                            mergedTargets.push(targetRow);
+                        });
                 });
             });
 
-            chain.then(() => reloadWithSearch())
+            chain.then(() => {
+                    replacePcMergedRows(sourceRow, mergedTargets, latestRow);
+                })
                 .catch(() => {
-                    hidePageBusyOverlay();
-                    mergeBtn.style.pointerEvents = '';
-                    updatePcSelectionUi();
+                    if (latestRow && mergedTargets.length > 0) {
+                        replacePcMergedRows(sourceRow, mergedTargets, latestRow);
+                    }
                     alert('Merge failed.');
+                })
+                .finally(() => {
+                    affectedRows.forEach(row => {
+                        if (row.isConnected) row.classList.remove('pc-row-refreshing');
+                    });
+                    mergeBtn.style.pointerEvents = '';
+                    pcMergeInProgress = false;
+                    updatePcSelectionUi();
                 });
         }
 
@@ -1069,7 +1098,7 @@
             if (!pcModalRow) return;
             const targetRow = pcModalRow;
             closePcMatchModal();
-            showPageBusyOverlay('Refreshing Vato\'s Cuntdown overview', 'Saving the song match...');
+            targetRow.classList.add('pc-row-refreshing');
             const params = new URLSearchParams();
             params.set('rawArtist', targetRow.dataset.rawArtist || '');
             params.set('rawSong', targetRow.dataset.rawSong || '');
@@ -1079,11 +1108,19 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: params.toString()
             })
-                .then(r => r.json())
-                .then(() => reloadWithSearch())
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(data => {
+                    if (!data.ok || !data.row) throw new Error('Updated row was not returned');
+                    replacePcMatchedRow(targetRow, data.row);
+                })
                 .catch(() => {
-                    hidePageBusyOverlay();
                     alert('Match failed.');
+                })
+                .finally(() => {
+                    if (targetRow.isConnected) targetRow.classList.remove('pc-row-refreshing');
                 });
         }
 
@@ -1279,6 +1316,85 @@
             }).join('');
         }
 
+        function removePcSongRowPair(row) {
+            if (!row) return;
+            const detailRow = row.nextElementSibling;
+            if (detailRow && detailRow.classList.contains('pc-detail-row')) {
+                detailRow.remove();
+            }
+            row.remove();
+        }
+
+        function replacePcMatchedRow(targetRow, entry) {
+            const tbody = document.getElementById('pcTableBody');
+            if (!tbody || !targetRow || !targetRow.isConnected) {
+                throw new Error('Vato\'s Cuntdown row is no longer available');
+            }
+
+            const oldDetailRow = targetRow.nextElementSibling;
+            const wasExpanded = !!(oldDetailRow && oldDetailRow.classList.contains('visible'));
+            const templateBody = document.createElement('tbody');
+            templateBody.innerHTML = renderPcSongRows([entry]);
+            const replacementRow = templateBody.firstElementChild;
+            const replacementDetailRow = replacementRow ? replacementRow.nextElementSibling : null;
+            if (!replacementRow || !replacementDetailRow) {
+                throw new Error('Updated Vato\'s Cuntdown row could not be rendered');
+            }
+
+            tbody.querySelectorAll('tr[data-song-id]').forEach(row => {
+                if (row !== targetRow && row.dataset.songId === String(entry.songId)) {
+                    removePcSongRowPair(row);
+                }
+            });
+
+            targetRow.replaceWith(replacementRow);
+            if (oldDetailRow && oldDetailRow.classList.contains('pc-detail-row')) {
+                oldDetailRow.replaceWith(replacementDetailRow);
+            } else {
+                replacementRow.insertAdjacentElement('afterend', replacementDetailRow);
+            }
+
+            filterPcTable();
+            if (wasExpanded) {
+                const expandButton = replacementRow.querySelector('.pc-expand-btn');
+                if (expandButton) togglePcExpand(expandButton);
+            }
+        }
+
+        function replacePcMergedRows(sourceRow, targetRows, entry) {
+            const tbody = document.getElementById('pcTableBody');
+            if (!tbody || !sourceRow || !sourceRow.isConnected || !entry) {
+                throw new Error('Merged Vato\'s Cuntdown row is no longer available');
+            }
+
+            const oldDetailRow = sourceRow.nextElementSibling;
+            const wasExpanded = !!(oldDetailRow && oldDetailRow.classList.contains('visible'));
+            const templateBody = document.createElement('tbody');
+            templateBody.innerHTML = renderPcSongRows([entry]);
+            const replacementRow = templateBody.firstElementChild;
+            const replacementDetailRow = replacementRow ? replacementRow.nextElementSibling : null;
+            if (!replacementRow || !replacementDetailRow) {
+                throw new Error('Merged Vato\'s Cuntdown row could not be rendered');
+            }
+
+            targetRows.forEach(removePcSongRowPair);
+            sourceRow.replaceWith(replacementRow);
+            if (oldDetailRow && oldDetailRow.classList.contains('pc-detail-row')) {
+                oldDetailRow.replaceWith(replacementDetailRow);
+            } else {
+                replacementRow.insertAdjacentElement('afterend', replacementDetailRow);
+            }
+
+            pcSourceRow = null;
+            pcTargetRows = [];
+            updatePcSelectionUi();
+            filterPcTable();
+            if (wasExpanded) {
+                const expandButton = replacementRow.querySelector('.pc-expand-btn');
+                if (expandButton) togglePcExpand(expandButton);
+            }
+        }
+
         function renderPcAlbumRows(entries) {
             return entries.map(entry => {
                 const genderClass = entry.genderClass ? ' class="' + escapePcHtml(entry.genderClass) + '"' : '';
@@ -1466,11 +1582,21 @@
             updateLoadAllButton();
         }
 
-        document.getElementById('pcMatchModal').addEventListener('click', function (event) {
-            if (event.target === this) {
-                closePcMatchModal();
-            }
-        });
+        // Only dismiss when both press and release happen on the backdrop.
+        // This keeps text-selection drags from closing the modal when the cursor leaves its bounds.
+        (function setupPcMatchModalBackdropDismissal() {
+            const modal = document.getElementById('pcMatchModal');
+            let mouseDownTarget = null;
+            modal.addEventListener('mousedown', function(event) {
+                mouseDownTarget = event.target;
+            });
+            modal.addEventListener('click', function(event) {
+                if (mouseDownTarget === modal && event.target === modal) {
+                    closePcMatchModal();
+                }
+                mouseDownTarget = null;
+            });
+        })();
 
         function reloadWithSearch() {
             persistPcSearch();

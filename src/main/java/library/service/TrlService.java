@@ -361,7 +361,17 @@ public class TrlService {
             "UPDATE trl_debut SET song_id = ?, artist_name = ?, song_title = ? WHERE id = ?",
             songId, canonArtist, canonSong, trlId);
 
-        return Map.of("ok", true, "canonArtist", canonArtist, "canonSong", canonSong);
+        TrlDebut updatedRow = getAllDebuts().stream()
+            .filter(debut -> trlId.equals(debut.getId()))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Linked TRL row was not found"));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("ok", true);
+        result.put("canonArtist", canonArtist);
+        result.put("canonSong", canonSong);
+        result.put("row", updatedRow);
+        return result;
     }
 
     /** Retroactively normalize all already-linked trl_debut rows and their chart entries. */

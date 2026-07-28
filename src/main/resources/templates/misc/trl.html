@@ -195,6 +195,7 @@
             transition: background 0.12s;
         }
         .trl-table tbody tr:hover { background: #1c1c1c; }
+        .trl-table tbody tr.trl-row-refreshing { opacity: 0.4; pointer-events: none; }
         #trlTableBody { transition: opacity 0.18s ease; }
         #trlTableBody.trl-refreshing { opacity: 0.35; }
         #trlTableBody tr.trl-row-fade-out { opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; }
@@ -1271,6 +1272,36 @@
             }).join('');
         }
 
+        function replaceTrlMatchedRow(targetRow, entry) {
+            var tbody = document.getElementById('trlTableBody');
+            if (!tbody || !targetRow || !targetRow.isConnected) {
+                throw new Error('TRL row is no longer available');
+            }
+
+            var oldDetailRow = targetRow.nextElementSibling;
+            var wasExpanded = !!(oldDetailRow && oldDetailRow.classList.contains('visible'));
+            var templateBody = document.createElement('tbody');
+            templateBody.innerHTML = renderTrlSongRows([entry]);
+            var replacementRow = templateBody.firstElementChild;
+            var replacementDetailRow = replacementRow ? replacementRow.nextElementSibling : null;
+            if (!replacementRow || !replacementDetailRow) {
+                throw new Error('Updated TRL row could not be rendered');
+            }
+
+            targetRow.replaceWith(replacementRow);
+            if (oldDetailRow && oldDetailRow.classList.contains('trl-detail-row')) {
+                oldDetailRow.replaceWith(replacementDetailRow);
+            } else {
+                replacementRow.insertAdjacentElement('afterend', replacementDetailRow);
+            }
+
+            applyTrlRetiredFilterIfActive();
+            if (wasExpanded) {
+                var expandButton = replacementRow.querySelector('.trl-expand-btn');
+                if (expandButton) toggleTrlExpand(expandButton);
+            }
+        }
+
         function renderTrlAlbumRows(entries) {
             return entries.map(function(entry) {
                 var genderClass = entry.genderClass ? ' class="' + escapeTrlHtml(entry.genderClass) + '"' : '';
@@ -1755,18 +1786,24 @@
 
         function selectSong(songId) {
             if (!_modalTrlId) return;
-            showPageBusyOverlay('Refreshing TRL overview', 'Saving the song match...');
-            fetch('/misc/trl/' + _modalTrlId + '/match?songId=' + songId, { method: 'POST' })
-                .then(function(r) { return r.json(); })
+            var targetRow = _modalRow;
+            var trlId = _modalTrlId;
+            targetRow.classList.add('trl-row-refreshing');
+            fetch('/misc/trl/' + trlId + '/match?songId=' + songId, { method: 'POST' })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
                 .then(function(data) {
-                    if (data.ok) {
-                        closeMatchModal();
-                        refreshTrlOverviewInPlace();
-                    }
+                    if (!data.ok || !data.row) throw new Error('Updated row was not returned');
+                    replaceTrlMatchedRow(targetRow, data.row);
+                    closeMatchModal();
                 })
                 .catch(function() {
-                    hidePageBusyOverlay();
                     alert('Failed to save match. Please try again.');
+                })
+                .finally(function() {
+                    if (targetRow.isConnected) targetRow.classList.remove('trl-row-refreshing');
                 });
         }
 
