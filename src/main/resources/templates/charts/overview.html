@@ -777,7 +777,7 @@
             <div class="overview-toolbar-controls">
                 <div class="overview-toolbar-actions">
                     <button type="button" id="overviewResetFilters" class="overview-control-btn">Reset</button>
-                    <button type="button" class="overview-control-btn" th:if="${overviewTab == 'song'}" onclick="openOverviewSongsPlaylistGenerator()">Generate Playlist</button>
+                    <button type="button" class="overview-control-btn desktop-only" th:if="${overviewTab == 'song'}" onclick="openOverviewSongsPlaylistGenerator()">Generate Playlist</button>
                     <button type="button" id="weeklyOverviewLoadAllButton" class="overview-control-btn" hidden th:if="${serverInfiniteScrollEnabled and activeTotalCount > pageSize}" onclick="window.loadAllOverviewResults && window.loadAllOverviewResults()">Load all</button>
                     <a th:if="${overviewTab == 'artist'}"
                        class="overview-control-btn"

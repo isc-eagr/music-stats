@@ -7,6 +7,7 @@ import library.service.AppConfigService;
 import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import library.util.SqlFilterHelper;
+import library.util.ArtistFilterMode;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -347,12 +348,7 @@ public class SongRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist filter
-        if (artistName != null && !artistName.isEmpty()) {
-            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
-            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
-            params.addAll(artistName);
-        }
+        ArtistFilterMode.appendSqlFilter(sql, params, "ar.id", artistName);
 
         appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
@@ -1013,12 +1009,7 @@ public class SongRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist filter
-        if (artistName != null && !artistName.isEmpty()) {
-            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
-            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
-            params.addAll(artistName);
-        }
+        ArtistFilterMode.appendSqlFilter(sql, params, "ar.id", artistName);
 
         appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
@@ -1617,12 +1608,7 @@ public class SongRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist filter
-        if (artistName != null && !artistName.isEmpty()) {
-            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
-            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
-            params.addAll(artistName);
-        }
+        ArtistFilterMode.appendSqlFilter(sql, params, "ar.id", artistName);
 
         appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
@@ -1941,13 +1927,7 @@ public class SongRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist ID filter - supports multiple IDs (OR logic with exact matching)
-        // Use s.artist_id for indexed lookup
-        if (artistIds != null && !artistIds.isEmpty()) {
-            String placeholders = String.join(",", artistIds.stream().map(id -> "?").toList());
-            sql.append(" AND s.artist_id IN (").append(placeholders).append(")");
-            params.addAll(artistIds);
-        }
+        ArtistFilterMode.appendSqlFilter(sql, params, "s.artist_id", artistIds);
         
         // Album ID filter - supports multiple IDs (OR logic with exact matching)
         // Use s.album_id for indexed lookup
@@ -2154,7 +2134,9 @@ public class SongRepository {
         boolean includeGroups = filter.isIncludeGroups();
         boolean includeFeatured = filter.isIncludeFeatured();
         
-        if (artistIds != null && !artistIds.isEmpty() && !includeGroups && !includeFeatured) {
+        boolean excludesArtists = artistIds != null && !artistIds.isEmpty()
+                && artistIds.stream().allMatch(id -> id != null && id < 0);
+        if (artistIds != null && !artistIds.isEmpty() && !excludesArtists && !includeGroups && !includeFeatured) {
             // Simple filter - only main artist songs (no expansion needed)
             String placeholders = String.join(",", artistIds.stream().map(id -> "?").toList());
             sql.append(" AND p.song_id IN (SELECT id FROM Song WHERE artist_id IN (").append(placeholders).append("))");
@@ -2189,10 +2171,12 @@ public class SongRepository {
         boolean includeFeatured = filter.isIncludeFeatured();
         java.util.List<Integer> artistIds = filter.getArtistIds();
         boolean hasArtistFilter = artistIds != null && !artistIds.isEmpty();
+        boolean excludesArtists = hasArtistFilter
+                && artistIds.stream().allMatch(id -> id != null && id < 0);
         
         // When includeGroups or includeFeatured is set AND we have artist filter,
         // we handle artist filter specially below, so pass null to basic method
-        java.util.List<Integer> artistIdsForBasicFilter = (hasArtistFilter && (includeGroups || includeFeatured)) 
+        java.util.List<Integer> artistIdsForBasicFilter = (hasArtistFilter && !excludesArtists && (includeGroups || includeFeatured))
             ? null : artistIds;
         
         // Delegate basic filters to existing method
@@ -2211,7 +2195,7 @@ public class SongRepository {
         appendCatalogSearchFilter(sql, params, filter.getName(), catalogType);
         
         // Handle artist filter with includeGroups/includeFeatured expansion
-        if (hasArtistFilter && (includeGroups || includeFeatured)) {
+        if (hasArtistFilter && !excludesArtists && (includeGroups || includeFeatured)) {
             String placeholders = String.join(",", artistIds.stream().map(id -> "?").toList());
             StringBuilder artistCondition = new StringBuilder();
             

@@ -5,6 +5,7 @@ import library.dto.AlbumStatsRow;
 import library.service.AppConfigService;
 import library.util.RandomSortUtils;
 import library.util.SqlFilterHelper;
+import library.util.ArtistFilterMode;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -347,12 +348,7 @@ public class AlbumRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist filter
-        if (artistName != null && !artistName.isEmpty()) {
-            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
-            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
-            params.addAll(artistName);
-        }
+        ArtistFilterMode.appendSqlFilter(sql, params, "ar.id", artistName);
 
         appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
@@ -1142,12 +1138,7 @@ public class AlbumRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist filter
-        if (artistName != null && !artistName.isEmpty()) {
-            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
-            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
-            params.addAll(artistName);
-        }
+        ArtistFilterMode.appendSqlFilter(sql, params, "ar.id", artistName);
 
         appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         
@@ -1812,12 +1803,7 @@ public class AlbumRepository {
             params.add("%" + library.util.StringNormalizer.normalizeForSearch(name) + "%");
         }
         
-        // Artist filter
-        if (artistName != null && !artistName.isEmpty()) {
-            String artistPlaceholders = String.join(",", artistName.stream().map(id -> "?").toList());
-            sql.append(" AND ar.id IN (").append(artistPlaceholders).append(")");
-            params.addAll(artistName);
-        }
+        ArtistFilterMode.appendSqlFilter(sql, params, "ar.id", artistName);
 
         appendFeaturedArtistFilter(sql, params, featuredArtistIds);
         

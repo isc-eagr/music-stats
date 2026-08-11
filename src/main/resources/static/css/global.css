@@ -4729,6 +4729,10 @@ body.gender-other .mobile-row-expand-btn.expanded,
 
 /* Small screens - tablets and phones */
 @media (max-width: 900px) {
+    .desktop-only {
+        display: none !important;
+    }
+
     /* Show hamburger, hide desktop nav */
     .mobile-menu-toggle {
         display: block;

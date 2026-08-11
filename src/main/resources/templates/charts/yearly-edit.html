@@ -859,7 +859,7 @@
                         <span th:text="${songEntries.size()} + '/' + ${maxSongs}">0/30</span>
                     </span>
                     <button th:if="${songChartFinalized}" type="button" class="genre-breakdown-btn" onclick="showGenreBreakdown('#songListFinalized', null, 'Songs Genre Breakdown')">Genre Breakdown</button>
-                    <button th:if="${songChartFinalized}" type="button" class="chart-playlist-btn" onclick="openYearlySongsPlaylistGenerator()">🎵 Playlist</button>
+                    <button th:if="${songChartFinalized}" type="button" class="chart-playlist-btn desktop-only" onclick="openYearlySongsPlaylistGenerator()">🎵 Playlist</button>
                 </div>
                 
                 <div class="search-container" th:unless="${songChartFinalized}">

@@ -35,7 +35,7 @@
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
-                    <button type="button" class="btn-playlist toolbar-btn toolbar-btn-soft" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
+                    <button type="button" class="btn-playlist toolbar-btn toolbar-btn-soft desktop-only" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
                     <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Song</button>
                 </div>
@@ -275,6 +275,13 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" data-filter="artist" data-mode="includes"
+                                                    th:classappend="${artistMode == 'includes'} ? 'active' : ''">includes</button>
+                                            <button type="button" class="filter-modifier" data-filter="artist" data-mode="excludes"
+                                                    th:classappend="${artistMode == 'excludes'} ? 'active' : ''">excludes</button>
+                                        </div>
+                                        <input type="hidden" name="artistMode" id="artistMode" th:value="${artistMode}" />
                                         <div id="artistChipSelect"></div>
                                     </div>
                                 </div>
@@ -1267,7 +1274,7 @@
             </div>
             
             <div class="filter-chip" th:if="${selectedArtist != null and !selectedArtist.isEmpty()}">
-                <span class="filter-chip-label">Artist includes</span>
+                <span class="filter-chip-label" th:text="${artistMode == 'excludes' ? 'Artist excludes' : 'Artist includes'}">Artist includes</span>
                 <span class="filter-chip-value">
                     <th:block th:each="a, iterStat : ${selectedArtistDetails}">
                         <span th:text="${a['name']}"></span><span th:if="${!iterStat.last}">, </span>

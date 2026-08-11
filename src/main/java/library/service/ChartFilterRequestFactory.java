@@ -2,6 +2,7 @@ package library.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import library.dto.ChartFilterDTO;
+import library.util.ArtistFilterMode;
 import library.util.DateFormatUtils;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +17,8 @@ public class ChartFilterRequestFactory {
         return ChartFilterDTO.builder()
             .setName(request.getParameter("q"))
             .setCatalogType(normalizedCatalogType)
-            .setArtistIds(parseIntegerList(request, "artist"))
+            .setArtistIds(ArtistFilterMode.encode(
+                    parseIntegerList(request, "artist"), request.getParameter("artistMode")))
             .setAlbumIds(parseIntegerList(request, "album"))
             .setSongIds(parseIntegerList(request, "song"))
             .setGenreIds(parseIntegerList(request, "genre"))

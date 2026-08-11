@@ -130,6 +130,7 @@ class CatalogListCountConsistencyTest {
         return namedCases(
                 entry("name", mapOf("name", "verano")),
                 entry("artist", mapOf("artistName", List.of(1))),
+                entry("artist excludes", mapOf("artistName", List.of(-2))),
                 entry("featured artist", mapOf("featuredArtistIds", List.of(4))),
                 entry("genre includes", mapOf("genreIds", List.of(2), "genreMode", "includes")),
                 entry("genre excludes", mapOf("genreIds", List.of(1), "genreMode", "excludes")),
@@ -189,6 +190,7 @@ class CatalogListCountConsistencyTest {
         return namedCases(
                 entry("name", mapOf("name", "titi")),
                 entry("artist", mapOf("artistName", List.of(1))),
+                entry("artist excludes", mapOf("artistName", List.of(-2))),
                 entry("featured artist", mapOf("featuredArtistIds", List.of(4))),
                 entry("album name", mapOf("albumName", "Verano")),
                 entry("genre includes", mapOf("genreIds", List.of(2), "genreMode", "includes")),

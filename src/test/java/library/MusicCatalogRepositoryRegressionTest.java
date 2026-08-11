@@ -25,6 +25,7 @@ import static library.TestDatabaseSupport.mapOf;
 import static library.TestDatabaseSupport.songQuery;
 import static library.TestDatabaseSupport.songQueryWith;
 import static library.TestDatabaseSupport.songQueryWithExpensiveStats;
+import static library.util.ArtistFilterMode.encode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.Mockito.mock;
@@ -139,6 +140,29 @@ class MusicCatalogRepositoryRegressionTest {
 
             assertThat(songs).extracting(SongStatsRow::name).containsExactly("No Me Queda Mas");
             assertThat(albums).extracting(AlbumStatsRow::name).containsExactly("Amor Prohibido");
+        }
+    }
+
+    @Test
+    void songAndAlbumListsCanExcludePrimaryArtists() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            List<Integer> excludedArtists = encode(List.of(2), "excludes");
+
+            List<SongStatsRow> songs = db.songRepository.findSongsWithStats(songQueryWith(mapOf(
+                    "artistName", excludedArtists,
+                    "sortBy", "name",
+                    "sortDirection", "asc"
+            )));
+            List<AlbumStatsRow> albums = db.albumRepository.findAlbumsWithStats(albumQueryWith(mapOf(
+                    "artistName", excludedArtists,
+                    "sortBy", "name",
+                    "sortDir", "asc"
+            )));
+
+            assertThat(songs).extracting(SongStatsRow::artistId).doesNotContain(2);
+            assertThat(albums).extracting(AlbumStatsRow::artistId).doesNotContain(2);
+            assertThat(songs).extracting(SongStatsRow::name).contains("Bidi Bidi Bom Bom");
+            assertThat(albums).extracting(AlbumStatsRow::name).contains("Amor Prohibido");
         }
     }
 

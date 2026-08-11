@@ -20,6 +20,7 @@ import library.service.TrlService;
 import library.service.PcService;
 import library.service.BillboardHot100Service;
 import library.util.DateFormatUtils;
+import library.util.ArtistFilterMode;
 import library.util.StringNormalizer;
 import library.service.iTunesLibraryService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -137,6 +138,7 @@ public class SongController {
     public String listSongs(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) String artistMode,
             @RequestParam(required = false) List<Integer> featuredArtist,
             @RequestParam(required = false) String album,
             @RequestParam(required = false) List<Integer> genre,
@@ -277,13 +279,14 @@ public class SongController {
         String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
         String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
+        List<Integer> artistFilter = ArtistFilterMode.encode(artist, artistMode);
         
         // Pre-compute iTunes song IDs once for all 3 queries (getSongs, countSongs, countSongsByGender)
         String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
         
         // Get filtered and sorted songs
         List<SongCardDTO> songs = songService.getSongs(
-                q, artist, featuredArtist, album, genre, genreMode,
+                q, artistFilter, featuredArtist, album, genre, genreMode,
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
                 ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -314,7 +317,7 @@ public class SongController {
         );
         
         // Get total count for pagination
-        long totalCount = songService.countSongs(q, artist, featuredArtist, album,
+        long totalCount = songService.countSongs(q, artistFilter, featuredArtist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
                 gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -344,7 +347,7 @@ public class SongController {
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = songService.countSongsByGender(q, artist, featuredArtist, album,
+        GenderCountDTO genderCounts = songService.countSongsByGender(q, artistFilter, featuredArtist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
                 gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -387,6 +390,7 @@ public class SongController {
         // Add filter values to maintain state
         model.addAttribute("searchQuery", q);
         model.addAttribute("selectedArtist", artist);
+        model.addAttribute("artistMode", "excludes".equalsIgnoreCase(artistMode) ? "excludes" : "includes");
         List<Map<String, Object>> artistDetails = (artist != null && !artist.isEmpty()) ?
             artistService.getArtistDetailsForIds(artist) : List.of();
         model.addAttribute("selectedArtistDetails", artistDetails);
@@ -568,6 +572,7 @@ public class SongController {
     public Map<String, Object> listSongsApi(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) String artistMode,
             @RequestParam(required = false) List<Integer> featuredArtist,
             @RequestParam(required = false) String album,
             @RequestParam(required = false) List<Integer> genre,
@@ -705,11 +710,12 @@ public class SongController {
         String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
         String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
+        List<Integer> artistFilter = ArtistFilterMode.encode(artist, artistMode);
 
         String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
 
         List<SongCardDTO> songs = songService.getSongs(
-                q, artist, featuredArtist, album, genre, genreMode,
+                q, artistFilter, featuredArtist, album, genre, genreMode,
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
                 ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -739,7 +745,7 @@ public class SongController {
                 sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
         );
 
-        long totalCount = songService.countSongs(q, artist, featuredArtist, album,
+        long totalCount = songService.countSongs(q, artistFilter, featuredArtist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
                 gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -3140,6 +3146,7 @@ public class SongController {
     public List<Map<String, Object>> getFilteredSongsForExport(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) List<Integer> artist,
+            @RequestParam(required = false) String artistMode,
             @RequestParam(required = false) List<Integer> featuredArtist,
             @RequestParam(required = false) String album,
             @RequestParam(required = false) List<Integer> genre,
@@ -3277,10 +3284,11 @@ public class SongController {
         String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
         String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
+        List<Integer> artistFilter = ArtistFilterMode.encode(artist, artistMode);
         
         // Get all songs matching filters (using a large limit instead of pagination)
         List<SongCardDTO> songs = songService.getSongs(
-                q, artist, featuredArtist, album, genre, genreMode,
+                q, artistFilter, featuredArtist, album, genre, genreMode,
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
                 ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
