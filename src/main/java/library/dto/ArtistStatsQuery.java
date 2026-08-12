@@ -68,6 +68,7 @@ public record ArtistStatsQuery(
         boolean includeMain,
         boolean includeGroups,
         boolean includeFeatured,
+        boolean includeExtendedStats,
         int limit,
         int offset
 ) {

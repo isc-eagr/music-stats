@@ -205,6 +205,44 @@ class MusicCatalogRepositoryRegressionTest {
     }
 
     @Test
+    void catalogSummaryQueriesDeferExtendedStatisticsUntilRequested() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            ArtistStatsRow artistSummary = db.artistRepository.findArtistsWithStats(artistQueryWith(mapOf(
+                    "name", "Selena", "includeExtendedStats", false
+            ))).getFirst();
+            ArtistStatsRow artistDetails = db.artistRepository.findArtistsWithStats(artistQueryWith(mapOf(
+                    "name", "Selena", "includeExtendedStats", true
+            ))).getFirst();
+            assertThat(artistSummary.daysListened()).isZero();
+            assertThat(artistSummary.songCount()).isZero();
+            assertThat(artistDetails.daysListened()).isPositive();
+            assertThat(artistDetails.songCount()).isEqualTo(3);
+
+            AlbumStatsRow albumSummary = db.albumRepository.findAlbumsWithStats(albumQueryWith(mapOf(
+                    "name", "Amor Prohibido", "includeExtendedStats", false
+            ))).getFirst();
+            AlbumStatsRow albumDetails = db.albumRepository.findAlbumsWithStats(albumQueryWith(mapOf(
+                    "name", "Amor Prohibido", "includeExtendedStats", true
+            ))).getFirst();
+            assertThat(albumSummary.daysListened()).isZero();
+            assertThat(albumSummary.featuredArtistCount()).isZero();
+            assertThat(albumDetails.daysListened()).isPositive();
+            assertThat(albumDetails.featuredArtistCount()).isEqualTo(1);
+
+            SongStatsRow songSummary = db.songRepository.findSongsWithStats(songQueryWith(mapOf(
+                    "name", "Bidi Bidi Bom Bom", "includeExpensiveStats", false
+            ))).getFirst();
+            SongStatsRow songDetails = db.songRepository.findSongsWithStats(songQueryWith(mapOf(
+                    "name", "Bidi Bidi Bom Bom", "includeExpensiveStats", true
+            ))).getFirst();
+            assertThat(songSummary.daysListened()).isZero();
+            assertThat(songSummary.weeklyChartPeak()).isNull();
+            assertThat(songDetails.daysListened()).isPositive();
+            assertThat(songDetails.weeklyChartPeak()).isEqualTo(1);
+        }
+    }
+
+    @Test
     void artistListAggregatesStatsAndGenderCountsFromFilteredCatalog() {
         try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
             List<ArtistStatsRow> rows = db.artistRepository.findArtistsWithStats(artistQuery("plays", "desc"));
@@ -274,11 +312,108 @@ class MusicCatalogRepositoryRegressionTest {
 
             List<AlbumStatsRow> fullListenRows = db.albumRepository.findAlbumsWithStats(
                     albumQuery("last_full_listen", "desc"));
+            assertThat(indexBy(fullListenRows, AlbumStatsRow::name).get("Amor Prohibido").firstFullListenDate())
+                    .isEqualTo("2024-01-05");
             assertThat(indexBy(fullListenRows, AlbumStatsRow::name).get("Amor Prohibido").lastFullListenDate())
-                    .isEqualTo("2024-02-01");
+                    .isEqualTo("2024-01-05");
+            assertThat(indexBy(fullListenRows, AlbumStatsRow::name).get("Amor Prohibido").fullAlbumPlays())
+                    .isEqualTo(1);
             assertThat(indexBy(fullListenRows, AlbumStatsRow::name).get("Un Verano Sin Ti").lastFullListenDate())
                     .isNull();
+            assertThat(indexBy(fullListenRows, AlbumStatsRow::name).get("Un Verano Sin Ti").fullAlbumPlays())
+                    .isZero();
+
+            List<AlbumStatsRow> extendedStatsRows = db.albumRepository.findAlbumsWithStats(
+                    albumQueryWith(mapOf("includeFullListenStats", true, "sortBy", "plays", "sortDir", "desc")));
+            assertThat(indexBy(extendedStatsRows, AlbumStatsRow::name).get("Amor Prohibido").fullAlbumPlays())
+                    .isEqualTo(1);
+
+            Map<Integer, library.dto.AlbumFullListenStats> selectedStats =
+                    db.albumRepository.findFullListenStatsForAlbums(List.of(1, 2));
+            assertThat(selectedStats.get(1).fullAlbumPlays()).isEqualTo(1);
+            assertThat(selectedStats).doesNotContainKey(2);
         }
+    }
+
+    @Test
+    void fullAlbumPlaysCountsBackToBackAlbumListensSeparately() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            db.jdbcTemplate.update("DELETE FROM Play");
+            db.jdbcTemplate.update("""
+                    INSERT INTO Play (id, artist, album, song, play_date, song_id, account)
+                    VALUES
+                        (1, 'Selena', 'Amor Prohibido', 'Bidi Bidi Bom Bom', '2024-06-01 10:00:00', 1, 'vatito'),
+                        (2, 'Selena', 'Amor Prohibido', 'No Me Queda Mas', '2024-06-01 10:01:00', 2, 'vatito'),
+                        (3, 'Selena', 'Amor Prohibido', 'No Me Queda Mas', '2024-06-02 10:02:00', 2, 'vatito'),
+                        (4, 'Selena', 'Amor Prohibido', 'Bidi Bidi Bom Bom', '2024-06-02 10:03:00', 1, 'vatito')
+                    """);
+
+            AlbumStatsRow album = db.albumRepository.findAlbumsWithStats(
+                    albumQuery("full_album_plays", "desc")).getFirst();
+
+            assertThat(album.name()).isEqualTo("Amor Prohibido");
+            assertThat(album.fullAlbumPlays()).isEqualTo(2);
+            assertThat(album.firstFullListenDate()).isEqualTo("2024-06-01");
+            assertThat(album.lastFullListenDate()).isEqualTo("2024-06-02");
+
+            var detailStats = db.albumRepository.findFullListenStatsForAlbum(1);
+            assertThat(detailStats.fullAlbumPlays()).isEqualTo(2);
+            assertThat(detailStats.firstFullListenDate()).isEqualTo("2024-06-01");
+            assertThat(detailStats.lastFullListenDate()).isEqualTo("2024-06-02");
+        }
+    }
+
+    @Test
+    void fullAlbumPlayAllowsFiveInterruptionsDistributedAcrossAnUntimedRun() {
+        var lenientConfig = new library.service.AppConfigService.AlbumFullListenConfig(0, 0, 0, 0, 5);
+        try (TestDatabaseSupport db = TestDatabaseSupport.create(lenientConfig)) {
+            seedInterruptedTenTrackAlbum(db);
+
+            var stats = db.albumRepository.findFullListenStatsForAlbum(6);
+            assertThat(stats.fullAlbumPlays()).isEqualTo(1);
+            assertThat(stats.firstFullListenDate()).isEqualTo("2024-07-03");
+            assertThat(stats.lastFullListenDate()).isEqualTo("2024-07-03");
+        }
+
+        var stricterConfig = new library.service.AppConfigService.AlbumFullListenConfig(0, 0, 0, 0, 4);
+        try (TestDatabaseSupport db = TestDatabaseSupport.create(stricterConfig)) {
+            seedInterruptedTenTrackAlbum(db);
+
+            assertThat(db.albumRepository.findFullListenStatsForAlbum(6).fullAlbumPlays()).isZero();
+        }
+    }
+
+    private static void seedInterruptedTenTrackAlbum(TestDatabaseSupport db) {
+        db.jdbcTemplate.update("DELETE FROM Play");
+        db.jdbcTemplate.update("INSERT INTO Album (id, artist_id, name, number_of_songs) VALUES (6, 1, 'Interrupted Album', 10)");
+        db.jdbcTemplate.update("""
+                INSERT INTO Song (id, artist_id, album_id, name, track_number)
+                VALUES
+                    (20, 1, 6, 'Track 1', 1), (21, 1, 6, 'Track 2', 2),
+                    (22, 1, 6, 'Track 3', 3), (23, 1, 6, 'Track 4', 4),
+                    (24, 1, 6, 'Track 5', 5), (25, 1, 6, 'Track 6', 6),
+                    (26, 1, 6, 'Track 7', 7), (27, 1, 6, 'Track 8', 8),
+                    (28, 1, 6, 'Track 9', 9), (29, 1, 6, 'Track 10', 10)
+                """);
+        db.jdbcTemplate.update("""
+                INSERT INTO Play (id, play_date, song_id, account)
+                VALUES
+                    (1,  '2024-07-01 10:00:00', 20, 'vatito'),
+                    (2,  '2024-07-01 10:01:00', 21, 'vatito'),
+                    (3,  '2024-07-01 10:02:00', 3,  'vatito'),
+                    (4,  '2024-07-01 10:03:00', 22, 'vatito'),
+                    (5,  '2024-07-01 10:04:00', 23, 'vatito'),
+                    (6,  '2024-07-01 10:05:00', 24, 'vatito'),
+                    (7,  '2024-07-01 10:06:00', 25, 'vatito'),
+                    (8,  '2024-07-01 10:07:00', 3,  'vatito'),
+                    (9,  '2024-07-01 10:08:00', 3,  'vatito'),
+                    (10, '2024-07-01 10:09:00', 3,  'vatito'),
+                    (11, '2024-07-01 10:10:00', 26, 'vatito'),
+                    (12, '2024-07-01 10:11:00', 27, 'vatito'),
+                    (13, '2024-07-01 10:12:00', 28, 'vatito'),
+                    (14, '2024-07-01 10:13:00', 3,  'vatito'),
+                    (15, '2024-07-03 02:13:00', 29, 'vatito')
+                """);
     }
 
     @Test
@@ -315,7 +450,10 @@ class MusicCatalogRepositoryRegressionTest {
                 db.artistRepository.findArtistsWithStats(artistQuery("plays", "desc"));
                 db.artistRepository.countArtistsByGenderWithFilters(artistQuery("name", "asc"));
                 db.albumRepository.findAlbumsWithStats(albumQuery("plays", "desc"));
+                db.albumRepository.findAlbumsWithStats(albumQuery("first_full_listen", "asc"));
                 db.albumRepository.findAlbumsWithStats(albumQuery("last_full_listen", "desc"));
+                db.albumRepository.findAlbumsWithStats(albumQuery("full_album_plays", "desc"));
+                db.albumRepository.findFullListenStatsForAlbum(1);
             });
         }
     }

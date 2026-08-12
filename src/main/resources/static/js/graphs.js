@@ -121,7 +121,9 @@ const listViewSortParamMap = {
         weeksListened: 'weeks_listened',
         monthsListened: 'months_listened',
         yearsListened: 'years_listened',
+        firstFullListen: 'first_full_listen',
         lastFullListen: 'last_full_listen',
+        fullAlbumPlays: 'full_album_plays',
         ageAtRelease: 'age_at_release',
         avgLength: 'avg_length',
         avgPlays: 'avg_plays',
@@ -240,7 +242,9 @@ const topColumnConfig = {
         { key: 'weeksListened', label: 'Weeks Listened', defaultVisible: false, align: 'right' },
         { key: 'monthsListened', label: 'Months Listened', defaultVisible: false, align: 'right' },
         { key: 'yearsListened', label: 'Years Listened', defaultVisible: false, align: 'right' },
+        { key: 'firstFullListen', label: 'First Full Listen', defaultVisible: false, align: 'left' },
         { key: 'lastFullListen', label: 'Last Full Listen', defaultVisible: false, align: 'left' },
+        { key: 'fullAlbumPlays', label: 'Full Album Plays', defaultVisible: false, align: 'right' },
         { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
         { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
         { key: 'avgPlays', label: 'Avg Plays', defaultVisible: false, align: 'right' },
@@ -304,6 +308,8 @@ let topColumnVisibility = {
     albums: {},
     songs: {}
 };
+const lazyTablePageRequests = new Map();
+const albumFullListenColumns = new Set(['firstFullListen', 'lastFullListen', 'fullAlbumPlays']);
 
 // Current sort state for chart groups (genre, subgenre, etc.)
 let chartSortMetric = 'plays';  // Options: 'artists', 'albums', 'songs', 'plays', 'listeningTime'
@@ -1704,7 +1710,7 @@ function initColumnToggles() {
 /**
  * Select or deselect all column toggles for a given type
  */
-function selectAllColumns(type, visible) {
+async function selectAllColumns(type, visible) {
     const singularType = type === 'artists' ? 'artist' : type === 'albums' ? 'album' : 'song';
     const container = document.getElementById(singularType + 'ColumnToggles');
     if (container) {
@@ -1712,10 +1718,15 @@ function selectAllColumns(type, visible) {
             cb.checked = visible;
         });
     }
-    topColumnConfig[type].forEach(col => {
-        topColumnVisibility[type][col.key] = visible;
-        onColumnToggle(type, col.key, visible);
-    });
+    if (visible && currentView === 'table' && type === getCurrentEntityType()) {
+        window.showCatalogLoading?.('Loading column data...');
+        try {
+            await ensureLazyTableDetails(type, type === 'albums');
+        } finally {
+            window.hideCatalogLoading?.();
+        }
+    }
+    topColumnConfig[type].forEach(col => setColumnVisibility(type, col.key, visible));
 }
 
 /**
@@ -1739,7 +1750,26 @@ function toggleColumnPanel(type) {
 /**
  * Handle column visibility toggle
  */
-function onColumnToggle(type, colKey, visible) {
+async function onColumnToggle(type, colKey, visible) {
+    const column = topColumnConfig[type].find(col => col.key === colKey);
+    if (visible && column && !column.defaultVisible && currentView === 'table' && type === getCurrentEntityType()) {
+        window.showCatalogLoading?.('Loading column data...');
+        try {
+            await ensureLazyTableDetails(type, type === 'albums' && albumFullListenColumns.has(colKey));
+        } catch (error) {
+            console.error('Error loading table column data:', error);
+            const singularType = type === 'artists' ? 'artist' : type === 'albums' ? 'album' : 'song';
+            const checkbox = document.querySelector(`#${singularType}ColumnToggles input[data-col="${colKey}"]`);
+            if (checkbox) checkbox.checked = false;
+            return;
+        } finally {
+            window.hideCatalogLoading?.();
+        }
+    }
+    setColumnVisibility(type, colKey, visible);
+}
+
+function setColumnVisibility(type, colKey, visible) {
     topColumnVisibility[type][colKey] = visible;
     
     // Update header visibility
@@ -1762,6 +1792,65 @@ function onColumnToggle(type, colKey, visible) {
         const td = row.children[colIndex];
         if (td) td.style.display = visible ? '' : 'none';
     });
+}
+
+function hasVisibleLazyColumns(type) {
+    return topColumnConfig[type].some(col => !col.defaultVisible && topColumnVisibility[type][col.key]);
+}
+
+function hasVisibleAlbumFullListenColumns() {
+    return [...albumFullListenColumns].some(key => topColumnVisibility.albums[key]);
+}
+
+function fetchLazyTablePage(type, page, includeFullListenStats = false) {
+    const params = getListFilterParams();
+    params.set('page', page);
+    params.set('perpage', 100);
+    params.set('includeExtendedStats', 'true');
+    if (type === 'albums' && includeFullListenStats) {
+        params.set('includeFullListenStats', 'true');
+    }
+    applyListViewSortParams(params, type);
+    const cacheKey = type + ':' + page + ':' + params.toString();
+    if (!lazyTablePageRequests.has(cacheKey)) {
+        const request = fetch('/' + type + '/api?' + params.toString())
+            .then(response => {
+                if (!response.ok) throw new Error('Unable to load extended table statistics');
+                return response.json();
+            })
+            .then(data => (data.items || []).map(item => normalizeListItem(item, type)))
+            .catch(error => {
+                lazyTablePageRequests.delete(cacheKey);
+                throw error;
+            });
+        lazyTablePageRequests.set(cacheKey, request);
+    }
+    return lazyTablePageRequests.get(cacheKey);
+}
+
+function mergeLazyTableDetails(type, details, includeFullListenStats = false) {
+    const detailsById = new Map(details.map(item => [String(item.id), item]));
+    topTabData[type].forEach(item => {
+        const detail = detailsById.get(String(item.id));
+        if (detail) {
+            Object.assign(item, detail, { __extendedStatsLoaded: true });
+            if (includeFullListenStats) item.__fullListenStatsLoaded = true;
+        }
+    });
+    topSortedCache[type] = { dataRef: null, sortKey: '', sorted: [] };
+}
+
+async function ensureLazyTableDetails(type, includeFullListenStats = false) {
+    const pages = [...new Set(topTabData[type]
+        .filter(item => includeFullListenStats ? !item.__fullListenStatsLoaded : !item.__extendedStatsLoaded)
+        .map(item => item.__sourcePage ?? 0))]
+        .sort((a, b) => a - b);
+    for (const page of pages) {
+        mergeLazyTableDetails(type, await fetchLazyTablePage(type, page, includeFullListenStats), includeFullListenStats);
+    }
+    if (type === 'artists') renderTopArtistsTable();
+    else if (type === 'albums') renderTopAlbumsTable();
+    else renderTopSongsTable();
 }
 
 /**
@@ -1981,7 +2070,9 @@ function buildAlbumRow(album, rank) {
             <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(album.weeksListened)}</td>
             <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(album.monthsListened)}</td>
             <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(album.yearsListened)}</td>
+            <td style="display:${vis('firstFullListen')};">${album.firstFullListen || '-'}</td>
             <td style="display:${vis('lastFullListen')};">${album.lastFullListen || '-'}</td>
+            <td style="text-align:right;display:${vis('fullAlbumPlays')};">${cellVal(album.fullAlbumPlays)}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(album.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${album.avgLengthFormatted || '-'}</td>
             <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(album.avgPlays)}</td>
@@ -2182,10 +2273,10 @@ const numericSortColumns = new Set([
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'billboardPeak', 'billboardWeeks', 'billboardWeeksAtPeak', 'seasonalChartPeak',
     'trlDays', 'trlDaysAtPeak', 'trlPeak', 'vatosCuntdownDays', 'vatosCuntdownDaysAtPeak', 'vatosCuntdownPeak',
-    'weeklyChartPeak', 'weeklyChartWeeks', 'weeklyChartPeakWeeks', 'yearlyChartPeak'
+    'weeklyChartPeak', 'weeklyChartWeeks', 'weeklyChartPeakWeeks', 'yearlyChartPeak', 'fullAlbumPlays'
 ]);
 
-const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'lastFullListen', 'birthDate', 'deathDate']);
+const dateSortColumns = new Set(['releaseDate', 'firstListened', 'lastListened', 'firstFullListen', 'lastFullListen', 'birthDate', 'deathDate']);
 
 function getRandomSortValue(item) {
     const seed = new URLSearchParams(window.location.search).get('randomSeed');
@@ -2947,12 +3038,30 @@ function fetchListPage(pageNum) {
 
     return fetch('/' + entityType + '/api?' + params.toString())
         .then(r => r.json())
-        .then(data => {
+        .then(async data => {
             if (requestToken !== listViewRequestToken) return;
             listViewState.loading = false;
             setListViewLoadingIndicator(false);
 
-            const items = (data.items || []).map(item => normalizeListItem(item, entityType));
+            const items = (data.items || []).map(item => {
+                const normalized = normalizeListItem(item, entityType);
+                normalized.__sourcePage = pageNum;
+                normalized.__extendedStatsLoaded = false;
+                normalized.__fullListenStatsLoaded = false;
+                return normalized;
+            });
+            if (hasVisibleLazyColumns(entityType) && items.length > 0) {
+                const includeFullListenStats = entityType === 'albums' && hasVisibleAlbumFullListenColumns();
+                const extendedItems = await fetchLazyTablePage(entityType, pageNum, includeFullListenStats);
+                const extendedById = new Map(extendedItems.map(item => [String(item.id), item]));
+                items.forEach(item => {
+                    const extended = extendedById.get(String(item.id));
+                    if (extended) {
+                        Object.assign(item, extended, { __extendedStatsLoaded: true });
+                        if (includeFullListenStats) item.__fullListenStatsLoaded = true;
+                    }
+                });
+            }
             listViewState.totalCount = data.totalCount;
 
             if (pageNum === 0) {
@@ -3092,6 +3201,7 @@ function normalizeListItem(item, entityType) {
     } else if (entityType === 'albums') {
         item.firstListened = item.firstListenedDate;
         item.lastListened = item.lastListenedDate;
+        item.firstFullListen = item.firstFullListenDate;
         item.lastFullListen = item.lastFullListenDate;
         item.genre = item.genreName;
         item.subgenre = item.subgenreName;

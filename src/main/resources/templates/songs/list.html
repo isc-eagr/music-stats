@@ -1833,6 +1833,7 @@
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="song, iterStat : ${songs}" 
                  class="song-card"
+                 th:attr="data-song-id=${song.id}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}"
                  th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                 <div class="song-image item-image-container" style="cursor: pointer;">
                     <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->

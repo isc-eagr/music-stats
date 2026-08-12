@@ -46,7 +46,8 @@ class CatalogSortRegressionTest {
                 "first_listened", "last_listened", "days_listened", "weeks_listened", "months_listened",
                 "years_listened", "age_at_release", "birth_date", "death_date", "image_count",
                 "seasonal_chart_peak", "weekly_chart_peak", "weekly_chart_weeks", "weekly_chart_peak_weeks",
-                "yearly_chart_peak", "last_full_listen", "itunes_presence", "random", "name");
+                "yearly_chart_peak", "first_full_listen", "last_full_listen", "full_album_plays",
+                "itunes_presence", "random", "name");
 
         try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
             for (String sortBy : sortOptions) {

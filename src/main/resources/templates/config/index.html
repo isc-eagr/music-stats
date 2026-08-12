@@ -409,7 +409,7 @@
                 <div class="config-section-header">
                     <div>
                         <h2 class="config-section-title">Album Full-Listen Leniency</h2>
-                        <p class="config-section-copy">Allowed missing tracks by album size.</p>
+                        <p class="config-section-copy">Allowed missing album tracks and unrelated songs within a full-listen run.</p>
                     </div>
                 </div>
 
@@ -443,6 +443,15 @@
                         <div class="config-field">
                             <label for="allowedMissingOver20Tracks">Allowed missing tracks</label>
                             <input id="allowedMissingOver20Tracks" name="allowedMissingOver20Tracks" type="number" min="0" max="50" step="1" th:value="${fullListenConfig.allowedMissingOver20Tracks}">
+                        </div>
+                    </div>
+
+                    <div class="config-card third">
+                        <h3 class="config-card-title">Unrelated songs during a run</h3>
+                        <div class="config-field">
+                            <label for="allowedInterruptingSongs">Allowed songs</label>
+                            <input id="allowedInterruptingSongs" name="allowedInterruptingSongs" type="number" min="0" max="100" step="1" th:value="${fullListenConfig.allowedInterruptingSongs}">
+                            <span class="config-help">Total allowed anywhere between the first and completing album song. Defaults to 5.</span>
                         </div>
                     </div>
                 </div>

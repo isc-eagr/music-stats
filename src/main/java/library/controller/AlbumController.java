@@ -1,6 +1,7 @@
 package library.controller;
 
 import library.dto.AlbumCardDTO;
+import library.dto.AlbumFullListenStats;
 import library.dto.ChartFilterDTO;
 import library.dto.GenderCountDTO;
 import library.entity.Album;
@@ -189,10 +190,16 @@ public class AlbumController {
             @RequestParam(required = false) Integer yearlyChartYears,
             @RequestParam(required = false) String yearlyChartDateFrom,
             @RequestParam(required = false) String yearlyChartDateTo,
+            @RequestParam(required = false) String firstFullListenDate,
+            @RequestParam(required = false) String firstFullListenDateFrom,
+            @RequestParam(required = false) String firstFullListenDateTo,
+            @RequestParam(required = false) String firstFullListenDateMode,
             @RequestParam(required = false) String lastFullListenDate,
             @RequestParam(required = false) String lastFullListenDateFrom,
             @RequestParam(required = false) String lastFullListenDateTo,
             @RequestParam(required = false) String lastFullListenDateMode,
+            @RequestParam(required = false) Integer fullAlbumPlaysMin,
+            @RequestParam(required = false) Integer fullAlbumPlaysMax,
             @RequestParam(required = false) Integer itunesPresenceMin,
             @RequestParam(required = false) Integer itunesPresenceMax,
             @RequestParam(defaultValue = "plays") String sortby,
@@ -204,6 +211,8 @@ public class AlbumController {
             @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
+            @RequestParam(defaultValue = "false") boolean includeExtendedStats,
+            @RequestParam(defaultValue = "false") boolean lazyCard,
             HttpServletRequest request,
             Model model) {
         
@@ -217,6 +226,9 @@ public class AlbumController {
         String lastListenedDateConverted = DateFormatUtils.convertToIsoFormat(lastListenedDate);
         String lastListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateFrom);
         String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
+        String firstFullListenDateConverted = DateFormatUtils.convertToIsoFormat(firstFullListenDate);
+        String firstFullListenDateFromConverted = DateFormatUtils.convertToIsoFormat(firstFullListenDateFrom);
+        String firstFullListenDateToConverted = DateFormatUtils.convertToIsoFormat(firstFullListenDateTo);
         String lastFullListenDateConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDate);
         String lastFullListenDateFromConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDateFrom);
         String lastFullListenDateToConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDateTo);
@@ -234,7 +246,8 @@ public class AlbumController {
         String seasonalChartDateToConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateTo);
         String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
         String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
-        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getAlbumsListPageSize());
+        int effectivePerPage = lazyCard ? 1
+                : appConfigService.normalizePageSize(perpage, appConfigService.getAlbumsListPageSize());
         List<Integer> artistFilter = ArtistFilterMode.encode(artist, artistMode);
         
         // Pre-compute iTunes album IDs once for all 3 queries
@@ -259,13 +272,17 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
+                firstFullListenDateConverted, firstFullListenDateFromConverted, firstFullListenDateToConverted, firstFullListenDateMode,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
                 itunesPresenceMin, itunesPresenceMax,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
+                false,
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage,
+                includeExtendedStats
         );
         
         // Get total count for pagination
-        long totalCount = albumService.countAlbums(q, artistFilter, featuredArtist, genre,
+        long totalCount = lazyCard ? albums.size() : albumService.countAlbums(q, artistFilter, featuredArtist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
                 genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -282,12 +299,14 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
+                firstFullListenDateConverted, firstFullListenDateFromConverted, firstFullListenDateToConverted, firstFullListenDateMode,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
                 itunesPresenceMin, itunesPresenceMax);
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = albumService.countAlbumsByGender(q, artistFilter, featuredArtist, genre,
+        GenderCountDTO genderCounts = lazyCard ? new GenderCountDTO() : albumService.countAlbumsByGender(q, artistFilter, featuredArtist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
                 genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -304,7 +323,9 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
+                firstFullListenDateConverted, firstFullListenDateFromConverted, firstFullListenDateToConverted, firstFullListenDateMode,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
                 itunesPresenceMin, itunesPresenceMax);
         
         // Add data to model
@@ -431,6 +452,13 @@ public class AlbumController {
         model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
         
         // Last full listen date filter attributes
+        model.addAttribute("firstFullListenDate", firstFullListenDate);
+        model.addAttribute("firstFullListenDateFrom", firstFullListenDateFrom);
+        model.addAttribute("firstFullListenDateTo", firstFullListenDateTo);
+        model.addAttribute("firstFullListenDateMode", firstFullListenDateMode != null ? firstFullListenDateMode : "exact");
+        model.addAttribute("firstFullListenDateFormatted", formatDateForDisplay(firstFullListenDate));
+        model.addAttribute("firstFullListenDateFromFormatted", formatDateForDisplay(firstFullListenDateFrom));
+        model.addAttribute("firstFullListenDateToFormatted", formatDateForDisplay(firstFullListenDateTo));
         model.addAttribute("lastFullListenDate", lastFullListenDate);
         model.addAttribute("lastFullListenDateFrom", lastFullListenDateFrom);
         model.addAttribute("lastFullListenDateTo", lastFullListenDateTo);
@@ -438,6 +466,8 @@ public class AlbumController {
         model.addAttribute("lastFullListenDateFormatted", formatDateForDisplay(lastFullListenDate));
         model.addAttribute("lastFullListenDateFromFormatted", formatDateForDisplay(lastFullListenDateFrom));
         model.addAttribute("lastFullListenDateToFormatted", formatDateForDisplay(lastFullListenDateTo));
+        model.addAttribute("fullAlbumPlaysMin", fullAlbumPlaysMin);
+        model.addAttribute("fullAlbumPlaysMax", fullAlbumPlaysMax);
         
         // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
@@ -455,6 +485,8 @@ public class AlbumController {
         model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
         model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "plays");
+        model.addAttribute("includeExtendedStats", includeExtendedStats);
+        model.addAttribute("includeFullListenStats", false);
         model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         
         // Add filter options
@@ -549,12 +581,20 @@ public class AlbumController {
             @RequestParam(required = false) Integer yearlyChartYears,
             @RequestParam(required = false) String yearlyChartDateFrom,
             @RequestParam(required = false) String yearlyChartDateTo,
+            @RequestParam(required = false) String firstFullListenDate,
+            @RequestParam(required = false) String firstFullListenDateFrom,
+            @RequestParam(required = false) String firstFullListenDateTo,
+            @RequestParam(required = false) String firstFullListenDateMode,
             @RequestParam(required = false) String lastFullListenDate,
             @RequestParam(required = false) String lastFullListenDateFrom,
             @RequestParam(required = false) String lastFullListenDateTo,
             @RequestParam(required = false) String lastFullListenDateMode,
+            @RequestParam(required = false) Integer fullAlbumPlaysMin,
+            @RequestParam(required = false) Integer fullAlbumPlaysMax,
             @RequestParam(required = false) Integer itunesPresenceMin,
             @RequestParam(required = false) Integer itunesPresenceMax,
+            @RequestParam(defaultValue = "false") boolean includeFullListenStats,
+            @RequestParam(defaultValue = "false") boolean includeExtendedStats,
             @RequestParam(defaultValue = "plays") String sortby,
             @RequestParam(defaultValue = "desc") String sortdir,
             @RequestParam(required = false) String sortby2,
@@ -574,6 +614,9 @@ public class AlbumController {
         String lastListenedDateConverted = DateFormatUtils.convertToIsoFormat(lastListenedDate);
         String lastListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateFrom);
         String lastListenedDateToConverted = DateFormatUtils.convertToIsoFormat(lastListenedDateTo);
+        String firstFullListenDateConverted = DateFormatUtils.convertToIsoFormat(firstFullListenDate);
+        String firstFullListenDateFromConverted = DateFormatUtils.convertToIsoFormat(firstFullListenDateFrom);
+        String firstFullListenDateToConverted = DateFormatUtils.convertToIsoFormat(firstFullListenDateTo);
         String lastFullListenDateConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDate);
         String lastFullListenDateFromConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDateFrom);
         String lastFullListenDateToConverted = DateFormatUtils.convertToIsoFormat(lastFullListenDateTo);
@@ -614,9 +657,13 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
+                firstFullListenDateConverted, firstFullListenDateFromConverted, firstFullListenDateToConverted, firstFullListenDateMode,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
                 itunesPresenceMin, itunesPresenceMax,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
+                includeFullListenStats,
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage,
+                includeExtendedStats
         );
 
         long totalCount = albumService.countAlbums(q, artistFilter, featuredArtist, genre,
@@ -636,7 +683,9 @@ public class AlbumController {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFromConverted, weeklyChartDateToConverted, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFromConverted, yearlyChartDateToConverted,
+                firstFullListenDateConverted, firstFullListenDateFromConverted, firstFullListenDateToConverted, firstFullListenDateMode,
                 lastFullListenDateConverted, lastFullListenDateFromConverted, lastFullListenDateToConverted, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
                 itunesPresenceMin, itunesPresenceMax);
 
         Map<String, Object> result = new HashMap<>();
@@ -763,7 +812,12 @@ public class AlbumController {
         // Add first and last listened dates for the album
         model.addAttribute("firstListenedDate", albumService.getFirstListenedDateForAlbum(id));
         model.addAttribute("lastListenedDate", albumService.getLastListenedDateForAlbum(id));
-        model.addAttribute("lastFullListenDate", albumService.getLastFullListenDateForAlbum(id));
+        AlbumFullListenStats fullListenStats = albumService.getFullListenStatsForAlbum(id);
+        model.addAttribute("firstFullListenDate", fullListenStats.firstFullListenDate() != null
+                ? formatDateForDisplay(fullListenStats.firstFullListenDate()) : null);
+        model.addAttribute("lastFullListenDate", fullListenStats.lastFullListenDate() != null
+                ? formatDateForDisplay(fullListenStats.lastFullListenDate()) : null);
+        model.addAttribute("fullAlbumPlays", fullListenStats.fullAlbumPlays());
         
         // Add unique period stats for the album
         model.addAttribute("uniqueDaysPlayed", albumService.getUniqueDaysPlayedForAlbum(id));
@@ -1042,7 +1096,12 @@ public class AlbumController {
     @ResponseBody
     public Map<String, Object> getLastFullListenDate(@PathVariable Integer id) {
         Map<String, Object> response = new java.util.HashMap<>();
-        response.put("lastFullListenDate", albumService.getLastFullListenDateForAlbum(id));
+        AlbumFullListenStats stats = albumService.getFullListenStatsForAlbum(id);
+        response.put("firstFullListenDate", stats.firstFullListenDate() != null
+                ? formatDateForDisplay(stats.firstFullListenDate()) : null);
+        response.put("lastFullListenDate", stats.lastFullListenDate() != null
+                ? formatDateForDisplay(stats.lastFullListenDate()) : null);
+        response.put("fullAlbumPlays", stats.fullAlbumPlays());
         return response;
     }
 

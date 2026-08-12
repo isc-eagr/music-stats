@@ -33,6 +33,7 @@ public class AppConfigService {
     private static final String KEY_FULL_LISTEN_UP_TO_10 = "albumFullListen.allowedMissing.upTo10";
     private static final String KEY_FULL_LISTEN_UP_TO_20 = "albumFullListen.allowedMissing.upTo20";
     private static final String KEY_FULL_LISTEN_OVER_20 = "albumFullListen.allowedMissing.over20";
+    private static final String KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS = "albumFullListen.allowedInterruptingSongs";
 
     private static final String KEY_PAGE_SIZE_ARTISTS_LIST = "pageSize.artists.list";
     private static final String KEY_PAGE_SIZE_ALBUMS_LIST = "pageSize.albums.list";
@@ -98,6 +99,7 @@ public class AppConfigService {
         putDefault(KEY_FULL_LISTEN_UP_TO_10, "2");
         putDefault(KEY_FULL_LISTEN_UP_TO_20, "3");
         putDefault(KEY_FULL_LISTEN_OVER_20, "4");
+        putDefault(KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS, "5");
 
         putDefault(KEY_PAGE_SIZE_ARTISTS_LIST, "100");
         putDefault(KEY_PAGE_SIZE_ALBUMS_LIST, "100");
@@ -131,7 +133,8 @@ public class AppConfigService {
                 getInt(KEY_FULL_LISTEN_UP_TO_6, 0, 0, 6),
                 getInt(KEY_FULL_LISTEN_UP_TO_10, 2, 0, 10),
                 getInt(KEY_FULL_LISTEN_UP_TO_20, 3, 0, 20),
-                getInt(KEY_FULL_LISTEN_OVER_20, 4, 0, 50)
+                getInt(KEY_FULL_LISTEN_OVER_20, 4, 0, 50),
+                getInt(KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS, 5, 0, 100)
         );
     }
 
@@ -240,6 +243,7 @@ public class AppConfigService {
         putValue(KEY_FULL_LISTEN_UP_TO_10, Integer.toString(clamp(config.allowedMissingUpTo10Tracks(), 0, 10)));
         putValue(KEY_FULL_LISTEN_UP_TO_20, Integer.toString(clamp(config.allowedMissingUpTo20Tracks(), 0, 20)));
         putValue(KEY_FULL_LISTEN_OVER_20, Integer.toString(clamp(config.allowedMissingOver20Tracks(), 0, 50)));
+        putValue(KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS, Integer.toString(clamp(config.allowedInterruptingSongs(), 0, 100)));
     }
 
     @Transactional
@@ -377,7 +381,8 @@ public class AppConfigService {
             int allowedMissingUpTo6Tracks,
             int allowedMissingUpTo10Tracks,
             int allowedMissingUpTo20Tracks,
-            int allowedMissingOver20Tracks) {
+            int allowedMissingOver20Tracks,
+            int allowedInterruptingSongs) {
 
         public int requiredSongsFor(int totalTracks) {
             int safeTotalTracks = Math.max(1, totalTracks);

@@ -577,6 +577,9 @@
 
             requestAnimationFrame(function() {
                 removeRowsByPredicate(row => targets.some(target => isSameGroup(row, target, true)), false);
+                if (window.refreshPlayAutomationBanner) {
+                    window.refreshPlayAutomationBanner();
+                }
                 hidePageBusyOverlay();
             });
         };

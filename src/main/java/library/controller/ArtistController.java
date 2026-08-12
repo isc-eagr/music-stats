@@ -200,6 +200,8 @@ public class ArtistController {
             @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
+            @RequestParam(defaultValue = "false") boolean includeExtendedStats,
+            @RequestParam(defaultValue = "false") boolean lazyCard,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -217,7 +219,8 @@ public class ArtistController {
         String deathDateConverted = DateFormatUtils.convertToIsoFormat(deathDate);
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
-        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getArtistsListPageSize());
+        int effectivePerPage = lazyCard ? 1
+                : appConfigService.normalizePageSize(perpage, appConfigService.getArtistsListPageSize());
         
         // Pre-compute iTunes artist IDs once for all 3 queries
         String itunesIdsJson = artistService.getItunesArtistIdsJson(inItunes);
@@ -239,11 +242,12 @@ public class ArtistController {
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax,
                 includeMain, includeGroups, includeFeatured,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage,
+                includeExtendedStats
         );
         
         // Get total count for pagination
-        long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity, 
+        long totalCount = lazyCard ? artists.size() : artistService.countArtists(q, gender, genderMode, ethnicity,
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
                 languageMode, country, countryMode,
                 tag, tagMode,
@@ -262,7 +266,7 @@ public class ArtistController {
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = artistService.countArtistsByGender(q, gender, genderMode, ethnicity, 
+        GenderCountDTO genderCounts = lazyCard ? new GenderCountDTO() : artistService.countArtistsByGender(q, gender, genderMode, ethnicity,
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
                 languageMode, country, countryMode,
                 tag, tagMode,
@@ -468,7 +472,8 @@ public class ArtistController {
             @RequestParam(required = false) String sortdir3,
             @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false) Integer perpage) {
+            @RequestParam(required = false) Integer perpage,
+            @RequestParam(defaultValue = "false") boolean includeExtendedStats) {
 
         String firstListenedDateConverted = DateFormatUtils.convertToIsoFormat(firstListenedDate);
         String firstListenedDateFromConverted = DateFormatUtils.convertToIsoFormat(firstListenedDateFrom);
@@ -504,7 +509,8 @@ public class ArtistController {
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax,
                 includeMain, includeGroups, includeFeatured,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage,
+                includeExtendedStats
         );
 
         long totalCount = artistService.countArtists(q, gender, genderMode, ethnicity,

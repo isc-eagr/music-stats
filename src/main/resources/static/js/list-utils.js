@@ -1214,47 +1214,144 @@ function toggleCardExpand(btn) {
     }
 }
 
-/**
- * Open a modal showing the full card with all stats.
- * Used on list pages as a replacement for inline expand.
- * @param {HTMLElement} btn - The "More" toggle button element inside the card
- */
-function openCardModal(btn) {
-    const card = btn.closest('.artist-card, .album-card, .song-card');
-    if (!card) return;
+const lazyCardPageCache = new Map();
+let catalogLoadingDepth = 0;
 
-    if (window.innerWidth <= 768) {
-        card.classList.toggle('mobile-expanded');
+window.showCatalogLoading = function(message) {
+    const overlay = document.getElementById('infLoadOverlay');
+    if (!overlay) return;
+    catalogLoadingDepth++;
+    const title = overlay.querySelector('.inf-load-title');
+    if (title) title.textContent = message || 'Loading...';
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+};
+
+window.hideCatalogLoading = function() {
+    const overlay = document.getElementById('infLoadOverlay');
+    if (!overlay) return;
+    catalogLoadingDepth = Math.max(0, catalogLoadingDepth - 1);
+    if (catalogLoadingDepth === 0) {
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+};
+
+function getLazyCardIdentity(card) {
+    if (card.classList.contains('artist-card')) return { selector: '.artist-card', attribute: 'data-artist-id' };
+    if (card.classList.contains('album-card')) return { selector: '.album-card', attribute: 'data-album-id' };
+    return { selector: '.song-card', attribute: 'data-song-id' };
+}
+
+function fetchLazyCardPage(card) {
+    const resultIndex = card.dataset.resultIndex || '0';
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', resultIndex);
+    url.searchParams.set('perpage', '1');
+    url.searchParams.set('includeExtendedStats', 'true');
+    url.searchParams.set('lazyCard', 'true');
+    const cacheKey = url.pathname + '?' + url.searchParams.toString();
+
+    if (!lazyCardPageCache.has(cacheKey)) {
+        const request = fetch(url.toString())
+            .then(function(response) {
+                if (!response.ok) throw new Error('Unable to load card details');
+                return response.text();
+            })
+            .then(function(html) {
+                return new DOMParser().parseFromString(html, 'text/html');
+            })
+            .catch(function(error) {
+                lazyCardPageCache.delete(cacheKey);
+                throw error;
+            });
+        lazyCardPageCache.set(cacheKey, request);
+    }
+    return lazyCardPageCache.get(cacheKey);
+}
+
+function populateAlbumFullListenMetrics(target, data) {
+    const first = target.querySelector('.first-full-listen-value');
+    const last = target.querySelector('.last-full-listen-value');
+    const plays = target.querySelector('.full-album-plays-value');
+    if (first) first.textContent = data.firstFullListenDate || 'N/A';
+    if (last) last.textContent = data.lastFullListenDate || 'N/A';
+    if (plays) plays.textContent = data.fullAlbumPlays ?? 0;
+}
+
+function loadAlbumFullListenMetrics(card) {
+    const albumId = card.getAttribute('data-album-id');
+    if (!albumId) return Promise.resolve();
+    if (!card._fullListenMetricsPromise) {
+        card._fullListenMetricsPromise = fetch('/albums/api/' + albumId + '/last-full-listen')
+            .then(function(response) {
+                if (!response.ok) throw new Error('Unable to load album full-listen metrics');
+                return response.json();
+            })
+            .catch(function(error) {
+                card._fullListenMetricsPromise = null;
+                throw error;
+            });
+    }
+    return card._fullListenMetricsPromise.then(function(data) {
+        populateAlbumFullListenMetrics(card, data);
+    });
+}
+
+async function hydrateLazyCardDetails(card) {
+    if (card.dataset.extendedStatsLoaded === 'true') return;
+
+    const identity = getLazyCardIdentity(card);
+    const id = card.getAttribute(identity.attribute);
+    const documentWithDetails = await fetchLazyCardPage(card);
+    const sourceCard = Array.from(documentWithDetails.querySelectorAll(identity.selector))
+        .find(function(candidate) { return candidate.getAttribute(identity.attribute) === id; });
+    const sourceDetails = sourceCard ? sourceCard.querySelector('.card-modal-text-stats') : null;
+    const currentDetails = card.querySelector('.card-modal-text-stats');
+    if (!sourceDetails || !currentDetails) throw new Error('Card details were not present in the lazy response');
+
+    currentDetails.replaceWith(sourceDetails.cloneNode(true));
+    if (card.classList.contains('album-card')) {
+        await loadAlbumFullListenMetrics(card);
+    }
+    card.dataset.extendedStatsLoaded = 'true';
+}
+
+async function openCardWithLazyDetails(card) {
+    if (!card) return;
+    if (window.innerWidth <= 768 && card.classList.contains('mobile-expanded')) {
+        card.classList.remove('mobile-expanded');
         return;
     }
 
-    let modal = document.getElementById('cardDetailModal');
-    if (!modal) return;
+    window.showCatalogLoading('Loading details...');
+    try {
+        await hydrateLazyCardDetails(card);
 
-    const clone = card.cloneNode(true);
-    // Remove IDs from clone to prevent conflicts
-    clone.querySelectorAll('[id]').forEach(function(el) { el.removeAttribute('id'); });
-
-    const body = modal.querySelector('.card-detail-modal-body');
-    body.innerHTML = '';
-    body.appendChild(clone);
-
-    // Lazy-load Last Full Listen Date for album cards
-    const albumId = card.getAttribute('data-album-id');
-    if (albumId) {
-        const lflSpan = clone.querySelector('.last-full-listen-value');
-        if (lflSpan) {
-            fetch('/albums/api/' + albumId + '/last-full-listen')
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    lflSpan.textContent = data.lastFullListenDate || 'N/A';
-                })
-                .catch(function() { lflSpan.textContent = 'N/A'; });
+        if (window.innerWidth <= 768) {
+            card.classList.add('mobile-expanded');
+            return;
         }
-    }
 
-    modal.classList.add('show');
-    document.body.style.overflow = 'hidden';
+        const modal = document.getElementById('cardDetailModal');
+        if (!modal) return;
+        const clone = card.cloneNode(true);
+        clone.querySelectorAll('[id]').forEach(function(el) { el.removeAttribute('id'); });
+        const body = modal.querySelector('.card-detail-modal-body');
+        body.innerHTML = '';
+        body.appendChild(clone);
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    } catch (error) {
+        console.error('Error loading card details:', error);
+    } finally {
+        window.hideCatalogLoading();
+    }
+}
+
+/** Open a card after its expanded statistics have been loaded and cached. */
+function openCardModal(btn) {
+    return openCardWithLazyDetails(btn.closest('.artist-card, .album-card, .song-card'));
 }
 
 // Add click listener for mobile cards to expand inline
@@ -1263,7 +1360,7 @@ document.addEventListener('click', function(e) {
         const card = e.target.closest('.artist-card, .album-card, .song-card');
         // Only expand if clicking the card itself, not a link or the expand toggle
         if (card && !e.target.closest('a') && !e.target.closest('.card-expand-toggle') && !e.target.closest('.clickable-image')) {
-            card.classList.toggle('mobile-expanded');
+            openCardWithLazyDetails(card);
         }
     }
 });

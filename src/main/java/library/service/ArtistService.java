@@ -95,7 +95,8 @@ public class ArtistService {
                                           String sortBy2, String sortDir2,
                                           String sortBy3, String sortDir3,
                                           Integer randomSeed,
-                                          int page, int perPage) {
+                                          int page, int perPage,
+                                          boolean includeExtendedStats) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (genderIds != null && genderIds.isEmpty()) genderIds = null;
         if (ethnicityIds != null && ethnicityIds.isEmpty()) ethnicityIds = null;
@@ -123,7 +124,7 @@ public class ArtistService {
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
                 sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, randomSeed,
-                includeMain, includeGroups, includeFeatured, perPage, page * perPage
+                includeMain, includeGroups, includeFeatured, includeExtendedStats, perPage, page * perPage
         ));
         
         List<ArtistCardDTO> artists = new ArrayList<>();
@@ -194,7 +195,7 @@ public class ArtistService {
 
         populateArtistItunesPresence(artists);
 
-        if (includeMain && !includeGroups && !includeFeatured
+        if (includeExtendedStats && includeMain && !includeGroups && !includeFeatured
                 && artists.stream().anyMatch(artist -> artist.getItunesPresenceRatio() == null)) {
             Map<Integer, Double> ratioByArtistId = itunesService.getArtistItunesPresenceRatios(
                     artists.stream().map(ArtistCardDTO::getId).toList());
@@ -268,7 +269,7 @@ public class ArtistService {
                 songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
                 null, null, null, null, null, null, null,
-                includeMain, includeGroups, includeFeatured, 0, 0));
+                includeMain, includeGroups, includeFeatured, false, 0, 0));
     }
     
     /**
@@ -321,7 +322,7 @@ public class ArtistService {
                 birthDate, birthDateFrom, birthDateTo, birthDateMode, songCountMin, songCountMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson(),
                 null, null, null, null, null, null, null,
-                includeMain, includeGroups, includeFeatured, 0, 0));
+                includeMain, includeGroups, includeFeatured, false, 0, 0));
         
         // Gender ID 1 = Female, Gender ID 2 = Male
         long femaleCount = genderCounts.getOrDefault(1, 0L);

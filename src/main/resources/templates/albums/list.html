@@ -65,7 +65,9 @@
                             <option value="days_listened" th:selected="${sortBy == 'days_listened'}">Days Listened</option>
                             <option value="ethnicity" th:selected="${sortBy == 'ethnicity'}">Ethnicity</option>
                             <option value="featured_artist_count" th:selected="${sortBy == 'featured_artist_count'}">Featured Artist Count</option>
+                            <option value="first_full_listen" th:selected="${sortBy == 'first_full_listen'}">First Full Listen</option>
                             <option value="first_listened" th:selected="${sortBy == 'first_listened'}">First Listened</option>
+                            <option value="full_album_plays" th:selected="${sortBy == 'full_album_plays'}">Full Album Plays</option>
                             <option value="genre" th:selected="${sortBy == 'genre'}">Genre</option>
                             <option value="image_count" th:selected="${sortBy == 'image_count'}">Image Count</option>
                             <option value="itunes_presence" th:selected="${sortBy == 'itunes_presence'}">iTunes Presence Ratio</option>
@@ -426,6 +428,46 @@
                                     </div>
                                 </div>
                                 
+                                <!-- First Full Listen Date Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">&#9654;</span>
+                                            First Full Listen Date
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-modifiers">
+                                            <button type="button" class="filter-modifier" data-filter="firstFullListenDate" data-mode="isnull"
+                                                    th:classappend="${firstFullListenDateMode == 'isnull'} ? 'active' : ''">Never</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstFullListenDate" data-mode="isnotnull"
+                                                    th:classappend="${firstFullListenDateMode == 'isnotnull'} ? 'active' : ''">Has Date</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstFullListenDate" data-mode="exact"
+                                                    th:classappend="${firstFullListenDateMode == 'exact'} ? 'active' : ''">Exact</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstFullListenDate" data-mode="gte"
+                                                    th:classappend="${firstFullListenDateMode == 'gte'} ? 'active' : ''">On or After</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstFullListenDate" data-mode="lte"
+                                                    th:classappend="${firstFullListenDateMode == 'lte'} ? 'active' : ''">On or Before</button>
+                                            <button type="button" class="filter-modifier" data-filter="firstFullListenDate" data-mode="between"
+                                                    th:classappend="${firstFullListenDateMode == 'between'} ? 'active' : ''">Between</button>
+                                        </div>
+                                        <input type="hidden" autocomplete="off" name="firstFullListenDateMode" id="firstFullListenDateModeInput" th:value="${firstFullListenDateMode}" />
+                                        <div id="firstFullListenDateSingle" th:style="${firstFullListenDateMode == 'between' or firstFullListenDateMode == 'isnull' or firstFullListenDateMode == 'isnotnull'} ? 'display:none' : ''">
+                                            <label class="field"><span>Date</span>
+                                                <input type="text" autocomplete="off" name="firstFullListenDate" id="firstFullListenDateInput" th:value="${firstFullListenDate}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                        <div id="firstFullListenDateRange" th:style="${firstFullListenDateMode != 'between'} ? 'display:none' : ''">
+                                            <label class="field"><span>From</span>
+                                                <input type="text" autocomplete="off" name="firstFullListenDateFrom" id="firstFullListenDateFromInput" th:value="${firstFullListenDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                                <input type="text" autocomplete="off" name="firstFullListenDateTo" id="firstFullListenDateToInput" th:value="${firstFullListenDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- First Listened Date Filter -->
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
@@ -457,6 +499,26 @@
                                             </label>
                                             <label class="field" style="margin-top: 8px;"><span>To</span>
                                                 <input type="text" autocomplete="off" name="firstListenedDateTo" th:value="${firstListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Full Album Plays Filter -->
+                                <div class="filter-item">
+                                    <div class="filter-item-header" onclick="toggleFilterItem(this)">
+                                        <span class="filter-item-title">
+                                            <span class="filter-item-chevron">▶</span>
+                                            Full Album Plays
+                                        </span>
+                                    </div>
+                                    <div class="filter-item-content">
+                                        <div class="filter-group">
+                                            <label class="field"><span>Min</span>
+                                                <input type="number" autocomplete="off" name="fullAlbumPlaysMin" th:value="${fullAlbumPlaysMin}" placeholder="0" min="0" style="width: 100%;" />
+                                            </label>
+                                            <label class="field" style="margin-top: 8px;"><span>Max</span>
+                                                <input type="number" autocomplete="off" name="fullAlbumPlaysMax" th:value="${fullAlbumPlaysMax}" placeholder="∞" min="0" style="width: 100%;" />
                                             </label>
                                         </div>
                                     </div>
@@ -1418,6 +1480,33 @@
                 <button class="filter-chip-remove" onclick="removeFilter('lastListenedDateFrom', 'lastListenedDateTo', 'lastListenedDateMode')" type="button">×</button>
             </div>
             
+            <!-- First Full Listen Date filter chips -->
+            <div class="filter-chip" th:if="${firstFullListenDateMode == 'isnull'}">
+                <span class="filter-chip-label">First Full Listen: Never</span>
+                <button class="filter-chip-remove" onclick="removeFilter('firstFullListenDateMode')" type="button">&times;</button>
+            </div>
+            <div class="filter-chip" th:if="${firstFullListenDateMode == 'isnotnull'}">
+                <span class="filter-chip-label">First Full Listen: Has Date</span>
+                <button class="filter-chip-remove" onclick="removeFilter('firstFullListenDateMode')" type="button">&times;</button>
+            </div>
+            <div class="filter-chip" th:if="${firstFullListenDate != null and !firstFullListenDate.isEmpty() and firstFullListenDateMode != 'between' and firstFullListenDateMode != 'isnull' and firstFullListenDateMode != 'isnotnull'}">
+                <span class="filter-chip-label" th:switch="${firstFullListenDateMode}">
+                    <span th:case="'exact'">First Full Listen is</span>
+                    <span th:case="'gte'">First Full Listen on or after</span>
+                    <span th:case="'lte'">First Full Listen on or before</span>
+                    <span th:case="*">First Full Listen is</span>
+                </span>
+                <span class="filter-chip-value" th:text="${firstFullListenDateFormatted != null ? firstFullListenDateFormatted : firstFullListenDate}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('firstFullListenDate', 'firstFullListenDateMode')" type="button">&times;</button>
+            </div>
+            <div class="filter-chip" th:if="${firstFullListenDateMode == 'between' and firstFullListenDateFrom != null and !firstFullListenDateFrom.isEmpty() and firstFullListenDateTo != null and !firstFullListenDateTo.isEmpty()}">
+                <span class="filter-chip-label">First Full Listen between</span>
+                <span class="filter-chip-value" th:text="${firstFullListenDateFromFormatted != null ? firstFullListenDateFromFormatted : firstFullListenDateFrom}"></span>
+                <span> and </span>
+                <span class="filter-chip-value" th:text="${firstFullListenDateToFormatted != null ? firstFullListenDateToFormatted : firstFullListenDateTo}"></span>
+                <button class="filter-chip-remove" onclick="removeFilter('firstFullListenDateFrom', 'firstFullListenDateTo', 'firstFullListenDateMode')" type="button">&times;</button>
+            </div>
+
             <!-- Last Full Listen Date filter chips -->
             <div class="filter-chip" th:if="${lastFullListenDateMode == 'isnull'}">
                 <span class="filter-chip-label">Last Full Listen: Never</span>
@@ -1443,6 +1532,16 @@
                 <span> and </span>
                 <span class="filter-chip-value" th:text="${lastFullListenDateToFormatted != null ? lastFullListenDateToFormatted : lastFullListenDateTo}"></span>
                 <button class="filter-chip-remove" onclick="removeFilter('lastFullListenDateFrom', 'lastFullListenDateTo', 'lastFullListenDateMode')" type="button">×</button>
+            </div>
+
+            <div class="filter-chip" th:if="${fullAlbumPlaysMin != null or fullAlbumPlaysMax != null}">
+                <span class="filter-chip-label">
+                    Full Album Plays:
+                    <span th:text="${fullAlbumPlaysMin != null ? fullAlbumPlaysMin : 0}"></span>
+                    -
+                    <span th:text="${fullAlbumPlaysMax != null ? fullAlbumPlaysMax : '∞'}"></span>
+                </span>
+                <button class="filter-chip-remove" onclick="removeFilter('fullAlbumPlaysMin', 'fullAlbumPlaysMax')" type="button">×</button>
             </div>
             
             <!-- Listened Date filter chip (play date range) -->
@@ -1648,7 +1747,7 @@
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="album, iterStat : ${albums}" 
                  class="album-card"
-                 th:attr="data-album-id=${album.id}"
+                 th:attr="data-album-id=${album.id}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}"
                  th:classappend="${album.genderName != null and album.genderName.toLowerCase().contains('male') and !album.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${album.genderName != null and album.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                 <div class="album-image item-image-container" style="cursor: pointer;">
                     <img th:if="${album.hasImage}"
@@ -1718,7 +1817,9 @@
                             <th:block th:case="'release_date'">Released:</th:block>
                             <th:block th:case="'avg_length'">Avg Length:</th:block>
                             <th:block th:case="'avg_plays'">Avg Plays:</th:block>
+                            <th:block th:case="'first_full_listen'">First Full Listen:</th:block>
                             <th:block th:case="'first_listened'">First Listened:</th:block>
+                            <th:block th:case="'full_album_plays'">Full Album Plays:</th:block>
                             <th:block th:case="'itunes_presence'">iTunes Presence:</th:block>
                             <th:block th:case="'last_listened'">Last Listened:</th:block>
                             <th:block th:case="'last_full_listen'">Last Full Listen:</th:block>
@@ -1741,7 +1842,9 @@
                             <th:block th:case="'release_date'" th:text="${album.releaseDate != null ? album.releaseDate : 'N/A'}"></th:block>
                             <th:block th:case="'avg_length'" th:text="${album.avgLengthFormatted != null ? album.avgLengthFormatted : 'N/A'}"></th:block>
                             <th:block th:case="'avg_plays'" th:text="${album.avgPlays != null ? #numbers.formatDecimal(album.avgPlays, 1, 1) : 'N/A'}"></th:block>
+                            <th:block th:case="'first_full_listen'" th:text="${album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A'}"></th:block>
                             <th:block th:case="'first_listened'" th:text="${album.firstListenedDate != null ? album.firstListenedDate : 'N/A'}"></th:block>
+                            <th:block th:case="'full_album_plays'" th:text="${album.fullAlbumPlays}"></th:block>
                             <th:block th:case="'itunes_presence'" th:text="${album.itunesPresenceRatio != null ? #numbers.formatDecimal(album.itunesPresenceRatio, 1, 1) + '%' : 'N/A'}"></th:block>
                             <th:block th:case="'last_listened'" th:text="${album.lastListenedDate != null ? album.lastListenedDate : 'N/A'}"></th:block>
                             <th:block th:case="'last_full_listen'" th:text="${album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A'}"></th:block>
@@ -1832,6 +1935,11 @@
                             <div class="modal-stat-row">
                                 <span class="modal-stat-label">Legacy Plays</span>
                                 <span class="modal-stat-value" th:text="${album.robertloverPlayCount}">0</span>
+                            </div>
+                            <div class="modal-stat-row">
+                                <span class="modal-stat-label">Full Album Plays</span>
+                                <span class="modal-stat-value full-album-plays-value" aria-live="polite"
+                                      th:text="${includeFullListenStats ? album.fullAlbumPlays : 'Loading'}">Loading</span>
                             </div>
                             <div class="modal-stat-row">
                                 <span class="modal-stat-label">Time Listened</span>
@@ -1927,8 +2035,14 @@
                                 <span class="modal-stat-value" th:text="${album.yearsListened}">0</span>
                             </div>
                             <div class="modal-stat-row">
+                                <span class="modal-stat-label">First Full Listen</span>
+                                <span class="modal-stat-value first-full-listen-value" aria-live="polite"
+                                      th:text="${includeFullListenStats ? (album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A') : 'Loading'}">Loading</span>
+                            </div>
+                            <div class="modal-stat-row">
                                 <span class="modal-stat-label">Last Full Listen</span>
-                                <span class="modal-stat-value last-full-listen-value">...</span>
+                                <span class="modal-stat-value last-full-listen-value" aria-live="polite"
+                                      th:text="${includeFullListenStats ? (album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A') : 'Loading'}">Loading</span>
                             </div>
                         </div>
 
@@ -2002,7 +2116,9 @@
                             <th data-sort="weeksListened" data-col="weeksListened" style="text-align:right;display:none;">Weeks Listened</th>
                             <th data-sort="monthsListened" data-col="monthsListened" style="text-align:right;display:none;">Months Listened</th>
                             <th data-sort="yearsListened" data-col="yearsListened" style="text-align:right;display:none;">Years Listened</th>
+                            <th data-sort="firstFullListen" data-col="firstFullListen" style="display:none;">First Full Listen</th>
                             <th data-sort="lastFullListen" data-col="lastFullListen" style="display:none;">Last Full Listen</th>
+                            <th data-sort="fullAlbumPlays" data-col="fullAlbumPlays" style="text-align:right;display:none;">Full Album Plays</th>
                             <th data-sort="ageAtRelease" data-col="ageAtRelease" style="text-align:right;display:none;">Age at Release</th>
                             <th data-sort="avgLength" data-col="avgLength" style="text-align:right;display:none;">Avg Length</th>
                             <th data-sort="avgPlays" data-col="avgPlays" style="text-align:right;display:none;">Avg Plays</th>
@@ -2391,7 +2507,7 @@
                         }
 
                         // Special handling for date filters - toggle between single/range inputs
-                        if (filterName === 'releaseDate' || filterName === 'firstListenedDate' || filterName === 'lastListenedDate' || filterName === 'lastFullListenDate') {
+                        if (filterName === 'releaseDate' || filterName === 'firstListenedDate' || filterName === 'lastListenedDate' || filterName === 'firstFullListenDate' || filterName === 'lastFullListenDate') {
                             const singleDiv = document.getElementById(filterName + 'Single');
                             const rangeDiv = document.getElementById(filterName + 'Range');
                             if (mode === 'between') {
@@ -2496,6 +2612,15 @@
             
             const lastFullListenDateToInput = document.querySelector('input[name="lastFullListenDateTo"]');
             if (lastFullListenDateToInput) flatpickr(lastFullListenDateToInput, dateConfig);
+
+            const firstFullListenDateInput = document.querySelector('input[name="firstFullListenDate"]');
+            if (firstFullListenDateInput) flatpickr(firstFullListenDateInput, dateConfig);
+
+            const firstFullListenDateFromInput = document.querySelector('input[name="firstFullListenDateFrom"]');
+            if (firstFullListenDateFromInput) flatpickr(firstFullListenDateFromInput, dateConfig);
+
+            const firstFullListenDateToInput = document.querySelector('input[name="firstFullListenDateTo"]');
+            if (firstFullListenDateToInput) flatpickr(firstFullListenDateToInput, dateConfig);
             
             // Listened Date
             const listenedDateFromInput = document.querySelector('input[name="listenedDateFrom"]');

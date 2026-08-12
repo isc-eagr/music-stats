@@ -321,10 +321,11 @@ class CatalogFilterEdgeCaseTest {
                     args[i] = 0;
                 }
             }
-            args[args.length - 8] = sortBy;
-            args[args.length - 7] = sortDirection;
-            args[args.length - 2] = page;
-            args[args.length - 1] = perPage;
+            args[args.length - 10] = sortBy;
+            args[args.length - 9] = sortDirection;
+            args[args.length - 3] = page;
+            args[args.length - 2] = perPage;
+            args[args.length - 1] = false;
             @SuppressWarnings("unchecked")
             List<SongCardDTO> songs = (List<SongCardDTO>) method.invoke(service, args);
             return songs;

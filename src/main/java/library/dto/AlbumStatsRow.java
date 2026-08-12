@@ -53,7 +53,9 @@ public record AlbumStatsRow(
         Integer weeklyChartPeakWeekCount,
         Integer seasonalChartPeakSeasonCount,
         Integer yearlyChartPeakYearCount,
+        String firstFullListenDate,
         String lastFullListenDate,
+        int fullAlbumPlays,
         Double itunesPresenceRatio
 ) {
     public static AlbumStatsRow from(ResultSet rs) throws SQLException {
@@ -107,7 +109,9 @@ public record AlbumStatsRow(
                 getInteger(rs, "weekly_chart_peak_weeks"),
                 getInteger(rs, "seasonal_chart_peak_seasons"),
                 getInteger(rs, "yearly_chart_peak_years"),
+                rs.getString("first_full_listen_date"),
                 rs.getString("last_full_listen_date"),
+                rs.getInt("full_album_plays"),
                 getDouble(rs, "itunes_presence_ratio")
         );
     }

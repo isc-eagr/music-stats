@@ -7,6 +7,7 @@ import library.repository.AlbumRepository;
 import library.repository.ArtistRepositoryImpl;
 import library.repository.SongRepository;
 import library.service.AppConfigService;
+import library.service.AlbumFullListenCalculator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
@@ -28,7 +29,7 @@ final class TestDatabaseSupport implements AutoCloseable {
     final ArtistRepositoryImpl artistRepository;
     final AlbumRepository albumRepository;
 
-    private TestDatabaseSupport() {
+    private TestDatabaseSupport(AppConfigService.AlbumFullListenConfig fullListenConfig) {
         this.dataSource = new SingleConnectionDataSource();
         this.dataSource.setDriverClassName("org.sqlite.JDBC");
         this.dataSource.setUrl("jdbc:sqlite:file:music-stats-test-" + UUID.randomUUID() + "?mode=memory&cache=shared");
@@ -37,18 +38,23 @@ final class TestDatabaseSupport implements AutoCloseable {
 
         AppConfigService appConfigService = mock(AppConfigService.class);
         when(appConfigService.getAlbumFullListenConfig())
-                .thenReturn(new AppConfigService.AlbumFullListenConfig(0, 2, 3, 4));
+                .thenReturn(fullListenConfig);
 
         createSchema();
         seedCatalog();
 
-        this.songRepository = new SongRepository(jdbcTemplate, appConfigService);
+        AlbumFullListenCalculator fullListenCalculator = new AlbumFullListenCalculator(jdbcTemplate, appConfigService);
+        this.songRepository = new SongRepository(jdbcTemplate, fullListenCalculator);
         this.artistRepository = new ArtistRepositoryImpl(jdbcTemplate);
-        this.albumRepository = new AlbumRepository(jdbcTemplate, appConfigService);
+        this.albumRepository = new AlbumRepository(jdbcTemplate, fullListenCalculator);
     }
 
     static TestDatabaseSupport create() {
-        return new TestDatabaseSupport();
+        return create(new AppConfigService.AlbumFullListenConfig(0, 2, 3, 4, 5));
+    }
+
+    static TestDatabaseSupport create(AppConfigService.AlbumFullListenConfig fullListenConfig) {
+        return new TestDatabaseSupport(fullListenConfig);
     }
 
     @Override
@@ -390,6 +396,7 @@ final class TestDatabaseSupport implements AutoCloseable {
     static ArtistStatsQuery artistQuery(String sortBy, String sortDir) {
         return recordQuery(ArtistStatsQuery.class, mapOf(
                 "includeMain", true,
+                "includeExtendedStats", true,
                 "sortBy", sortBy,
                 "sortDir", sortDir
         ));
@@ -406,6 +413,7 @@ final class TestDatabaseSupport implements AutoCloseable {
             String sortDir) {
         return recordQuery(ArtistStatsQuery.class, mapOf(
                 "includeMain", true,
+                "includeExtendedStats", true,
                 "genderIds", genderIds,
                 "genderMode", genderMode,
                 "accounts", accounts,
@@ -422,6 +430,7 @@ final class TestDatabaseSupport implements AutoCloseable {
         values.putIfAbsent("sortBy", "name");
         values.putIfAbsent("sortDir", "asc");
         values.putIfAbsent("includeMain", true);
+        values.putIfAbsent("includeExtendedStats", true);
         values.putIfAbsent("limit", 100);
         values.putIfAbsent("offset", 0);
         return recordQuery(ArtistStatsQuery.class, values);
@@ -429,6 +438,7 @@ final class TestDatabaseSupport implements AutoCloseable {
 
     static AlbumStatsQuery albumQuery(String sortBy, String sortDir) {
         return recordQuery(AlbumStatsQuery.class, mapOf(
+                "includeExtendedStats", true,
                 "sortBy", sortBy,
                 "sortDir", sortDir
         ));
@@ -444,6 +454,7 @@ final class TestDatabaseSupport implements AutoCloseable {
             String sortBy,
             String sortDir) {
         return recordQuery(AlbumStatsQuery.class, mapOf(
+                "includeExtendedStats", true,
                 "genderIds", genderIds,
                 "genderMode", genderMode,
                 "accounts", accounts,
@@ -459,6 +470,7 @@ final class TestDatabaseSupport implements AutoCloseable {
         Map<String, Object> values = new HashMap<>(overrides);
         values.putIfAbsent("sortBy", "name");
         values.putIfAbsent("sortDir", "asc");
+        values.putIfAbsent("includeExtendedStats", true);
         values.putIfAbsent("limit", 100);
         values.putIfAbsent("offset", 0);
         return recordQuery(AlbumStatsQuery.class, values);

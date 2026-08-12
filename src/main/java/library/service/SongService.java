@@ -304,7 +304,8 @@ public class SongService {
                                        String sortBy2, String sortDirection2,
                                        String sortBy3, String sortDirection3,
                                        Integer randomSeed,
-                                       int page, int perPage) {
+                                       int page, int perPage,
+                                       boolean includeExtendedStats) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         if (tagIds != null && tagIds.isEmpty()) tagIds = null;
@@ -353,7 +354,7 @@ public class SongService {
                 yearlyChartDateFrom, yearlyChartDateTo
             )
             : null;
-        boolean includeExpensiveStats = !combineLinkedSongs || requiresExpensiveStatsForSort(sortBy, sortBy2, sortBy3);
+        boolean includeExpensiveStats = includeExtendedStats || requiresExpensiveStatsForSort(sortBy, sortBy2, sortBy3);
 
         List<SongStatsRow> results = songRepository.findSongsWithStats(new SongStatsQuery(
                 name, artistName, featuredArtistIds, albumName, genreIds, genreMode,
@@ -436,50 +437,6 @@ public class SongService {
             int fromIndex = Math.min(page * perPage, songs.size());
             int toIndex = Math.min(fromIndex + perPage, songs.size());
             List<SongCardDTO> pagedSongs = new ArrayList<>(songs.subList(fromIndex, toIndex));
-            if (!includeExpensiveStats && !pagedSongs.isEmpty()) {
-                List<Integer> pageSongIds = pagedSongs.stream()
-                        .map(SongCardDTO::getId)
-                        .filter(Objects::nonNull)
-                        .distinct()
-                        .toList();
-                List<SongStatsRow> fullRows = songRepository.findSongsWithStats(new SongStatsQuery(
-                        name, artistName, featuredArtistIds, albumName, genreIds, genreMode,
-                        subgenreIds, subgenreMode, languageIds, languageMode, genderIds, genderMode,
-                        ethnicityIds, ethnicityMode, countries, countryMode, tagIds, tagMode, accounts, accountMode,
-                        releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-                        firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode,
-                        lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode,
-                        listenedDateFrom, listenedDateTo,
-                        organized, imageCountMin, imageCountMax, hasFeaturedArtists, isBand, isSingle,
-                        itunesIdsJson, inItunes,
-                        ageMin, ageMax, ageMode,
-                        ageAtReleaseMin, ageAtReleaseMax,
-                        birthDate, birthDateFrom, birthDateTo, birthDateMode,
-                        deathDate, deathDateFrom, deathDateTo, deathDateMode,
-                        playCountMin, playCountMax,
-                        trackNumber, trackNumberMode,
-                        lengthMin, lengthMax, lengthMode,
-                        weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode,
-                        weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
-                        trlPeak, trlPeakMode, trlDays, trlDaysAtPeak, trlDaysAtPeakMode,
-                        trlDateFrom, trlDateTo,
-                        vatosCuntdownPeak, vatosCuntdownPeakMode, vatosCuntdownDays, vatosCuntdownDaysAtPeak, vatosCuntdownDaysAtPeakMode,
-                        vatosCuntdownDateFrom, vatosCuntdownDateTo,
-                        billboardPeak, billboardPeakMode, billboardWeeks, billboardWeeksAtPeak, billboardWeeksAtPeakMode,
-                        billboardDateFrom, billboardDateTo,
-                        seasonalChartPeak, seasonalChartSeasons,
-                        seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
-                        yearlyChartPeak, yearlyChartYears,
-                        yearlyChartDateFrom, yearlyChartDateTo,
-                        sortBy, sortDirection, sortBy2, sortDirection2, sortBy3, sortDirection3,
-                        randomSeed, pageSongIds.size(), 0, true, pageSongIds
-                ));
-                Map<Integer, SongCardDTO> fullStatsById = mapSongRows(fullRows).stream()
-                        .collect(Collectors.toMap(SongCardDTO::getId, Function.identity()));
-                pagedSongs = pagedSongs.stream()
-                        .map(summary -> mergeCombinedSummaryWithFullStats(summary, fullStatsById.get(summary.getId())))
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
             populateSongItunesPresence(pagedSongs);
             return pagedSongs;
         }

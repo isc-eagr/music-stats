@@ -4,10 +4,12 @@ import library.service.AppConfigService;
 import library.service.PlayAutomationStateService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -30,6 +32,15 @@ public class PlayAutomationController {
     public ResponseEntity<Map<String, Object>> dismissSyncIssueBanner() {
         automationStateService.clearSyncIssue();
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @GetMapping("/unmatched-banner")
+    public ResponseEntity<Map<String, Object>> getUnmatchedBanner() {
+        PlayAutomationStateService.BannerState bannerState = automationStateService.getBannerState();
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("unmatchedBanner", bannerState.getUnmatchedBanner());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/config")

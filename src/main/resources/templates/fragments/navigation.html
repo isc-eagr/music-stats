@@ -320,6 +320,41 @@
                     }
                 }
 
+                function updateUnmatchedPlayAutomationBanner(unmatchedBanner) {
+                    const banner = document.querySelector('.automation-banner[data-banner-kind="unmatched"]');
+                    if (!unmatchedBanner || Number(unmatchedBanner.count || 0) <= 0) {
+                        removePlayAutomationBanner('unmatched');
+                        return;
+                    }
+
+                    if (!banner) {
+                        return;
+                    }
+
+                    const count = banner.querySelector('.automation-banner-count');
+                    if (count) {
+                        count.textContent = String(unmatchedBanner.count);
+                    }
+                    if (unmatchedBanner.href) {
+                        banner.href = unmatchedBanner.href;
+                    }
+                }
+
+                window.refreshPlayAutomationBanner = async function() {
+                    try {
+                        const response = await fetch('/plays/api/automation/unmatched-banner', {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        if (!response.ok) {
+                            throw new Error('Unmatched banner refresh failed');
+                        }
+                        const result = await response.json();
+                        updateUnmatchedPlayAutomationBanner(result.unmatchedBanner);
+                    } catch (error) {
+                        console.error('Unable to refresh unmatched plays banner:', error);
+                    }
+                };
+
                 window.dismissPlayAutomationBanner = async function(kind) {
                     const endpoint = kind === 'imported'
                         ? '/plays/api/automation/dismiss-imported-banner'
@@ -458,10 +493,11 @@
         </div>
         <div class="automation-banner-stack" th:if="${playAutomationBannerState != null}">
             <a class="automation-banner automation-banner-compact automation-banner-unmatched"
+               data-banner-kind="unmatched"
                th:if="${playAutomationBannerState.unmatchedBanner != null}"
                th:href="${playAutomationBannerState.unmatchedBanner.href}">
                 <div class="automation-banner-copy">
-                    <span class="automation-banner-title"><span th:text="${playAutomationBannerState.unmatchedBanner.count}">0</span> Unmatched Plays</span>
+                    <span class="automation-banner-title"><span class="automation-banner-count" th:text="${playAutomationBannerState.unmatchedBanner.count}">0</span> Unmatched Plays</span>
                 </div>
                 <span class="automation-banner-cta">Review</span>
             </a>

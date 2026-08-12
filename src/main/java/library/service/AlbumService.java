@@ -1,6 +1,7 @@
 package library.service;
 
 import library.dto.AlbumCardDTO;
+import library.dto.AlbumFullListenStats;
 import library.dto.AlbumSongDTO;
 import library.dto.AlbumStatsQuery;
 import library.dto.AlbumStatsRow;
@@ -83,16 +84,24 @@ public class AlbumService {
                                          String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                                          Integer yearlyChartPeak, Integer yearlyChartYears,
                                          String yearlyChartDateFrom, String yearlyChartDateTo,
+                                         String firstFullListenDate, String firstFullListenDateFrom, String firstFullListenDateTo, String firstFullListenDateMode,
                                          String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
+                                         Integer fullAlbumPlaysMin, Integer fullAlbumPlaysMax,
                                          Integer itunesPresenceMin, Integer itunesPresenceMax,
+                                         boolean includeFullListenStats,
                                          String sortBy, String sortDir,
                                          String sortBy2, String sortDir2,
                                          String sortBy3, String sortDir3,
                                          Integer randomSeed,
-                                         int page, int perPage) {
+                                         int page, int perPage,
+                                         boolean includeExtendedStats) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
         if (tagIds != null && tagIds.isEmpty()) tagIds = null;
+
+        boolean fullListenNeededForQuery = requiresFullListenQuery(
+                firstFullListenDateMode, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax, sortBy, sortBy2, sortBy3);
         
         String itunesSongIdsJson = itunesService.getAllItunesSongIdsJson();
         
@@ -115,8 +124,10 @@ public class AlbumService {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
+                firstFullListenDate, firstFullListenDateFrom, firstFullListenDateTo, firstFullListenDateMode,
                 lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
-                itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
+                itunesPresenceMin, itunesPresenceMax, itunesSongIdsJson, fullListenNeededForQuery, includeExtendedStats,
                 sortBy, sortDir, sortBy2, sortDir2, sortBy3, sortDir3, randomSeed, perPage, page * perPage
         ));
         
@@ -185,10 +196,26 @@ public class AlbumService {
             dto.setWeeklyChartPeakWeeks(row.weeklyChartPeakWeekCount());
             dto.setSeasonalChartPeakSeasons(row.seasonalChartPeakSeasonCount());
             dto.setYearlyChartPeakYears(row.yearlyChartPeakYearCount());
+            dto.setFirstFullListenDate(row.firstFullListenDate() != null ? formatDate(row.firstFullListenDate()) : null);
             dto.setLastFullListenDate(row.lastFullListenDate() != null ? formatDate(row.lastFullListenDate()) : null);
+            dto.setFullAlbumPlays(row.fullAlbumPlays());
             dto.setItunesPresenceRatio(row.itunesPresenceRatio());
 
             albums.add(dto);
+        }
+
+        if (includeFullListenStats && !fullListenNeededForQuery && !albums.isEmpty()) {
+            Map<Integer, AlbumFullListenStats> statsByAlbum = albumRepository.findFullListenStatsForAlbums(
+                    albums.stream().map(AlbumCardDTO::getId).toList());
+            for (AlbumCardDTO album : albums) {
+                AlbumFullListenStats stats = statsByAlbum.getOrDefault(
+                        album.getId(), new AlbumFullListenStats(null, null, 0));
+                album.setFirstFullListenDate(stats.firstFullListenDate() != null
+                        ? formatDate(stats.firstFullListenDate()) : null);
+                album.setLastFullListenDate(stats.lastFullListenDate() != null
+                        ? formatDate(stats.lastFullListenDate()) : null);
+                album.setFullAlbumPlays(stats.fullAlbumPlays());
+            }
         }
 
         populateAlbumItunesPresence(albums);
@@ -204,6 +231,24 @@ public class AlbumService {
         }
         
         return albums;
+    }
+
+    private boolean requiresFullListenQuery(String firstMode, String lastMode,
+                                            Integer fullAlbumPlaysMin, Integer fullAlbumPlaysMax,
+                                            String... sortFields) {
+        if ((firstMode != null && !firstMode.isBlank()) || (lastMode != null && !lastMode.isBlank())
+                || fullAlbumPlaysMin != null || fullAlbumPlaysMax != null) {
+            return true;
+        }
+        if (sortFields != null) {
+            for (String sortField : sortFields) {
+                if ("first_full_listen".equals(sortField) || "last_full_listen".equals(sortField)
+                        || "full_album_plays".equals(sortField)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void populateAlbumItunesPresence(List<AlbumCardDTO> albums) {
@@ -249,7 +294,9 @@ public class AlbumService {
                            String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                            Integer yearlyChartPeak, Integer yearlyChartYears,
                            String yearlyChartDateFrom, String yearlyChartDateTo,
+                           String firstFullListenDate, String firstFullListenDateFrom, String firstFullListenDateTo, String firstFullListenDateMode,
                            String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
+                           Integer fullAlbumPlaysMin, Integer fullAlbumPlaysMax,
                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null to avoid native SQL IN () syntax errors in SQLite
         if (accounts != null && accounts.isEmpty()) accounts = null;
@@ -273,7 +320,9 @@ public class AlbumService {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
+                firstFullListenDate, firstFullListenDateFrom, firstFullListenDateTo, firstFullListenDateMode,
                 lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
     }
     
@@ -310,7 +359,9 @@ public class AlbumService {
                            String seasonalChartDateFrom, String seasonalChartDateTo, String seasonalChartSeason,
                            Integer yearlyChartPeak, Integer yearlyChartYears,
                            String yearlyChartDateFrom, String yearlyChartDateTo,
+                           String firstFullListenDate, String firstFullListenDateFrom, String firstFullListenDateTo, String firstFullListenDateMode,
                            String lastFullListenDate, String lastFullListenDateFrom, String lastFullListenDateTo, String lastFullListenDateMode,
+                           Integer fullAlbumPlaysMin, Integer fullAlbumPlaysMax,
                            Integer itunesPresenceMin, Integer itunesPresenceMax) {
         // Normalize empty lists to null
         if (accounts != null && accounts.isEmpty()) accounts = null;
@@ -336,7 +387,9 @@ public class AlbumService {
                 weeklyChartPeak, weeklyChartPeakMode, weeklyChartWeeks, weeklyChartPeakWeeks, weeklyChartPeakWeeksMode, weeklyChartDateFrom, weeklyChartDateTo, weeklyChartSeason,
                 seasonalChartPeak, seasonalChartSeasons, seasonalChartDateFrom, seasonalChartDateTo, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears, yearlyChartDateFrom, yearlyChartDateTo,
+                firstFullListenDate, firstFullListenDateFrom, firstFullListenDateTo, firstFullListenDateMode,
                 lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
+                fullAlbumPlaysMin, fullAlbumPlaysMax,
                 itunesPresenceMin, itunesPresenceMax, itunesService.getAllItunesSongIdsJson());
         
         // Gender ID 1 = Female, Gender ID 2 = Male
@@ -981,45 +1034,25 @@ public class AlbumService {
     }
 
     public String getLastFullListenDateForAlbum(int albumId) {
-        Integer totalSongs = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM Song WHERE album_id = ?", Integer.class, albumId);
-        int total = totalSongs != null ? totalSongs : 0;
-        if (total == 0) return null;
-        int threshold = total <= 6 ? total : total <= 10 ? total - 2 : total <= 20 ? total - 3 : total - 4;
-        String sql = """
-            WITH all_plays_ranked AS (
-                SELECT p.id, p.play_date, p.song_id, s.album_id,
-                       ROW_NUMBER() OVER (ORDER BY p.play_date, p.id) AS rn
-                FROM Play p
-                LEFT JOIN Song s ON p.song_id = s.id
-                WHERE s.album_id = ?
-            ),
-            play_with_prev AS (
-                SELECT *, LAG(album_id) OVER (ORDER BY rn) AS prev_album_id
-                FROM all_plays_ranked
-            ),
-            run_ids AS (
-                SELECT *,
-                       SUM(CASE WHEN prev_album_id IS NOT album_id THEN 1 ELSE 0 END)
-                           OVER (ORDER BY rn) AS run_id
-                FROM play_with_prev
-            ),
-            album_run_coverage AS (
-                SELECT album_id, run_id, MAX(play_date) AS run_end_date,
-                       COUNT(DISTINCT song_id) AS songs_played
-                FROM run_ids
-                WHERE album_id IS NOT NULL
-                GROUP BY album_id, run_id
-            )
-            SELECT MAX(DATE(arc.run_end_date))
-            FROM album_run_coverage arc
-            WHERE arc.album_id = ?
-              AND arc.songs_played >= %d
-            """.formatted(threshold);
+        AlbumFullListenStats stats = getFullListenStatsForAlbum(albumId);
+        return stats.lastFullListenDate() != null ? formatDate(stats.lastFullListenDate()) : null;
+    }
+
+    public String getFirstFullListenDateForAlbum(int albumId) {
+        AlbumFullListenStats stats = getFullListenStatsForAlbum(albumId);
+        return stats.firstFullListenDate() != null ? formatDate(stats.firstFullListenDate()) : null;
+    }
+
+    public int getFullAlbumPlaysForAlbum(int albumId) {
+        return getFullListenStatsForAlbum(albumId).fullAlbumPlays();
+    }
+
+    public AlbumFullListenStats getFullListenStatsForAlbum(int albumId) {
         try {
-            String date = jdbcTemplate.queryForObject(sql, String.class, albumId, albumId);
-            return formatDate(date);
+            AlbumFullListenStats stats = albumRepository.findFullListenStatsForAlbum(albumId);
+            return stats != null ? stats : new AlbumFullListenStats(null, null, 0);
         } catch (Exception e) {
-            return null;
+            return new AlbumFullListenStats(null, null, 0);
         }
     }
 

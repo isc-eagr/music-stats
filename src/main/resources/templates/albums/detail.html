@@ -471,10 +471,15 @@
                                 </div>
                                 
                                 <div class="form-group view-only-field">
+                                    <label>First Full Listen Date</label>
+                                    <span class="attribute-text" th:text="${firstFullListenDate != null ? firstFullListenDate : '-'}">-</span>
+                                </div>
+
+                                <div class="form-group view-only-field">
                                     <label>Last Full Listen Date</label>
                                     <span class="attribute-text" th:text="${lastFullListenDate != null ? lastFullListenDate : '-'}">-</span>
                                 </div>
-                                
+
                                 <div class="form-group">
                                     <label for="overrideLanguageId">
                                         <span class="label-view">Language</span>
@@ -563,6 +568,10 @@
                             <div class="ds-row">
                                 <span class="ds-label">Legacy Plays</span>
                                 <span class="ds-value" th:text="${albumRobertloverPlayCount}">0</span>
+                            </div>
+                            <div class="ds-row">
+                                <span class="ds-label">Full Album Plays</span>
+                                <span class="ds-value" th:text="${fullAlbumPlays}">0</span>
                             </div>
                             <div class="ds-row">
                                 <span class="ds-label">Total Listening Time</span>

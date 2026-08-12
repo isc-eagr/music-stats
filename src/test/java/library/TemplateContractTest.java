@@ -22,6 +22,21 @@ class TemplateContractTest {
     private static final Path TEMPLATES = Path.of("src/main/resources/templates");
 
     @Test
+    void unmatchedPlayMatchingRefreshesTheAutomationBannerInPlace() throws IOException {
+        String navigation = read("fragments/navigation.html");
+        String unmatchedPlays = read("unmatchedPlays.html");
+
+        assertThat(navigation)
+                .contains("data-banner-kind=\"unmatched\"")
+                .contains("automation-banner-count")
+                .contains("/plays/api/automation/unmatched-banner")
+                .contains("window.refreshPlayAutomationBanner");
+        assertThat(unmatchedPlays)
+                .contains("window.refreshPlayAutomationBanner();")
+                .contains("removeRowsByPredicate");
+    }
+
+    @Test
     void chartLibraryLinksReplaceOnlyTheAffectedOverviewRow() throws IOException {
         String pcHtml = read("misc/pc.html");
         String pcMatchFlow = functionBody(pcHtml, "function linkPcMatch", "function escapePcHtml");
@@ -151,7 +166,7 @@ class TemplateContractTest {
                         "artistName", "name", "random", "plays", "primaryPlays", "legacyPlays", "length",
                         "timeListened", "releaseDate", "firstListened", "lastListened",
                         "daysListened", "weeksListened", "monthsListened", "yearsListened",
-                        "lastFullListen", "ageAtRelease", "avgLength", "avgPlays",
+                        "firstFullListen", "lastFullListen", "fullAlbumPlays", "ageAtRelease", "avgLength", "avgPlays",
                         "seasonalChartPeak", "songCount", "featuredArtistCount", "soloSongCount",
                         "songsWithFeatCount", "weeklyChartPeak", "weeklyChartWeeks",
                         "weeklyChartPeakWeeks", "yearlyChartPeak", "genre", "subgenre",
@@ -173,6 +188,69 @@ class TemplateContractTest {
                         "ethnicity", "country", "language"
                 )
         );
+    }
+
+    @Test
+    void expandedCatalogCardsAndHiddenTableColumnsLoadExtendedStatsOnDemand() throws IOException {
+        Document albums = parse("albums/list.html");
+        Element firstFullListen = albums.selectFirst(".first-full-listen-value");
+        Element fullAlbumPlays = albums.selectFirst(".full-album-plays-value");
+
+        assertThat(firstFullListen).isNotNull();
+        assertThat(firstFullListen.tagName()).isEqualTo("span");
+        assertThat(firstFullListen.text()).isEqualTo("Loading");
+        assertThat(firstFullListen.hasAttr("onclick")).isFalse();
+        assertThat(firstFullListen.hasAttr("tabindex")).isFalse();
+        assertThat(fullAlbumPlays).isNotNull();
+        assertThat(fullAlbumPlays.tagName()).isEqualTo("span");
+        assertThat(fullAlbumPlays.text()).isEqualTo("Loading");
+        assertThat(fullAlbumPlays.hasAttr("onclick")).isFalse();
+        assertThat(fullAlbumPlays.hasAttr("tabindex")).isFalse();
+
+        String listUtils = Files.readString(
+                Path.of("src/main/resources/static/js/list-utils.js"), StandardCharsets.UTF_8);
+        assertThat(listUtils)
+                .contains("function fetchLazyCardPage(card)")
+                .contains("url.searchParams.set('perpage', '1')")
+                .contains("url.searchParams.set('lazyCard', 'true')")
+                .contains("url.searchParams.set('includeExtendedStats', 'true')")
+                .contains("async function hydrateLazyCardDetails(card)")
+                .contains("window.showCatalogLoading('Loading details...')")
+                .contains("window.hideCatalogLoading()");
+
+        String graphs = Files.readString(
+                Path.of("src/main/resources/static/js/graphs.js"), StandardCharsets.UTF_8);
+        assertThat(graphs)
+                .contains("{ key: 'firstFullListen', label: 'First Full Listen', defaultVisible: false")
+                .contains("{ key: 'fullAlbumPlays', label: 'Full Album Plays', defaultVisible: false")
+                .contains("async function ensureLazyTableDetails(type, includeFullListenStats = false)")
+                .contains("params.set('includeExtendedStats', 'true')")
+                .contains("albumFullListenColumns.has(colKey)")
+                .contains("params.set('includeFullListenStats', 'true')")
+                .contains("window.showCatalogLoading?.('Loading column data...')");
+
+        assertThat(read("artists/list.html")).contains("data-result-index=${currentPage * perPage + iterStat.index}");
+        assertThat(read("albums/list.html")).contains("data-result-index=${currentPage * perPage + iterStat.index}");
+        assertThat(read("songs/list.html")).contains("data-result-index=${currentPage * perPage + iterStat.index}");
+
+        for (String controller : List.of("ArtistController.java", "AlbumController.java", "SongController.java")) {
+            String source = Files.readString(
+                    Path.of("src/main/java/library/controller", controller), StandardCharsets.UTF_8);
+            assertThat(source)
+                    .describedAs(controller + " must permit the single-record lazy-card page size")
+                    .contains("int effectivePerPage = lazyCard ? 1");
+        }
+    }
+
+    @Test
+    void albumFullListenSettingsExposeTheInterruptionBudget() throws IOException {
+        Document config = parse("config/index.html");
+        Element allowedInterruptions = config.selectFirst("#allowedInterruptingSongs");
+
+        assertThat(allowedInterruptions).isNotNull();
+        assertThat(allowedInterruptions.attr("name")).isEqualTo("allowedInterruptingSongs");
+        assertThat(allowedInterruptions.attr("th:value"))
+                .isEqualTo("${fullListenConfig.allowedInterruptingSongs}");
     }
 
     @Test
@@ -246,7 +324,7 @@ class TemplateContractTest {
                 "albums/list.html", Set.of(
                         "name", "artist", "plays", "primary_plays", "legacy_plays", "album_length",
                         "time", "release_date", "first_listened", "last_listened", "days_listened",
-                        "weeks_listened", "months_listened", "years_listened", "last_full_listen",
+                        "weeks_listened", "months_listened", "years_listened", "first_full_listen", "last_full_listen", "full_album_plays",
                         "song_count", "featured_artist_count", "solo_songs", "songs_with_features",
                         "weekly_chart_peak", "weekly_chart_weeks", "weekly_chart_peak_weeks",
                         "yearly_chart_peak", "genre", "subgenre", "ethnicity", "country",

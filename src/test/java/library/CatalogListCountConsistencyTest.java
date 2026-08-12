@@ -178,9 +178,14 @@ class CatalogListCountConsistencyTest {
                 entry("seasonal chart season", mapOf("seasonalChartPeak", 1, "seasonalChartSeason", "Spring")),
                 entry("yearly chart peak", mapOf("yearlyChartPeak", 2)),
                 entry("yearly chart date window", mapOf("yearlyChartPeak", 2, "yearlyChartDateFrom", "2024-01-01", "yearlyChartDateTo", "2024-12-31")),
+                entry("first full listen exact", mapOf("firstFullListenDate", "2024-02-01", "firstFullListenDateMode", "exact")),
+                entry("first full listen between", mapOf("firstFullListenDateFrom", "2024-02-01", "firstFullListenDateTo", "2024-05-01", "firstFullListenDateMode", "between")),
+                entry("first full listen is null", mapOf("firstFullListenDateMode", "isnull")),
                 entry("last full listen exact", mapOf("lastFullListenDate", "2024-02-01", "lastFullListenDateMode", "exact")),
                 entry("last full listen between", mapOf("lastFullListenDateFrom", "2024-02-01", "lastFullListenDateTo", "2024-05-01", "lastFullListenDateMode", "between")),
                 entry("last full listen is null", mapOf("lastFullListenDateMode", "isnull")),
+                entry("full album plays min", mapOf("fullAlbumPlaysMin", 1)),
+                entry("full album plays max", mapOf("fullAlbumPlaysMax", 0)),
                 entry("itunes presence min", mapOf("itunesPresenceMin", 100, "itunesSongIdsJson", "[1,2,3,4,8]")),
                 entry("itunes presence max", mapOf("itunesPresenceMax", 0, "itunesSongIdsJson", "[1,2,3,4,8]"))
         );
@@ -292,7 +297,9 @@ class CatalogListCountConsistencyTest {
                 q.weeklyChartDateFrom(), q.weeklyChartDateTo(), q.weeklyChartSeason(), q.seasonalChartPeak(),
                 q.seasonalChartSeasons(), q.seasonalChartDateFrom(), q.seasonalChartDateTo(), q.seasonalChartSeason(),
                 q.yearlyChartPeak(), q.yearlyChartYears(), q.yearlyChartDateFrom(), q.yearlyChartDateTo(),
+                q.firstFullListenDate(), q.firstFullListenDateFrom(), q.firstFullListenDateTo(), q.firstFullListenDateMode(),
                 q.lastFullListenDate(), q.lastFullListenDateFrom(), q.lastFullListenDateTo(), q.lastFullListenDateMode(),
+                q.fullAlbumPlaysMin(), q.fullAlbumPlaysMax(),
                 q.itunesPresenceMin(), q.itunesPresenceMax(), q.itunesSongIdsJson());
     }
 
@@ -312,8 +319,10 @@ class CatalogListCountConsistencyTest {
                 q.weeklyChartPeakWeeks(), q.weeklyChartPeakWeeksMode(), q.weeklyChartDateFrom(), q.weeklyChartDateTo(),
                 q.weeklyChartSeason(), q.seasonalChartPeak(), q.seasonalChartSeasons(), q.seasonalChartDateFrom(),
                 q.seasonalChartDateTo(), q.seasonalChartSeason(), q.yearlyChartPeak(), q.yearlyChartYears(),
-                q.yearlyChartDateFrom(), q.yearlyChartDateTo(), q.lastFullListenDate(), q.lastFullListenDateFrom(),
-                q.lastFullListenDateTo(), q.lastFullListenDateMode(), q.itunesPresenceMin(), q.itunesPresenceMax(),
+                q.yearlyChartDateFrom(), q.yearlyChartDateTo(), q.firstFullListenDate(), q.firstFullListenDateFrom(),
+                q.firstFullListenDateTo(), q.firstFullListenDateMode(), q.lastFullListenDate(), q.lastFullListenDateFrom(),
+                q.lastFullListenDateTo(), q.lastFullListenDateMode(), q.fullAlbumPlaysMin(), q.fullAlbumPlaysMax(),
+                q.itunesPresenceMin(), q.itunesPresenceMax(),
                 q.itunesSongIdsJson());
     }
 

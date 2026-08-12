@@ -48,6 +48,7 @@ public class ConfigController {
             @RequestParam int allowedMissingUpTo10Tracks,
             @RequestParam int allowedMissingUpTo20Tracks,
             @RequestParam int allowedMissingOver20Tracks,
+            @RequestParam int allowedInterruptingSongs,
             @RequestParam int artistsListPageSize,
             @RequestParam int albumsListPageSize,
             @RequestParam int songsListPageSize,
@@ -74,7 +75,8 @@ public class ConfigController {
                 allowedMissingUpTo6Tracks,
                 allowedMissingUpTo10Tracks,
                 allowedMissingUpTo20Tracks,
-                allowedMissingOver20Tracks
+                allowedMissingOver20Tracks,
+                allowedInterruptingSongs
         ));
 
         appConfigService.updatePageSizeConfig(new AppConfigService.PageSizeConfig(

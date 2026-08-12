@@ -1300,7 +1300,7 @@
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="artist, iterStat : ${artists}" 
                  class="artist-card" 
-                 th:attr="data-artist-id=${artist.id}, data-has-theme-image=${activeTheme != null and artist.hasThemeImage}"
+                 th:attr="data-artist-id=${artist.id}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}, data-has-theme-image=${activeTheme != null and artist.hasThemeImage}"
                  th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                 <div class="artist-image item-image-container" style="cursor: pointer;">
                         <img th:if="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}"

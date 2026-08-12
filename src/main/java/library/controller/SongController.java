@@ -246,6 +246,8 @@ public class SongController {
             HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer perpage,
+            @RequestParam(defaultValue = "false") boolean includeExtendedStats,
+            @RequestParam(defaultValue = "false") boolean lazyCard,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -278,7 +280,8 @@ public class SongController {
         String seasonalChartDateToConverted = DateFormatUtils.convertToIsoFormat(seasonalChartDateTo);
         String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
         String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
-        int effectivePerPage = appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
+        int effectivePerPage = lazyCard ? 1
+                : appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
         List<Integer> artistFilter = ArtistFilterMode.encode(artist, artistMode);
         
         // Pre-compute iTunes song IDs once for all 3 queries (getSongs, countSongs, countSongsByGender)
@@ -313,11 +316,12 @@ public class SongController {
                 seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears,
                 yearlyChartDateFromConverted, yearlyChartDateToConverted,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage,
+                includeExtendedStats
         );
         
         // Get total count for pagination
-        long totalCount = songService.countSongs(q, artistFilter, featuredArtist, album,
+        long totalCount = lazyCard ? songs.size() : songService.countSongs(q, artistFilter, featuredArtist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
                 gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -347,7 +351,7 @@ public class SongController {
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = songService.countSongsByGender(q, artistFilter, featuredArtist, album,
+        GenderCountDTO genderCounts = lazyCard ? new GenderCountDTO() : songService.countSongsByGender(q, artistFilter, featuredArtist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
                 gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -678,7 +682,8 @@ public class SongController {
             @RequestParam(required = false) String sortdir3,
             @RequestParam(required = false) Integer randomSeed,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false) Integer perpage) {
+            @RequestParam(required = false) Integer perpage,
+            @RequestParam(defaultValue = "false") boolean includeExtendedStats) {
 
         String releaseDateConverted = DateFormatUtils.convertToIsoFormat(releaseDate);
         String releaseDateFromConverted = DateFormatUtils.convertToIsoFormat(releaseDateFrom);
@@ -742,7 +747,8 @@ public class SongController {
                 seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
                 yearlyChartPeak, yearlyChartYears,
                 yearlyChartDateFromConverted, yearlyChartDateToConverted,
-                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage
+                sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, page, effectivePerPage,
+                includeExtendedStats
         );
 
         long totalCount = songService.countSongs(q, artistFilter, featuredArtist, album,
@@ -3316,7 +3322,7 @@ public class SongController {
             seasonalChartDateFromConverted, seasonalChartDateToConverted, seasonalChartSeason,
             yearlyChartPeak, yearlyChartYears,
             yearlyChartDateFromConverted, yearlyChartDateToConverted,
-            sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, 0, limit
+            sortby, sortdir, sortby2, sortdir2, sortby3, sortdir3, randomSeed, 0, limit, true
         );
         
         // Convert to minimal export format

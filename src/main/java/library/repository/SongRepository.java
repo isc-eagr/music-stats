@@ -3,7 +3,7 @@ package library.repository;
 import library.dto.ChartFilterDTO;
 import library.dto.SongStatsQuery;
 import library.dto.SongStatsRow;
-import library.service.AppConfigService;
+import library.service.AlbumFullListenCalculator;
 import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import library.util.SqlFilterHelper;
@@ -20,11 +20,11 @@ import java.util.Map;
 public class SongRepository {
     
     private final JdbcTemplate jdbcTemplate;
-    private final AppConfigService appConfigService;
+    private final AlbumFullListenCalculator fullListenCalculator;
     
-    public SongRepository(JdbcTemplate jdbcTemplate, AppConfigService appConfigService) {
+    public SongRepository(JdbcTemplate jdbcTemplate, AlbumFullListenCalculator fullListenCalculator) {
         this.jdbcTemplate = jdbcTemplate;
-        this.appConfigService = appConfigService;
+        this.fullListenCalculator = fullListenCalculator;
     }
     
     public List<SongStatsRow> findSongsWithStats(SongStatsQuery query) {
@@ -6979,6 +6979,7 @@ public class SongRepository {
      * Filters songs first, then aggregates by album.
      */
     private java.util.List<java.util.Map<String, Object>> getTopAlbumsFilteredByDTO(ChartFilterDTO filter, int limit) {
+        String fullListenStatsJson = fullListenCalculator.calculateAllAsJson();
         // Build song-level filter clause  
         StringBuilder songFilterClause = new StringBuilder();
         java.util.List<Object> songParams = new java.util.ArrayList<>();
@@ -7018,6 +7019,7 @@ public class SongRepository {
 
         // Combine parameters: play date params, then song params, optionally lastFullListen params, then limit
         java.util.List<Object> params = new java.util.ArrayList<>();
+        params.add(fullListenStatsJson);
         params.addAll(playDateParams);
         params.addAll(songParams);
         params.addAll(playDateParams);
@@ -7065,31 +7067,12 @@ public class SongRepository {
                 COALESCE(consistency_agg.weeks_listened, 0) as weeks_listened,
                 COALESCE(consistency_agg.months_listened, 0) as months_listened,
                 COALESCE(consistency_agg.years_listened, 0) as years_listened,
-                (SELECT MAX(DATE(arc.run_end_date))
-                 FROM (
-                     SELECT rn2.album_id, rn2.run_id, MAX(rn2.play_date) AS run_end_date, COUNT(DISTINCT rn2.song_id) AS songs_played
-                     FROM (
-                         SELECT *, SUM(CASE WHEN lag_alb IS NOT album_id THEN 1 ELSE 0 END) OVER (ORDER BY rn_ord) AS run_id
-                         FROM (
-                             SELECT p2.id, p2.play_date, p2.song_id, s2.album_id,
-                                    ROW_NUMBER() OVER (ORDER BY p2.play_date, p2.id) AS rn_ord,
-                                    LAG(s2.album_id) OVER (ORDER BY p2.play_date, p2.id) AS lag_alb
-                             FROM Play p2
-                             LEFT JOIN Song s2 ON p2.song_id = s2.id
-                         )
-                     ) rn2
-                     WHERE rn2.album_id IS NOT NULL
-                     GROUP BY rn2.album_id, rn2.run_id
-                 ) arc
-                 WHERE arc.album_id = alb.id
-                   AND arc.songs_played >= (
-                                         SELECT %s
-                     FROM (SELECT COUNT(*) AS cnt FROM Song WHERE album_id = alb.id)
-                   )
-                ) AS last_full_listen_date
-                        FROM Album alb
-                        """.formatted(buildRequiredSongsExpression("cnt")) + """
+                lfl.first_full_listen_date,
+                lfl.last_full_listen_date,
+                COALESCE(lfl.full_album_plays, 0) AS full_album_plays
+            FROM Album alb
             LEFT JOIN Artist ar ON alb.artist_id = ar.id
+            LEFT JOIN last_full_listen lfl ON lfl.album_id = alb.id
             LEFT JOIN Genre gen ON COALESCE(alb.override_genre_id, ar.genre_id) = gen.id
             LEFT JOIN SubGenre sg ON COALESCE(alb.override_subgenre_id, ar.subgenre_id) = sg.id
             LEFT JOIN Ethnicity eth ON ar.ethnicity_id = eth.id
@@ -7153,9 +7136,9 @@ public class SongRepository {
 
         String sql;
         if (hasLastFullListenFilter && lastFullListenClause.length() > 0) {
-            sql = "SELECT * FROM (" + innerSql + ") alb_sub WHERE 1=1" + lastFullListenClause + " ORDER BY plays DESC, last_listened ASC LIMIT ?";
+            sql = fullListenStatsCte() + "SELECT * FROM (" + innerSql + ") alb_sub WHERE 1=1" + lastFullListenClause + " ORDER BY plays DESC, last_listened ASC LIMIT ?";
         } else {
-            sql = innerSql + "LIMIT ?";
+            sql = fullListenStatsCte() + innerSql + "LIMIT ?";
         }
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -7229,7 +7212,9 @@ public class SongRepository {
             row.put("weeksListened", rs.getInt("weeks_listened"));
             row.put("monthsListened", rs.getInt("months_listened"));
             row.put("yearsListened", rs.getInt("years_listened"));
+            row.put("firstFullListen", formatDate(rs.getString("first_full_listen_date")));
             row.put("lastFullListen", formatDate(rs.getString("last_full_listen_date")));
+            row.put("fullAlbumPlays", rs.getInt("full_album_plays"));
             return row;
         }, params.toArray());
     }
@@ -7975,11 +7960,15 @@ public class SongRepository {
         }
     }
 
-    private String buildRequiredSongsExpression(String countExpression) {
-        AppConfigService.AlbumFullListenConfig fullListenConfig = appConfigService.getAlbumFullListenConfig();
-        return "CASE WHEN " + countExpression + " <= 6 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo6Tracks() + ", 1) "
-                + "WHEN " + countExpression + " <= 10 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo10Tracks() + ", 1) "
-                + "WHEN " + countExpression + " <= 20 THEN MAX(" + countExpression + " - " + fullListenConfig.allowedMissingUpTo20Tracks() + ", 1) "
-                + "ELSE MAX(" + countExpression + " - " + fullListenConfig.allowedMissingOver20Tracks() + ", 1) END";
+    private String fullListenStatsCte() {
+        return """
+                WITH last_full_listen AS (
+                    SELECT CAST(json_extract(value, '$.albumId') AS INTEGER) AS album_id,
+                           json_extract(value, '$.firstFullListenDate') AS first_full_listen_date,
+                           json_extract(value, '$.lastFullListenDate') AS last_full_listen_date,
+                           CAST(json_extract(value, '$.fullAlbumPlays') AS INTEGER) AS full_album_plays
+                    FROM json_each(?)
+                )
+                """;
     }
 }

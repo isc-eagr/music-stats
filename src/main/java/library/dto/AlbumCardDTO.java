@@ -486,6 +486,16 @@ public class AlbumCardDTO {
         this.yearlyChartPeakYears = yearlyChartPeakYears;
     }
 
+    private String firstFullListenDate;
+
+    public String getFirstFullListenDate() {
+        return firstFullListenDate;
+    }
+
+    public void setFirstFullListenDate(String firstFullListenDate) {
+        this.firstFullListenDate = firstFullListenDate;
+    }
+
     private String lastFullListenDate;
 
     public String getLastFullListenDate() {
@@ -494,6 +504,16 @@ public class AlbumCardDTO {
 
     public void setLastFullListenDate(String lastFullListenDate) {
         this.lastFullListenDate = lastFullListenDate;
+    }
+
+    private Integer fullAlbumPlays;
+
+    public Integer getFullAlbumPlays() {
+        return fullAlbumPlays;
+    }
+
+    public void setFullAlbumPlays(Integer fullAlbumPlays) {
+        this.fullAlbumPlays = fullAlbumPlays;
     }
 
     private Double itunesPresenceRatio;
