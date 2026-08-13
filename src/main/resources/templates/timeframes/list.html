@@ -1727,12 +1727,6 @@
             window.location.href = url.toString();
         }
         
-        function goToPage(pageNum) {
-            const url = new URL(window.location);
-            url.searchParams.set('page', pageNum);
-            window.location.href = url.toString();
-        }
-        
         // Handle filter modifier buttons
         document.addEventListener('DOMContentLoaded', function() {
             const requestedView = new URLSearchParams(window.location.search).get('view');

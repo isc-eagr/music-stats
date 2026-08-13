@@ -7,9 +7,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -179,18 +176,18 @@ public class DeezerSingleCoverPopulator {
 						System.out.println("  ✓ Found cover: " + coverUrl);
 						
 						// Download the cover art
-						byte[] imageData = downloadImage(coverUrl);
+						byte[] imageData = MaintenanceToolSupport.downloadImageFollowingTemporaryRedirects(coverUrl, USER_AGENT);
 
 						if (imageData != null && imageData.length > 0) {
 							// Check if we should update based on size
 							if (shouldUpdateCover(song.currentCoverSize, imageData.length)) {
 								if (song.currentCoverSize > 0) {
 									int improvement = (imageData.length - song.currentCoverSize) / 1024;
-									System.out.println("  ✓ Downloaded upgrade (" + formatBytes(imageData.length) 
+									System.out.println("  ✓ Downloaded upgrade (" + MaintenanceToolSupport.formatBytes(imageData.length)
 										+ ", +" + improvement + " KB improvement)");
 									singleCoversUpgraded++;
 								} else {
-									System.out.println("  ✓ Downloaded cover (" + formatBytes(imageData.length) + ")");
+									System.out.println("  ✓ Downloaded cover (" + MaintenanceToolSupport.formatBytes(imageData.length) + ")");
 								}
 
 								if (!dryRun) {
@@ -240,7 +237,7 @@ public class DeezerSingleCoverPopulator {
 				StandardCharsets.UTF_8);
 		String url = DEEZER_API + "/search/track?q=" + query;
 
-		String response = makeHttpRequest(url);
+		String response = MaintenanceToolSupport.getJsonOrEmptyDataOnNotFound(url, USER_AGENT);
 		JsonNode root = objectMapper.readTree(response);
 
 		JsonNode data = root.get("data");
@@ -473,7 +470,7 @@ public class DeezerSingleCoverPopulator {
 		String url = DEEZER_API + "/album/" + albumId;
 		
 		try {
-			String response = makeHttpRequest(url);
+			String response = MaintenanceToolSupport.getJsonOrEmptyDataOnNotFound(url, USER_AGENT);
 			JsonNode root = objectMapper.readTree(response);
 			
 			JsonNode recordType = root.get("record_type");
@@ -610,55 +607,6 @@ public class DeezerSingleCoverPopulator {
 	}
 
 	/**
-	 * Make HTTP GET request and return response body
-	 */
-	private String makeHttpRequest(String urlString) throws IOException {
-		URI uri = URI.create(urlString);
-		HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
-		conn.setRequestMethod("GET");
-		conn.setRequestProperty("User-Agent", USER_AGENT);
-		conn.setRequestProperty("Accept", "application/json");
-
-		int responseCode = conn.getResponseCode();
-		if (responseCode == 404) {
-			return "{\"data\":[]}"; // Not found
-		} else if (responseCode != 200) {
-			throw new IOException("HTTP " + responseCode + ": " + conn.getResponseMessage());
-		}
-
-		try (InputStream is = conn.getInputStream()) {
-			return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-		}
-	}
-
-	/**
-	 * Download binary image data from URL
-	 */
-	private byte[] downloadImage(String urlString) throws IOException {
-		URI uri = URI.create(urlString);
-		HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
-		conn.setRequestMethod("GET");
-		conn.setRequestProperty("User-Agent", USER_AGENT);
-		conn.setInstanceFollowRedirects(true);
-
-		int responseCode = conn.getResponseCode();
-		if (responseCode == 307 || responseCode == 302) {
-			// Follow redirect
-			String newUrl = conn.getHeaderField("Location");
-			conn.disconnect();
-			return downloadImage(newUrl);
-		} else if (responseCode == 404) {
-			return null;
-		} else if (responseCode != 200) {
-			throw new IOException("HTTP " + responseCode + ": " + conn.getResponseMessage());
-		}
-
-		try (InputStream is = conn.getInputStream()) {
-			return is.readAllBytes();
-		}
-	}
-
-	/**
 	 * Determine if cover should be updated based on size comparison
 	 * Only update if new cover is better quality (larger file size)
 	 */
@@ -720,15 +668,6 @@ public class DeezerSingleCoverPopulator {
 		// Insert new gallery image
 		String sql = "INSERT INTO SongImage (song_id, image, display_order, creation_date) VALUES (?, ?, ?, datetime('now'))";
 		jdbcTemplate.update(sql, songId, imageData, maxOrder + 1);
-	}
-
-	/**
-	 * Format bytes to human-readable format
-	 */
-	private String formatBytes(long bytes) {
-		if (bytes < 1024) return bytes + " B";
-		if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
-		return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
 	}
 
 	/**

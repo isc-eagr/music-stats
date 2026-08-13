@@ -1385,36 +1385,6 @@ public class ChartsController {
         }
     }
 
-    private int countFilteredSongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query) {
-        return filterSongOverviewRows(rows, query).size();
-    }
-
-    private int countFilteredAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query) {
-        return filterAlbumOverviewRows(rows, query).size();
-    }
-
-    private int countFilteredArtistOverviewRows(List<ChartArtistOverviewRowDTO> rows, String query) {
-        return filterArtistOverviewRows(rows, query).size();
-    }
-
-    private List<ChartSongOverviewRowDTO> pageSongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query, String sort, String dir, int page, int pageSize) {
-        List<ChartSongOverviewRowDTO> filteredRows = filterSongOverviewRows(rows, query);
-        filteredRows.sort(buildSongOverviewComparator(sort, dir));
-        return paginateRows(filteredRows, page, pageSize);
-    }
-
-    private List<ChartAlbumOverviewRowDTO> pageAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query, String sort, String dir, int page, int pageSize) {
-        List<ChartAlbumOverviewRowDTO> filteredRows = filterAlbumOverviewRows(rows, query);
-        filteredRows.sort(buildAlbumOverviewComparator(sort, dir));
-        return paginateRows(filteredRows, page, pageSize);
-    }
-
-    private List<ChartArtistOverviewRowDTO> pageArtistOverviewRows(List<ChartArtistOverviewRowDTO> rows, String query, String sort, String dir, int page, int pageSize) {
-        List<ChartArtistOverviewRowDTO> filteredRows = filterArtistOverviewRows(rows, query);
-        filteredRows.sort(buildArtistOverviewComparator(sort, dir));
-        return paginateRows(filteredRows, page, pageSize);
-    }
-
     private List<ChartSongOverviewRowDTO> filterSongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query) {
         List<ChartSongOverviewRowDTO> filteredRows = new ArrayList<>(rows);
         if (query == null || query.isBlank()) {
@@ -1613,10 +1583,6 @@ public class ChartsController {
         };
     }
 
-    private Comparator<ChartSongOverviewRowDTO> buildSongOverviewComparator(String sort, String dir) {
-        return buildSongOverviewComparator(List.of(new OverviewSortSpec(sort, dir)));
-    }
-
     private Comparator<ChartSongOverviewRowDTO> buildSongOverviewComparator(List<OverviewSortSpec> sortSpecs) {
         Comparator<ChartSongOverviewRowDTO> comparator = buildSongOverviewSortComparator(sortSpecs.get(0));
         for (int index = 1; index < sortSpecs.size(); index++) {
@@ -1642,10 +1608,6 @@ public class ChartsController {
         return "asc".equals(sortSpec.dir()) ? comparator : comparator.reversed();
     }
 
-    private Comparator<ChartAlbumOverviewRowDTO> buildAlbumOverviewComparator(String sort, String dir) {
-        return buildAlbumOverviewComparator(List.of(new OverviewSortSpec(sort, dir)));
-    }
-
     private Comparator<ChartAlbumOverviewRowDTO> buildAlbumOverviewComparator(List<OverviewSortSpec> sortSpecs) {
         Comparator<ChartAlbumOverviewRowDTO> comparator = buildAlbumOverviewSortComparator(sortSpecs.get(0));
         for (int index = 1; index < sortSpecs.size(); index++) {
@@ -1669,10 +1631,6 @@ public class ChartsController {
         };
 
         return "asc".equals(sortSpec.dir()) ? comparator : comparator.reversed();
-    }
-
-    private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewComparator(String sort, String dir) {
-        return buildArtistOverviewComparator(List.of(new OverviewSortSpec(sort, dir)));
     }
 
     private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewComparator(List<OverviewSortSpec> sortSpecs) {

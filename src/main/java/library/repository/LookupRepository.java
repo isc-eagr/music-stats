@@ -1,6 +1,7 @@
 package library.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 
 import java.util.LinkedHashMap;
@@ -16,63 +17,35 @@ public class LookupRepository {
     }
     
     public Map<Integer, String> getAllGenders() {
-        Map<Integer, String> genders = new LinkedHashMap<>();
-        String sql = "SELECT id, name FROM Gender ORDER BY name";
-        jdbcTemplate.query(sql, (rs, rowNum) -> {
-            genders.put(rs.getInt("id"), rs.getString("name"));
-            return null;
-        });
-        return genders;
+        return getAllLookupValues("Gender", "name");
     }
     
     public Map<Integer, String> getAllEthnicities() {
-        Map<Integer, String> ethnicities = new LinkedHashMap<>();
-        String sql = "SELECT id, name FROM Ethnicity ORDER BY name";
-        jdbcTemplate.query(sql, (rs, rowNum) -> {
-            ethnicities.put(rs.getInt("id"), rs.getString("name"));
-            return null;
-        });
-        return ethnicities;
+        return getAllLookupValues("Ethnicity", "name");
     }
     
     public Map<Integer, String> getAllGenres() {
-        Map<Integer, String> genres = new LinkedHashMap<>();
-        String sql = "SELECT id, name FROM Genre ORDER BY name";
-        jdbcTemplate.query(sql, (rs, rowNum) -> {
-            genres.put(rs.getInt("id"), rs.getString("name"));
-            return null;
-        });
-        return genres;
+        return getAllLookupValues("Genre", "name");
     }
     
     public Map<Integer, String> getAllSubGenres() {
-        Map<Integer, String> subgenres = new LinkedHashMap<>();
-        String sql = "SELECT id, name FROM SubGenre ORDER BY name";
-        jdbcTemplate.query(sql, (rs, rowNum) -> {
-            subgenres.put(rs.getInt("id"), rs.getString("name"));
-            return null;
-        });
-        return subgenres;
+        return getAllLookupValues("SubGenre", "name");
     }
     
     public Map<Integer, String> getAllLanguages() {
-        Map<Integer, String> languages = new LinkedHashMap<>();
-        String sql = "SELECT id, name FROM Language ORDER BY name";
-        jdbcTemplate.query(sql, (rs, rowNum) -> {
-            languages.put(rs.getInt("id"), rs.getString("name"));
-            return null;
-        });
-        return languages;
+        return getAllLookupValues("Language", "name");
     }
 
     public Map<Integer, String> getAllTags() {
-        Map<Integer, String> tags = new LinkedHashMap<>();
-        String sql = "SELECT id, name FROM Tag ORDER BY LOWER(name)";
-        jdbcTemplate.query(sql, (rs, rowNum) -> {
-            tags.put(rs.getInt("id"), rs.getString("name"));
-            return null;
-        });
-        return tags;
+        return getAllLookupValues("Tag", "LOWER(name)");
+    }
+
+    private Map<Integer, String> getAllLookupValues(String tableName, String orderByExpression) {
+        Map<Integer, String> values = new LinkedHashMap<>();
+        String sql = "SELECT id, name FROM " + tableName + " ORDER BY " + orderByExpression;
+        jdbcTemplate.query(sql, (RowCallbackHandler) rs ->
+                values.put(rs.getInt("id"), rs.getString("name")));
+        return values;
     }
 
     /**

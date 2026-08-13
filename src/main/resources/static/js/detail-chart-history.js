@@ -509,19 +509,6 @@
             + '</div>';
     }
 
-    function renderMetaGrid(fields) {
-        if (!fields || !fields.length) {
-            return '';
-        }
-
-        return '<div class="detail-chart-history-meta-grid">' + fields.map(function (field) {
-            return '<div class="detail-chart-history-meta-card">'
-                + '<div class="detail-chart-history-meta-label">' + escapeHtml(field.label) + '</div>'
-                + '<div class="detail-chart-history-meta-value">' + field.html + '</div>'
-                + '</div>';
-        }).join('') + '</div>';
-    }
-
     function renderWeeklyRun(data, toneClass) {
         var boxesHtml = renderRunBoxes(data && data.weeks ? data.weeks : [], 'weekly', toneClass, 'chart-run-box');
         return '<div class="chart-run-stats">'
@@ -712,16 +699,6 @@
         if (desktopRow && desktopRow.classList.contains('visible')) {
             renderDesktopDetailRow(desktopRow, info);
         }
-    }
-
-    function addTrackPill(titleCell, trackText) {
-        if (!titleCell || !trackText || trackText === '-' || titleCell.querySelector('.chart-history-track-pill')) {
-            return;
-        }
-        var pill = document.createElement('span');
-        pill.className = 'chart-history-track-pill show-mobile-only';
-        pill.textContent = trackText;
-        titleCell.insertBefore(pill, titleCell.firstChild);
     }
 
     function stylePeakCell(cell) {

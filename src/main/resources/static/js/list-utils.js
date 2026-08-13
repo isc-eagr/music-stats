@@ -38,32 +38,6 @@ function removeFilterGroup(paramName) {
 }
 
 /**
- * Remove a range filter group (min/max parameters).
- * @param {string} baseName - The base parameter name (e.g., 'artistCount' for artistCountMin/artistCountMax)
- */
-function removeRangeFilter(baseName) {
-    const url = new URL(window.location);
-    url.searchParams.delete(baseName + 'Min');
-    url.searchParams.delete(baseName + 'Max');
-    url.searchParams.set('page', '0');
-    window.location.href = url.toString();
-}
-
-/**
- * Remove a date filter group (single, from, to, mode parameters).
- * @param {string} baseName - The base parameter name (e.g., 'releaseDate')
- */
-function removeDateFilter(baseName) {
-    const url = new URL(window.location);
-    url.searchParams.delete(baseName);
-    url.searchParams.delete(baseName + 'From');
-    url.searchParams.delete(baseName + 'To');
-    url.searchParams.delete(baseName + 'Mode');
-    url.searchParams.set('page', '0');
-    window.location.href = url.toString();
-}
-
-/**
  * Clear all filters from the URL and reload.
  * Preserves sortby, sortdir, and perpage parameters.
  */
@@ -94,17 +68,6 @@ function clearAllFilters() {
     if (perPage) url.searchParams.set('perpage', perPage);
     url.searchParams.set('page', '0');
     
-    window.location.href = url.toString();
-}
-
-/**
- * Update the per-page setting and reload.
- * @param {number} newPerPage - The new number of items per page
- */
-function changePerPage(newPerPage) {
-    const url = new URL(window.location);
-    url.searchParams.set('perpage', newPerPage);
-    url.searchParams.set('page', '0'); // Reset to first page
     window.location.href = url.toString();
 }
 
@@ -961,27 +924,6 @@ function toggleSort(column) {
 }
 
 /**
- * Format a duration in seconds to a human-readable string.
- * @param {number} totalSeconds - Duration in seconds
- * @returns {string} Formatted duration (e.g., "2d 5h 30m", "3h 15m", "45m")
- */
-function formatDuration(totalSeconds) {
-    if (!totalSeconds || totalSeconds <= 0) return '0m';
-    
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    
-    if (days > 0) {
-        return days + 'd ' + hours + 'h ' + minutes + 'm';
-    } else if (hours > 0) {
-        return hours + 'h ' + minutes + 'm';
-    } else {
-        return minutes + 'm';
-    }
-}
-
-/**
  * Format a song length in seconds to mm:ss format.
  * @param {number} seconds - Duration in seconds
  * @returns {string} Formatted duration (e.g., "3:45")
@@ -1202,18 +1144,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 80));
 });
 
-/**
- * Toggle the expanded stats section of a card (used on detail pages).
- * @param {HTMLElement} btn - The toggle button element
- */
-function toggleCardExpand(btn) {
-    btn.classList.toggle('expanded');
-    const stats = btn.nextElementSibling;
-    if (stats) {
-        stats.classList.toggle('visible');
-    }
-}
-
 const lazyCardPageCache = new Map();
 let catalogLoadingDepth = 0;
 
@@ -1382,39 +1312,6 @@ document.addEventListener('keydown', function(e) {
         closeCardModal();
     }
 });
-
-/**
- * Initialize search form to preserve filters when searching.
- * Call this on page load to set up the search form interception.
- * @param {string} formId - The ID of the search form (e.g., 'artistSearchForm')
- */
-function initializeSearchFormWithFilters(formId) {
-    const form = document.getElementById(formId);
-    if (!form) {
-        console.warn('Search form not found:', formId);
-        return;
-    }
-    
-    const searchInput = form.querySelector('input[name="q"]');
-    if (!searchInput) {
-        console.warn('Search input not found in form:', formId);
-        return;
-    }
-    
-    // Handle form submit
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        performSearchWithFilters(searchInput.value);
-    });
-    
-    // Also handle Enter key press on the input
-    searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            performSearchWithFilters(searchInput.value);
-        }
-    });
-}
 
 function cancelPendingSearchNavigation() {
     if (!window.__listSearchNavigationPending) {

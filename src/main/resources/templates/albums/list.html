@@ -1045,7 +1045,7 @@
                                 <div class="filter-item">
                                     <div class="filter-item-header" onclick="toggleFilterItem(this)">
                                         <span class="filter-item-title">
-                                            <span class="filter-item-chevron">â–¶</span>
+                                            <span class="filter-item-chevron">&#9654;</span>
                                             Tag
                                         </span>
                                     </div>
@@ -1062,11 +1062,11 @@
                                                 <div class="multi-select-chips" id="tagChips">
                                                     <span class="multi-select-chip" th:each="tagId : ${selectedTags}">
                                                         <span th:text="${tags.get(tagId)}"></span>
-                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'tag\', ' + ${tagId} + ')'" th:attr="data-value=${tagId}">Ã—</button>
+                                                        <button type="button" class="multi-select-chip-remove" th:onclick="'removeChip(event, \'tag\', ' + ${tagId} + ')'" th:attr="data-value=${tagId}">&times;</button>
                                                     </span>
                                                 </div>
                                                 <span class="multi-select-label" th:if="${selectedTags == null || selectedTags.isEmpty()}">Select...</span>
-                                                <span class="multi-select-arrow">â–¼</span>
+                                                <span class="multi-select-arrow">&#9660;</span>
                                             </div>
                                             <div class="multi-select-dropdown" id="tagDropdown">
                                                 <div class="multi-select-option" th:each="entry : ${tags}">
@@ -2450,12 +2450,6 @@
             const url = new URL(window.location);
             url.searchParams.delete(paramName);
             url.searchParams.delete(paramName + 'Mode');
-            window.location.href = url.toString();
-        }
-        
-        function goToPage(pageNum) {
-            const url = new URL(window.location);
-            url.searchParams.set('page', pageNum);
             window.location.href = url.toString();
         }
         

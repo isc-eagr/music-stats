@@ -287,6 +287,51 @@ class TemplateContractTest {
     }
 
     @Test
+    void linkedSongTooltipsUseTheSharedClientModule() throws IOException {
+        for (String path : List.of("artists/detail.html", "songs/list.html")) {
+            String html = read(path);
+            assertThat(html)
+                    .describedAs(path)
+                    .contains("/js/linked-song-tooltip.js")
+                    .doesNotContain("function ensureLinkedSongTooltip")
+                    .doesNotContain("function initializeLinkedSongTooltips");
+        }
+
+        String tooltipJs = Files.readString(
+                Path.of("src/main/resources/static/js/linked-song-tooltip.js"), StandardCharsets.UTF_8);
+        assertThat(tooltipJs)
+                .contains(".linked-song-tooltip-trigger.tooltip-enabled")
+                .contains(".linked-song-tooltip-item-source")
+                .contains("window.initializeLinkedSongTooltips = initialize")
+                .contains("window.buildLinkedSongTooltipTriggerHtml")
+                .contains("document.addEventListener('DOMContentLoaded'");
+    }
+
+    @Test
+    void primaryCatalogPaginationAndTagGlyphsUseSharedStableContracts() throws IOException {
+        String listUtils = Files.readString(
+                Path.of("src/main/resources/static/js/list-utils.js"), StandardCharsets.UTF_8);
+        assertThat(listUtils).contains("function goToPage(pageNum)");
+
+        for (String path : List.of(
+                "artists/list.html", "albums/list.html", "songs/list.html", "timeframes/list.html")) {
+            assertThat(read(path))
+                    .describedAs(path)
+                    .doesNotContain("function goToPage(pageNum)");
+        }
+
+        for (String path : List.of("artists/list.html", "albums/list.html", "songs/list.html")) {
+            assertThat(read(path))
+                    .describedAs(path)
+                    .contains("class=\"filter-item-chevron\">&#9654;</span>")
+                    .contains("class=\"multi-select-arrow\">&#9660;</span>")
+                    .contains("data-value=${tagId}\">&times;</button>")
+                    .doesNotContain("Ã")
+                    .doesNotContain("â");
+        }
+    }
+
+    @Test
     void detailAchievementChipsOpenFilteredCatalogTablesInsteadOfGraphs() throws IOException {
         for (String path : List.of("artists/detail.html", "albums/detail.html", "songs/detail.html")) {
             String html = read(path);

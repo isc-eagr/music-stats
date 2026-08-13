@@ -307,7 +307,7 @@ public class MusicBrainzMetadataPopulator {
 					byte[] imageData = getCoverArtImage(mbid);
 
 					if (imageData != null && imageData.length > 0) {
-						System.out.println("  ✓ Downloaded cover art (" + formatBytes(imageData.length) + ")");
+						System.out.println("  ✓ Downloaded cover art (" + MaintenanceToolSupport.formatBytes(imageData.length) + ")");
 
 						if (!dryRun) {
 							updateAlbumImage(album.id, imageData);
@@ -366,7 +366,7 @@ public class MusicBrainzMetadataPopulator {
 					byte[] imageData = getCoverArtImage(mbid);
 
 					if (imageData != null && imageData.length > 0) {
-						System.out.println("  ✓ Downloaded single cover (" + formatBytes(imageData.length) + ")");
+						System.out.println("  ✓ Downloaded single cover (" + MaintenanceToolSupport.formatBytes(imageData.length) + ")");
 
 						if (!dryRun) {
 							updateSongImage(song.id, imageData);
@@ -673,12 +673,12 @@ public class MusicBrainzMetadataPopulator {
 		}
 
 		try {
-			return downloadImage(url);
+			return MaintenanceToolSupport.downloadImageFollowingTemporaryRedirects(url, USER_AGENT);
 		} catch (IOException e) {
 			// Fallback: try original if sized version fails
 			if (!imageSize.isEmpty()) {
 				url = COVERART_API + "/release/" + releaseMbid + "/front";
-				return downloadImage(url);
+				return MaintenanceToolSupport.downloadImageFollowingTemporaryRedirects(url, USER_AGENT);
 			}
 			throw e;
 		}
@@ -703,33 +703,6 @@ public class MusicBrainzMetadataPopulator {
 
 		try (InputStream is = conn.getInputStream()) {
 			return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-		}
-	}
-
-	/**
-	 * Download binary image data
-	 */
-	private byte[] downloadImage(String urlString) throws IOException {
-		URI uri = URI.create(urlString);
-		HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
-		conn.setRequestMethod("GET");
-		conn.setRequestProperty("User-Agent", USER_AGENT);
-		conn.setInstanceFollowRedirects(true);
-
-		int responseCode = conn.getResponseCode();
-		if (responseCode == 307 || responseCode == 302) {
-			// Follow redirect
-			String newUrl = conn.getHeaderField("Location");
-			conn.disconnect();
-			return downloadImage(newUrl);
-		} else if (responseCode == 404) {
-			return null;
-		} else if (responseCode != 200) {
-			throw new IOException("HTTP " + responseCode + ": " + conn.getResponseMessage());
-		}
-
-		try (InputStream is = conn.getInputStream()) {
-			return is.readAllBytes();
 		}
 	}
 
@@ -811,17 +784,6 @@ public class MusicBrainzMetadataPopulator {
 	private void markSongAsSingle(int songId) {
 		String sql = "UPDATE Song SET is_single = 1 WHERE id = ?";
 		jdbcTemplate.update(sql, songId);
-	}
-
-	/**
-	 * Format bytes to human-readable format
-	 */
-	private String formatBytes(long bytes) {
-		if (bytes < 1024)
-			return bytes + " B";
-		if (bytes < 1024 * 1024)
-			return String.format("%.1f KB", bytes / 1024.0);
-		return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
 	}
 
 	/**

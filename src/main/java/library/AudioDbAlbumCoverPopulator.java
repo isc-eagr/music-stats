@@ -212,7 +212,7 @@ public class AudioDbAlbumCoverPopulator {
                         + album.artistName + " - " + album.name);
                 
                 if (album.currentImageSize > 0) {
-                    System.out.println("  Current image: " + formatBytes(album.currentImageSize));
+                    System.out.println("  Current image: " + MaintenanceToolSupport.formatBytes(album.currentImageSize));
                 }
 
                 // Search TheAudioDB for album
@@ -229,7 +229,7 @@ public class AudioDbAlbumCoverPopulator {
                     byte[] imageData = downloadImage(finalUrl);
 
                     if (imageData != null && imageData.length > 0) {
-                        System.out.println("  ✓ Downloaded: " + formatBytes(imageData.length));
+                        System.out.println("  ✓ Downloaded: " + MaintenanceToolSupport.formatBytes(imageData.length));
 
                         // Decide if we should update
                         boolean shouldUpdate = false;
@@ -443,17 +443,6 @@ public class AudioDbAlbumCoverPopulator {
     private void updateAlbumImage(int albumId, byte[] imageData) {
         String sql = "UPDATE Album SET image = ? WHERE id = ?";
         jdbcTemplate.update(sql, imageData, albumId);
-    }
-
-    /**
-     * Format bytes to human-readable format
-     */
-    private String formatBytes(long bytes) {
-        if (bytes < 1024)
-            return bytes + " B";
-        if (bytes < 1024 * 1024)
-            return String.format("%.1f KB", bytes / 1024.0);
-        return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
     }
 
     /**

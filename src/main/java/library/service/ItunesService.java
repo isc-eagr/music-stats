@@ -561,16 +561,6 @@ public class ItunesService {
         return keys;
     }
 
-    /**
-     * Create normalized lookup key for artist + song.
-     * Uses case-insensitive matching with accent normalization.
-     */
-    private String createLookupKey(String artist, String song) {
-        String a = StringNormalizer.normalizeForSearch(artist != null ? artist : "");
-        String s = StringNormalizer.normalizeForSearch(song != null ? song : "");
-        return a + "||" + s;
-    }
-
     private int nullSafeCompareIgnoreCase(String a, String b) {
         if (a == null && b == null) return 0;
         if (a == null) return -1;
@@ -804,15 +794,6 @@ public class ItunesService {
         }
         sb.append(']');
         return sb.toString();
-    }
-
-    /**
-     * Create normalized lookup key for artist + album.
-     */
-    private String createAlbumLookupKey(String artist, String album) {
-        String a = StringNormalizer.normalizeForSearch(artist != null ? artist : "");
-        String al = StringNormalizer.normalizeForSearch(album != null ? album : "");
-        return a + "||" + al;
     }
 
     /**

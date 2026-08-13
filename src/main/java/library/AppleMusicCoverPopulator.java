@@ -273,7 +273,7 @@ public class AppleMusicCoverPopulator {
                         + album.artistName + " - " + album.name);
                 
                 if (album.currentImageSize > 0) {
-                    log("  Current image: " + formatBytes(album.currentImageSize));
+                    log("  Current image: " + MaintenanceToolSupport.formatBytes(album.currentImageSize));
                 }
 
                 String imageUrl = searchAppleMusicCover(album.artistName, album.name, true, album.artistCountry);
@@ -287,7 +287,7 @@ public class AppleMusicCoverPopulator {
                     byte[] imageData = downloadImage(highResUrl);
 
                     if (imageData != null && imageData.length > 0) {
-                        log("  ✓ Downloaded: " + formatBytes(imageData.length));
+                        log("  ✓ Downloaded: " + MaintenanceToolSupport.formatBytes(imageData.length));
 
                         boolean shouldUpdate = shouldUpdateImage(album.currentImageSize, imageData.length);
                         
@@ -334,7 +334,7 @@ public class AppleMusicCoverPopulator {
                             
                             byte[] imageData = downloadImage(highResUrl);
                             if (imageData != null && imageData.length > 0) {
-                                log("  ✓ Downloaded: " + formatBytes(imageData.length));
+                                log("  ✓ Downloaded: " + MaintenanceToolSupport.formatBytes(imageData.length));
                                 boolean shouldUpdate = shouldUpdateImage(album.currentImageSize, imageData.length);
                                 
                                 if (shouldUpdate) {
@@ -431,7 +431,7 @@ public class AppleMusicCoverPopulator {
                         + song.artistName + " - " + song.name);
                 
                 if (song.currentImageSize > 0) {
-                    log("  Current image: " + formatBytes(song.currentImageSize));
+                    log("  Current image: " + MaintenanceToolSupport.formatBytes(song.currentImageSize));
                 }
 
                 // Search Apple Music for the song/single
@@ -446,7 +446,7 @@ public class AppleMusicCoverPopulator {
                     byte[] imageData = downloadImage(highResUrl);
 
                     if (imageData != null && imageData.length > 0) {
-                        log("  ✓ Downloaded: " + formatBytes(imageData.length));
+                        log("  ✓ Downloaded: " + MaintenanceToolSupport.formatBytes(imageData.length));
 
                         boolean shouldUpdate = shouldUpdateImage(song.currentImageSize, imageData.length);
                         
@@ -493,7 +493,7 @@ public class AppleMusicCoverPopulator {
                             
                             byte[] imageData = downloadImage(highResUrl);
                             if (imageData != null && imageData.length > 0) {
-                                log("  ✓ Downloaded: " + formatBytes(imageData.length));
+                                log("  ✓ Downloaded: " + MaintenanceToolSupport.formatBytes(imageData.length));
                                 boolean shouldUpdate = shouldUpdateImage(song.currentImageSize, imageData.length);
                                 
                                 if (shouldUpdate) {
@@ -1050,17 +1050,6 @@ public class AppleMusicCoverPopulator {
     private void updateSongImage(int songId, byte[] imageData) {
         String sql = "UPDATE Song SET single_cover = ? WHERE id = ?";
         jdbcTemplate.update(sql, imageData, songId);
-    }
-
-    /**
-     * Format bytes to human-readable format
-     */
-    private String formatBytes(long bytes) {
-        if (bytes < 1024)
-            return bytes + " B";
-        if (bytes < 1024 * 1024)
-            return String.format("%.1f KB", bytes / 1024.0);
-        return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
     }
 
     /**

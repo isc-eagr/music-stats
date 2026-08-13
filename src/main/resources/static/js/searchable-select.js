@@ -191,16 +191,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
-// Initialize searchable selects when entering edit mode
-function initAllSearchableSelects(container) {
-    const selects = container ? container.querySelectorAll('select') : document.querySelectorAll('select');
-    selects.forEach(function(select) {
-        if (select.id && !select.dataset.searchableInitialized) {
-            // Only init selects that are visible and have more than a few options
-            if (select.options.length > 5) {
-                initSearchableSelect(select.id);
-            }
-        }
-    });
-}
