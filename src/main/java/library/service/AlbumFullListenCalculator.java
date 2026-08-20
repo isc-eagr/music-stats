@@ -16,6 +16,8 @@ import java.util.TreeMap;
 @Service
 public class AlbumFullListenCalculator {
 
+    private static final int MIN_ALBUM_TRACKS_FOR_FULL_LISTENS = 5;
+
     private final JdbcTemplate jdbcTemplate;
     private final AppConfigService appConfigService;
 
@@ -80,6 +82,7 @@ public class AlbumFullListenCalculator {
                     SELECT p.play_date, p.song_id, s.album_id
                     FROM Play p
                     LEFT JOIN Song s ON s.id = p.song_id
+                    WHERE s.id IS NULL OR LOWER(s.name) NOT LIKE '%remix%'
                     ORDER BY p.play_date, p.id
                     """, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
                 int albumId = rs.getInt("album_id");
@@ -96,6 +99,8 @@ public class AlbumFullListenCalculator {
                         SELECT p.play_date, p.song_id,
                                ROW_NUMBER() OVER (ORDER BY p.play_date, p.id) AS global_position
                         FROM Play p
+                        LEFT JOIN Song s ON s.id = p.song_id
+                        WHERE s.id IS NULL OR LOWER(s.name) NOT LIKE '%%remix%%'
                     )
                     SELECT rp.play_date, rp.song_id, rp.global_position, s.album_id
                     FROM ranked_plays rp
@@ -145,6 +150,7 @@ public class AlbumFullListenCalculator {
                 SELECT album_id, COUNT(*) AS song_count
                 FROM Song
                 WHERE album_id IS NOT NULL
+                  AND LOWER(name) NOT LIKE '%remix%'
                 """);
         Object[] params = new Object[0];
         if (targetAlbumIds != null) {
@@ -153,7 +159,8 @@ public class AlbumFullListenCalculator {
                     .append(")");
             params = targetAlbumIds.toArray();
         }
-        sql.append(" GROUP BY album_id");
+        sql.append(" GROUP BY album_id HAVING COUNT(*) >= ")
+                .append(MIN_ALBUM_TRACKS_FOR_FULL_LISTENS);
 
         Map<Integer, Integer> result = new HashMap<>();
         jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {

@@ -31,6 +31,7 @@ public class AppConfigService {
 
     private static final String KEY_FULL_LISTEN_UP_TO_6 = "albumFullListen.allowedMissing.upTo6";
     private static final String KEY_FULL_LISTEN_UP_TO_10 = "albumFullListen.allowedMissing.upTo10";
+    private static final String KEY_FULL_LISTEN_UP_TO_15 = "albumFullListen.allowedMissing.upTo15";
     private static final String KEY_FULL_LISTEN_UP_TO_20 = "albumFullListen.allowedMissing.upTo20";
     private static final String KEY_FULL_LISTEN_OVER_20 = "albumFullListen.allowedMissing.over20";
     private static final String KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS = "albumFullListen.allowedInterruptingSongs";
@@ -97,6 +98,7 @@ public class AppConfigService {
 
         putDefault(KEY_FULL_LISTEN_UP_TO_6, "0");
         putDefault(KEY_FULL_LISTEN_UP_TO_10, "2");
+        putDefault(KEY_FULL_LISTEN_UP_TO_15, "3");
         putDefault(KEY_FULL_LISTEN_UP_TO_20, "3");
         putDefault(KEY_FULL_LISTEN_OVER_20, "4");
         putDefault(KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS, "5");
@@ -132,6 +134,7 @@ public class AppConfigService {
         return new AlbumFullListenConfig(
                 getInt(KEY_FULL_LISTEN_UP_TO_6, 0, 0, 6),
                 getInt(KEY_FULL_LISTEN_UP_TO_10, 2, 0, 10),
+                getInt(KEY_FULL_LISTEN_UP_TO_15, 3, 0, 15),
                 getInt(KEY_FULL_LISTEN_UP_TO_20, 3, 0, 20),
                 getInt(KEY_FULL_LISTEN_OVER_20, 4, 0, 50),
                 getInt(KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS, 5, 0, 100)
@@ -241,6 +244,7 @@ public class AppConfigService {
     public void updateAlbumFullListenConfig(AlbumFullListenConfig config) {
         putValue(KEY_FULL_LISTEN_UP_TO_6, Integer.toString(clamp(config.allowedMissingUpTo6Tracks(), 0, 6)));
         putValue(KEY_FULL_LISTEN_UP_TO_10, Integer.toString(clamp(config.allowedMissingUpTo10Tracks(), 0, 10)));
+        putValue(KEY_FULL_LISTEN_UP_TO_15, Integer.toString(clamp(config.allowedMissingUpTo15Tracks(), 0, 15)));
         putValue(KEY_FULL_LISTEN_UP_TO_20, Integer.toString(clamp(config.allowedMissingUpTo20Tracks(), 0, 20)));
         putValue(KEY_FULL_LISTEN_OVER_20, Integer.toString(clamp(config.allowedMissingOver20Tracks(), 0, 50)));
         putValue(KEY_FULL_LISTEN_ALLOWED_INTERRUPTING_SONGS, Integer.toString(clamp(config.allowedInterruptingSongs(), 0, 100)));
@@ -380,6 +384,7 @@ public class AppConfigService {
     public record AlbumFullListenConfig(
             int allowedMissingUpTo6Tracks,
             int allowedMissingUpTo10Tracks,
+            int allowedMissingUpTo15Tracks,
             int allowedMissingUpTo20Tracks,
             int allowedMissingOver20Tracks,
             int allowedInterruptingSongs) {
@@ -390,6 +395,8 @@ public class AppConfigService {
                     ? allowedMissingUpTo6Tracks
                     : safeTotalTracks <= 10
                     ? allowedMissingUpTo10Tracks
+                    : safeTotalTracks <= 15
+                    ? allowedMissingUpTo15Tracks
                     : safeTotalTracks <= 20
                     ? allowedMissingUpTo20Tracks
                     : allowedMissingOver20Tracks;

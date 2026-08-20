@@ -1747,7 +1747,7 @@
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="album, iterStat : ${albums}" 
                  class="album-card"
-                 th:attr="data-album-id=${album.id}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}"
+                 th:attr="data-album-id=${album.id}, data-full-listen-eligible=${album.fullListenEligible}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}"
                  th:classappend="${album.genderName != null and album.genderName.toLowerCase().contains('male') and !album.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${album.genderName != null and album.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
                 <div class="album-image item-image-container" style="cursor: pointer;">
                     <img th:if="${album.hasImage}"
@@ -1842,12 +1842,12 @@
                             <th:block th:case="'release_date'" th:text="${album.releaseDate != null ? album.releaseDate : 'N/A'}"></th:block>
                             <th:block th:case="'avg_length'" th:text="${album.avgLengthFormatted != null ? album.avgLengthFormatted : 'N/A'}"></th:block>
                             <th:block th:case="'avg_plays'" th:text="${album.avgPlays != null ? #numbers.formatDecimal(album.avgPlays, 1, 1) : 'N/A'}"></th:block>
-                            <th:block th:case="'first_full_listen'" th:text="${album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A'}"></th:block>
+                            <th:block th:case="'first_full_listen'" th:text="${album.fullListenEligible ? (album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A') : 'Not an album'}"></th:block>
                             <th:block th:case="'first_listened'" th:text="${album.firstListenedDate != null ? album.firstListenedDate : 'N/A'}"></th:block>
-                            <th:block th:case="'full_album_plays'" th:text="${album.fullAlbumPlays}"></th:block>
+                            <th:block th:case="'full_album_plays'" th:text="${album.fullListenEligible ? album.fullAlbumPlays : 'Not an album'}"></th:block>
                             <th:block th:case="'itunes_presence'" th:text="${album.itunesPresenceRatio != null ? #numbers.formatDecimal(album.itunesPresenceRatio, 1, 1) + '%' : 'N/A'}"></th:block>
                             <th:block th:case="'last_listened'" th:text="${album.lastListenedDate != null ? album.lastListenedDate : 'N/A'}"></th:block>
-                            <th:block th:case="'last_full_listen'" th:text="${album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A'}"></th:block>
+                            <th:block th:case="'last_full_listen'" th:text="${album.fullListenEligible ? (album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A') : 'Not an album'}"></th:block>
                             <th:block th:case="'age_at_release'" th:text="${album.ageAtRelease != null ? album.ageAtRelease : 'N/A'}"></th:block>
                             <th:block th:case="'album_length'" th:text="${album.albumLengthFormatted != null ? album.albumLengthFormatted : 'N/A'}"></th:block>
                             <th:block th:case="'birth_date'" th:text="${album.birthDate != null ? album.birthDate : 'N/A'}"></th:block>
@@ -1939,7 +1939,7 @@
                             <div class="modal-stat-row">
                                 <span class="modal-stat-label">Full Album Plays</span>
                                 <span class="modal-stat-value full-album-plays-value" aria-live="polite"
-                                      th:text="${includeFullListenStats ? album.fullAlbumPlays : 'Loading'}">Loading</span>
+                                      th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? album.fullAlbumPlays : 'Loading')}">Loading</span>
                             </div>
                             <div class="modal-stat-row">
                                 <span class="modal-stat-label">Time Listened</span>
@@ -2037,12 +2037,12 @@
                             <div class="modal-stat-row">
                                 <span class="modal-stat-label">First Full Listen</span>
                                 <span class="modal-stat-value first-full-listen-value" aria-live="polite"
-                                      th:text="${includeFullListenStats ? (album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A') : 'Loading'}">Loading</span>
+                                      th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? (album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A') : 'Loading')}">Loading</span>
                             </div>
                             <div class="modal-stat-row">
                                 <span class="modal-stat-label">Last Full Listen</span>
                                 <span class="modal-stat-value last-full-listen-value" aria-live="polite"
-                                      th:text="${includeFullListenStats ? (album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A') : 'Loading'}">Loading</span>
+                                      th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? (album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A') : 'Loading')}">Loading</span>
                             </div>
                         </div>
 

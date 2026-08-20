@@ -471,12 +471,12 @@
                                 
                                 <div class="form-group view-only-field">
                                     <label>First Full Listen Date</label>
-                                    <span class="attribute-text" th:text="${firstFullListenDate != null ? firstFullListenDate : '-'}">-</span>
+                                    <span class="attribute-text" th:text="${fullListenEligible ? (firstFullListenDate != null ? firstFullListenDate : '-') : 'Not an album'}">-</span>
                                 </div>
 
                                 <div class="form-group view-only-field">
                                     <label>Last Full Listen Date</label>
-                                    <span class="attribute-text" th:text="${lastFullListenDate != null ? lastFullListenDate : '-'}">-</span>
+                                    <span class="attribute-text" th:text="${fullListenEligible ? (lastFullListenDate != null ? lastFullListenDate : '-') : 'Not an album'}">-</span>
                                 </div>
 
                                 <div class="form-group">
@@ -570,7 +570,7 @@
                             </div>
                             <div class="ds-row">
                                 <span class="ds-label">Full Album Plays</span>
-                                <span class="ds-value" th:text="${fullAlbumPlays}">0</span>
+                                <span class="ds-value" th:text="${fullListenEligible ? fullAlbumPlays : 'Not an album'}">0</span>
                             </div>
                             <div class="ds-row">
                                 <span class="ds-label">Total Listening Time</span>

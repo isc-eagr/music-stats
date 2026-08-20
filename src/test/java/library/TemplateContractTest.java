@@ -78,6 +78,22 @@ class TemplateContractTest {
     }
 
     @Test
+    void billboardLibraryModalDoesNotCloseAfterTextSelectionDragLeavesDialog() throws IOException {
+        String billboardHtml = read("misc/billboard-hot100.html");
+        String dismissalFlow = functionBody(
+                billboardHtml,
+                "function setupBillboardMatchModalBackdropDismissal",
+                "document.querySelectorAll('.bb-sort-link')"
+        );
+
+        assertThat(dismissalFlow)
+                .contains("modal.addEventListener('mousedown'")
+                .contains("mouseDownTarget = event.target")
+                .contains("mouseDownTarget === modal && event.target === modal")
+                .contains("closeBillboardMatchModal()");
+    }
+
+    @Test
     void catalogListPagesKeepCoreLayoutAnchorsInPlace() throws IOException {
         for (CatalogPage page : catalogPages()) {
             Document doc = parse(page.path());
@@ -243,10 +259,15 @@ class TemplateContractTest {
     }
 
     @Test
-    void albumFullListenSettingsExposeTheInterruptionBudget() throws IOException {
+    void albumFullListenSettingsExposeTheTrackTiersAndInterruptionBudget() throws IOException {
         Document config = parse("config/index.html");
+        Element allowedMissingUpTo15Tracks = config.selectFirst("#allowedMissingUpTo15Tracks");
         Element allowedInterruptions = config.selectFirst("#allowedInterruptingSongs");
 
+        assertThat(allowedMissingUpTo15Tracks).isNotNull();
+        assertThat(allowedMissingUpTo15Tracks.attr("name")).isEqualTo("allowedMissingUpTo15Tracks");
+        assertThat(allowedMissingUpTo15Tracks.attr("th:value"))
+                .isEqualTo("${fullListenConfig.allowedMissingUpTo15Tracks}");
         assertThat(allowedInterruptions).isNotNull();
         assertThat(allowedInterruptions.attr("name")).isEqualTo("allowedInterruptingSongs");
         assertThat(allowedInterruptions.attr("th:value"))

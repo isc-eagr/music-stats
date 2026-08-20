@@ -812,7 +812,11 @@ public class AlbumController {
         // Add first and last listened dates for the album
         model.addAttribute("firstListenedDate", albumService.getFirstListenedDateForAlbum(id));
         model.addAttribute("lastListenedDate", albumService.getLastListenedDateForAlbum(id));
-        AlbumFullListenStats fullListenStats = albumService.getFullListenStatsForAlbum(id);
+        boolean fullListenEligible = songCount > 4;
+        AlbumFullListenStats fullListenStats = fullListenEligible
+                ? albumService.getFullListenStatsForAlbum(id)
+                : new AlbumFullListenStats(null, null, 0);
+        model.addAttribute("fullListenEligible", fullListenEligible);
         model.addAttribute("firstFullListenDate", fullListenStats.firstFullListenDate() != null
                 ? formatDateForDisplay(fullListenStats.firstFullListenDate()) : null);
         model.addAttribute("lastFullListenDate", fullListenStats.lastFullListenDate() != null
@@ -1096,7 +1100,11 @@ public class AlbumController {
     @ResponseBody
     public Map<String, Object> getLastFullListenDate(@PathVariable Integer id) {
         Map<String, Object> response = new java.util.HashMap<>();
-        AlbumFullListenStats stats = albumService.getFullListenStatsForAlbum(id);
+        boolean fullListenEligible = albumService.isFullListenEligible(id);
+        AlbumFullListenStats stats = fullListenEligible
+                ? albumService.getFullListenStatsForAlbum(id)
+                : new AlbumFullListenStats(null, null, 0);
+        response.put("fullListenEligible", fullListenEligible);
         response.put("firstFullListenDate", stats.firstFullListenDate() != null
                 ? formatDateForDisplay(stats.firstFullListenDate()) : null);
         response.put("lastFullListenDate", stats.lastFullListenDate() != null

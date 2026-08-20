@@ -139,15 +139,15 @@ class CatalogFilterRegressionTest {
             assertAlbumNames(db, mapOf("songCountMin", 2), "Amor Prohibido", "Un Verano Sin Ti");
             assertAlbumNames(db, mapOf("lengthMode", "null"), "Unknown Album");
             assertAlbumNames(db, mapOf("lengthMin", 400, "lengthMode", "range"), "Amor Prohibido", "Un Verano Sin Ti");
-            assertAlbumNames(db, mapOf("firstFullListenDate", "2024-01-05", "firstFullListenDateMode", "exact"), "Amor Prohibido");
+            assertAlbumNames(db, mapOf("firstFullListenDate", "2024-01-05", "firstFullListenDateMode", "exact"));
             assertAlbumNames(db, mapOf("firstFullListenDateMode", "isnull"),
-                    "Silent Record", "Un Verano Sin Ti", "Unknown Album");
-            assertAlbumNames(db, mapOf("lastFullListenDate", "2024-01-05", "lastFullListenDateMode", "exact"), "Amor Prohibido");
+                    "Amor Prohibido", "Legacy Collection", "Silent Record", "Un Verano Sin Ti", "Unknown Album");
+            assertAlbumNames(db, mapOf("lastFullListenDate", "2024-01-05", "lastFullListenDateMode", "exact"));
             assertAlbumNames(db, mapOf("lastFullListenDateMode", "isnull"),
-                    "Silent Record", "Un Verano Sin Ti", "Unknown Album");
-            assertAlbumNames(db, mapOf("fullAlbumPlaysMin", 1), "Amor Prohibido", "Legacy Collection");
+                    "Amor Prohibido", "Legacy Collection", "Silent Record", "Un Verano Sin Ti", "Unknown Album");
+            assertAlbumNames(db, mapOf("fullAlbumPlaysMin", 1));
             assertAlbumNames(db, mapOf("fullAlbumPlaysMax", 0),
-                    "Silent Record", "Un Verano Sin Ti", "Unknown Album");
+                    "Amor Prohibido", "Legacy Collection", "Silent Record", "Un Verano Sin Ti", "Unknown Album");
             assertAlbumNames(db, mapOf("itunesPresenceMin", 100, "itunesSongIdsJson", "[1,2,3,4,8]"),
                     "Amor Prohibido", "Legacy Collection", "Un Verano Sin Ti");
 
@@ -302,8 +302,7 @@ class CatalogFilterRegressionTest {
             assertAlbumNames(db, mapOf(
                     "lastFullListenDateFrom", "2024-01-01",
                     "lastFullListenDateTo", "2024-05-01",
-                    "lastFullListenDateMode", "between"),
-                    "Amor Prohibido", "Legacy Collection");
+                    "lastFullListenDateMode", "between"));
             assertAlbumNames(db, mapOf(
                     "itunesPresenceMax", 0,
                     "itunesSongIdsJson", "[1,2,3,4,8]"),

@@ -431,6 +431,14 @@
                     </div>
 
                     <div class="config-card third">
+                        <h3 class="config-card-title">Albums up to 15 tracks</h3>
+                        <div class="config-field">
+                            <label for="allowedMissingUpTo15Tracks">Allowed missing tracks</label>
+                            <input id="allowedMissingUpTo15Tracks" name="allowedMissingUpTo15Tracks" type="number" min="0" max="15" step="1" th:value="${fullListenConfig.allowedMissingUpTo15Tracks}">
+                        </div>
+                    </div>
+
+                    <div class="config-card third">
                         <h3 class="config-card-title">Albums up to 20 tracks</h3>
                         <div class="config-field">
                             <label for="allowedMissingUpTo20Tracks">Allowed missing tracks</label>

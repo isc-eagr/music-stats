@@ -46,6 +46,7 @@ public class ConfigController {
             @RequestParam(defaultValue = "false") boolean combineLinkedSongs,
             @RequestParam int allowedMissingUpTo6Tracks,
             @RequestParam int allowedMissingUpTo10Tracks,
+            @RequestParam int allowedMissingUpTo15Tracks,
             @RequestParam int allowedMissingUpTo20Tracks,
             @RequestParam int allowedMissingOver20Tracks,
             @RequestParam int allowedInterruptingSongs,
@@ -74,6 +75,7 @@ public class ConfigController {
         appConfigService.updateAlbumFullListenConfig(new AppConfigService.AlbumFullListenConfig(
                 allowedMissingUpTo6Tracks,
                 allowedMissingUpTo10Tracks,
+                allowedMissingUpTo15Tracks,
                 allowedMissingUpTo20Tracks,
                 allowedMissingOver20Tracks,
                 allowedInterruptingSongs

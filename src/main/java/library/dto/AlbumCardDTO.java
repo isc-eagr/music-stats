@@ -516,6 +516,16 @@ public class AlbumCardDTO {
         this.fullAlbumPlays = fullAlbumPlays;
     }
 
+    private boolean fullListenEligible;
+
+    public boolean isFullListenEligible() {
+        return fullListenEligible;
+    }
+
+    public void setFullListenEligible(boolean fullListenEligible) {
+        this.fullListenEligible = fullListenEligible;
+    }
+
     private Double itunesPresenceRatio;
 
     public Double getItunesPresenceRatio() {

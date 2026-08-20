@@ -50,7 +50,7 @@ final class TestDatabaseSupport implements AutoCloseable {
     }
 
     static TestDatabaseSupport create() {
-        return create(new AppConfigService.AlbumFullListenConfig(0, 2, 3, 4, 5));
+        return create(new AppConfigService.AlbumFullListenConfig(0, 2, 3, 3, 4, 5));
     }
 
     static TestDatabaseSupport create(AppConfigService.AlbumFullListenConfig fullListenConfig) {

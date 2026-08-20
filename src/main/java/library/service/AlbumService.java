@@ -149,6 +149,7 @@ public class AlbumService {
             dto.setReleaseYear(row.releaseYear());
             dto.setReleaseDate(row.releaseDate() != null ? formatDate(row.releaseDate()) : null);
             dto.setSongCount(row.songCount());
+            dto.setFullListenEligible(row.songCount() > 4);
             
             long albumLength = row.albumLength();
             dto.setAlbumLength(albumLength);
@@ -1045,6 +1046,10 @@ public class AlbumService {
 
     public int getFullAlbumPlaysForAlbum(int albumId) {
         return getFullListenStatsForAlbum(albumId).fullAlbumPlays();
+    }
+
+    public boolean isFullListenEligible(int albumId) {
+        return getSongCount(albumId) > 4;
     }
 
     public AlbumFullListenStats getFullListenStatsForAlbum(int albumId) {

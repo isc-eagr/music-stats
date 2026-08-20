@@ -1204,6 +1204,12 @@ function populateAlbumFullListenMetrics(target, data) {
     const first = target.querySelector('.first-full-listen-value');
     const last = target.querySelector('.last-full-listen-value');
     const plays = target.querySelector('.full-album-plays-value');
+    if (!data.fullListenEligible) {
+        if (first) first.textContent = 'Not an album';
+        if (last) last.textContent = 'Not an album';
+        if (plays) plays.textContent = 'Not an album';
+        return;
+    }
     if (first) first.textContent = data.firstFullListenDate || 'N/A';
     if (last) last.textContent = data.lastFullListenDate || 'N/A';
     if (plays) plays.textContent = data.fullAlbumPlays ?? 0;
@@ -1212,6 +1218,10 @@ function populateAlbumFullListenMetrics(target, data) {
 function loadAlbumFullListenMetrics(card) {
     const albumId = card.getAttribute('data-album-id');
     if (!albumId) return Promise.resolve();
+    if (card.dataset.fullListenEligible === 'false') {
+        populateAlbumFullListenMetrics(card, { fullListenEligible: false });
+        return Promise.resolve();
+    }
     if (!card._fullListenMetricsPromise) {
         card._fullListenMetricsPromise = fetch('/albums/api/' + albumId + '/last-full-listen')
             .then(function(response) {

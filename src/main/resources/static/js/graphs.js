@@ -2070,9 +2070,9 @@ function buildAlbumRow(album, rank) {
             <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(album.weeksListened)}</td>
             <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(album.monthsListened)}</td>
             <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(album.yearsListened)}</td>
-            <td style="display:${vis('firstFullListen')};">${album.firstFullListen || '-'}</td>
-            <td style="display:${vis('lastFullListen')};">${album.lastFullListen || '-'}</td>
-            <td style="text-align:right;display:${vis('fullAlbumPlays')};">${cellVal(album.fullAlbumPlays)}</td>
+            <td style="display:${vis('firstFullListen')};">${album.fullListenEligible ? (album.firstFullListen || '-') : 'Not an album'}</td>
+            <td style="display:${vis('lastFullListen')};">${album.fullListenEligible ? (album.lastFullListen || '-') : 'Not an album'}</td>
+            <td style="text-align:right;display:${vis('fullAlbumPlays')};">${album.fullListenEligible ? cellVal(album.fullAlbumPlays) : 'Not an album'}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(album.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${album.avgLengthFormatted || '-'}</td>
             <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(album.avgPlays)}</td>

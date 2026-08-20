@@ -1420,11 +1420,21 @@
             }
         });
 
-        document.getElementById('billboardMatchModal').addEventListener('click', function (event) {
-            if (event.target === this) {
-                closeBillboardMatchModal();
-            }
-        });
+        // Only dismiss when both press and release happen on the backdrop.
+        // This keeps text-selection drags from closing the modal when the cursor leaves its bounds.
+        (function setupBillboardMatchModalBackdropDismissal() {
+            const modal = document.getElementById('billboardMatchModal');
+            let mouseDownTarget = null;
+            modal.addEventListener('mousedown', function(event) {
+                mouseDownTarget = event.target;
+            });
+            modal.addEventListener('click', function(event) {
+                if (mouseDownTarget === modal && event.target === modal) {
+                    closeBillboardMatchModal();
+                }
+                mouseDownTarget = null;
+            });
+        })();
 
         document.querySelectorAll('.bb-sort-link').forEach(function(link) {
             link.addEventListener('click', function() {
