@@ -354,12 +354,24 @@ public class ChartService {
      * Only shows basic info: artist, album, song, plays - no chart history stats.
      */
     public List<ChartEntryDTO> getWeeklySongChartPreview(String periodKey) {
+        return getWeeklySongChartPreview(periodKey, TOP_SONGS_COUNT);
+    }
+
+    /**
+     * Get a weekly song preview with a display-specific result limit.
+     * Official chart generation continues to use the default top-20 overload.
+     */
+    public List<ChartEntryDTO> getWeeklySongChartPreview(String periodKey, int resultLimit) {
+        if (resultLimit < 1) {
+            return Collections.emptyList();
+        }
+
         LocalDate[] dateRange = parsePeriodKeyToDateRange(periodKey);
         LocalDate startDate = dateRange[0];
         LocalDate endDate = dateRange[1];
 
         if (appConfigService.isCombineLinkedSongsEnabled()) {
-            List<ChartEntryDTO> preview = getCombinedWeeklySongChartPreview(startDate, endDate);
+            List<ChartEntryDTO> preview = getCombinedWeeklySongChartPreview(startDate, endDate, resultLimit);
             applySongPlayBreakdowns(preview, startDate, endDate);
             enrichWeeklySongPreviewStats(preview, periodKey);
             return preview;
@@ -409,13 +421,13 @@ public class ChartService {
             dto.setAlbumHasImage(rs.getInt("album_has_image") == 1);
             dto.setGenreName(rs.getString("genre_name"));
             result.add(dto);
-        }, startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
+        }, startDate.toString(), endDate.toString(), resultLimit);
 
         enrichWeeklySongPreviewStats(result, periodKey);
         return result;
     }
 
-    private List<ChartEntryDTO> getCombinedWeeklySongChartPreview(LocalDate startDate, LocalDate endDate) {
+    private List<ChartEntryDTO> getCombinedWeeklySongChartPreview(LocalDate startDate, LocalDate endDate, int resultLimit) {
         String sql = """
             WITH play_rows AS (
                 SELECT
@@ -491,7 +503,7 @@ public class ChartService {
             dto.setAlbumHasImage(rs.getInt("album_has_image") == 1);
             dto.setGenreName(rs.getString("genre_name"));
             result.add(dto);
-        }, startDate.toString(), endDate.toString(), TOP_SONGS_COUNT);
+        }, startDate.toString(), endDate.toString(), resultLimit);
 
         enrichWeeklySongPreviewStats(result, startDate);
         return result;

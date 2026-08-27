@@ -22,6 +22,17 @@ class TemplateContractTest {
     private static final Path TEMPLATES = Path.of("src/main/resources/templates");
 
     @Test
+    void weeklyPreviewShowsPotentialContendersBelowTheTopTwenty() throws IOException {
+        String weekly = read("charts/weekly.html");
+
+        assertThat(weekly)
+                .contains("id=\"previewContendersSection\"")
+                .contains("isPreview and contenderEntries")
+                .contains("Potential Contenders (21-50)")
+                .contains("th:each=\"entry : ${contenderEntries}\"");
+    }
+
+    @Test
     void unmatchedPlayMatchingRefreshesTheAutomationBannerInPlace() throws IOException {
         String navigation = read("fragments/navigation.html");
         String unmatchedPlays = read("unmatchedPlays.html");

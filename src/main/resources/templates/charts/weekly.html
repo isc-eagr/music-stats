@@ -1258,6 +1258,84 @@
                 </table>
                     </div>
                 </div>
+                <div id="previewContendersSection"
+                     th:if="${isPreview and contenderEntries != null and !contenderEntries.isEmpty()}"
+                     style="margin-top: 28px;">
+                    <div class="chart-section-header">
+                        <span class="chart-section-icon">&#8593;</span>
+                        <div>
+                            <h2 class="chart-section-title">Potential Contenders (21-50)</h2>
+                            <div style="color: #9ca3af; font-size: 0.86rem; margin-top: 4px;">
+                                Songs currently outside the Top 20 that could move into the chart as the week unfolds.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="charts-table-container">
+                        <div class="charts-table-wrapper">
+                            <table class="charts-table table mobile-compact-table">
+                                <thead>
+                                    <tr>
+                                        <th class="cover-col"></th>
+                                        <th class="col-position sortable" onclick="sortTable(this,'number')">Pos.</th>
+                                        <th class="col-title mobile-name-col sortable" onclick="sortTable(this,'text')">Song</th>
+                                        <th class="col-artist hide-mobile sortable" onclick="sortTable(this,'text')">Artist</th>
+                                        <th class="col-plays sortable" onclick="sortTable(this,'number')">Plays</th>
+                                        <th class="col-span hide-mobile sortable" onclick="sortTable(this,'number')">Weeks</th>
+                                        <th class="col-peak hide-mobile sortable" onclick="sortTable(this,'number')">Peak</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${contenderEntries}"
+                                        th:data-song-id="${entry.songId}"
+                                        th:attr="data-gender=${entry.genderId},data-genre=${entry.genreName}"
+                                        th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
+                                        <td class="cover-col">
+                                            <img th:if="${entry.albumHasImage and entry.albumId != null}"
+                                                 th:src="@{/albums/{id}/image(id=${entry.albumId})}"
+                                                 alt="" class="title-image">
+                                            <img th:if="${!entry.albumHasImage and entry.hasImage}"
+                                                 th:src="@{/songs/{id}/image(id=${entry.songId})}"
+                                                 alt="" class="title-image">
+                                            <div th:if="${!entry.albumHasImage and !entry.hasImage}" class="title-placeholder">
+                                                <span>&#127925;</span>
+                                            </div>
+                                        </td>
+                                        <td class="col-position" th:attr="data-sort-val=${entry.position}">
+                                            <div class="position-cell">
+                                                <span class="position-number" th:text="${entry.position}">21</span>
+                                            </div>
+                                        </td>
+                                        <td class="col-title mobile-name-col" th:attr="data-sort-val=${entry.songName}">
+                                            <a th:href="@{/songs/{id}(id=${entry.songId})}"
+                                               class="chart-link chart-link-primary"
+                                               th:text="${entry.songName}">Song Name</a>
+                                            <div class="mobile-inline-artist">
+                                                <a th:href="@{/artists/{id}(id=${entry.artistId})}"
+                                                   class="chart-link chart-link-secondary"
+                                                   th:text="${entry.artistName}">Artist Name</a>
+                                            </div>
+                                        </td>
+                                        <td class="col-artist hide-mobile" th:attr="data-sort-val=${entry.artistName}">
+                                            <a th:href="@{/artists/{id}(id=${entry.artistId})}"
+                                               class="chart-link chart-link-secondary"
+                                               th:text="${entry.artistName}">Artist Name</a>
+                                        </td>
+                                        <td class="col-plays" th:attr="data-sort-val=${entry.playCount != null ? entry.playCount : -1}">
+                                            <span class="plays-count"
+                                                  th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
+                                        </td>
+                                        <td class="col-span hide-mobile"
+                                            th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">0</td>
+                                        <td class="col-peak hide-mobile">
+                                            <span class="peak-position"
+                                                  th:text="${entry.peakPosition != null ? entry.peakPosition : '-'}">-</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
                 <div th:if="${!isPreview && fallOffEntries != null && !fallOffEntries.isEmpty()}" style="margin-top: 20px;">
                     <div class="chart-section-header">
                         <span class="chart-section-icon">&#8600;</span>
@@ -2408,7 +2486,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             // Songs table: exclude detail rows
-            computeMalePct('#songsSection .charts-table tbody', 'tr[data-song-id]', 'songsGenderPct');
+            computeMalePct('#songsSection > .charts-table-container .charts-table tbody', 'tr[data-song-id]', 'songsGenderPct');
             computeMalePct('#albumsSection .charts-table tbody', 'tr[data-album-id]', 'albumsGenderPct');
             initializeWeeklyNumberOneTooltips();
         });

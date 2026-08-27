@@ -45,6 +45,8 @@ import java.util.regex.Pattern;
 public class ChartsController {
 
     private static final int WEEKLY_OVERVIEW_PAGE_SIZE = 100;
+    private static final int WEEKLY_CHART_SIZE = 20;
+    private static final int WEEKLY_PREVIEW_CONTENDER_COUNT = 30;
     private static final int SEASONAL_SONG_OVERVIEW_PAGE_SIZE = 100;
     private static final Pattern OVERVIEW_RANGE_PATTERN = Pattern.compile("^(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)$");
     private static final Pattern OVERVIEW_COMPARE_PATTERN = Pattern.compile("^(<=|>=|=|<|>)?\\s*(-?\\d+(?:\\.\\d+)?)$");
@@ -108,7 +110,13 @@ public class ChartsController {
 
             if (isPreviewMode) {
                 // Show preview of in-progress week
-                List<ChartEntryDTO> entries = chartService.getWeeklySongChartPreview(periodKey);
+                List<ChartEntryDTO> previewEntries = chartService.getWeeklySongChartPreview(
+                        periodKey, WEEKLY_CHART_SIZE + WEEKLY_PREVIEW_CONTENDER_COUNT);
+                List<ChartEntryDTO> entries = new ArrayList<>(
+                        previewEntries.subList(0, Math.min(WEEKLY_CHART_SIZE, previewEntries.size())));
+                List<ChartEntryDTO> contenderEntries = previewEntries.size() > WEEKLY_CHART_SIZE
+                        ? new ArrayList<>(previewEntries.subList(WEEKLY_CHART_SIZE, previewEntries.size()))
+                        : List.of();
                 List<ChartEntryDTO> albumEntries = chartService.getWeeklyAlbumChartPreview(periodKey);
 
                 // Get formatted period for display
@@ -121,6 +129,7 @@ public class ChartsController {
                 model.addAttribute("hasChart", false);
                 model.addAttribute("isPreview", true);
                 model.addAttribute("entries", entries);
+                model.addAttribute("contenderEntries", contenderEntries);
                 model.addAttribute("albumEntries", albumEntries);
                 model.addAttribute("periodKey", periodKey);
                 model.addAttribute("formattedPeriod", formattedPeriod);
