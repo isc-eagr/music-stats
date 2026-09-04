@@ -134,6 +134,10 @@
                 background: linear-gradient(135deg, rgba(17, 94, 89, 0.92), rgba(6, 78, 59, 0.94));
                 color: #eafff7;
             }
+            .automation-banner-missing-chart {
+                background: linear-gradient(135deg, rgba(67, 56, 202, 0.92), rgba(49, 46, 129, 0.94));
+                color: #f2f0ff;
+            }
             .automation-banner-warning {
                 background: linear-gradient(135deg, rgba(146, 64, 14, 0.94), rgba(120, 53, 15, 0.96));
                 color: #fff5e8;
@@ -500,6 +504,15 @@
                     <span class="automation-banner-title"><span class="automation-banner-count" th:text="${playAutomationBannerState.unmatchedBanner.count}">0</span> Unmatched Plays</span>
                 </div>
                 <span class="automation-banner-cta">Review</span>
+            </a>
+            <a class="automation-banner automation-banner-compact automation-banner-missing-chart"
+               data-banner-kind="missing-weekly-chart"
+               th:if="${weeklyChartBanner != null}"
+               th:href="${weeklyChartBanner.href}">
+                <div class="automation-banner-copy">
+                    <span class="automation-banner-title"><span th:text="${weeklyChartBanner.count}">0</span> Missing Weekly <span th:text="${weeklyChartBanner.count == 1 ? 'Chart' : 'Charts'}">Charts</span></span>
+                </div>
+                <span class="automation-banner-cta">Generate</span>
             </a>
               <div class="automation-banner automation-banner-compact automation-banner-imported"
                   data-banner-kind="imported"

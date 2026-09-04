@@ -48,6 +48,17 @@ class TemplateContractTest {
     }
 
     @Test
+    void missingWeeklyChartBannerIsPersistentAndLinksToGenerationPage() throws IOException {
+        Document navigation = parse("fragments/navigation.html");
+        Element banner = navigation.selectFirst("[data-banner-kind=missing-weekly-chart]");
+
+        assertThat(banner).isNotNull();
+        assertThat(banner.attr("th:if")).isEqualTo("${weeklyChartBanner != null}");
+        assertThat(banner.attr("th:href")).isEqualTo("${weeklyChartBanner.href}");
+        assertThat(banner.select(".automation-banner-close")).isEmpty();
+    }
+
+    @Test
     void chartLibraryLinksReplaceOnlyTheAffectedOverviewRow() throws IOException {
         String pcHtml = read("misc/pc.html");
         String pcMatchFlow = functionBody(pcHtml, "function linkPcMatch", "function escapePcHtml");
