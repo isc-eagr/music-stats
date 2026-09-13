@@ -34,3 +34,4 @@ build/
 bin
 
 *.jar
+/music-stats-0.0.1-SNAPSHOT.jar
