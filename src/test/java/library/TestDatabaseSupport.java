@@ -138,6 +138,7 @@ final class TestDatabaseSupport implements AutoCloseable {
                 "CREATE TABLE SongImage (id INTEGER PRIMARY KEY, song_id INTEGER NOT NULL, image BLOB, display_order INTEGER)",
                 "CREATE TABLE ArtistTheme (id INTEGER PRIMARY KEY, name TEXT, is_active INTEGER DEFAULT 1)",
                 "CREATE TABLE ArtistImageTheme (artist_id INTEGER NOT NULL, theme_id INTEGER NOT NULL)",
+                "CREATE TABLE Tag (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
                 "CREATE TABLE ArtistTag (artist_id INTEGER NOT NULL, tag_id INTEGER NOT NULL)",
                 "CREATE TABLE AlbumTag (album_id INTEGER NOT NULL, tag_id INTEGER NOT NULL)",
                 "CREATE TABLE SongTag (song_id INTEGER NOT NULL, tag_id INTEGER NOT NULL)",
@@ -199,6 +200,7 @@ final class TestDatabaseSupport implements AutoCloseable {
         jdbcTemplate.update("INSERT INTO Genre (id, name) VALUES (1, 'Pop'), (2, 'Rock'), (3, 'Dance')");
         jdbcTemplate.update("INSERT INTO SubGenre (id, name, parent_genre_id) VALUES (1, 'Synth Pop', 1), (2, 'Alt Rock', 2), (3, 'Dance Pop', 3)");
         jdbcTemplate.update("INSERT INTO Language (id, name) VALUES (1, 'Spanish'), (2, 'English')");
+        jdbcTemplate.update("INSERT INTO Tag (id, name) VALUES (10, 'Favorite'), (20, 'Archive')");
 
         jdbcTemplate.update("""
                 INSERT INTO Artist

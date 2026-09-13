@@ -18,6 +18,7 @@ import library.service.ItunesService;
 import library.service.PcService;
 import library.service.TagService;
 import library.service.TrlService;
+import library.service.DetailPlayHeatmapService;
 import library.util.DateFormatUtils;
 import library.util.ArtistFilterMode;
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,12 +51,13 @@ public class AlbumController {
     private final CatalogChartService catalogChartService;
     private final ChartFilterRequestFactory chartFilterRequestFactory;
     private final TagService tagService;
+    private final DetailPlayHeatmapService detailPlayHeatmapService;
 
     public AlbumController(AlbumService albumService, ChartService chartService, ArtistService artistService,
                            LookupRepository lookupRepository, ItunesService itunesService, AppConfigService appConfigService,
                            BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService,
                            CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory,
-                           TagService tagService) {
+                           TagService tagService, DetailPlayHeatmapService detailPlayHeatmapService) {
         this.albumService = albumService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -68,6 +70,7 @@ public class AlbumController {
         this.catalogChartService = catalogChartService;
         this.chartFilterRequestFactory = chartFilterRequestFactory;
         this.tagService = tagService;
+        this.detailPlayHeatmapService = detailPlayHeatmapService;
     }
     
     @InitBinder
@@ -725,6 +728,7 @@ public class AlbumController {
     public String viewAlbum(@PathVariable Integer id, 
                            @RequestParam(defaultValue = "general") String tab,
                            @RequestParam(defaultValue = "0") int playsPage,
+                           @RequestParam(required = false) Integer heatmapYear,
                            Model model) {
         Optional<Album> album = albumService.getAlbumById(id);
         
@@ -865,6 +869,7 @@ public class AlbumController {
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);
+        model.addAttribute("playHeatmap", detailPlayHeatmapService.forAlbum(id, heatmapYear));
         
         // Add seasonal/yearly chart history for chips display (always needed)
         model.addAttribute("seasonalChartHistory", chartService.getChartHistoryForItem(id, "album", "seasonal"));

@@ -3332,7 +3332,9 @@ public class ChartService {
             ORDER BY c.period_start_date ASC, ce.position ASC, ce.id ASC
             """;
 
-        List<ChartOverviewAppearanceRow> appearances = jdbcTemplate.query(sql, (rs, rowNum) -> new ChartOverviewAppearanceRow(
+        Map<Integer, ChartOverviewSongAccumulator> accumulators = new LinkedHashMap<>();
+        jdbcTemplate.query(sql, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+            ChartOverviewAppearanceRow appearance = new ChartOverviewAppearanceRow(
             rs.getInt("song_id"),
             rs.getString("song_name"),
             rs.getObject("album_id") != null ? rs.getInt("album_id") : null,
@@ -3346,17 +3348,17 @@ public class ChartService {
             rs.getInt("position"),
             rs.getString("period_key"),
             rs.getString("period_start_date")
-        ), periodType);
-
-        Map<Integer, ChartOverviewSongAccumulator> accumulators = new LinkedHashMap<>();
-        for (ChartOverviewAppearanceRow appearance : appearances) {
+            );
             accumulators.computeIfAbsent(appearance.songId(), ignored -> new ChartOverviewSongAccumulator(appearance))
                 .addAppearance(appearance);
-        }
+        }, periodType);
 
+        Map<Integer, List<String>> linkedTitles = buildLinkedSongTooltipItems();
         List<ChartSongOverviewRowDTO> rows = new ArrayList<>();
         for (ChartOverviewSongAccumulator accumulator : accumulators.values()) {
-            rows.add(accumulator.toDto(periodType));
+            ChartSongOverviewRowDTO row = accumulator.toDto(periodType);
+            row.setLinkedSongTitles(linkedTitles.getOrDefault(row.getSongId(), List.of()));
+            rows.add(row);
         }
 
         rows.sort(Comparator.comparingInt(ChartSongOverviewRowDTO::getPeakPosition)
@@ -3390,7 +3392,9 @@ public class ChartService {
             ORDER BY c.period_start_date ASC, ce.position ASC, ce.id ASC
             """;
 
-        List<ChartOverviewAlbumAppearanceRow> appearances = jdbcTemplate.query(sql, (rs, rowNum) -> new ChartOverviewAlbumAppearanceRow(
+        Map<Integer, ChartOverviewAlbumChartAccumulator> accumulators = new LinkedHashMap<>();
+        jdbcTemplate.query(sql, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+            ChartOverviewAlbumAppearanceRow appearance = new ChartOverviewAlbumAppearanceRow(
             rs.getInt("album_id"),
             rs.getString("album_name"),
             rs.getInt("artist_id"),
@@ -3401,13 +3405,10 @@ public class ChartService {
             rs.getInt("position"),
             rs.getString("period_key"),
             rs.getString("period_start_date")
-        ), periodType);
-
-        Map<Integer, ChartOverviewAlbumChartAccumulator> accumulators = new LinkedHashMap<>();
-        for (ChartOverviewAlbumAppearanceRow appearance : appearances) {
+            );
             accumulators.computeIfAbsent(appearance.albumId(), ignored -> new ChartOverviewAlbumChartAccumulator(appearance))
                 .addAppearance(appearance);
-        }
+        }, periodType);
 
         List<ChartAlbumOverviewRowDTO> rows = new ArrayList<>();
         for (ChartOverviewAlbumChartAccumulator accumulator : accumulators.values()) {
@@ -3675,16 +3676,37 @@ public class ChartService {
         return null;
     }
 
-    private List<String> buildLinkedSongTooltipItems(Integer songId) {
-        if (!appConfigService.isCombineLinkedSongsEnabled() || songId == null) {
-            return List.of();
+    private Map<Integer, List<String>> buildLinkedSongTooltipItems() {
+        if (!appConfigService.isCombineLinkedSongsEnabled()) {
+            return Map.of();
         }
-
-        List<LinkedSongDTO> linkedSongs = songLinkService.getLinkedSongs(songId);
-        if (linkedSongs == null || linkedSongs.size() <= 1) {
-            return List.of();
+        // Tooltips need names only: do not aggregate Play or resolve representatives per song.
+        Map<Integer, List<LinkedSongDTO>> groups = new HashMap<>();
+        jdbcTemplate.query("""
+                SELECT m.group_id, s.id, s.name, ar.name AS artist_name, al.name AS album_name
+                FROM song_link_group_member m
+                JOIN Song s ON s.id = m.song_id
+                JOIN Artist ar ON ar.id = s.artist_id
+                LEFT JOIN Album al ON al.id = s.album_id
+                ORDER BY s.name COLLATE NOCASE, s.id
+                """, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+            LinkedSongDTO song = new LinkedSongDTO();
+            song.setId(rs.getInt("id"));
+            song.setName(rs.getString("name"));
+            song.setArtistName(rs.getString("artist_name"));
+            song.setAlbumName(rs.getString("album_name"));
+            groups.computeIfAbsent(rs.getInt("group_id"), ignored -> new ArrayList<>()).add(song);
+        });
+        Map<Integer, List<String>> result = new HashMap<>();
+        for (List<LinkedSongDTO> linkedSongs : groups.values()) {
+            if (linkedSongs.size() <= 1) continue;
+            List<String> titles = formatLinkedSongTooltipItems(linkedSongs);
+            for (LinkedSongDTO song : linkedSongs) result.put(song.getId(), titles);
         }
+        return result;
+    }
 
+    private List<String> formatLinkedSongTooltipItems(List<LinkedSongDTO> linkedSongs) {
         long distinctArtists = linkedSongs.stream()
                 .map(LinkedSongDTO::getArtistName)
                 .filter(Objects::nonNull)
@@ -3837,9 +3859,10 @@ public class ChartService {
                     continue;
                 }
                 int safePosition = Math.max(1, Math.min(position, maxThreshold));
-                for (int threshold = safePosition; threshold <= maxThreshold; threshold++) {
-                    spanAtTopThresholds[threshold]++;
-                }
+                spanAtTopThresholds[safePosition]++;
+            }
+            for (int threshold = 2; threshold <= maxThreshold; threshold++) {
+                spanAtTopThresholds[threshold] += spanAtTopThresholds[threshold - 1];
             }
 
             ChartSongOverviewRowDTO dto = new ChartSongOverviewRowDTO();
@@ -3870,7 +3893,6 @@ public class ChartService {
             dto.setSpanAtTop10(spanAtTop10);
             dto.setSpanAtTopThresholds(spanAtTopThresholds);
             dto.setGenderClass(resolveGenderClass(genderId));
-            dto.setLinkedSongTitles(buildLinkedSongTooltipItems(songId));
             return dto;
         }
     }
@@ -4019,9 +4041,10 @@ public class ChartService {
                     continue;
                 }
                 int safePosition = Math.max(1, Math.min(position, maxThreshold));
-                for (int threshold = safePosition; threshold <= maxThreshold; threshold++) {
-                    spanAtTopThresholds[threshold]++;
-                }
+                spanAtTopThresholds[safePosition]++;
+            }
+            for (int threshold = 2; threshold <= maxThreshold; threshold++) {
+                spanAtTopThresholds[threshold] += spanAtTopThresholds[threshold - 1];
             }
 
             ChartAlbumOverviewRowDTO dto = new ChartAlbumOverviewRowDTO();

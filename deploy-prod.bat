@@ -40,6 +40,18 @@ if errorlevel 1 (
   goto :fail
 )
 
+echo Waiting for the deployed JAR to be released...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$target = '%PROD_JAR_PATH%';" ^
+  "if (-not (Test-Path -LiteralPath $target)) { exit 0 };" ^
+  "$released = $false;" ^
+  "for ($attempt = 0; $attempt -lt 40; $attempt++) { try { $stream = [System.IO.File]::Open($target, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::None); $stream.Dispose(); $released = $true; break } catch [System.IO.IOException] { Start-Sleep -Milliseconds 250 } };" ^
+  "if (-not $released) { Write-Error ('The deployed JAR is still locked: {0}' -f $target); exit 1 }"
+if errorlevel 1 (
+  echo The deployed JAR is still in use. Stop the remaining Music Stats process and rerun deployment.
+  goto :fail
+)
+
 echo.
 echo [2/4] Building fresh jar...
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format o"') do set "BUILD_STARTED=%%I"

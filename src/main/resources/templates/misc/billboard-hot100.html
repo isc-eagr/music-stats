@@ -8,6 +8,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <script th:src="@{/js/table-sort.js}" defer></script>
+    <th:block th:replace="~{fragments/overview-filters :: styles}"></th:block>
     <style>
         body {
             --accent: #22d3ee;
@@ -348,6 +349,7 @@
                th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},q=${q})}">Artist Overview</a>
         </div>
 
+        <th:block th:replace="~{fragments/overview-filters :: panel}"></th:block>
         <div class="bb-toolbar">
             <button th:if="${overviewTab == 'song'}" class="bb-btn" id="bbImportBtn" onclick="runBillboardImport(this)">Incremental Refresh</button>
             <div th:if="${overviewTab == 'song'}" id="billboardImportStatus" class="bb-import-status" role="status" aria-live="polite"></div>
@@ -358,16 +360,6 @@
                th:href="@{/misc/billboard-hot-100(overviewTab='artist',page=1,size=${size},sort=${sort},dir=${dir},q=${q},includeFeatured=${!selectedIncludeFeatured})}"
                style="text-decoration:none;"
                th:text="${selectedIncludeFeatured} ? 'Featured On' : 'Featured Off'">Featured</a>
-            <form class="bb-search-form" method="get" th:action="@{/misc/billboard-hot-100}">
-                <input type="hidden" name="overviewTab" th:value="${overviewTab}">
-                <input type="hidden" name="page" value="1">
-                <input type="hidden" name="size" th:value="${size}">
-                <input type="hidden" name="sort" th:value="${sort}">
-                <input type="hidden" name="dir" th:value="${dir}">
-                <input type="hidden" name="includeFeatured" th:value="${selectedIncludeFeatured}">
-                <input id="billboardSearchInput" name="q" class="bb-search-input-inline" type="text" placeholder="Search the current overview..." th:value="${q}" autocomplete="off">
-                <a th:if="${q != null and !q.isBlank()}" class="bb-clear-link" th:href="@{/misc/billboard-hot-100(overviewTab=${overviewTab},page=1,size=${size},sort=${sort},dir=${dir})}">Clear</a>
-            </form>
             <div class="bb-search-status" th:if="${q != null and !q.isBlank()}" th:text="|Searching Billboard ${overviewTab} overview for '${q}' (${resultTotal} matches)|">Searching Billboard rows</div>
         </div>
 
@@ -496,7 +488,7 @@
                     </tr>
                     </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="13" class="bb-empty">No Billboard Hot 100 rows found yet. Run the migration, then import the weekly data.</td>
+                        <td colspan="13" class="bb-empty">No songs match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -585,7 +577,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumEntries)}">
-                        <td colspan="11" class="bb-empty">No linked albums have charted on the Billboard Hot 100 yet.</td>
+                        <td colspan="11" class="bb-empty">No albums match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -667,7 +659,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistEntries)}">
-                        <td colspan="10" class="bb-empty">No artist overview rows found yet.</td>
+                        <td colspan="10" class="bb-empty">No artists match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -1055,6 +1047,7 @@
 
                 try {
                     const url = new URL('/misc/billboard-hot-100/data', window.location.origin);
+                    window.overviewFilters.appendTo(url);
                     url.searchParams.set('overviewTab', overviewTab);
                     url.searchParams.set('page', String(nextPage));
                     url.searchParams.set('size', String(pageSize));
@@ -1447,35 +1440,6 @@
                 showPageBusyOverlay('Searching Billboard overview', 'Searching the full Hot 100 dataset...');
             });
         });
-
-        const billboardOverviewSearchForm = document.querySelector('.bb-search-form');
-        const billboardOverviewSearchInput = document.getElementById('billboardSearchInput');
-        let billboardOverviewSearchTimer = null;
-        let billboardOverviewLastSubmitted = billboardOverviewSearchInput ? (billboardOverviewSearchInput.value || '').trim() : '';
-
-        if (billboardOverviewSearchForm && billboardOverviewSearchInput) {
-            billboardOverviewSearchInput.addEventListener('input', function() {
-                const nextValue = (this.value || '').trim();
-                clearTimeout(billboardOverviewSearchTimer);
-                if (nextValue === billboardOverviewLastSubmitted) {
-                    return;
-                }
-                billboardOverviewSearchTimer = setTimeout(() => {
-                    billboardOverviewLastSubmitted = nextValue;
-                    billboardOverviewSearchForm.requestSubmit();
-                }, 250);
-            });
-
-            billboardOverviewSearchInput.addEventListener('keydown', function(event) {
-                if (event.key !== 'Enter') {
-                    return;
-                }
-                event.preventDefault();
-                clearTimeout(billboardOverviewSearchTimer);
-                billboardOverviewLastSubmitted = (this.value || '').trim();
-                billboardOverviewSearchForm.requestSubmit();
-            });
-        }
 
         window.addEventListener('load', function() {
             showQueuedBillboardImportToast();

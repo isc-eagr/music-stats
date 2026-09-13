@@ -8,6 +8,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <script th:src="@{/js/table-sort.js}" defer></script>
+    <th:block th:replace="~{fragments/overview-filters :: styles}"></th:block>
     <style>
         body {
             --accent: #fa8072;
@@ -371,25 +372,24 @@
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'song'} ? ' active' : ''"
                th:href="@{/misc/vatos-cuntdown(overviewTab='song')}"
-               onclick="persistPcSearch()">Song Overview</a>
+               >Song Overview</a>
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'album'} ? ' active' : ''"
                th:href="@{/misc/vatos-cuntdown(overviewTab='album')}"
-               onclick="persistPcSearch()">Album Overview</a>
+               >Album Overview</a>
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'artist'} ? ' active' : ''"
                th:href="@{/misc/vatos-cuntdown(overviewTab='artist')}"
-               onclick="persistPcSearch()">Artist Overview</a>
+               >Artist Overview</a>
         </div>
 
+        <th:block th:replace="~{fragments/overview-filters :: panel}"></th:block>
         <div class="pc-toolbar">
-            <input type="text" id="pcSearchInput" class="pc-search-input-inline" placeholder="Filter the current overview..." oninput="filterPcTable()" autocomplete="off">
             <button id="pcLoadAllButton" type="button" class="pc-toggle-btn" hidden th:if="${activeTotalCount > pageSize}" onclick="window.loadAllPcOverviewResults && window.loadAllPcOverviewResults()">Load all</button>
             <a th:if="${overviewTab == 'artist'}"
                class="pc-toggle-btn"
                th:classappend="${selectedIncludeFeatured} ? ' active' : ''"
                th:href="@{/misc/vatos-cuntdown(overviewTab='artist',page=1,size=${pageSize},sort=${selectedSort},dir=${selectedDir},includeFeatured=${!selectedIncludeFeatured})}"
-               onclick="persistPcSearch()"
                style="text-decoration:none;"
                th:text="${selectedIncludeFeatured} ? 'Featured On' : 'Featured Off'">Featured</a>
             <button th:if="${overviewTab == 'song'}" class="pc-toggle-btn" onclick="clearPcSelection()">Clear Selection</button>
@@ -504,7 +504,7 @@
                           </td>
                       </tr>                    </th:block>
                     <tr th:if="${#lists.isEmpty(entries)}">
-                        <td colspan="13" class="pc-empty">No Vato's Cuntdown rows found yet.</td>
+                        <td colspan="13" class="pc-empty">No songs match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -578,7 +578,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumOverviewRows)}">
-                        <td colspan="11" class="pc-empty">No linked albums have charted on Vato's Cuntdown yet.</td>
+                        <td colspan="11" class="pc-empty">No albums match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -646,7 +646,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistOverviewRows)}">
-                        <td colspan="10" class="pc-empty">No artist overview rows found yet.</td>
+                        <td colspan="10" class="pc-empty">No artists match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -730,35 +730,6 @@
                 url.searchParams.set('includeFeatured', 'true');
                 link.href = url.toString();
             });
-        }
-
-        function filterPcTable() {
-            const query = (document.getElementById('pcSearchInput').value || '').toLowerCase().trim();
-            document.querySelectorAll('#pcTableBody tr[data-raw-song]').forEach(row => {
-                const artist = (row.dataset.rawArtist || '').toLowerCase();
-                const song = (row.dataset.rawSong || '').toLowerCase();
-                const matches = !query || artist.includes(query) || song.includes(query);
-                row.classList.toggle('pc-hidden', !matches);
-                const detailRow = row.nextElementSibling;
-                if (detailRow && detailRow.classList.contains('pc-detail-row')) {
-                    detailRow.classList.toggle('pc-hidden', !matches);
-                }
-            });
-            if (pcOpenSourceRow && pcOpenSourceRow.classList.contains('pc-hidden')) {
-                resetPcExpandState();
-            }
-            document.querySelectorAll('#pcAlbumTableBody tr[data-album-name]').forEach(row => {
-                const artist = (row.dataset.artistName || '').toLowerCase();
-                const album = (row.dataset.albumName || '').toLowerCase();
-                const matches = !query || artist.includes(query) || album.includes(query);
-                row.classList.toggle('pc-hidden', !matches);
-            });
-            document.querySelectorAll('#pcArtistTableBody tr[data-artist-name]').forEach(row => {
-                const artist = (row.dataset.artistName || '').toLowerCase();
-                const matches = !query || artist.includes(query);
-                row.classList.toggle('pc-hidden', !matches);
-            });
-            updatePcRowCounters();
         }
 
         function renderOvChartRun(entries, chartType, toneClass) {
@@ -1354,7 +1325,7 @@
                 replacementRow.insertAdjacentElement('afterend', replacementDetailRow);
             }
 
-            filterPcTable();
+            updatePcRowCounters();
             if (wasExpanded) {
                 const expandButton = replacementRow.querySelector('.pc-expand-btn');
                 if (expandButton) togglePcExpand(expandButton);
@@ -1388,7 +1359,7 @@
             pcSourceRow = null;
             pcTargetRows = [];
             updatePcSelectionUi();
-            filterPcTable();
+            updatePcRowCounters();
             if (wasExpanded) {
                 const expandButton = replacementRow.querySelector('.pc-expand-btn');
                 if (expandButton) togglePcExpand(expandButton);
@@ -1512,6 +1483,7 @@
 
                 try {
                     const url = new URL('/misc/vatos-cuntdown/data', window.location.origin);
+                    window.overviewFilters.appendTo(url);
                     url.searchParams.set('overviewTab', overviewTab);
                     url.searchParams.set('page', String(nextPage));
                     url.searchParams.set('size', String(pageSize));
@@ -1541,7 +1513,7 @@
                     addedCount = entries.length;
                     loadedCount += addedCount;
                     nextPage = data.nextPage || (nextPage + 1);
-                    filterPcTable();
+                    updatePcRowCounters();
 
                     if (!data.hasMore || loadedCount >= totalCount) {
                         observer.disconnect();
@@ -1599,18 +1571,8 @@
         })();
 
         function reloadWithSearch() {
-            persistPcSearch();
-            window.location.reload();
-        }
 
-        function persistPcSearch() {
-            const input = document.getElementById('pcSearchInput');
-            const val = input ? input.value || '' : '';
-            if (val) {
-                sessionStorage.setItem('pc-overview-search', val);
-            } else {
-                sessionStorage.removeItem('pc-overview-search');
-            }
+            window.location.reload();
         }
 
         window.addEventListener('load', function() {
@@ -1621,12 +1583,6 @@
             requestAnimationFrame(function() {
                 document.body.classList.remove('page-loading');
             });
-            const saved = sessionStorage.getItem('pc-overview-search');
-            if (saved) {
-                sessionStorage.removeItem('pc-overview-search');
-                const input = document.getElementById('pcSearchInput');
-                if (input) { input.value = saved; filterPcTable(); }
-            }
         });
     </script>
 </body>

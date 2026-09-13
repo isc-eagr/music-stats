@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<div th:fragment="calendar(heatmap)" class="detail-heatmap" th:classappend="${' detail-heatmap-' + heatmap.gender}">
+    <div class="detail-heatmap-toolbar">
+        <div class="detail-heatmap-summary">
+            <span><strong th:text="${#numbers.formatInteger(heatmap.totalPlays, 1, 'COMMA')}">0</strong> plays</span>
+            <span><strong th:text="${heatmap.activeDays}">0</strong> listening days</span>
+            <span><strong th:text="${heatmap.maxPlays}">0</strong> daily peak</span>
+        </div>
+        <label class="detail-heatmap-year">Year
+            <select data-heatmap-year aria-label="Heatmap year">
+                <option th:each="year : ${heatmap.years}" th:value="${year}" th:text="${year}"
+                        th:selected="${year == heatmap.year}"></option>
+            </select>
+        </label>
+    </div>
+    <div class="detail-heatmap-scroll" tabindex="0" aria-label="Daily play calendar; scroll horizontally on smaller screens">
+        <div class="detail-heatmap-grid" th:style="${'--weeks: ' + heatmap.weeks}">
+            <span th:each="weekday, status : ${ {'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'} }"
+                  class="detail-heatmap-weekday" th:style="${'grid-row: ' + (status.index + 2)}" th:text="${weekday}"></span>
+            <th:block th:each="day : ${heatmap.days}">
+                <span th:if="${day.date.dayOfMonth == 1}" class="detail-heatmap-month"
+                      th:style="${'grid-column: ' + day.column}" th:text="${#temporals.format(day.date, 'MMM')}"></span>
+                <span th:if="${day.date.dayOfMonth == 1}" class="detail-heatmap-month-boundary" aria-hidden="true"
+                      th:style="${'grid-column: ' + day.column}"></span>
+                <button type="button" class="detail-heatmap-day"
+                        th:classappend="${day.total == 0 ? 'no-plays' : 'intensity-' + day.intensity}"
+                        th:style="${'grid-column: ' + day.column + '; grid-row: ' + day.row}"
+                        th:title="${day.label}" th:attr="aria-label=${day.label},data-detail=${day.label}"></button>
+            </th:block>
+        </div>
+    </div>
+    <div class="detail-heatmap-legend">
+        <span><i class="no-plays"></i> No plays</span><span>Fewer</span>
+        <span th:each="level : ${#numbers.sequence(1, 4)}"><i th:class="${'intensity-' + level}"></i></span>
+        <span>More</span>
+    </div>
+</div>
+</body>
+</html>

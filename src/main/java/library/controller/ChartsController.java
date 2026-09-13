@@ -11,12 +11,15 @@ import library.entity.Chart;
 import library.service.AppConfigService;
 import library.service.BillboardHot100Service;
 import library.service.ChartService;
+import library.service.OverviewFilterService;
 import library.service.PcService;
 import library.service.TrlService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.MultiValueMap;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,14 +61,23 @@ public class ChartsController {
     private final BillboardHot100Service billboardHot100Service;
     private final PcService pcService;
     private final TrlService trlService;
+    private final OverviewFilterService overviewFilterService;
     
     public ChartsController(ChartService chartService, AppConfigService appConfigService, BillboardHot100Service billboardHot100Service,
                              PcService pcService, TrlService trlService) {
+        this(chartService, appConfigService, billboardHot100Service, pcService, trlService,
+                new OverviewFilterService());
+    }
+
+    @Autowired
+    public ChartsController(ChartService chartService, AppConfigService appConfigService, BillboardHot100Service billboardHot100Service,
+                             PcService pcService, TrlService trlService, OverviewFilterService overviewFilterService) {
         this.chartService = chartService;
         this.appConfigService = appConfigService;
         this.billboardHot100Service = billboardHot100Service;
         this.pcService = pcService;
         this.trlService = trlService;
+        this.overviewFilterService = overviewFilterService;
     }
     
     /**
@@ -958,6 +970,9 @@ public class ChartsController {
             @RequestParam(required = false) String sort3,
             @RequestParam(required = false) String dir3,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam(required = false) Integer topSong,
+            @RequestParam(required = false) Integer topAlbum,
+            @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         String normalizedQuery = normalizeOverviewQuery(q);
@@ -966,10 +981,6 @@ public class ChartsController {
         String normalizedDir = sortSpecs.get(0).dir();
         int pageSize = appConfigService.getWeeklyOverviewPageSize();
 
-        List<ChartSongOverviewRowDTO> weeklySongRows = chartService.getChartOverviewSongRows("weekly");
-        List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartService.getChartOverviewAlbumRows("weekly");
-        List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly", weeklySongRows, weeklyAlbumRows, includeFeatured);
-
         List<ChartSongOverviewRowDTO> pagedSongRows = List.of();
         List<ChartAlbumOverviewRowDTO> pagedAlbumRows = List.of();
         List<ChartArtistOverviewRowDTO> pagedArtistRows = List.of();
@@ -977,18 +988,24 @@ public class ChartsController {
 
         switch (normalizedOverviewTab) {
             case "album" -> {
+                List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartAlbumOverviewRows("weekly");
+                weeklyAlbumRows = overviewFilterService.filter("weekly", "album", weeklyAlbumRows, filterParams);
                 activeTotalCount = weeklyAlbumRows.size();
                 List<ChartAlbumOverviewRowDTO> sortedRows = new ArrayList<>(weeklyAlbumRows);
                 sortedRows.sort(buildAlbumOverviewComparator(sortSpecs));
                 pagedAlbumRows = paginateRows(sortedRows, 0, pageSize);
             }
             case "artist" -> {
+                List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartArtistOverviewRows("weekly", includeFeatured);
+                weeklyArtistRows = overviewFilterService.filter("weekly", "artist", weeklyArtistRows, filterParams);
                 activeTotalCount = weeklyArtistRows.size();
                 List<ChartArtistOverviewRowDTO> sortedRows = new ArrayList<>(weeklyArtistRows);
-                sortedRows.sort(buildArtistOverviewComparator(sortSpecs));
+                sortedRows.sort(buildArtistOverviewComparator(sortSpecs, topSong, topAlbum));
                 pagedArtistRows = paginateRows(sortedRows, 0, pageSize);
             }
             default -> {
+                List<ChartSongOverviewRowDTO> weeklySongRows = chartSongOverviewRows("weekly");
+                weeklySongRows = overviewFilterService.filter("weekly", "song", weeklySongRows, filterParams);
                 activeTotalCount = weeklySongRows.size();
                 List<ChartSongOverviewRowDTO> sortedRows = new ArrayList<>(weeklySongRows);
                 sortedRows.sort(buildSongOverviewComparator(sortSpecs));
@@ -1015,6 +1032,9 @@ public class ChartsController {
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
+        model.addAttribute("selectedTopSong", topSong);
+        model.addAttribute("selectedTopAlbum", topAlbum);
+        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("weekly", normalizedOverviewTab));
         model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
 
         return "charts/overview";
@@ -1036,7 +1056,9 @@ public class ChartsController {
             @RequestParam(required = false) Integer topSong,
             @RequestParam(required = false) Integer topAlbum,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(required = false) Integer size) {
+            @RequestParam(required = false) Integer size,
+            @RequestParam MultiValueMap<String, String> filterParams) {
+        page = Math.max(0, page);
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(normalizedOverviewTab, sort, dir, sort2, dir2, sort3, dir3);
         String normalizedQuery = normalizeOverviewQuery(q);
@@ -1047,8 +1069,8 @@ public class ChartsController {
 
         switch (normalizedOverviewTab) {
             case "album" -> {
-                List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartService.getChartOverviewAlbumRows("weekly");
-                List<ChartAlbumOverviewRowDTO> filteredRows = filterWeeklyAlbumOverviewRows(weeklyAlbumRows, normalizedQuery, normalizedFilters);
+                List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = overviewFilterService.filter("weekly", "album", chartAlbumOverviewRows("weekly"), filterParams);
+                List<ChartAlbumOverviewRowDTO> filteredRows = filterWeeklyAlbumOverviewRows(weeklyAlbumRows, null, normalizedFilters);
                 filteredRows.sort(buildAlbumOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
                 List<ChartAlbumOverviewRowDTO> entries = paginateRows(filteredRows, page, safeSize);
@@ -1057,9 +1079,9 @@ public class ChartsController {
                 result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
             }
             case "artist" -> {
-                List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartService.getChartOverviewArtistRows("weekly", includeFeatured);
-                List<ChartArtistOverviewRowDTO> filteredRows = filterWeeklyArtistOverviewRows(weeklyArtistRows, normalizedQuery, normalizedFilters, topSong, topAlbum);
-                filteredRows.sort(buildArtistOverviewComparator(sortSpecs));
+                List<ChartArtistOverviewRowDTO> weeklyArtistRows = overviewFilterService.filter("weekly", "artist", chartArtistOverviewRows("weekly", includeFeatured), filterParams);
+                List<ChartArtistOverviewRowDTO> filteredRows = filterWeeklyArtistOverviewRows(weeklyArtistRows, null, normalizedFilters, topSong, topAlbum);
+                filteredRows.sort(buildArtistOverviewComparator(sortSpecs, topSong, topAlbum));
                 int totalCount = filteredRows.size();
                 List<ChartArtistOverviewRowDTO> entries = paginateRows(filteredRows, page, safeSize);
                 result.put("entries", entries);
@@ -1067,8 +1089,8 @@ public class ChartsController {
                 result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
             }
             default -> {
-                List<ChartSongOverviewRowDTO> weeklySongRows = chartService.getChartOverviewSongRows("weekly");
-                List<ChartSongOverviewRowDTO> filteredRows = filterWeeklySongOverviewRows(weeklySongRows, normalizedQuery, normalizedFilters);
+                List<ChartSongOverviewRowDTO> weeklySongRows = overviewFilterService.filter("weekly", "song", chartSongOverviewRows("weekly"), filterParams);
+                List<ChartSongOverviewRowDTO> filteredRows = filterWeeklySongOverviewRows(weeklySongRows, null, normalizedFilters);
                 filteredRows.sort(buildSongOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
                 List<ChartSongOverviewRowDTO> entries = paginateRows(filteredRows, page, safeSize);
@@ -1091,15 +1113,13 @@ public class ChartsController {
             @RequestParam(required = false) String sort2,
             @RequestParam(required = false) String dir2,
             @RequestParam(required = false) String sort3,
-            @RequestParam(required = false) String dir3) {
+            @RequestParam(required = false) String dir3,
+            @RequestParam MultiValueMap<String, String> filterParams) {
         if (!List.of("weekly", "seasonal", "yearly").contains(periodType)) {
             return ResponseEntity.badRequest().build();
         }
 
-        List<ChartSongOverviewRowDTO> rows = chartService.getChartOverviewSongRows(periodType);
-        if (!"weekly".equals(periodType)) {
-            return ResponseEntity.ok(rows);
-        }
+        List<ChartSongOverviewRowDTO> rows = overviewFilterService.filter(periodType, "song", chartSongOverviewRows(periodType), filterParams);
 
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs("song", sort, dir, sort2, dir2, sort3, dir3);
         List<ChartSongOverviewRowDTO> sortedRows = new ArrayList<>(rows);
@@ -1118,22 +1138,36 @@ public class ChartsController {
             @RequestParam(required = false) String sort3,
             @RequestParam(required = false) String dir3,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam(required = false) Integer topSong,
+            @RequestParam(required = false) Integer topAlbum,
+            @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
-        return renderSeasonalOverview(normalizedOverviewTab, q, sort, dir, sort2, dir2, sort3, dir3, includeFeatured, model);
+        return renderSeasonalOverview("seasonal", normalizedOverviewTab, q, sort, dir, sort2, dir2, sort3, dir3, includeFeatured, topSong, topAlbum, filterParams, model);
     }
 
     @GetMapping("/yearly/overview")
     public String yearlyOverview(
             @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir,
+            @RequestParam(required = false) String sort2,
+            @RequestParam(required = false) String dir2,
+            @RequestParam(required = false) String sort3,
+            @RequestParam(required = false) String dir3,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam(required = false) Integer topSong,
+            @RequestParam(required = false) Integer topAlbum,
+            @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
-        return renderChartOverview("yearly", overviewTab, includeFeatured, model);
+        return renderSeasonalOverview("yearly", normalizeOverviewTab(overviewTab), q, sort, dir, sort2, dir2, sort3, dir3, includeFeatured, topSong, topAlbum, filterParams, model);
     }
 
-    @GetMapping("/seasonal/overview/data")
+    @GetMapping("/{periodType:seasonal|yearly}/overview/data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> seasonalOverviewData(
+            @PathVariable String periodType,
             @RequestParam(defaultValue = "song") String overviewTab,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String sort,
@@ -1147,7 +1181,9 @@ public class ChartsController {
             @RequestParam(required = false) Integer topSong,
             @RequestParam(required = false) Integer topAlbum,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(required = false) Integer size) {
+            @RequestParam(required = false) Integer size,
+            @RequestParam MultiValueMap<String, String> filterParams) {
+        page = Math.max(0, page);
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
 
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(normalizedOverviewTab, sort, dir, sort2, dir2, sort3, dir3);
@@ -1159,8 +1195,8 @@ public class ChartsController {
 
         switch (normalizedOverviewTab) {
             case "album" -> {
-                List<ChartAlbumOverviewRowDTO> seasonalAlbumRows = chartService.getChartOverviewAlbumRows("seasonal");
-                List<ChartAlbumOverviewRowDTO> filteredRows = filterAlbumOverviewRowsForPeriod(seasonalAlbumRows, normalizedQuery, normalizedFilters, "seasonal");
+                List<ChartAlbumOverviewRowDTO> seasonalAlbumRows = overviewFilterService.filter(periodType, "album", chartAlbumOverviewRows(periodType), filterParams);
+                List<ChartAlbumOverviewRowDTO> filteredRows = filterAlbumOverviewRowsForPeriod(seasonalAlbumRows, null, normalizedFilters, periodType);
                 filteredRows.sort(buildAlbumOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
                 result.put("entries", paginateRows(filteredRows, page, safeSize));
@@ -1168,17 +1204,17 @@ public class ChartsController {
                 result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
             }
             case "artist" -> {
-                List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows("seasonal", includeFeatured);
-                List<ChartArtistOverviewRowDTO> filteredRows = filterWeeklyArtistOverviewRows(seasonalArtistRows, normalizedQuery, normalizedFilters, topSong, topAlbum);
-                filteredRows.sort(buildArtistOverviewComparator(sortSpecs));
+                List<ChartArtistOverviewRowDTO> seasonalArtistRows = overviewFilterService.filter(periodType, "artist", chartArtistOverviewRows(periodType, includeFeatured), filterParams);
+                List<ChartArtistOverviewRowDTO> filteredRows = filterWeeklyArtistOverviewRows(seasonalArtistRows, null, normalizedFilters, topSong, topAlbum);
+                filteredRows.sort(buildArtistOverviewComparator(sortSpecs, topSong, topAlbum));
                 int totalCount = filteredRows.size();
                 result.put("entries", paginateRows(filteredRows, page, safeSize));
                 result.put("totalCount", totalCount);
                 result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
             }
             default -> {
-                List<ChartSongOverviewRowDTO> seasonalSongRows = chartService.getChartOverviewSongRows("seasonal");
-                List<ChartSongOverviewRowDTO> filteredRows = filterSongOverviewRowsForPeriod(seasonalSongRows, normalizedQuery, normalizedFilters, "seasonal");
+                List<ChartSongOverviewRowDTO> seasonalSongRows = overviewFilterService.filter(periodType, "song", chartSongOverviewRows(periodType), filterParams);
+                List<ChartSongOverviewRowDTO> filteredRows = filterSongOverviewRowsForPeriod(seasonalSongRows, null, normalizedFilters, periodType);
                 filteredRows.sort(buildSongOverviewComparator(sortSpecs));
                 int totalCount = filteredRows.size();
                 result.put("entries", paginateRows(filteredRows, page, safeSize));
@@ -1225,48 +1261,8 @@ public class ChartsController {
         return ResponseEntity.ok(history);
     }
 
-    private String renderChartOverview(String periodType, String overviewTab, boolean includeFeatured, Model model) {
-        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
-        List<ChartSongOverviewRowDTO> songRows = chartService.getChartOverviewSongRows(periodType);
-        List<ChartAlbumOverviewRowDTO> albumRows = chartService.getChartOverviewAlbumRows(periodType);
-        List<ChartArtistOverviewRowDTO> artistRows = chartService.getChartOverviewArtistRows(periodType, songRows, albumRows, includeFeatured);
-
-        model.addAttribute("currentSection", switch (periodType) {
-            case "seasonal" -> "seasonal-overview-charts";
-            case "yearly" -> "yearly-overview-charts";
-            default -> "weekly-overview-charts";
-        });
-        model.addAttribute("periodType", periodType);
-        model.addAttribute("unitLabel", resolveOverviewUnitLabel(periodType));
-        model.addAttribute("overviewTab", normalizedOverviewTab);
-        model.addAttribute("songRows", songRows);
-        model.addAttribute("albumRows", albumRows);
-        model.addAttribute("artistRows", artistRows);
-        model.addAttribute("pageTitle", switch (periodType) {
-            case "seasonal" -> "Seasonal Chart Overview";
-            case "yearly" -> "Yearly Chart Overview";
-            default -> "Weekly Chart Overview";
-        });
-        model.addAttribute("mainChartUrl", "/charts/" + periodType);
-        model.addAttribute("mainChartLabel", switch (periodType) {
-            case "seasonal" -> "Seasonal Charts";
-            case "yearly" -> "Yearly Charts";
-            default -> "Weekly Charts";
-        });
-        model.addAttribute("weeklyInfiniteScrollEnabled", false);
-        model.addAttribute("selectedSort", null);
-        model.addAttribute("selectedDir", null);
-        model.addAttribute("searchQuery", "");
-        model.addAttribute("selectedIncludeFeatured", includeFeatured);
-        model.addAttribute("activeTotalCount", 0);
-        model.addAttribute("pageSize", 0);
-        model.addAttribute("serverInfiniteScrollEnabled", false);
-        model.addAttribute("overviewDataPath", "/charts/weekly/overview/data");
-        model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
-        return "charts/overview";
-    }
-
-    private String renderSeasonalOverview(String overviewTab,
+    private String renderSeasonalOverview(String periodType,
+                                          String overviewTab,
                                           String q,
                                           String sort,
                                           String dir,
@@ -1275,10 +1271,10 @@ public class ChartsController {
                                           String sort3,
                                           String dir3,
                                           boolean includeFeatured,
+                                          Integer topSong,
+                                          Integer topAlbum,
+                                          MultiValueMap<String, String> filterParams,
                                           Model model) {
-        List<ChartSongOverviewRowDTO> seasonalSongRows = chartService.getChartOverviewSongRows("seasonal");
-        List<ChartAlbumOverviewRowDTO> seasonalAlbumRows = chartService.getChartOverviewAlbumRows("seasonal");
-        List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartService.getChartOverviewArtistRows("seasonal", seasonalSongRows, seasonalAlbumRows, includeFeatured);
         List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(overviewTab, sort, dir, sort2, dir2, sort3, dir3);
         String normalizedSort = sortSpecs.get(0).sort();
         String normalizedDir = sortSpecs.get(0).dir();
@@ -1292,18 +1288,24 @@ public class ChartsController {
 
         switch (overviewTab) {
             case "album" -> {
+                List<ChartAlbumOverviewRowDTO> seasonalAlbumRows = chartAlbumOverviewRows(periodType);
+                seasonalAlbumRows = overviewFilterService.filter(periodType, "album", seasonalAlbumRows, filterParams);
                 activeTotalCount = seasonalAlbumRows.size();
                 List<ChartAlbumOverviewRowDTO> sortedRows = new ArrayList<>(seasonalAlbumRows);
                 sortedRows.sort(buildAlbumOverviewComparator(sortSpecs));
                 pagedAlbumRows = paginateRows(sortedRows, 0, pageSize);
             }
             case "artist" -> {
+                List<ChartArtistOverviewRowDTO> seasonalArtistRows = chartArtistOverviewRows(periodType, includeFeatured);
+                seasonalArtistRows = overviewFilterService.filter(periodType, "artist", seasonalArtistRows, filterParams);
                 activeTotalCount = seasonalArtistRows.size();
                 List<ChartArtistOverviewRowDTO> sortedRows = new ArrayList<>(seasonalArtistRows);
-                sortedRows.sort(buildArtistOverviewComparator(sortSpecs));
+                sortedRows.sort(buildArtistOverviewComparator(sortSpecs, topSong, topAlbum));
                 pagedArtistRows = paginateRows(sortedRows, 0, pageSize);
             }
             default -> {
+                List<ChartSongOverviewRowDTO> seasonalSongRows = chartSongOverviewRows(periodType);
+                seasonalSongRows = overviewFilterService.filter(periodType, "song", seasonalSongRows, filterParams);
                 activeTotalCount = seasonalSongRows.size();
                 List<ChartSongOverviewRowDTO> sortedRows = new ArrayList<>(seasonalSongRows);
                 sortedRows.sort(buildSongOverviewComparator(sortSpecs));
@@ -1311,25 +1313,28 @@ public class ChartsController {
             }
         }
 
-        model.addAttribute("currentSection", "seasonal-overview-charts");
-        model.addAttribute("periodType", "seasonal");
-        model.addAttribute("unitLabel", resolveOverviewUnitLabel("seasonal"));
+        model.addAttribute("currentSection", "yearly".equals(periodType) ? "yearly-overview-charts" : "seasonal-overview-charts");
+        model.addAttribute("periodType", periodType);
+        model.addAttribute("unitLabel", resolveOverviewUnitLabel(periodType));
         model.addAttribute("overviewTab", overviewTab);
         model.addAttribute("songRows", pagedSongRows);
         model.addAttribute("albumRows", pagedAlbumRows);
         model.addAttribute("artistRows", pagedArtistRows);
-        model.addAttribute("pageTitle", "Seasonal Chart Overview");
-        model.addAttribute("mainChartUrl", "/charts/seasonal");
-        model.addAttribute("mainChartLabel", "Seasonal Charts");
+        model.addAttribute("pageTitle", "yearly".equals(periodType) ? "Yearly Chart Overview" : "Seasonal Chart Overview");
+        model.addAttribute("mainChartUrl", "/charts/" + periodType);
+        model.addAttribute("mainChartLabel", "yearly".equals(periodType) ? "Yearly Charts" : "Seasonal Charts");
         model.addAttribute("weeklyInfiniteScrollEnabled", false);
         model.addAttribute("serverInfiniteScrollEnabled", true);
-        model.addAttribute("overviewDataPath", "/charts/seasonal/overview/data");
+        model.addAttribute("overviewDataPath", "/charts/" + periodType + "/overview/data");
         model.addAttribute("pageSize", pageSize);
         model.addAttribute("activeTotalCount", activeTotalCount);
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
+        model.addAttribute("selectedTopSong", topSong);
+        model.addAttribute("selectedTopAlbum", topAlbum);
+        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor(periodType, overviewTab));
         model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
         return "charts/overview";
     }
@@ -1519,6 +1524,19 @@ public class ChartsController {
             && matchesTextOverviewFilter(getOverviewFilterValue(filters, 10), row.getLastAppearanceDate(), row.getLastAppearanceSortValue());
     }
 
+    private List<ChartSongOverviewRowDTO> chartSongOverviewRows(String periodType) {
+        return chartService.getChartOverviewSongRows(periodType);
+    }
+
+    private List<ChartAlbumOverviewRowDTO> chartAlbumOverviewRows(String periodType) {
+        return chartService.getChartOverviewAlbumRows(periodType);
+    }
+
+    private List<ChartArtistOverviewRowDTO> chartArtistOverviewRows(String periodType, boolean includeFeatured) {
+        return chartService.getChartOverviewArtistRows(periodType,
+                chartSongOverviewRows(periodType), chartAlbumOverviewRows(periodType), includeFeatured);
+    }
+
     private boolean matchesWeeklyArtistOverviewFilters(ChartArtistOverviewRowDTO row, List<String> filters, Integer topSongThreshold, Integer topAlbumThreshold) {
         return matchesTextOverviewFilter(getOverviewFilterValue(filters, 2), row.getArtistName(), row.getArtistName())
                 && matchesNumericOverviewFilter(getOverviewFilterValue(filters, 3), resolveArtistThresholdValue(row.getTopSongCounts(), topSongThreshold, row.getChartedSongsCount()))
@@ -1643,26 +1661,38 @@ public class ChartsController {
     }
 
     private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewComparator(List<OverviewSortSpec> sortSpecs) {
-        Comparator<ChartArtistOverviewRowDTO> comparator = buildArtistOverviewSortComparator(sortSpecs.get(0));
+        return buildArtistOverviewComparator(sortSpecs, null, null);
+    }
+
+    private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewComparator(List<OverviewSortSpec> sortSpecs,
+                                                                                   Integer topSongThreshold,
+                                                                                   Integer topAlbumThreshold) {
+        Comparator<ChartArtistOverviewRowDTO> comparator = buildArtistOverviewSortComparator(sortSpecs.get(0), topSongThreshold, topAlbumThreshold);
         for (int index = 1; index < sortSpecs.size(); index++) {
-            comparator = comparator.thenComparing(buildArtistOverviewSortComparator(sortSpecs.get(index)));
+            comparator = comparator.thenComparing(buildArtistOverviewSortComparator(sortSpecs.get(index), topSongThreshold, topAlbumThreshold));
         }
         return comparator.thenComparing(ChartArtistOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
     }
 
     private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewSortComparator(OverviewSortSpec sortSpec) {
+        return buildArtistOverviewSortComparator(sortSpec, null, null);
+    }
+
+    private Comparator<ChartArtistOverviewRowDTO> buildArtistOverviewSortComparator(OverviewSortSpec sortSpec,
+                                                                                       Integer topSongThreshold,
+                                                                                       Integer topAlbumThreshold) {
         Comparator<ChartArtistOverviewRowDTO> comparator = switch (sortSpec.sort()) {
             case "artist" -> Comparator.comparing(ChartArtistOverviewRowDTO::getArtistName, String.CASE_INSENSITIVE_ORDER);
-            case "songs" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getChartedSongsCount);
-            case "albums" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getChartedAlbumsCount);
+            case "songs" -> Comparator.comparingInt(row -> resolveArtistThresholdValue(row.getTopSongCounts(), topSongThreshold, row.getChartedSongsCount()));
+            case "albums" -> Comparator.comparingInt(row -> resolveArtistThresholdValue(row.getTopAlbumCounts(), topAlbumThreshold, row.getChartedAlbumsCount()));
             case "peak" -> Comparator.comparing(ChartArtistOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo));
             case "albumPeak" -> Comparator.comparing(ChartArtistOverviewRowDTO::getAlbumHighestPeak, Comparator.nullsLast(Integer::compareTo));
             case "numberOnes" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getNumberOneSongsCount);
             case "albumNumberOnes" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getNumberOneAlbumsCount);
             case "atNumberOne" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalSpanAtNumberOne);
             case "albumAtNumberOne" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getAlbumTotalSpanAtNumberOne);
-            case "albumWeeks" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getAlbumTotalChartSpan);
-            default -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan);
+            case "albumWeeks" -> Comparator.comparingInt(row -> resolveArtistThresholdValue(row.getTopAlbumWeeks(), topAlbumThreshold, row.getAlbumTotalChartSpan()));
+            default -> Comparator.comparingInt(row -> resolveArtistThresholdValue(row.getTopSongWeeks(), topSongThreshold, row.getTotalChartSpan()));
         };
 
         return "asc".equals(sortSpec.dir()) ? comparator : comparator.reversed();
@@ -1670,10 +1700,11 @@ public class ChartsController {
 
     private <T> List<T> paginateRows(List<T> rows, int page, int pageSize) {
         int safePage = Math.max(page, 0);
-        int offset = safePage * pageSize;
-        if (offset >= rows.size()) {
+        long requestedOffset = (long) safePage * pageSize;
+        if (requestedOffset >= rows.size()) {
             return List.of();
         }
+        int offset = (int) requestedOffset;
         int endIndex = Math.min(offset + pageSize, rows.size());
         return new ArrayList<>(rows.subList(offset, endIndex));
     }

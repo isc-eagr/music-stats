@@ -1,0 +1,41 @@
+.plays-chart-section { padding: 0; }
+.plays-visualization-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); }
+.plays-visualization-header .section-title { margin: 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
+.plays-chart-section > [data-plays-visualization] { padding: 18px 20px 16px; }
+.plays-visualization-toggle { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--surface-2); border-radius: 8px; background: var(--surface); }
+.plays-visualization-toggle button { padding: 7px 12px; border: 0; border-radius: 5px; color: var(--text-muted); background: transparent; cursor: pointer; }
+.plays-visualization-toggle button.active { color: var(--text); background: var(--surface-2); }
+.detail-heatmap-toolbar, .detail-heatmap-summary, .detail-heatmap-year, .detail-heatmap-legend { display: flex; align-items: center; flex-wrap: wrap; }
+.detail-heatmap-toolbar { justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+.detail-heatmap-summary { gap: 20px; color: var(--text-muted); }
+.detail-heatmap-summary strong { color: var(--text); margin-right: 3px; }
+.detail-heatmap-year { gap: 8px; color: var(--text-muted); }
+.detail-heatmap-scroll { overflow-x: auto; padding: 8px 3px 12px; }
+.detail-heatmap-grid { display: grid; grid-template-columns: 34px repeat(var(--weeks), minmax(12px, 1fr)); grid-template-rows: 22px repeat(7, auto); gap: 4px; min-width: 920px; }
+.detail-heatmap-weekday { grid-column: 1; align-self: center; font-size: 11px; color: var(--text-muted); }
+.detail-heatmap-month { grid-row: 1; overflow: visible; font-size: 12px; color: var(--text-muted); }
+.detail-heatmap-month-boundary { grid-row: 2 / 9; justify-self: start; align-self: stretch; width: 3px; background: rgba(255,255,255,0.72); box-shadow: 0 0 0 1px rgba(0,0,0,0.48); border-radius: 1px; pointer-events: none; position: relative; z-index: 1; }
+.detail-heatmap-day { display: block; width: 100%; min-width: 0; aspect-ratio: 1; padding: 0; border: 1px solid #ffffff18; border-radius: 3px; cursor: pointer; }
+.detail-heatmap-day:hover, .detail-heatmap-day:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; position: relative; z-index: 1; }
+.detail-heatmap-male .intensity-1 { background: #172a52; }
+.detail-heatmap-male .intensity-2 { background: #1e429f; }
+.detail-heatmap-male .intensity-3 { background: #2563eb; }
+.detail-heatmap-male .intensity-4 { background: #60a5fa; }
+.detail-heatmap-female .intensity-1 { background: #4c1833; }
+.detail-heatmap-female .intensity-2 { background: #9d174d; }
+.detail-heatmap-female .intensity-3 { background: #db2777; }
+.detail-heatmap-female .intensity-4 { background: #f472b6; }
+.detail-heatmap-other .intensity-1 { background: #33333a; }
+.detail-heatmap-other .intensity-2 { background: #52525b; }
+.detail-heatmap-other .intensity-3 { background: #71717a; }
+.detail-heatmap-other .intensity-4 { background: #a1a1aa; }
+.detail-heatmap-day.no-plays, .detail-heatmap-legend .no-plays { background: linear-gradient(135deg, transparent 43%, #74747c 46%, #74747c 54%, transparent 57%), var(--surface-2); }
+.detail-heatmap-legend { gap: 9px; margin-top: 8px; color: var(--text-muted); font-size: 12px; }
+.detail-heatmap-legend span { display: inline-flex; align-items: center; }
+.detail-heatmap-legend i { display: inline-block; width: 13px; height: 13px; border: 1px solid #ffffff20; border-radius: 2px; }
+@media (max-width: 650px) {
+    .plays-chart-section { padding: 0; }
+    .plays-visualization-header { padding: 12px; }
+    .plays-chart-section > [data-plays-visualization] { padding: 14px 12px 12px; }
+    .detail-heatmap-summary { gap: 8px 14px; }
+}

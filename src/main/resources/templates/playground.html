@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playground - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/playground.css}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+</head>
+<body>
+<th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+<main class="playground-page">
+    <header class="playground-header">
+        <div>
+            <h1>Playground</h1>
+        </div>
+        <form action="/playground" method="get" class="playground-year">
+            <label for="year">Year</label>
+            <select id="year" name="year" onchange="this.form.submit()">
+                <option th:each="year : ${years}" th:value="${year}" th:text="${year}" th:selected="${year == heatmap.year}"></option>
+            </select>
+        </form>
+    </header>
+    <div class="playground-summary">
+        <span><strong th:text="${#numbers.formatInteger(heatmap.totalPlays, 1, 'COMMA')}">0</strong> plays</span>
+        <span><strong th:text="${heatmap.activeDays}">0</strong> listening days</span>
+        <span><strong th:text="${heatmap.maxPlays}">0</strong> most plays in a day</span>
+    </div>
+    <p th:if="${heatmap.totalPlays == 0}" class="playground-empty">No plays recorded for this year.</p>
+
+    <section th:each="kind : ${ {'gender', 'plays'} }" class="heatmap-panel" th:attr="aria-labelledby=${kind + '-heading'}">
+        <h2 th:id="${kind + '-heading'}" th:text="${kind == 'gender' ? 'Daily gender leader' : 'Daily play count'}"></h2>
+        <div class="heatmap-scroll" tabindex="0" aria-label="Yearly calendar; scroll horizontally on smaller screens">
+            <div class="heatmap-grid" th:style="${'--weeks: ' + heatmap.weeks}">
+                <span th:each="weekday, status : ${ {'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'} }"
+                      class="heatmap-weekday" th:style="${'grid-row: ' + (status.index + 2)}" th:text="${weekday}"></span>
+                <th:block th:each="day : ${heatmap.days}">
+                    <span th:if="${day.date.dayOfMonth == 1}" class="heatmap-month"
+                          th:style="${'grid-column: ' + day.column}" th:text="${#temporals.format(day.date, 'MMM')}"></span>
+                    <span th:if="${day.date.dayOfMonth == 1}" class="heatmap-month-boundary" aria-hidden="true"
+                          th:style="${'grid-column: ' + day.column}"></span>
+                    <button type="button" class="heatmap-day"
+                            th:classappend="${kind == 'gender' ? day.gender + ' ' + day.purity : (day.total == 0 ? 'no-plays' : 'intensity-' + day.intensity)}"
+                            th:style="${'grid-column: ' + day.column + '; grid-row: ' + day.row}"
+                            th:title="${day.label}" th:attr="aria-label=${day.label},data-detail=${day.label}"></button>
+                </th:block>
+            </div>
+        </div>
+        <div class="heatmap-legend" th:if="${kind == 'gender'}">
+            <span><i class="male"></i> Male</span>
+            <span><i class="female"></i> Female</span>
+            <span><i class="neutral"></i> Tie / other / unknown</span>
+            <span><i class="no-plays"></i> No plays</span>
+        </div>
+        <div class="heatmap-legend" th:if="${kind == 'plays'}">
+            <span><i class="no-plays"></i> No plays</span>
+            <span>Fewer</span>
+            <span th:each="level : ${#numbers.sequence(1, 4)}">
+                <i th:class="${'intensity-' + level}"></i>
+                <span th:text="${(level - 1) * 25 + '-' + level * 25 + '%'}"></span>
+            </span>
+            <span>of peak (<span th:text="${heatmap.maxPlays}"></span> plays)</span>
+        </div>
+        <p class="heatmap-detail" aria-live="polite"></p>
+    </section>
+</main>
+<script>
+    document.querySelectorAll('.heatmap-panel').forEach(panel => {
+        const detail = panel.querySelector('.heatmap-detail');
+        const showDetail = event => {
+            const day = event.target.closest('.heatmap-day');
+            if (day) detail.textContent = day.dataset.detail;
+        };
+        panel.addEventListener('pointerover', showDetail);
+        panel.addEventListener('focusin', showDetail);
+        panel.addEventListener('click', showDetail);
+    });
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@ import library.service.PcService;
 import library.service.ThemeService;
 import library.service.TagService;
 import library.service.TrlService;
+import library.service.DetailPlayHeatmapService;
 import library.util.DateFormatUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,12 +52,13 @@ public class ArtistController {
     private final CatalogChartService catalogChartService;
     private final ChartFilterRequestFactory chartFilterRequestFactory;
     private final TagService tagService;
+    private final DetailPlayHeatmapService detailPlayHeatmapService;
 
     public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository,
                              ItunesService itunesService, ThemeService themeService, AppConfigService appConfigService,
                              BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService,
                              CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory,
-                             TagService tagService) {
+                             TagService tagService, DetailPlayHeatmapService detailPlayHeatmapService) {
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
@@ -68,6 +71,7 @@ public class ArtistController {
         this.catalogChartService = catalogChartService;
         this.chartFilterRequestFactory = chartFilterRequestFactory;
         this.tagService = tagService;
+        this.detailPlayHeatmapService = detailPlayHeatmapService;
     }
     
     @InitBinder
@@ -570,6 +574,7 @@ public class ArtistController {
                             @RequestParam(defaultValue = "false") boolean includeGroups,
                             @RequestParam(defaultValue = "false") boolean includeFeatured,
                             @RequestParam(defaultValue = "true") boolean includeMain,
+                            @RequestParam(required = false) Integer heatmapYear,
                             Model model) {
         Optional<Artist> artist = artistService.getArtistById(id);
         
@@ -747,6 +752,8 @@ public class ArtistController {
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);
+        model.addAttribute("playHeatmap", detailPlayHeatmapService.forArtist(
+                id, effectiveGroupIds, includeMain, includeFeatured, heatmapYear));
         
         // Add collaborated artist cards (always pre-loaded for Artist Associations tab)
         if (includeMain && effectiveGroupIds != null) {
@@ -1191,6 +1198,27 @@ public class ArtistController {
             @RequestParam String q,
             @RequestParam(required = false, defaultValue = "0") int limit) {
         return artistService.searchArtists(q, limit);
+    }
+
+    @GetMapping("/api/filter-values")
+    @ResponseBody
+    public List<Map<String, Object>> getArtistFilterValues(
+            @RequestParam(name = "id", required = false) List<Integer> artistIds) {
+        if (artistIds == null || artistIds.isEmpty()) {
+            return List.of();
+        }
+        return artistIds.stream()
+                .distinct()
+                .map(artistService::getArtistById)
+                .flatMap(Optional::stream)
+                .map(artist -> {
+                    Map<String, Object> value = new LinkedHashMap<>();
+                    value.put("id", artist.getId());
+                    value.put("name", artist.getName());
+                    value.put("genderId", artist.getGenderId());
+                    return value;
+                })
+                .toList();
     }
     
     /**

@@ -2,11 +2,16 @@ package library.controller;
 
 import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
+import library.dto.BillboardHot100OverviewRowDTO;
 import library.service.AppConfigService;
 import library.service.BillboardHot100Service;
+import library.service.OverviewFilterService;
+import library.service.OverviewCacheService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,10 +28,25 @@ public class BillboardHot100Controller {
 
     private final AppConfigService appConfigService;
     private final BillboardHot100Service billboardHot100Service;
+    private final OverviewFilterService overviewFilterService;
+    private final OverviewCacheService overviewCacheService;
 
     public BillboardHot100Controller(AppConfigService appConfigService, BillboardHot100Service billboardHot100Service) {
+        this(appConfigService, billboardHot100Service, new OverviewFilterService(), new OverviewCacheService());
+    }
+
+    public BillboardHot100Controller(AppConfigService appConfigService, BillboardHot100Service billboardHot100Service,
+                                     OverviewFilterService overviewFilterService) {
+        this(appConfigService, billboardHot100Service, overviewFilterService, new OverviewCacheService());
+    }
+
+    @Autowired
+    public BillboardHot100Controller(AppConfigService appConfigService, BillboardHot100Service billboardHot100Service,
+                                     OverviewFilterService overviewFilterService, OverviewCacheService overviewCacheService) {
         this.appConfigService = appConfigService;
         this.billboardHot100Service = billboardHot100Service;
+        this.overviewFilterService = overviewFilterService;
+        this.overviewCacheService = overviewCacheService;
     }
 
     @GetMapping
@@ -38,30 +58,39 @@ public class BillboardHot100Controller {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "song") String overviewTab,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
         String safeOverviewTab = normalizeOverviewTab(overviewTab);
         int safeSize = normalizeSize(size);
         String safeSort = normalizeSort(safeOverviewTab, sort);
         String safeDir = normalizeDir(dir);
         int resultTotal;
+        List<?> pageEntries;
         if ("album".equals(safeOverviewTab)) {
-            resultTotal = billboardHot100Service.countAlbumOverviewRows(q);
+            List<ChartAlbumOverviewRowDTO> rows = billboardHot100Service.sortAlbumOverviewRows(
+                    overviewFilterService.filter("billboard", "album", billboardAlbumOverviewRows(), filterParams), safeSort, safeDir);
+            resultTotal = rows.size();
+            pageEntries = rows;
         } else if ("artist".equals(safeOverviewTab)) {
-            resultTotal = billboardHot100Service.countArtistOverviewRows(q, includeFeatured);
+            List<ChartArtistOverviewRowDTO> rows = billboardHot100Service.sortArtistOverviewRows(
+                    overviewFilterService.filter("billboard", "artist", billboardArtistOverviewRows(includeFeatured), filterParams), safeSort, safeDir);
+            resultTotal = rows.size();
+            pageEntries = rows;
         } else {
-            resultTotal = billboardHot100Service.countOverviewRows(q);
+            List<BillboardHot100OverviewRowDTO> rows = billboardHot100Service.sortOverviewRows(
+                    overviewFilterService.filter("billboard", "song", billboardSongOverviewRows(), filterParams), safeSort, safeDir);
+            resultTotal = rows.size();
+            pageEntries = rows;
         }
         int totalPages = Math.max(1, (int) Math.ceil(resultTotal / (double) safeSize));
         int safePage = Math.max(1, Math.min(page, totalPages));
 
         if ("album".equals(safeOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> albumEntries = billboardHot100Service.getAlbumOverviewRows(safePage, safeSize, safeSort, safeDir, q);
-            model.addAttribute("albumEntries", albumEntries);
+            model.addAttribute("albumEntries", paginate(pageEntries, safePage, safeSize));
         } else if ("artist".equals(safeOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> artistEntries = billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q, includeFeatured);
-            model.addAttribute("artistEntries", artistEntries);
+            model.addAttribute("artistEntries", paginate(pageEntries, safePage, safeSize));
         } else {
-            model.addAttribute("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+            model.addAttribute("entries", paginate(pageEntries, safePage, safeSize));
         }
         model.addAttribute("page", safePage);
         model.addAttribute("size", safeSize);
@@ -70,6 +99,7 @@ public class BillboardHot100Controller {
         model.addAttribute("q", q);
         model.addAttribute("overviewTab", safeOverviewTab);
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
+        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("billboard", safeOverviewTab));
         model.addAttribute("resultTotal", resultTotal);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("hasPrev", safePage > 1);
@@ -87,7 +117,8 @@ public class BillboardHot100Controller {
             @RequestParam(defaultValue = "desc") String dir,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "song") String overviewTab,
-            @RequestParam(defaultValue = "false") boolean includeFeatured) {
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam MultiValueMap<String, String> filterParams) {
         String safeOverviewTab = normalizeOverviewTab(overviewTab);
         int safeSize = normalizeSize(size);
         int safePage = Math.max(1, page);
@@ -98,14 +129,20 @@ public class BillboardHot100Controller {
         int resultTotal;
 
         if ("album".equals(safeOverviewTab)) {
-            resultTotal = billboardHot100Service.countAlbumOverviewRows(q);
-            result.put("entries", billboardHot100Service.getAlbumOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+            List<ChartAlbumOverviewRowDTO> rows = billboardHot100Service.sortAlbumOverviewRows(
+                    overviewFilterService.filter("billboard", "album", billboardAlbumOverviewRows(), filterParams), safeSort, safeDir);
+            resultTotal = rows.size();
+            result.put("entries", paginate(rows, safePage, safeSize));
         } else if ("artist".equals(safeOverviewTab)) {
-            resultTotal = billboardHot100Service.countArtistOverviewRows(q, includeFeatured);
-            result.put("entries", billboardHot100Service.getArtistOverviewRows(safePage, safeSize, safeSort, safeDir, q, includeFeatured));
+            List<ChartArtistOverviewRowDTO> rows = billboardHot100Service.sortArtistOverviewRows(
+                    overviewFilterService.filter("billboard", "artist", billboardArtistOverviewRows(includeFeatured), filterParams), safeSort, safeDir);
+            resultTotal = rows.size();
+            result.put("entries", paginate(rows, safePage, safeSize));
         } else {
-            resultTotal = billboardHot100Service.countOverviewRows(q);
-            result.put("entries", billboardHot100Service.getOverviewRows(safePage, safeSize, safeSort, safeDir, q));
+            List<BillboardHot100OverviewRowDTO> rows = billboardHot100Service.sortOverviewRows(
+                    overviewFilterService.filter("billboard", "song", billboardSongOverviewRows(), filterParams), safeSort, safeDir);
+            resultTotal = rows.size();
+            result.put("entries", paginate(rows, safePage, safeSize));
         }
 
         result.put("totalCount", resultTotal);
@@ -207,6 +244,26 @@ public class BillboardHot100Controller {
         return appConfigService.normalizePageSize(size, appConfigService.getBillboardOverviewPageSize(), 100, 500);
     }
 
+    private List<BillboardHot100OverviewRowDTO> billboardSongOverviewRows() {
+        return overviewCacheService.get("billboard:song", billboardHot100Service::getAllOverviewRows);
+    }
+
+    private List<ChartAlbumOverviewRowDTO> billboardAlbumOverviewRows() {
+        return overviewCacheService.get("billboard:album",
+                () -> billboardHot100Service.getAlbumOverviewRows(billboardSongOverviewRows()));
+    }
+
+    private List<ChartArtistOverviewRowDTO> billboardArtistOverviewRows(boolean includeFeatured) {
+        return overviewCacheService.get("billboard:artist:" + includeFeatured,
+                () -> billboardHot100Service.getArtistOverviewRows(billboardSongOverviewRows(), includeFeatured));
+    }
+
+    private List<?> paginate(List<?> rows, int page, int size) {
+        int fromIndex = Math.min(Math.max(0, (page - 1) * size), rows.size());
+        int toIndex = Math.min(rows.size(), fromIndex + size);
+        return rows.subList(fromIndex, toIndex);
+    }
+
     private String normalizeSort(String overviewTab, String sort) {
         if ("album".equals(overviewTab)) {
             return switch (sort) {
@@ -239,4 +296,5 @@ public class BillboardHot100Controller {
         }
         return "song";
     }
+
 }

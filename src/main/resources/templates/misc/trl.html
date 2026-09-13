@@ -8,6 +8,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <script th:src="@{/js/table-sort.js}" defer></script>
+    <th:block th:replace="~{fragments/overview-filters :: styles}"></th:block>
     <style>
         body {
             --accent: #f59e0b;
@@ -542,7 +543,7 @@
 
         @media (max-width: 700px) {
             .trl-table th:nth-child(1),
-            .trl-table td:nth-child(1) { display: none; }
+            .trl-table tbody tr:not(.trl-detail-row) > td:nth-child(1) { display: none; }
         }
         .number-one-tooltip {
             position: fixed;
@@ -618,11 +619,9 @@
                th:href="@{/misc/trl(overviewTab='artist')}">Artist Overview</a>
         </div>
 
+        <th:block th:replace="~{fragments/overview-filters :: panel}"></th:block>
         <!-- Toolbar -->
         <div class="trl-toolbar">
-            <button id="btnRetiredOnly" th:if="${overviewTab == 'song'}" class="trl-toggle-btn" onclick="toggleRetiredFilter(this)">
-                <span class="btn-icon">&#9733;</span> Hall of Fame Only
-            </button>
             <a th:if="${overviewTab == 'artist'}"
                class="trl-toggle-btn"
                th:classappend="${selectedIncludeFeatured} ? ' active' : ''"
@@ -810,7 +809,7 @@
                     </th:block>
                     <tr th:if="${#lists.isEmpty(debuts)}">
                             <td colspan="14" style="text-align:center; color:#666; padding:40px;">
-                            No TRL data found. Run the import script first.
+                            No songs match this overview.
                         </td>
                     </tr>
                 </tbody>
@@ -899,7 +898,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(albumOverviewRows)}">
-                        <td colspan="11" style="text-align:center; color:#666; padding:40px;">No linked albums have charted on TRL yet.</td>
+                        <td colspan="11" style="text-align:center; color:#666; padding:40px;">No albums match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -977,7 +976,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(artistOverviewRows)}">
-                        <td colspan="10" style="text-align:center; color:#666; padding:40px;">No artist overview rows found yet.</td>
+                        <td colspan="10" style="text-align:center; color:#666; padding:40px;">No artists match this overview.</td>
                     </tr>
                 </tbody>
             </table>
@@ -1295,7 +1294,7 @@
                 replacementRow.insertAdjacentElement('afterend', replacementDetailRow);
             }
 
-            applyTrlRetiredFilterIfActive();
+            updateTrlRowCounters();
             if (wasExpanded) {
                 var expandButton = replacementRow.querySelector('.trl-expand-btn');
                 if (expandButton) toggleTrlExpand(expandButton);
@@ -1420,6 +1419,7 @@
 
                 try {
                     var url = new URL('/misc/trl/data', window.location.origin);
+                    window.overviewFilters.appendTo(url);
                     url.searchParams.set('overviewTab', overviewTab);
                     url.searchParams.set('page', String(nextPage));
                     url.searchParams.set('size', String(pageSize));
@@ -1449,7 +1449,7 @@
                     addedCount = entries.length;
                     loadedCount += addedCount;
                     nextPage = data.nextPage || (nextPage + 1);
-                    applyTrlRetiredFilterIfActive();
+                    updateTrlRowCounters();
 
                     if (!data.hasMore || loadedCount >= totalCount) {
                         observer.disconnect();
@@ -1502,16 +1502,6 @@
             document.body.classList.remove('page-busy');
         }
 
-        function applyTrlRetiredFilterIfActive() {
-            var btn = document.getElementById('btnRetiredOnly');
-            var retiredOnly = !!(btn && btn.classList.contains('active'));
-            document.querySelectorAll('#trlTableBody tr[data-trl-id]').forEach(function(row) {
-                var isRetired = row.dataset.retired === 'true';
-                row.classList.toggle('trl-hidden', retiredOnly && !isRetired);
-            });
-            updateTrlRowCounters();
-        }
-
         function refreshTrlOverviewInPlace() {
             var tbody = document.getElementById('trlTableBody');
             if (!tbody) {
@@ -1533,7 +1523,7 @@
                     return;
                 }
                 tbody.innerHTML = nextBody.innerHTML;
-                applyTrlRetiredFilterIfActive();
+                updateTrlRowCounters();
                 updateTrlRowCounters();
             })
             .catch(function() {
@@ -1598,20 +1588,6 @@
                     btn.textContent = 'Normalize Linked';
                     alert('Normalize failed. Please try again.');
                 });
-        }
-
-        // ---- Retired-only filter ----
-        function toggleRetiredFilter(btn) {
-            btn.classList.toggle('active');
-            const retiredOnly = btn.classList.contains('active');
-            document.querySelectorAll('#trlTable tbody tr[data-trl-id]').forEach(function(row) {
-                const isRetired = row.dataset.retired === 'true';
-                row.classList.toggle('trl-hidden', retiredOnly && !isRetired);
-            });
-            if (trlOpenSourceRow && trlOpenSourceRow.classList.contains('trl-hidden')) {
-                resetTrlExpandState();
-            }
-            updateTrlRowCounters();
         }
 
         // ---- Chart Run Rendering (shared) ----

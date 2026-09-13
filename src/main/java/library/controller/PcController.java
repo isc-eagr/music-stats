@@ -5,9 +5,13 @@ import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.PcOverviewRowDTO;
 import library.service.AppConfigService;
 import library.service.PcService;
+import library.service.OverviewFilterService;
+import library.service.OverviewCacheService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -21,10 +25,24 @@ public class PcController {
 
     private final AppConfigService appConfigService;
     private final PcService pcService;
+    private final OverviewFilterService overviewFilterService;
+    private final OverviewCacheService overviewCacheService;
 
     public PcController(AppConfigService appConfigService, PcService pcService) {
+        this(appConfigService, pcService, new OverviewFilterService(), new OverviewCacheService());
+    }
+
+    public PcController(AppConfigService appConfigService, PcService pcService, OverviewFilterService overviewFilterService) {
+        this(appConfigService, pcService, overviewFilterService, new OverviewCacheService());
+    }
+
+    @Autowired
+    public PcController(AppConfigService appConfigService, PcService pcService, OverviewFilterService overviewFilterService,
+                        OverviewCacheService overviewCacheService) {
         this.appConfigService = appConfigService;
         this.pcService = pcService;
+        this.overviewFilterService = overviewFilterService;
+        this.overviewCacheService = overviewCacheService;
     }
 
     @GetMapping
@@ -35,6 +53,7 @@ public class PcController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
@@ -48,15 +67,15 @@ public class PcController {
         int activeTotalCount;
 
         if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(pcService.getAlbumOverviewRows(), normalizedSort, normalizedDir);
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(overviewFilterService.filter("pc", "album", pcAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allAlbumRows.size();
             albumOverviewRows = paginateRows(allAlbumRows, safePage, safeSize);
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(pcService.getArtistOverviewRows(includeFeatured), normalizedSort, normalizedDir);
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(overviewFilterService.filter("pc", "artist", pcArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allArtistRows.size();
             artistOverviewRows = paginateRows(allArtistRows, safePage, safeSize);
         } else {
-            List<PcOverviewRowDTO> allEntries = sortSongRows(pcService.getOverviewRows(), normalizedSort, normalizedDir);
+            List<PcOverviewRowDTO> allEntries = sortSongRows(overviewFilterService.filter("pc", "song", pcSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allEntries.size();
             entries = paginateRows(allEntries, safePage, safeSize);
         }
@@ -70,6 +89,7 @@ public class PcController {
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
+        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("pc", normalizedOverviewTab));
         model.addAttribute("currentSection", "pc");
         return "misc/pc";
     }
@@ -82,7 +102,8 @@ public class PcController {
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
-            @RequestParam(defaultValue = "false") boolean includeFeatured) {
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam MultiValueMap<String, String> filterParams) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
         int safeSize = normalizeSize(size);
@@ -91,17 +112,17 @@ public class PcController {
         Map<String, Object> result = new java.util.LinkedHashMap<>();
 
         if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(pcService.getAlbumOverviewRows(), normalizedSort, normalizedDir);
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(overviewFilterService.filter("pc", "album", pcAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
             result.put("entries", paginateRows(allAlbumRows, safePage, safeSize));
             result.put("totalCount", allAlbumRows.size());
             result.put("hasMore", (long) safePage * safeSize < allAlbumRows.size());
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(pcService.getArtistOverviewRows(includeFeatured), normalizedSort, normalizedDir);
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(overviewFilterService.filter("pc", "artist", pcArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
             result.put("entries", paginateRows(allArtistRows, safePage, safeSize));
             result.put("totalCount", allArtistRows.size());
             result.put("hasMore", (long) safePage * safeSize < allArtistRows.size());
         } else {
-            List<PcOverviewRowDTO> allEntries = sortSongRows(pcService.getOverviewRows(), normalizedSort, normalizedDir);
+            List<PcOverviewRowDTO> allEntries = sortSongRows(overviewFilterService.filter("pc", "song", pcSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
             int totalCount = allEntries.size();
             result.put("entries", paginateRows(allEntries, safePage, safeSize));
             result.put("totalCount", totalCount);
@@ -321,6 +342,19 @@ public class PcController {
 
     private int normalizeSize(Integer size) {
         return appConfigService.normalizePageSize(size, appConfigService.getPcOverviewPageSize(), 25, 200);
+    }
+
+    private List<PcOverviewRowDTO> pcSongOverviewRows() {
+        return overviewCacheService.get("pc:song", pcService::getOverviewRows);
+    }
+
+    private List<ChartAlbumOverviewRowDTO> pcAlbumOverviewRows() {
+        return overviewCacheService.get("pc:album", () -> pcService.getAlbumOverviewRows(pcSongOverviewRows()));
+    }
+
+    private List<ChartArtistOverviewRowDTO> pcArtistOverviewRows(boolean includeFeatured) {
+        return overviewCacheService.get("pc:artist:" + includeFeatured,
+                () -> pcService.getArtistOverviewRows(pcSongOverviewRows(), includeFeatured));
     }
 
     private <T> List<T> paginateRows(List<T> rows, int page, int size) {

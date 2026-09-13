@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<th:block th:fragment="styles">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" th:href="@{/css/overview-filters.css}">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
+    <script th:src="@{/js/chip-select.js}" defer></script>
+    <script th:src="@{/js/overview-filters.js}" defer></script>
+    <script th:src="@{/js/overview-sticky-headers.js}" defer></script>
+</th:block>
+</head>
+<body>
+<section th:fragment="panel" id="overviewFilters" class="overview-filters">
+    <div class="overview-filter-toolbar">
+        <form id="overviewSearchForm" role="search" class="overview-filter-search">
+            <label for="overviewSearchInput" class="overview-sr-only">Search this overview</label>
+            <input id="overviewSearchInput" type="search" name="q" placeholder="Search this overview..." autocomplete="off">
+            <button type="submit" class="btn btn-secondary">Search</button>
+        </form>
+        <button type="button" id="overviewFilterToggle" class="filter-toggle toolbar-btn toolbar-btn-muted" aria-controls="overviewFilterPanel" aria-expanded="false">Filters</button>
+        <button type="button" class="btn btn-secondary" data-overview-reset>Reset</button>
+    </div>
+    <div id="overviewActiveFilters" class="active-filters" aria-label="Applied filters"></div>
+    <div id="overviewFilterBackdrop" class="overview-filter-backdrop" hidden></div>
+    <aside class="filters" id="overviewFilterPanel" role="dialog" aria-modal="true" aria-labelledby="overviewFilterTitle" hidden>
+        <div class="filter-header">
+            <h3 id="overviewFilterTitle">Edit Filter</h3>
+            <button type="button" class="filter-close" id="overviewFilterClose" aria-label="Close filters">&times;</button>
+        </div>
+        <form id="overviewFilterForm" method="get" autocomplete="off">
+            <div class="filter-content">
+                <div th:each="field : ${overviewFilterFields}" class="filter-item" th:attr="data-filter-name=${field.name},data-filter-label=${field.label},data-filter-type=${field.type}">
+                    <button type="button" class="filter-item-header" aria-expanded="false">
+                        <span class="filter-item-title" th:text="${field.label}">Filter</span>
+                    </button>
+                    <div class="filter-item-content"></div>
+                </div>
+            </div>
+            <div class="overview-filter-footer">
+                <button type="button" class="btn btn-secondary" data-overview-reset>Reset</button>
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+            </div>
+        </form>
+    </aside>
+</section>
+</body>
+</html>

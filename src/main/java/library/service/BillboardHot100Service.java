@@ -38,6 +38,39 @@ public class BillboardHot100Service {
         return getOverviewRows(1, 250, "firstWeek", "desc", null);
     }
 
+    public List<BillboardHot100OverviewRowDTO> getAllOverviewRows() {
+        return getAllOverviewRows(null);
+    }
+
+    public List<ChartAlbumOverviewRowDTO> getAllAlbumOverviewRows() {
+        return getAlbumOverviewRows(getAllOverviewRows());
+    }
+
+    public List<ChartArtistOverviewRowDTO> getAllArtistOverviewRows(boolean includeFeatured) {
+        return getArtistOverviewRows(getAllOverviewRows(), includeFeatured);
+    }
+
+    public List<BillboardHot100OverviewRowDTO> sortOverviewRows(
+            List<BillboardHot100OverviewRowDTO> rows, String sort, String dir) {
+        List<BillboardHot100OverviewRowDTO> sorted = new ArrayList<>(rows);
+        sorted.sort(buildOverviewComparator(sort, dir));
+        return sorted;
+    }
+
+    public List<ChartAlbumOverviewRowDTO> sortAlbumOverviewRows(
+            List<ChartAlbumOverviewRowDTO> rows, String sort, String dir) {
+        List<ChartAlbumOverviewRowDTO> sorted = new ArrayList<>(rows);
+        sorted.sort(buildAlbumOverviewComparator(sort, dir));
+        return sorted;
+    }
+
+    public List<ChartArtistOverviewRowDTO> sortArtistOverviewRows(
+            List<ChartArtistOverviewRowDTO> rows, String sort, String dir) {
+        List<ChartArtistOverviewRowDTO> sorted = new ArrayList<>(rows);
+        sorted.sort(buildArtistOverviewComparator(sort, dir));
+        return sorted;
+    }
+
     public List<Map<String, Object>> getChartRunBySongId(int songId) {
         return jdbcTemplate.queryForList(
             "SELECT d.chart_date, " +
@@ -231,6 +264,10 @@ public class BillboardHot100Service {
 
     private List<ChartAlbumOverviewRowDTO> getAllAlbumOverviewRows(String query) {
         List<BillboardHot100OverviewRowDTO> songRows = getAllOverviewRows(query);
+        return getAlbumOverviewRows(songRows);
+    }
+
+    public List<ChartAlbumOverviewRowDTO> getAlbumOverviewRows(List<BillboardHot100OverviewRowDTO> songRows) {
         Map<Integer, AlbumSongInfo> albumSongInfoBySongId = getAlbumSongInfoBySongId(songRows);
         Map<Integer, AlbumOverviewAccumulator> grouped = new LinkedHashMap<>();
 
@@ -258,6 +295,11 @@ public class BillboardHot100Service {
 
     private List<ChartArtistOverviewRowDTO> getAllArtistOverviewRows(String query, boolean includeFeatured) {
         List<BillboardHot100OverviewRowDTO> songRows = getAllOverviewRows(query);
+        return getArtistOverviewRows(songRows, includeFeatured);
+    }
+
+    public List<ChartArtistOverviewRowDTO> getArtistOverviewRows(
+            List<BillboardHot100OverviewRowDTO> songRows, boolean includeFeatured) {
         Map<String, ArtistOverviewAccumulator> grouped = new LinkedHashMap<>();
 
         for (BillboardHot100OverviewRowDTO row : songRows) {
@@ -1106,6 +1148,24 @@ public class BillboardHot100Service {
     }
 
     private record AlbumSongInfo(Integer albumId, String albumName, boolean hasImage) {
+    }
+
+    private Comparator<BillboardHot100OverviewRowDTO> buildOverviewComparator(String sort, String dir) {
+        Comparator<BillboardHot100OverviewRowDTO> comparator = switch (sort) {
+            case "weeks" -> Comparator.comparingInt(BillboardHot100OverviewRowDTO::getWeeksOnChart);
+            case "peak" -> Comparator.comparingInt(BillboardHot100OverviewRowDTO::getPeakPosition);
+            case "weeksAtPeak" -> Comparator.comparingInt(BillboardHot100OverviewRowDTO::getWeeksAtPeak);
+            case "peakWeek" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getPeakWeek()));
+            case "lastWeek" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getLastWeek()));
+            case "song" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getSongTitle()));
+            case "artist" -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()));
+            default -> Comparator.comparing(row -> ChartAggregationUtils.safeLower(row.getFirstWeek()));
+        };
+        if (!"asc".equalsIgnoreCase(dir)) {
+            comparator = comparator.reversed();
+        }
+        return comparator.thenComparing(row -> ChartAggregationUtils.safeLower(row.getArtistName()))
+                .thenComparing(row -> ChartAggregationUtils.safeLower(row.getSongTitle()));
     }
 
     private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass, boolean hasImage) {

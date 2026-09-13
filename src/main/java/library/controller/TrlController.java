@@ -6,9 +6,13 @@ import library.dto.TrlChartEntryGroupDTO;
 import library.entity.TrlDebut;
 import library.service.AppConfigService;
 import library.service.TrlService;
+import library.service.OverviewFilterService;
+import library.service.OverviewCacheService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -22,10 +26,24 @@ public class TrlController {
 
     private final AppConfigService appConfigService;
     private final TrlService trlService;
+    private final OverviewFilterService overviewFilterService;
+    private final OverviewCacheService overviewCacheService;
 
     public TrlController(AppConfigService appConfigService, TrlService trlService) {
+        this(appConfigService, trlService, new OverviewFilterService(), new OverviewCacheService());
+    }
+
+    public TrlController(AppConfigService appConfigService, TrlService trlService, OverviewFilterService overviewFilterService) {
+        this(appConfigService, trlService, overviewFilterService, new OverviewCacheService());
+    }
+
+    @Autowired
+    public TrlController(AppConfigService appConfigService, TrlService trlService, OverviewFilterService overviewFilterService,
+                         OverviewCacheService overviewCacheService) {
         this.appConfigService = appConfigService;
         this.trlService = trlService;
+        this.overviewFilterService = overviewFilterService;
+        this.overviewCacheService = overviewCacheService;
     }
 
     @GetMapping
@@ -36,6 +54,7 @@ public class TrlController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
@@ -49,15 +68,15 @@ public class TrlController {
         int activeTotalCount;
 
         if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(trlService.getAlbumOverviewRows(), normalizedSort, normalizedDir);
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allAlbumRows.size();
             albumOverviewRows = paginateRows(allAlbumRows, safePage, safeSize);
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(trlService.getArtistOverviewRows(includeFeatured), normalizedSort, normalizedDir);
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allArtistRows.size();
             artistOverviewRows = paginateRows(allArtistRows, safePage, safeSize);
         } else {
-            List<TrlDebut> allDebuts = sortSongRows(trlService.getAllDebuts(), normalizedSort, normalizedDir);
+            List<TrlDebut> allDebuts = sortSongRows(overviewFilterService.filter("trl", "song", trlSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allDebuts.size();
             debuts = paginateRows(allDebuts, safePage, safeSize);
         }
@@ -71,6 +90,7 @@ public class TrlController {
         model.addAttribute("selectedSort", normalizedSort);
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
+        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("trl", normalizedOverviewTab));
         model.addAttribute("currentSection", "trl");
         return "misc/trl";
     }
@@ -83,7 +103,8 @@ public class TrlController {
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
-            @RequestParam(defaultValue = "false") boolean includeFeatured) {
+            @RequestParam(defaultValue = "false") boolean includeFeatured,
+            @RequestParam MultiValueMap<String, String> filterParams) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
         int safeSize = normalizeSize(size);
@@ -92,17 +113,17 @@ public class TrlController {
         Map<String, Object> result = new java.util.LinkedHashMap<>();
 
         if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(trlService.getAlbumOverviewRows(), normalizedSort, normalizedDir);
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
             result.put("entries", paginateRows(allAlbumRows, safePage, safeSize));
             result.put("totalCount", allAlbumRows.size());
             result.put("hasMore", (long) safePage * safeSize < allAlbumRows.size());
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(trlService.getArtistOverviewRows(includeFeatured), normalizedSort, normalizedDir);
+            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
             result.put("entries", paginateRows(allArtistRows, safePage, safeSize));
             result.put("totalCount", allArtistRows.size());
             result.put("hasMore", (long) safePage * safeSize < allArtistRows.size());
         } else {
-            List<TrlDebut> allDebuts = sortSongRows(trlService.getAllDebuts(), normalizedSort, normalizedDir);
+            List<TrlDebut> allDebuts = sortSongRows(overviewFilterService.filter("trl", "song", trlSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
             result.put("entries", paginateRows(allDebuts, safePage, safeSize));
             result.put("totalCount", allDebuts.size());
             result.put("hasMore", (long) safePage * safeSize < allDebuts.size());
@@ -375,6 +396,19 @@ public class TrlController {
 
     private int normalizeSize(Integer size) {
         return appConfigService.normalizePageSize(size, appConfigService.getTrlOverviewPageSize(), 25, 200);
+    }
+
+    private List<TrlDebut> trlSongOverviewRows() {
+        return overviewCacheService.get("trl:song", trlService::getAllDebuts);
+    }
+
+    private List<ChartAlbumOverviewRowDTO> trlAlbumOverviewRows() {
+        return overviewCacheService.get("trl:album", () -> trlService.getAlbumOverviewRows(trlSongOverviewRows()));
+    }
+
+    private List<ChartArtistOverviewRowDTO> trlArtistOverviewRows(boolean includeFeatured) {
+        return overviewCacheService.get("trl:artist:" + includeFeatured,
+                () -> trlService.getArtistOverviewRows(trlSongOverviewRows(), includeFeatured));
     }
 
     private <T> List<T> paginateRows(List<T> rows, int page, int size) {

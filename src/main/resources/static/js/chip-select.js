@@ -329,6 +329,21 @@ class ChipSelect {
         
         this.updatePlaceholder();
     }
+
+    updateChip(value, label, genderId = null) {
+        const valueStr = String(value);
+        if (!this.selectedItems.has(valueStr)) return;
+
+        this.selectedItems.set(valueStr, { label, genderId });
+        const chipEl = this.chipsEl.querySelector(`[data-value="${CSS.escape(valueStr)}"]`);
+        if (!chipEl) return;
+
+        chipEl.classList.toggle('chip-gender-female', genderId === 1);
+        chipEl.classList.toggle('chip-gender-male', genderId === 2);
+        if (genderId) chipEl.dataset.genderId = genderId;
+        else delete chipEl.dataset.genderId;
+        chipEl.querySelector('.chip-select-chip-label').textContent = label;
+    }
     
     updatePlaceholder() {
         if (this.selectedItems.size > 0) {

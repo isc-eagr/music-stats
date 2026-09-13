@@ -19,6 +19,7 @@ import library.service.ItunesService;
 import library.service.TrlService;
 import library.service.PcService;
 import library.service.BillboardHot100Service;
+import library.service.DetailPlayHeatmapService;
 import library.util.DateFormatUtils;
 import library.util.ArtistFilterMode;
 import library.util.StringNormalizer;
@@ -68,6 +69,7 @@ public class SongController {
     private final SongLinkService songLinkService;
     private final TagService tagService;
     private final JdbcTemplate jdbcTemplate;
+    private final DetailPlayHeatmapService detailPlayHeatmapService;
     private static final Pattern PARENTHETICAL_PATTERN = Pattern.compile("\\(([^)]*)\\)");
     private static final Pattern BRACKET_PATTERN = Pattern.compile("\\[([^]]*)\\]");
 
@@ -76,7 +78,7 @@ public class SongController {
                          AppConfigService appConfigService,
                          ItunesService itunesService, TrlService trlService, PcService pcService,
                          BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate, SongLinkService songLinkService,
-                         TagService tagService) {
+                         TagService tagService, DetailPlayHeatmapService detailPlayHeatmapService) {
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -91,6 +93,7 @@ public class SongController {
         this.jdbcTemplate = jdbcTemplate;
         this.songLinkService = songLinkService;
         this.tagService = tagService;
+        this.detailPlayHeatmapService = detailPlayHeatmapService;
     }
     
     @InitBinder
@@ -791,6 +794,7 @@ public class SongController {
     public String viewSong(@PathVariable Integer id, 
                           @RequestParam(defaultValue = "general") String tab,
                           @RequestParam(defaultValue = "0") int playsPage,
+                          @RequestParam(required = false) Integer heatmapYear,
                           Model model) {
         Optional<Song> song = songService.getSongById(id);
         
@@ -939,6 +943,7 @@ public class SongController {
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);
+        model.addAttribute("playHeatmap", detailPlayHeatmapService.forSong(id, heatmapYear));
         
         // Add featured artists for this song (for editing)
         model.addAttribute("featuredArtists", songService.getFeaturedArtistsForSong(id));

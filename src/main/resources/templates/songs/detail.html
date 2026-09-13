@@ -12,6 +12,8 @@
     <link rel="stylesheet" th:href="@{/css/top-tables.css(v=2)}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css(v=2)}">
     <link rel="stylesheet" th:href="@{/css/detail-chart-history.css(v=3)}">
+    <link rel="stylesheet" th:href="@{/css/detail-play-heatmap.css(v=3)}">
+    <script defer th:src="@{/js/detail-play-heatmap.js(v=1)}"></script>
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -957,11 +959,19 @@
             <!-- Plays Tab Content -->
               <div class="plays-tab-content" id="playsTabContent"
                   th:style="${activeTab == 'plays'} ? 'display: block !important;' : 'display: none !important;'">
-                <!-- Plays by Year Chart -->
                 <div class="detail-content-card plays-chart-section">
-                    <h2 class="section-title">Plays by Year</h2>
-                    <div class="chart-container">
-                        <canvas id="playsByYearChart"></canvas>
+                    <div class="plays-visualization-header">
+                        <h2 class="section-title" data-plays-visualization-title>Plays by Year</h2>
+                        <div class="plays-visualization-toggle" role="tablist" aria-label="Play visualization">
+                            <button type="button" class="active" data-plays-view="chart" role="tab" aria-selected="true">By Year</button>
+                            <button type="button" data-plays-view="heatmap" role="tab" aria-selected="false">Heatmap</button>
+                        </div>
+                    </div>
+                    <div data-plays-visualization="chart">
+                        <div class="chart-container"><canvas id="playsByYearChart"></canvas></div>
+                    </div>
+                    <div data-plays-visualization="heatmap" hidden>
+                        <div th:replace="~{fragments/detail-play-heatmap :: calendar(${playHeatmap})}"></div>
                     </div>
                 </div>
                 
