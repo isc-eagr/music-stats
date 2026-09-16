@@ -134,6 +134,10 @@ class PlaygroundTest {
         assertThat(document.select(".heatmap-panel").get(1).select(".all-male, .all-female")).isEmpty();
         assertThat(document.select("option[selected]").val()).isEqualTo("2024");
         assertThat(document.select(".heatmap-day").first().attr("aria-label")).startsWith("01/01/2024:");
+        assertThat(document.select("#history-measure option")).extracting(element -> element.attr("value"))
+                .containsExactly("artists", "albums", "songs", "plays", "time");
+        assertThat(document.select("#history-tooltip[hidden]")).hasSize(1);
+        assertThat(document.select("#history-interval-week[hidden][disabled]")).hasSize(1);
     }
 
     @Test

@@ -64,7 +64,86 @@
         </div>
         <p class="heatmap-detail" aria-live="polite"></p>
     </section>
+    <section class="history-panel" aria-labelledby="history-heading">
+        <h2 id="history-heading">Breakdown over time</h2>
+        <div class="history-controls" id="history-controls">
+            <label>Breakdown
+                <select id="history-breakdown">
+                    <option value="ethnicity">Ethnicity</option>
+                    <option value="gender" selected>Gender</option>
+                    <option value="genre">Genre</option>
+                    <option value="language">Language</option>
+                </select>
+            </label>
+            <label>Measure
+                <select id="history-measure">
+                    <option value="artists">Artists</option>
+                    <option value="albums">Albums</option>
+                    <option value="songs">Songs</option>
+                    <option value="plays" selected>Plays</option>
+                    <option value="time">Play time</option>
+                </select>
+            </label>
+            <label>History
+                <select id="history-mode">
+                    <option value="cumulative">Cumulative</option>
+                    <option value="period">In each period</option>
+                </select>
+            </label>
+            <label>Interval
+                <select id="history-interval">
+                    <option id="history-interval-week" value="week" hidden disabled>Weekly</option>
+                    <option value="month">Monthly</option>
+                    <option value="quarter">Quarterly</option>
+                    <option value="year">Yearly</option>
+                </select>
+            </label>
+            <label>History range
+                <select id="history-year">
+                    <option value="">All history</option>
+                    <option th:each="historyYear : ${years}" th:value="${historyYear}" th:text="${historyYear}"></option>
+                </select>
+            </label>
+            <label>Chart
+                <select id="history-chart">
+                    <option value="line">Lines</option>
+                    <option value="area" selected>Stacked area</option>
+                </select>
+            </label>
+            <label>Scale
+                <select id="history-scale">
+                    <option value="absolute">Amount</option>
+                    <option value="percent" selected>Share (%)</option>
+                </select>
+            </label>
+            <label>Categories
+                <select id="history-categories">
+                    <option value="all">All categories</option>
+                    <option value="6" selected>Top 6 + remaining</option>
+                </select>
+            </label>
+        </div>
+        <p id="history-definition" class="playground-note"></p>
+        <p id="history-peak" class="history-peak" hidden></p>
+        <p id="history-status" role="status" aria-live="polite">Loading history...</p>
+        <button id="history-retry" type="button" hidden>Retry</button>
+        <div id="history-chart-wrap" class="history-chart-wrap" hidden>
+            <canvas id="history-canvas" role="img" aria-label="Historical category breakdown. Exact values are available in the data table below."></canvas>
+            <div id="history-tooltip" class="history-tooltip" role="status" aria-live="polite" hidden></div>
+        </div>
+        <div id="history-legend" class="history-legend" aria-label="Chart categories"></div>
+        <p class="playground-note">First-play history, using current metadata. Current period is partial.</p>
+        <details id="history-data" hidden>
+            <summary>View exact values</summary>
+            <div class="history-table-scroll" tabindex="0" aria-label="Historical breakdown data">
+                <table id="history-table"></table>
+            </div>
+        </details>
+        <noscript>Enable JavaScript to load breakdown history.</noscript>
+    </section>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+<script src="/js/breakdown-history.js" defer></script>
 <script>
     document.querySelectorAll('.heatmap-panel').forEach(panel => {
         const detail = panel.querySelector('.heatmap-detail');
