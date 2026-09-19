@@ -33,6 +33,23 @@ class TemplateContractTest {
     }
 
     @Test
+    void weeklyEmptyStateSkipsChartViewInitialization() throws IOException {
+        String weekly = read("charts/weekly.html");
+        String initialViewFlow = functionBody(
+                weekly,
+                "function applyInitialWeeklyView",
+                "// Navigate to a specific date's chart"
+        );
+
+        assertThat(initialViewFlow)
+                .contains("document.getElementById('songsSection')")
+                .contains("if (!document.getElementById('songsSection'))")
+                .contains("return;");
+        assertThat(weekly.indexOf("applyInitialWeeklyView();"))
+                .isLessThan(weekly.indexOf("let generationSessionId = null;"));
+    }
+
+    @Test
     void unmatchedPlayMatchingRefreshesTheAutomationBannerInPlace() throws IOException {
         String navigation = read("fragments/navigation.html");
         String unmatchedPlays = read("unmatchedPlays.html");

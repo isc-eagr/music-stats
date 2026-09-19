@@ -1706,6 +1706,11 @@
         }
 
         function applyInitialWeeklyView() {
+            // The empty state has no chart sections or chart-type controls to initialize.
+            if (!document.getElementById('songsSection')) {
+                return;
+            }
+
             if (activeWeeklyView === 'albums') {
                 showAlbumsChart();
                 return;
