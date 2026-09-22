@@ -9,10 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.ui.ExtendedModelMap;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.web.server.ResponseStatusException;
-import org.thymeleaf.context.Context;
+import org.thymeleaf.context.WebContext;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.StringTemplateResolver;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -122,7 +126,11 @@ class PlaygroundTest {
                 .replace("@{/css/playground.css}", "'/css/playground.css'");
         var engine = new SpringTemplateEngine();
         engine.setTemplateResolver(new StringTemplateResolver());
-        var context = new Context(Locale.ENGLISH, model);
+        var servletContext = new MockServletContext();
+        var request = new MockHttpServletRequest(servletContext);
+        var exchange = JakartaServletWebApplication.buildApplication(servletContext)
+                .buildExchange(request, new MockHttpServletResponse());
+        var context = new WebContext(exchange, Locale.ENGLISH, model);
         var document = Jsoup.parse(engine.process(template, context));
         assertThat(document.select(".heatmap-panel")).hasSize(2);
         assertThat(document.select(".heatmap-day")).hasSize(732);
@@ -145,12 +153,26 @@ class PlaygroundTest {
         String template = Files.readString(Path.of("src/main/resources/templates/playground.html"));
         var document = Jsoup.parse(template);
         assertThat(document.select("#year").attr("onchange")).isEqualTo("this.form.submit()");
-        assertThat(document.select("button[type=submit]")).isEmpty();
+        assertThat(document.select(".flashback-controls button[type=submit]")).hasSize(1)
+                .extracting(element -> element.text()).containsExactly("Generate recap");
         assertThat(template).doesNotContain("A year of listening")
                 .doesNotContain("Blue for male")
                 .doesNotContain("Brighter green means")
                 .doesNotContain("Hover, focus, or tap")
                 .doesNotContain("Dates use Mexico City time");
+    }
+
+    @Test
+    void flashbackTemplateShowsSixQuickFactsAndGenreRankings() throws Exception {
+        String template = Files.readString(Path.of("src/main/resources/templates/playground.html"));
+        var document = Jsoup.parse(template);
+        assertThat(document.select(".flashback-fact")).hasSize(6);
+        assertThat(document.select(".flashback-facts").text()).contains("New artists", "New songs")
+                .doesNotContain("Loved tracks", "Events attended");
+        assertThat(document.select("#top-overall-heading").text()).isEqualTo("Top 30 Overall");
+        assertThat(document.select(".flashback-genre-grid")).hasSize(1);
+        assertThat(document.select("#flashback-review-type option")).extracting(element -> element.attr("value"))
+                .containsExactly("year", "season", "month");
     }
 
     @Test

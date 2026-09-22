@@ -15,13 +15,24 @@
         <div>
             <h1>Playground</h1>
         </div>
-        <form action="/playground" method="get" class="playground-year">
-            <label for="year">Year</label>
-            <select id="year" name="year" onchange="this.form.submit()">
-                <option th:each="year : ${years}" th:value="${year}" th:text="${year}" th:selected="${year == heatmap.year}"></option>
-            </select>
-        </form>
     </header>
+
+    <nav class="playground-tabs" role="tablist" aria-label="Playground views">
+        <a role="tab" th:href="@{/playground(view='activity',year=${selectedYear})}"
+           th:classappend="${view == 'activity'} ? 'active' : ''"
+           aria-controls="activity-panel" th:attr="aria-selected=${view == 'activity'}">Year activity</a>
+        <a role="tab" th:href="@{/playground(view='flashback',year=${selectedYear})}"
+           th:classappend="${view == 'flashback'} ? 'active' : ''"
+           aria-controls="flashback-panel" th:attr="aria-selected=${view == 'flashback'}">Flashback</a>
+    </nav>
+
+    <section id="activity-panel" th:if="${view == 'activity'}" class="playground-view" role="tabpanel" aria-label="Year activity">
+    <form action="/playground" method="get" class="playground-year">
+        <label for="year">Year</label>
+        <select id="year" name="year" onchange="this.form.submit()">
+            <option th:each="year : ${years}" th:value="${year}" th:text="${year}" th:selected="${year == selectedYear}"></option>
+        </select>
+    </form>
     <div class="playground-summary">
         <span><strong th:text="${#numbers.formatInteger(heatmap.totalPlays, 1, 'COMMA')}">0</strong> plays</span>
         <span><strong th:text="${heatmap.activeDays}">0</strong> listening days</span>
@@ -141,6 +152,214 @@
         </details>
         <noscript>Enable JavaScript to load breakdown history.</noscript>
     </section>
+    </section>
+
+    <section id="flashback-panel" th:if="${view == 'flashback'}" class="flashback-view" role="tabpanel" aria-labelledby="flashback-heading">
+        <header class="flashback-heading">
+            <div>
+                <p class="flashback-eyebrow">Your listening, remembered</p>
+                <h2 id="flashback-heading" th:text="${flashback.title}">Year in Review · 2025</h2>
+                <p class="playground-note">
+                    <span th:text="${#temporals.format(flashback.startDate, 'dd MMM yyyy')}"></span>
+                    – <span th:text="${#temporals.format(flashback.endDate, 'dd MMM yyyy')}"></span>
+                </p>
+            </div>
+        </header>
+        <form action="/playground" method="get" class="flashback-controls" id="flashback-controls">
+            <input type="hidden" name="view" value="flashback">
+            <label>Review
+                <select name="reviewType" id="flashback-review-type">
+                    <option value="year" th:selected="${reviewType == 'year'}">Year in Review</option>
+                    <option value="season" th:selected="${reviewType == 'season'}">Season in Review</option>
+                    <option value="month" th:selected="${reviewType == 'month'}">Month in Review</option>
+                </select>
+            </label>
+            <label>Year
+                <select name="year">
+                    <option th:each="year : ${years}" th:value="${year}" th:text="${year}" th:selected="${year == selectedYear}"></option>
+                </select>
+            </label>
+            <label id="flashback-season-field">Season
+                <select name="season">
+                    <option th:each="seasonOption : ${reviewSeasons}" th:value="${seasonOption.value}"
+                            th:text="${seasonOption.label}" th:selected="${seasonOption.value == reviewSeason}"></option>
+                </select>
+            </label>
+            <label id="flashback-month-field">Month
+                <select name="month">
+                    <option th:each="monthOption : ${monthOptions}" th:value="${monthOption.month}"
+                            th:text="${monthOption.label}" th:selected="${monthOption.month == reviewMonth}"></option>
+                </select>
+            </label>
+            <button type="submit" class="flashback-generate">Generate recap</button>
+        </form>
+
+        <section class="flashback-facts" aria-labelledby="flashback-facts-heading">
+            <h3 id="flashback-facts-heading">Quick facts</h3>
+            <div class="flashback-facts-grid">
+                <article class="flashback-fact fact-time">
+                    <span>Listening time</span>
+                    <strong>
+                        <span th:text="${flashback.quickFacts.listeningDays()}">0</span><small>d</small>
+                        <span th:text="${flashback.quickFacts.remainingListeningHours()}">0</span><small>h</small>
+                        <span th:text="${flashback.quickFacts.remainingListeningMinutes()}">0</span><small>m</small>
+                    </strong>
+                    <small>Total time from matched tracks</small>
+                </article>
+                <article class="flashback-fact">
+                    <span>Average plays per day</span>
+                    <strong th:text="${#numbers.formatDecimal(flashback.quickFacts.averagePlaysPerDay(), 1, 1)}">0.0</strong>
+                    <small>Across elapsed days in this period</small>
+                </article>
+                <article class="flashback-fact">
+                    <span>Longest listening streak</span>
+                    <strong><span th:text="${flashback.quickFacts.longestStreakDays()}">0</span><small> days</small></strong>
+                    <small>Consecutive days with at least one play</small>
+                </article>
+                <article class="flashback-fact">
+                    <span>Most active day</span>
+                    <strong th:text="${flashback.quickFacts.busiestDayPlays()}">0</strong>
+                    <small th:if="${flashback.quickFacts.busiestDay() != null}"
+                           th:text="${#temporals.format(flashback.quickFacts.busiestDay(), 'dd MMM')}">—</small>
+                    <small th:if="${flashback.quickFacts.busiestDay() == null}">No plays recorded</small>
+                </article>
+                <article class="flashback-fact fact-new">
+                    <span>New artists</span>
+                    <strong th:text="${flashback.quickFacts.newArtists()}">0</strong>
+                    <small>First played during this period</small>
+                    <small th:if="${flashback.quickFacts.mostPlayedNewArtist() != null}" class="flashback-new-leader">
+                        Most played: <a th:href="@{/artists/{id}(id=${flashback.quickFacts.mostPlayedNewArtist().artistId()})}"
+                                        th:text="${flashback.quickFacts.mostPlayedNewArtist().name()}">Artist</a>
+                        <span th:text="' · ' + ${#numbers.formatInteger(flashback.quickFacts.mostPlayedNewArtist().plays(), 1, 'COMMA')} + ' plays'"> · 0 plays</span>
+                    </small>
+                </article>
+                <article class="flashback-fact fact-new">
+                    <span>New songs</span>
+                    <strong th:text="${flashback.quickFacts.newSongs()}">0</strong>
+                    <small>First played during this period</small>
+                    <small th:if="${flashback.quickFacts.mostPlayedNewSong() != null}" class="flashback-new-leader">
+                        Most played: <a th:href="@{/songs/{id}(id=${flashback.quickFacts.mostPlayedNewSong().songId()})}"
+                                        th:text="${flashback.quickFacts.mostPlayedNewSong().name()}">Song</a>
+                        <span th:text="' by ' + ${flashback.quickFacts.mostPlayedNewSong().artistName()} + ' · ' + ${#numbers.formatInteger(flashback.quickFacts.mostPlayedNewSong().plays(), 1, 'COMMA')} + ' plays'"> by Artist · 0 plays</span>
+                    </small>
+                </article>
+            </div>
+        </section>
+
+        <section class="flashback-rankings" aria-labelledby="top-overall-heading">
+            <div class="flashback-section-heading">
+                <div>
+                    <p class="flashback-eyebrow">Your soundtrack</p>
+                    <h3 id="top-overall-heading">Top 30 Overall</h3>
+                </div>
+                <span class="flashback-count" th:text="${flashback.topOverall.size()} + ' tracks'">0 tracks</span>
+            </div>
+            <div th:if="${!flashback.topOverall.isEmpty()}" class="flashback-overall-card">
+                <article class="flashback-featured-track" th:classappend="${flashback.topOverall[0].genderClass}">
+                    <div class="flashback-feature-rank">#1</div>
+                    <img th:if="${flashback.topOverall[0].albumHasImage}"
+                         th:src="@{/albums/{id}/image(id=${flashback.topOverall[0].albumId},thumbnail=true)}"
+                         class="flashback-feature-art album-art" alt="">
+                    <img th:if="${!flashback.topOverall[0].albumHasImage and flashback.topOverall[0].songHasImage}"
+                         th:src="@{/songs/{id}/image(id=${flashback.topOverall[0].songId},thumbnail=true)}"
+                         class="flashback-feature-art song-art" alt="">
+                    <div th:if="${!flashback.topOverall[0].albumHasImage and !flashback.topOverall[0].songHasImage}"
+                         class="flashback-feature-art flashback-art-placeholder" aria-hidden="true">No cover</div>
+                    <div class="flashback-feature-copy">
+                        <span class="flashback-track-label">Top track</span>
+                        <a th:href="@{/songs/{id}(id=${flashback.topOverall[0].songId})}"
+                           th:text="${flashback.topOverall[0].songName}">Track name</a>
+                        <span th:text="${flashback.topOverall[0].artistName}">Artist</span>
+                        <small th:if="${flashback.topOverall[0].albumName != null}" th:text="${flashback.topOverall[0].albumName}">Album</small>
+                    </div>
+                    <strong><span th:text="${#numbers.formatInteger(flashback.topOverall[0].plays, 1, 'COMMA')}">0</span><small> plays</small></strong>
+                </article>
+                <div class="flashback-track-list">
+                    <a th:each="track, row : ${flashback.topOverall}" th:if="${row.index > 0}"
+                       th:href="@{/songs/{id}(id=${track.songId})}" class="flashback-track-row"
+                       th:classappend="${track.genderClass}">
+                        <span class="flashback-track-rank" th:text="${track.rank}">2</span>
+                        <img th:if="${track.albumHasImage}"
+                             th:src="@{/albums/{id}/image(id=${track.albumId},thumbnail=true)}"
+                             class="flashback-track-art album-art" alt="" loading="lazy">
+                        <img th:if="${!track.albumHasImage and track.songHasImage}"
+                             th:src="@{/songs/{id}/image(id=${track.songId},thumbnail=true)}"
+                             class="flashback-track-art song-art" alt="" loading="lazy">
+                        <span th:if="${!track.albumHasImage and !track.songHasImage}"
+                              class="flashback-track-art flashback-art-placeholder" aria-hidden="true"></span>
+                        <span class="flashback-track-name"><strong th:text="${track.songName}">Track name</strong>
+                            <small th:text="${track.artistName}">Artist</small></span>
+                        <span class="flashback-track-plays" th:text="${#numbers.formatInteger(track.plays, 1, 'COMMA')}">0</span>
+                    </a>
+                </div>
+            </div>
+            <p th:if="${flashback.topOverall.isEmpty()}" class="playground-empty">No matched song plays in this period.</p>
+        </section>
+
+        <section class="flashback-rankings" aria-labelledby="genre-rankings-heading">
+            <div class="flashback-section-heading">
+                <div>
+                    <p class="flashback-eyebrow">By sound</p>
+                    <h3 id="genre-rankings-heading">Your genre charts</h3>
+                </div>
+                <span class="flashback-count">Genres with 200+ songs in your library</span>
+            </div>
+            <div class="flashback-genre-grid" th:if="${!flashback.genreRankings.isEmpty()}">
+                <article class="flashback-genre-card" th:each="genre : ${flashback.genreRankings}">
+                    <article th:if="${!genre.tracks.isEmpty()}" class="flashback-featured-track"
+                             th:classappend="${genre.tracks[0].genderClass}">
+                        <header class="flashback-genre-summary">
+                            <span class="flashback-genre-kicker">Top 5</span>
+                            <h4 th:text="${genre.name}">Genre</h4>
+                            <small th:text="${#numbers.formatInteger(genre.songsPlayed, 1, 'COMMA')} + ' songs played'">0 songs played</small>
+                        </header>
+                        <div class="flashback-feature-rank">#1</div>
+                        <img th:if="${genre.tracks[0].albumHasImage}"
+                             th:src="@{/albums/{id}/image(id=${genre.tracks[0].albumId},thumbnail=true)}"
+                             class="flashback-feature-art album-art" alt="">
+                        <img th:if="${!genre.tracks[0].albumHasImage and genre.tracks[0].songHasImage}"
+                             th:src="@{/songs/{id}/image(id=${genre.tracks[0].songId},thumbnail=true)}"
+                             class="flashback-feature-art song-art" alt="">
+                        <div th:if="${!genre.tracks[0].albumHasImage and !genre.tracks[0].songHasImage}"
+                             class="flashback-feature-art flashback-art-placeholder" aria-hidden="true">No cover</div>
+                        <div class="flashback-feature-copy">
+                            <span class="flashback-track-label">Top track</span>
+                            <a th:href="@{/songs/{id}(id=${genre.tracks[0].songId})}"
+                               th:text="${genre.tracks[0].songName}">Top song</a>
+                            <span th:text="${genre.tracks[0].artistName}">Artist</span>
+                            <small th:if="${genre.tracks[0].albumName != null}" th:text="${genre.tracks[0].albumName}">Album</small>
+                        </div>
+                        <strong><span th:text="${#numbers.formatInteger(genre.tracks[0].plays, 1, 'COMMA')}">0</span><small> plays</small></strong>
+                    </article>
+                    <header th:if="${genre.tracks.isEmpty()}" class="flashback-genre-summary flashback-genre-summary-empty">
+                        <span class="flashback-genre-kicker">Top 5</span>
+                        <h4 th:text="${genre.name}">Genre</h4>
+                        <small>0 songs played</small>
+                    </header>
+                    <div th:if="${!genre.tracks.isEmpty()}" class="flashback-genre-list">
+                        <a th:each="track, row : ${genre.tracks}" th:if="${row.index > 0}"
+                           th:href="@{/songs/{id}(id=${track.songId})}" class="flashback-track-row"
+                           th:classappend="${track.genderClass}">
+                            <span class="flashback-track-rank" th:text="${track.rank}">2</span>
+                            <img th:if="${track.albumHasImage}"
+                                 th:src="@{/albums/{id}/image(id=${track.albumId},thumbnail=true)}"
+                                 class="flashback-track-art album-art" alt="" loading="lazy">
+                            <img th:if="${!track.albumHasImage and track.songHasImage}"
+                                 th:src="@{/songs/{id}/image(id=${track.songId},thumbnail=true)}"
+                                 class="flashback-track-art song-art" alt="" loading="lazy">
+                            <span th:if="${!track.albumHasImage and !track.songHasImage}"
+                                  class="flashback-track-art flashback-art-placeholder" aria-hidden="true"></span>
+                            <span class="flashback-track-name"><strong th:text="${track.songName}">Track name</strong>
+                                <small th:text="${track.artistName}">Artist</small></span>
+                            <span class="flashback-track-plays" th:text="${#numbers.formatInteger(track.plays, 1, 'COMMA')}">0</span>
+                        </a>
+                    </div>
+                    <p class="flashback-genre-empty" th:if="${genre.tracks.isEmpty()}">No plays in this genre during the selected period.</p>
+                </article>
+            </div>
+            <p th:if="${flashback.genreRankings.isEmpty()}" class="playground-empty">No genres meet the 200-song library threshold yet.</p>
+        </section>
+    </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
 <script src="/js/breakdown-history.js" defer></script>
@@ -155,6 +374,19 @@
         panel.addEventListener('focusin', showDetail);
         panel.addEventListener('click', showDetail);
     });
+</script>
+<script>
+    const reviewType = document.getElementById('flashback-review-type');
+    const seasonField = document.getElementById('flashback-season-field');
+    const monthField = document.getElementById('flashback-month-field');
+    if (reviewType && seasonField && monthField) {
+        const updateReviewFields = () => {
+            seasonField.hidden = reviewType.value !== 'season';
+            monthField.hidden = reviewType.value !== 'month';
+        };
+        reviewType.addEventListener('change', updateReviewFields);
+        updateReviewFields();
+    }
 </script>
 </body>
 </html>
