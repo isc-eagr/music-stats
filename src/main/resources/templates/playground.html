@@ -42,27 +42,45 @@
 
     <section th:each="kind : ${ {'gender', 'plays'} }" class="heatmap-panel" th:attr="aria-labelledby=${kind + '-heading'}">
         <h2 th:id="${kind + '-heading'}" th:text="${kind == 'gender' ? 'Daily gender leader' : 'Daily play count'}"></h2>
-        <div class="heatmap-scroll" tabindex="0" aria-label="Yearly calendar; scroll horizontally on smaller screens">
-            <div class="heatmap-grid" th:style="${'--weeks: ' + heatmap.weeks}">
+        <div class="heatmap-scroll" tabindex="0" aria-label="Yearly calendar; scroll horizontally">
+            <div class="heatmap-grid" th:style="${'--month-tracks: ' + heatmap.monthTracks}">
                 <span th:each="weekday, status : ${ {'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'} }"
                       class="heatmap-weekday" th:style="${'grid-row: ' + (status.index + 2)}" th:text="${weekday}"></span>
                 <th:block th:each="day : ${heatmap.days}">
                     <span th:if="${day.date.dayOfMonth == 1}" class="heatmap-month"
-                          th:style="${'grid-column: ' + day.column}" th:text="${#temporals.format(day.date, 'MMM')}"></span>
-                    <span th:if="${day.date.dayOfMonth == 1}" class="heatmap-month-boundary" aria-hidden="true"
-                          th:style="${'grid-column: ' + day.column}"></span>
+                          th:style="${'grid-column: ' + day.monthColumn}" th:text="${#temporals.format(day.date, 'MMM')}"></span>
                     <button type="button" class="heatmap-day"
-                            th:classappend="${kind == 'gender' ? day.gender + ' ' + day.purity : (day.total == 0 ? 'no-plays' : 'intensity-' + day.intensity)}"
-                            th:style="${'grid-column: ' + day.column + '; grid-row: ' + day.row}"
+                            th:classappend="${kind == 'gender' ? day.gender + ' ' + day.purity + ' shade-' + day.genderShade : (day.total == 0 ? 'no-plays' : 'intensity-' + day.intensity)}"
+                            th:style="${'grid-column: ' + day.monthColumn + '; grid-row: ' + day.row}"
                             th:title="${day.label}" th:attr="aria-label=${day.label},data-detail=${day.label}"></button>
                 </th:block>
             </div>
         </div>
+        <div class="heatmap-mobile">
+            <p class="heatmap-swipe-hint">Swipe sideways to explore each month</p>
+            <div class="heatmap-months" tabindex="0" aria-label="Monthly calendars; swipe or scroll horizontally">
+                <section th:each="month : ${heatmap.months}" class="heatmap-month-card"
+                         th:attr="aria-label=${month.name + ' ' + selectedYear}">
+                    <h3 th:text="${month.name}">January</h3>
+                    <div class="heatmap-month-grid">
+                        <span th:each="weekday : ${ {'M', 'T', 'W', 'T', 'F', 'S', 'S'} }"
+                              class="heatmap-month-weekday" th:text="${weekday}"></span>
+                        <button th:each="day : ${month.days}" type="button" class="heatmap-day"
+                                th:classappend="${kind == 'gender' ? day.gender + ' ' + day.purity + ' shade-' + day.genderShade : (day.total == 0 ? 'no-plays' : 'intensity-' + day.intensity)}"
+                                th:style="${'grid-column: ' + day.date.dayOfWeek.value}"
+                                th:text="${day.date.dayOfMonth}" th:title="${day.label}"
+                                th:attr="aria-label=${day.label},data-detail=${day.label}"></button>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <p class="heatmap-detail" aria-live="polite">Select a day for details</p>
         <div class="heatmap-legend" th:if="${kind == 'gender'}">
             <span><i class="male"></i> Male</span>
             <span><i class="female"></i> Female</span>
             <span><i class="neutral"></i> Tie / other / unknown</span>
             <span><i class="no-plays"></i> No plays</span>
+            <span>Dark = stronger lead</span>
         </div>
         <div class="heatmap-legend" th:if="${kind == 'plays'}">
             <span><i class="no-plays"></i> No plays</span>
@@ -73,7 +91,6 @@
             </span>
             <span>of peak (<span th:text="${heatmap.maxPlays}"></span> plays)</span>
         </div>
-        <p class="heatmap-detail" aria-live="polite"></p>
     </section>
     <section class="history-panel" aria-labelledby="history-heading">
         <h2 id="history-heading">Breakdown over time</h2>

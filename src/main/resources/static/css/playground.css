@@ -9,20 +9,28 @@
 .heatmap-panel h2 { font-size: 20px; margin: 0 0 6px; }
 .heatmap-panel p { margin: 0 0 20px; }
 .heatmap-scroll { overflow-x: auto; padding: 8px 3px 14px; }
-.heatmap-grid { display: grid; grid-template-columns: 34px repeat(var(--weeks), minmax(12px, 1fr)); grid-template-rows: 22px repeat(7, auto); gap: 4px; min-width: 920px; }
+.heatmap-grid { display: grid; grid-template-columns: 34px var(--month-tracks); grid-template-rows: 22px repeat(7, auto); gap: 4px; width: 100%; min-width: 920px; }
 .heatmap-weekday { grid-column: 1; align-self: center; font-size: 11px; color: var(--text-muted); }
 .heatmap-month { grid-row: 1; font-size: 12px; color: var(--text-muted); overflow: visible; }
-.heatmap-month-boundary { grid-row: 2 / 9; justify-self: start; align-self: stretch; width: 3px; background: rgba(255,255,255,0.72); box-shadow: 0 0 0 1px rgba(0,0,0,0.48); border-radius: 1px; pointer-events: none; position: relative; z-index: 1; }
-.heatmap-day { display: block; position: relative; overflow: hidden; width: 100%; min-width: 0; aspect-ratio: 1; padding: 0; border: 1px solid #ffffff15; border-radius: 3px; cursor: pointer; }
+.heatmap-day { display: block; position: relative; overflow: hidden; width: 100%; height: auto; min-width: 0; min-height: 0; aspect-ratio: 1; align-self: start; padding: 0; appearance: none; border: 1px solid #ffffff15; border-radius: 3px; cursor: pointer; }
 .heatmap-day:hover, .heatmap-day:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; position: relative; z-index: 1; }
+.heatmap-mobile { display: none; }
 @keyframes all-gender-diagonal-swipe {
     0%, 35% { transform: translateX(-135%) skewX(-20deg); }
     65%, 100% { transform: translateX(135%) skewX(-20deg); }
 }
 .heatmap-day.all-male,
 .heatmap-day.all-female { border-color: rgba(255, 255, 255, 0.55); }
-.heatmap-day.all-male { background-color: #1d4ed8; }
-.heatmap-day.all-female { background-color: #be185d; }
+.heatmap-day.male.shade-1 { background-color: #93c5fd; }
+.heatmap-day.male.shade-2 { background-color: #60a5fa; }
+.heatmap-day.male.shade-3 { background-color: #3b82f6; }
+.heatmap-day.male.shade-4 { background-color: #1d4ed8; }
+.heatmap-day.male.shade-5 { background-color: #172554; }
+.heatmap-day.female.shade-1 { background-color: #f9a8d4; }
+.heatmap-day.female.shade-2 { background-color: #f472b6; }
+.heatmap-day.female.shade-3 { background-color: #ec4899; }
+.heatmap-day.female.shade-4 { background-color: #be185d; }
+.heatmap-day.female.shade-5 { background-color: #831843; }
 .heatmap-day.all-male::after,
 .heatmap-day.all-female::after {
     content: "";
@@ -41,14 +49,14 @@
 .heatmap-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 10px 0 18px; color: var(--text-muted); font-size: 12px; }
 .heatmap-legend > span { display: inline-flex; align-items: center; gap: 6px; }
 .heatmap-legend i { display: inline-block; width: 13px; height: 13px; border-radius: 2px; border: 1px solid #ffffff20; }
-.male { background-color: #3b82f6; }
-.female { background-color: #ec4899; }
+.heatmap-legend i.male { background: linear-gradient(90deg, #93c5fd, #172554); }
+.heatmap-legend i.female { background: linear-gradient(90deg, #f9a8d4, #831843); }
 .neutral { background-color: #85858e; }
 .no-plays { background: linear-gradient(135deg, transparent 43%, #74747c 46%, #74747c 54%, transparent 57%), var(--surface-2); }
-.intensity-1 { background-color: #144b32; }
-.intensity-2 { background-color: #208047; }
-.intensity-3 { background-color: #32b65b; }
-.intensity-4 { background-color: #83ed95; }
+.intensity-1 { background-color: #83ed95; }
+.intensity-2 { background-color: #32b65b; }
+.intensity-3 { background-color: #208047; }
+.intensity-4 { background-color: #144b32; }
 .heatmap-panel .heatmap-detail { min-height: 21px; margin-bottom: 0; color: var(--text); font-variant-numeric: tabular-nums; }
 .playground-empty { padding: 16px; background: var(--surface); border-radius: var(--radius); }
 .playground-note { font-size: 12px; }
@@ -228,4 +236,22 @@
     .playground-page { padding: 20px 12px; }
     .heatmap-panel { padding: 16px 12px; }
     .playground-summary { gap: 12px 20px; }
+    .heatmap-scroll { display: none; }
+    .heatmap-mobile { display: block; }
+    .heatmap-panel .heatmap-swipe-hint { margin: 4px 0 8px; font-size: 12px; }
+    .heatmap-months { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 12px; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+    .heatmap-month-card { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
+    .heatmap-month-card h3 { margin: 0 0 10px; font-size: 16px; }
+    .heatmap-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 18px; grid-auto-rows: auto; gap: 5px; }
+    .heatmap-month-weekday { text-align: center; color: var(--text-muted); font-size: 11px; }
+    .heatmap-month-grid .heatmap-day { aspect-ratio: 1; height: auto; align-self: start; border-radius: 5px; color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .heatmap-month-grid .heatmap-day.male.shade-1,
+    .heatmap-month-grid .heatmap-day.male.shade-2,
+    .heatmap-month-grid .heatmap-day.female.shade-1,
+    .heatmap-month-grid .heatmap-day.female.shade-2 { color: #111827; }
+    .heatmap-month-grid .heatmap-day.intensity-1,
+    .heatmap-month-grid .heatmap-day.intensity-2 { color: #111827; }
+    .heatmap-month-grid .heatmap-day.no-plays { color: var(--text-muted); }
+    .heatmap-month-grid .heatmap-day.neutral { color: #111; }
+    .heatmap-legend { gap: 8px 14px; }
 }

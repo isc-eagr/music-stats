@@ -4,16 +4,6 @@ setlocal enabledelayedexpansion
 REM Music Stats JAR Runner
 REM This script runs the music-stats application
 
-REM Stop permissions must match the process started by an elevated deployment.
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent());" ^
-  "if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Host 'Requesting administrator privileges to start Music Stats...'; try { Start-Process -FilePath $env:ComSpec -ArgumentList '/c', '%~f0' -Verb RunAs -ErrorAction Stop; exit 42 } catch { Write-Error ('Administrator privileges were not granted: {0}' -f $_.Exception.Message); exit 1 } }"
-if errorlevel 42 exit /b 0
-if errorlevel 1 (
-  echo Music Stats startup requires administrator privileges.
-  exit /b 1
-)
-
 cd /d "%~dp0"
 
 set "PROD_JAR_PATH=C:\Code\music-stats\music-stats-0.0.1-SNAPSHOT.jar"
@@ -33,7 +23,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "if ($nonJavaListeners) { $nonJavaListeners | ForEach-Object { Write-Error ('Port 8080 is owned by non-Java PID {0} ({1}). It was not stopped.' -f $_.Id, $_.ProcessName) }; exit 1 };" ^
   "$processIds = @($jarProcs | Select-Object -ExpandProperty ProcessId); $processIds += @($listenerProcs | Select-Object -ExpandProperty Id); $processIds = @($processIds | Sort-Object -Unique);" ^
   "if (-not $processIds) { Write-Host 'No running Music Stats Java processes or Java listeners on port 8080 found. Continuing startup.' }" ^
-  "else { foreach ($processId in $processIds) { $jarProc = $jarProcs | Where-Object { $_.ProcessId -eq $processId } | Select-Object -First 1; if ($jarProc) { Write-Host ('Stopping PID {0}: {1}' -f $processId, $jarProc.CommandLine) } else { $listenerProc = $listenerProcs | Where-Object { $_.Id -eq $processId } | Select-Object -First 1; Write-Host ('Stopping Java process listening on port 8080, PID {0} ({1}).' -f $processId, $listenerProc.ProcessName) }; Stop-Process -Id $processId -Force } }"
+  "else { foreach ($processId in $processIds) { $jarProc = $jarProcs | Where-Object { $_.ProcessId -eq $processId } | Select-Object -First 1; if ($jarProc) { Write-Host ('Stopping PID {0}: {1}' -f $processId, $jarProc.CommandLine) } else { $listenerProc = $listenerProcs | Where-Object { $_.Id -eq $processId } | Select-Object -First 1; Write-Host ('Stopping Java process listening on port 8080, PID {0} ({1}).' -f $processId, $listenerProc.ProcessName) }; Stop-Process -Id $processId -Force -ErrorAction Stop } }"
 if errorlevel 1 (
   echo Failed to stop running Music Stats processes.
   exit /b 1

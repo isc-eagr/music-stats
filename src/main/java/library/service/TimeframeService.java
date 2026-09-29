@@ -132,14 +132,24 @@ public class TimeframeService {
         StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
         
+        // Distinct entity/gender counts use one row per song and period, while
+        // play totals and listening time retain each song's original frequency.
         sql.append(String.format("""
-            WITH period_summary AS (
+            WITH song_period_counts AS MATERIALIZED (
+                SELECT %s as period_key, p.song_id,
+                       MIN(p.play_date) as bound_min, MAX(p.play_date) as bound_max,
+                       COUNT(*) as play_count
+                FROM Play p
+                WHERE p.play_date IS NOT NULL
+                GROUP BY period_key, p.song_id
+            ),
+            period_summary AS (
                 SELECT 
-                    %s as period_key,
-                    MIN(p.play_date) as bound_min,
-                    MAX(p.play_date) as bound_max,
-                    COUNT(*) as play_count,
-                    COALESCE(SUM(s.length_seconds), 0) as time_listened,
+                    p.period_key,
+                    MIN(p.bound_min) as bound_min,
+                    MAX(p.bound_max) as bound_max,
+                    SUM(p.play_count) as play_count,
+                    COALESCE(SUM(s.length_seconds * p.play_count), 0) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT CASE WHEN s.album_id IS NOT NULL THEN s.album_id END) as album_count,
                     COUNT(DISTINCT s.id) as song_count,
@@ -152,21 +162,21 @@ public class TimeframeService {
                     COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 AND s.album_id IS NOT NULL THEN s.album_id END) as male_album_count,
                     COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 AND s.album_id IS NOT NULL THEN s.album_id END) as female_album_count,
                     COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL AND s.album_id IS NOT NULL THEN s.album_id END) as other_album_count,
-                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_play_count,
-                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_play_count,
-                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN 1 ELSE 0 END) as other_play_count,
-                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as male_time_listened,
-                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as female_time_listened,
-                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) ELSE 0 END) as other_time_listened
-                FROM Play p
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN p.play_count ELSE 0 END) as male_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN p.play_count ELSE 0 END) as female_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN p.play_count ELSE 0 END) as other_play_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN COALESCE(s.length_seconds, 0) * p.play_count ELSE 0 END) as male_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN COALESCE(s.length_seconds, 0) * p.play_count ELSE 0 END) as female_time_listened,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN COALESCE(s.length_seconds, 0) * p.play_count ELSE 0 END) as other_time_listened
+                FROM song_period_counts p
                 INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
-                WHERE p.play_date IS NOT NULL
                 GROUP BY period_key
                 HAVING period_key IS NOT NULL
             ),
             filtered_periods AS (
                 SELECT 
+                    COUNT(*) OVER () as total_count,
                     period_key, bound_min, bound_max,
                     play_count,
                     time_listened,
@@ -245,6 +255,7 @@ public class TimeframeService {
             sql.append(String.format("""
             
             SELECT 
+                total_count,
                 period_key,
                 play_count,
                 time_listened,
@@ -287,25 +298,24 @@ public class TimeframeService {
             sql.append("\n            ),");
             
             // Now compute winning attributes ONLY for the filtered/paginated periods
-            // Single-pass: scan Play table ONCE into period_attr_counts, then derive each winner
-            sql.append(String.format("""
+            // Reuse the compact play counts already built for the summary.
+            sql.append("""
             
             period_attr_counts AS (
                 SELECT 
-                    %s as period_key,
+                    p.period_key,
                     COALESCE(s.override_gender_id, ar.gender_id) as eff_gender_id,
                     COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as eff_genre_id,
                     COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as eff_ethnicity_id,
                     COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as eff_language_id,
                     ar.country as eff_country,
-                    COUNT(*) as cnt
-                FROM Play p
+                    SUM(p.play_count) as cnt
+                FROM song_period_counts p
                 INNER JOIN Song s ON p.song_id = s.id
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
-                INNER JOIN filtered_periods fp ON %s = fp.period_key
-                WHERE p.play_date IS NOT NULL
-                GROUP BY period_key, eff_gender_id, eff_genre_id, eff_ethnicity_id, eff_language_id, eff_country
+                INNER JOIN filtered_periods fp ON p.period_key = fp.period_key
+                GROUP BY p.period_key, eff_gender_id, eff_genre_id, eff_ethnicity_id, eff_language_id, eff_country
             ),
             winning_gender AS (
                 SELECT pac.period_key, pac.eff_gender_id as gender_id, gn.name as gender_name,
@@ -347,6 +357,7 @@ public class TimeframeService {
                 GROUP BY pac.period_key, pac.eff_country
             )
             SELECT 
+                fp.total_count,
                 fp.period_key,
                 fp.play_count,
                 fp.time_listened,
@@ -388,8 +399,7 @@ public class TimeframeService {
             LEFT JOIN winning_ethnicity weth ON fp.period_key = weth.period_key AND weth.rn = 1
             LEFT JOIN winning_language wlang ON fp.period_key = wlang.period_key AND wlang.rn = 1
             LEFT JOIN winning_country wcty ON fp.period_key = wcty.period_key AND wcty.rn = 1
-            """, periodKeyExpr, periodKeyExpr
-            ));
+            """);
         }
         
         // Apply winning attribute filters (if any) - only when winning CTEs are in the SQL
@@ -406,8 +416,10 @@ public class TimeframeService {
         long t1 = System.currentTimeMillis();
         
         // Execute query and map results
+        long[] sqlTotalCount = {0};
         List<TimeframeCardDTO> results;
         results = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+                sqlTotalCount[0] = rs.getLong("total_count");
                 TimeframeCardDTO dto = new TimeframeCardDTO();
                 String periodKey = rs.getString("period_key");
                 dto.setPeriodKey(periodKey);
@@ -552,8 +564,9 @@ public class TimeframeService {
             
             return new TimeframeResultDTO(results, totalCount);
         } else {
-            // SQL-paginated path: compute count with a lightweight SQL COUNT query
-            long totalCount = countTimeframesLightweight(periodType,
+            // The window count reuses the summary. Only an empty page beyond
+            // page zero needs a separate count (e.g. a saved out-of-range URL).
+            long totalCount = !results.isEmpty() || offset == 0 ? sqlTotalCount[0] : countTimeframesLightweight(periodType,
                 winningGender, winningGenderMode, winningGenre, winningGenreMode,
                 winningEthnicity, winningEthnicityMode, winningLanguage, winningLanguageMode,
                 winningCountry, winningCountryMode,
@@ -604,11 +617,16 @@ public class TimeframeService {
             extraParams.add(dateBounds[1]);
         }
 
-        // Combined query: single base scan of Play table, then derive top artist/album/song via UNION ALL
+        // Count repeated plays before joining metadata or ranking top items.
         String combinedSql =
-            "WITH base_plays AS ( " +
+            "WITH song_period_counts AS MATERIALIZED ( " +
+            "    SELECT " + periodKeyExpr + " as period_key, p.song_id, COUNT(*) as play_count " +
+            "    FROM Play p " +
+            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
+            "    GROUP BY period_key, p.song_id " +
+            "), base_plays AS ( " +
             "    SELECT " +
-            "        " + periodKeyExpr + " as period_key, " +
+            "        p.period_key, p.play_count, " +
             "        s.id as song_id, " +
             "        s.name as song_name, " +
             "        ar.id as artist_id, " +
@@ -616,23 +634,22 @@ public class TimeframeService {
             "        ar.gender_id as gender_id, " +
             "        al.id as album_id, " +
             "        al.name as album_name " +
-            "    FROM Play p " +
+            "    FROM song_period_counts p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
             "), " +
             "top_artists AS ( " +
             "    SELECT period_key, artist_id as item_id, artist_name as item_name, " +
             "        NULL as secondary_name, gender_id, " +
-            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
+            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY SUM(play_count) DESC) as rn " +
             "    FROM base_plays " +
             "    GROUP BY period_key, artist_id, artist_name, gender_id " +
             "), " +
             "top_albums AS ( " +
             "    SELECT period_key, album_id as item_id, album_name as item_name, " +
             "        artist_name as secondary_name, gender_id, " +
-            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
+            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY SUM(play_count) DESC) as rn " +
             "    FROM base_plays " +
             "    WHERE album_id IS NOT NULL " +
             "    GROUP BY period_key, album_id, album_name, artist_name, gender_id " +
@@ -640,7 +657,7 @@ public class TimeframeService {
             "top_songs AS ( " +
             "    SELECT period_key, song_id as item_id, song_name as item_name, " +
             "        artist_name as secondary_name, gender_id, " +
-            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY COUNT(*) DESC) as rn " +
+            "        ROW_NUMBER() OVER (PARTITION BY period_key ORDER BY SUM(play_count) DESC) as rn " +
             "    FROM base_plays " +
             "    GROUP BY period_key, song_id, song_name, artist_name, gender_id " +
             ") " +
@@ -723,21 +740,25 @@ public class TimeframeService {
             extraParams.add(dateBounds[1]);
         }
 
-        String sql = 
-            "WITH period_attr_counts AS ( " +
+        String sql =
+            "WITH song_period_counts AS MATERIALIZED ( " +
+            "    SELECT " + periodKeyExpr + " as period_key, p.song_id, COUNT(*) as play_count " +
+            "    FROM Play p " +
+            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
+            "    GROUP BY period_key, p.song_id " +
+            "), period_attr_counts AS ( " +
             "    SELECT " +
-            "        " + periodKeyExpr + " as period_key, " +
+            "        p.period_key, " +
             "        COALESCE(s.override_gender_id, ar.gender_id) as eff_gender_id, " +
             "        COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) as eff_genre_id, " +
             "        COALESCE(s.override_ethnicity_id, ar.ethnicity_id) as eff_ethnicity_id, " +
             "        COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as eff_language_id, " +
             "        ar.country as eff_country, " +
-            "        COUNT(*) as cnt " +
-            "    FROM Play p " +
+            "        SUM(p.play_count) as cnt " +
+            "    FROM song_period_counts p " +
             "    INNER JOIN Song s ON p.song_id = s.id " +
             "    INNER JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
-            "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
             "    GROUP BY period_key, eff_gender_id, eff_genre_id, eff_ethnicity_id, eff_language_id, eff_country " +
             "), " +
             "winning_gender AS ( " +

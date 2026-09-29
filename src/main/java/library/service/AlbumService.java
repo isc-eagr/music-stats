@@ -599,6 +599,18 @@ public class AlbumService {
     }
     
     // Gallery methods for secondary images
+    public List<Map<String, Object>> getSecondaryImageMetadata(Integer albumId) {
+        return jdbcTemplate.queryForList("SELECT id, COALESCE(display_order, 0) AS displayOrder FROM AlbumImage WHERE album_id = ? ORDER BY display_order", albumId);
+    }
+
+    public boolean hasAlbumImage(Integer albumId) {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject("""
+                SELECT COALESCE(length(a.image),
+                    (SELECT length(ai.image) FROM AlbumImage ai WHERE ai.album_id = a.id ORDER BY ai.display_order LIMIT 1), 0) > 0
+                FROM Album a WHERE a.id = ?
+                """, Boolean.class, albumId));
+    }
+
     public List<AlbumImage> getSecondaryImages(Integer albumId) {
         return albumImageRepository.findByAlbumIdOrderByDisplayOrderAsc(albumId);
     }
@@ -1671,14 +1683,18 @@ public class AlbumService {
      */
     public Map<Integer, Integer> getAlbumRanksByYear(int albumId) {
         String sql = """
+            WITH year_song_plays AS MATERIALIZED (
+                SELECT strftime('%Y', play_date) AS year, song_id, COUNT(*) AS plays
+                FROM Play GROUP BY year, song_id
+            )
             SELECT year, rank FROM (
                 SELECT alb.id, 
-                       strftime('%Y', p.play_date) as year,
-                       ROW_NUMBER() OVER (PARTITION BY strftime('%Y', p.play_date) ORDER BY COUNT(p.id) DESC) as rank
+                       p.year,
+                       ROW_NUMBER() OVER (PARTITION BY p.year ORDER BY SUM(p.plays) DESC, alb.id) as rank
                 FROM Album alb
                 INNER JOIN Song s ON s.album_id = alb.id
-                INNER JOIN Play p ON p.song_id = s.id
-                GROUP BY alb.id, strftime('%Y', p.play_date)
+                INNER JOIN year_song_plays p ON p.song_id = s.id
+                GROUP BY alb.id, p.year
             ) ranked
             WHERE id = ?
             ORDER BY year
@@ -1733,13 +1749,16 @@ public class AlbumService {
                 LEFT JOIN Song s ON s.album_id = alb.id
                 LEFT JOIN Play p ON p.song_id = s.id
                 WHERE alb.release_date IS NOT NULL
+                  AND strftime('%Y', alb.release_date) IS (
+                      SELECT strftime('%Y', release_date) FROM Album WHERE id = ?
+                  )
                 GROUP BY alb.id, release_year
             ) ranked
             WHERE id = ?
             """;
 
         try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId, albumId);
         } catch (Exception e) {
             return null;
         }
@@ -1771,13 +1790,14 @@ public class AlbumService {
                 FROM Album alb
                 LEFT JOIN Song s ON s.album_id = alb.id
                 LEFT JOIN Play p ON p.song_id = s.id
+                WHERE alb.artist_id IS (SELECT artist_id FROM Album WHERE id = ?)
                 GROUP BY alb.id, alb.artist_id
             ) ranked
             WHERE id = ?
             """;
 
         try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, albumId);
+            return jdbcTemplate.queryForObject(sql, Integer.class, albumId, albumId);
         } catch (Exception e) {
             return null;
         }

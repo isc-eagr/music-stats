@@ -26,7 +26,7 @@ public class YearController {
             Model model) {
 
         List<YearCardDTO> years = yearService.getListenYears(sortby, sortdir, randomSeed);
-        long totalCount = yearService.countListenYears();
+        long totalCount = years.size();
 
         model.addAttribute("years", years);
         model.addAttribute("yearType", "listen");

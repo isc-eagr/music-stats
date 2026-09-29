@@ -98,7 +98,16 @@ public class LanguageService {
             }
         }
 
+        // The original LEFT JOIN gives unplayed songs one row. Preserve that
+        // listening-time contribution with weight 1, but count zero plays.
         String sql = """
+            WITH song_play_counts AS MATERIALIZED (
+                SELECT song_id, COUNT(*) as play_count,
+                       SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                       SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count
+                FROM Play
+                GROUP BY song_id
+            )
             SELECT 
                 l.id,
                 l.name,
@@ -144,10 +153,10 @@ public class LanguageService {
             LEFT JOIN (
                 SELECT 
                     COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) as effective_language_id,
-                    COUNT(DISTINCT p.id) as play_count,
-                    COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count,
-                    COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count,
-                    SUM(s.length_seconds) as time_listened,
+                    SUM(COALESCE(p.play_count, 0)) as play_count,
+                    SUM(COALESCE(p.vatito_play_count, 0)) as vatito_play_count,
+                    SUM(COALESCE(p.robertlover_play_count, 0)) as robertlover_play_count,
+                    SUM(s.length_seconds * COALESCE(p.play_count, 1)) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT al.id) as album_count,
                     COUNT(DISTINCT s.id) as song_count,
@@ -160,17 +169,17 @@ public class LanguageService {
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count,
                     COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count,
                     COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as male_play_count,
-                    COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) as female_play_count,
-                    COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as other_play_count,
-                    SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened,
-                    SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened,
-                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened
+                    SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN COALESCE(p.play_count, 0) ELSE 0 END) as male_play_count,
+                    SUM(CASE WHEN gn.name LIKE '%Female%' THEN COALESCE(p.play_count, 0) ELSE 0 END) as female_play_count,
+                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN COALESCE(p.play_count, 0) ELSE 0 END) as other_play_count,
+                    SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds * COALESCE(p.play_count, 1) ELSE 0 END) as male_time_listened,
+                    SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds * COALESCE(p.play_count, 1) ELSE 0 END) as female_time_listened,
+                    SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds * COALESCE(p.play_count, 1) ELSE 0 END) as other_time_listened
                 FROM Song s
                 JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
                 LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
-                LEFT JOIN Play p ON s.id = p.song_id
+                LEFT JOIN song_play_counts p ON s.id = p.song_id
                 WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) IS NOT NULL
                 GROUP BY effective_language_id
             ) stats ON l.id = stats.effective_language_id

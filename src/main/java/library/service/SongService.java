@@ -1391,6 +1391,17 @@ public class SongService {
         return allImages;
     }
 
+    public List<Map<String, Object>> getSecondaryImageMetadata(Integer songId) {
+        List<Map<String, Object>> images = jdbcTemplate.queryForList(
+                "SELECT id, COALESCE(display_order, 0) AS displayOrder FROM SongImage WHERE song_id = ? ORDER BY display_order", songId);
+        // The first gallery image is the default when there is no single cover.
+        return !images.isEmpty() && !hasSongOwnImage(songId) ? images.subList(1, images.size()) : images;
+    }
+
+    public boolean hasSongOwnImage(Integer songId) {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject("SELECT EXISTS(SELECT 1 FROM Song WHERE id = ? AND length(single_cover) > 0)", Boolean.class, songId));
+    }
+
     public int getSecondaryImageCount(Integer songId) {
         return songImageRepository.countBySongId(songId);
     }
@@ -2377,7 +2388,10 @@ public class SongService {
      */
     public java.util.Map<String, Integer> getAllSongRankings(int songId) {
         String sql = """
-            WITH song_play_counts AS (
+            WITH play_totals AS MATERIALIZED (
+                SELECT song_id, COUNT(*) AS play_count, MIN(play_date) AS first_play
+                FROM Play GROUP BY song_id
+            ), song_play_counts AS (
                 SELECT s.id, 
                        ar.gender_id,
                        COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) as effective_genre_id,
@@ -2385,12 +2399,12 @@ public class SongService {
                        ar.ethnicity_id,
                        COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) as effective_language_id,
                        ar.country,
-                       COALESCE(COUNT(p.id), 0) as play_count,
-                       MIN(p.play_date) as first_play
+                       COALESCE(p.play_count, 0) as play_count,
+                       p.first_play
                 FROM Song s
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
-                LEFT JOIN Play p ON p.song_id = s.id
+                LEFT JOIN play_totals p ON p.song_id = s.id
                 GROUP BY s.id, ar.gender_id, effective_genre_id, effective_subgenre_id, 
                          ar.ethnicity_id, effective_language_id, ar.country
             ),
@@ -2455,13 +2469,16 @@ public class SongService {
      */
     public Map<Integer, Integer> getSongRanksByYear(int songId) {
         String sql = """
+            WITH year_song_plays AS MATERIALIZED (
+                SELECT strftime('%Y', play_date) AS year, song_id, COUNT(*) AS plays
+                FROM Play GROUP BY year, song_id
+            )
             SELECT year, rank FROM (
                 SELECT s.id, 
-                       strftime('%Y', p.play_date) as year,
-                       ROW_NUMBER() OVER (PARTITION BY strftime('%Y', p.play_date) ORDER BY COUNT(p.id) DESC) as rank
+                       p.year,
+                       ROW_NUMBER() OVER (PARTITION BY p.year ORDER BY p.plays DESC, s.id) as rank
                 FROM Song s
-                INNER JOIN Play p ON p.song_id = s.id
-                GROUP BY s.id, strftime('%Y', p.play_date)
+                INNER JOIN year_song_plays p ON p.song_id = s.id
             ) ranked
             WHERE id = ?
             ORDER BY year
@@ -2516,13 +2533,18 @@ public class SongService {
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 LEFT JOIN Play p ON p.song_id = s.id
                 WHERE COALESCE(s.release_date, alb.release_date) IS NOT NULL
+                  AND strftime('%Y', COALESCE(s.release_date, alb.release_date)) IS (
+                      SELECT strftime('%Y', COALESCE(target.release_date, target_album.release_date))
+                      FROM Song target LEFT JOIN Album target_album ON target_album.id = target.album_id
+                      WHERE target.id = ?
+                  )
                 GROUP BY s.id, release_year
             ) ranked
             WHERE id = ?
             """;
 
         try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId, songId);
         } catch (Exception e) {
             return null;
         }
@@ -2558,13 +2580,14 @@ public class SongService {
                        ROW_NUMBER() OVER (PARTITION BY s.artist_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Song s
                 LEFT JOIN Play p ON p.song_id = s.id
+                WHERE s.artist_id IS (SELECT artist_id FROM Song WHERE id = ?)
                 GROUP BY s.id, s.artist_id
             ) ranked
             WHERE id = ?
             """;
 
         try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId, songId);
         } catch (Exception e) {
             return null;
         }
@@ -2582,14 +2605,14 @@ public class SongService {
                        ROW_NUMBER() OVER (PARTITION BY s.album_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
                 FROM Song s
                 LEFT JOIN Play p ON p.song_id = s.id
-                WHERE s.album_id IS NOT NULL
+                WHERE s.album_id = (SELECT album_id FROM Song WHERE id = ?)
                 GROUP BY s.id, s.album_id
             ) ranked
             WHERE id = ?
             """;
 
         try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, songId);
+            return jdbcTemplate.queryForObject(sql, Integer.class, songId, songId);
         } catch (Exception e) {
             return null;
         }

@@ -77,7 +77,7 @@ public class CountryService {
                     sortColumn = "male_time_pct";
                     break;
                 case "random":
-                    sortColumn = RandomSortUtils.sqliteTextExpression("ar.country", randomSeed);
+                    sortColumn = RandomSortUtils.sqliteTextExpression("country", randomSeed);
                     sortDirection = "";
                     nullsHandling = "";
                     break;
@@ -87,13 +87,22 @@ public class CountryService {
             }
         }
 
+        // The original LEFT JOIN gives unplayed songs one row. Preserve that
+        // listening-time contribution with weight 1, but count zero plays.
         String sql = """
+            WITH song_play_counts AS MATERIALIZED (
+                SELECT song_id, COUNT(*) as play_count,
+                       SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                       SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count
+                FROM Play
+                GROUP BY song_id
+            ), country_stats AS (
             SELECT 
                 ar.country,
-                COUNT(DISTINCT p.id) as play_count,
-                COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count,
-                COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count,
-                COALESCE(SUM(s.length_seconds), 0) as time_listened,
+                SUM(COALESCE(p.play_count, 0)) as play_count,
+                SUM(COALESCE(p.vatito_play_count, 0)) as vatito_play_count,
+                SUM(COALESCE(p.robertlover_play_count, 0)) as robertlover_play_count,
+                COALESCE(SUM(s.length_seconds * COALESCE(p.play_count, 1)), 0) as time_listened,
                 COUNT(DISTINCT ar.id) as artist_count,
                 COUNT(DISTINCT al.id) as album_count,
                 COUNT(DISTINCT s.id) as song_count,
@@ -106,36 +115,42 @@ public class CountryService {
                 COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as male_album_count,
                 COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) as female_album_count,
                 COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) as other_album_count,
-                COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as male_play_count,
-                COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) as female_play_count,
-                COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) as other_play_count,
-                SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as male_time_listened,
-                SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as female_time_listened,
-                SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) as other_time_listened,
-                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN ar.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) > 0 
-                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN ar.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN ar.id END)) 
-                     ELSE NULL END as male_artist_pct,
-                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) > 0 
-                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN al.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN al.id END)) 
-                     ELSE NULL END as male_album_pct,
-                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN s.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END) > 0 
-                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN s.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.id END)) 
-                     ELSE NULL END as male_song_pct,
-                CASE WHEN COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) > 0 
-                     THEN CAST(COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) AS REAL) / (COUNT(DISTINCT CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name LIKE '%Female%' THEN p.id END) + COUNT(DISTINCT CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN p.id END)) 
-                     ELSE NULL END as male_play_pct,
-                CASE WHEN SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) > 0 
-                     THEN CAST(SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) AS REAL) / (SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds ELSE 0 END) + SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds ELSE 0 END)) 
-                     ELSE NULL END as male_time_pct
+                SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN COALESCE(p.play_count, 0) ELSE 0 END) as male_play_count,
+                SUM(CASE WHEN gn.name LIKE '%Female%' THEN COALESCE(p.play_count, 0) ELSE 0 END) as female_play_count,
+                SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN COALESCE(p.play_count, 0) ELSE 0 END) as other_play_count,
+                SUM(CASE WHEN gn.name LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds * COALESCE(p.play_count, 1) ELSE 0 END) as male_time_listened,
+                SUM(CASE WHEN gn.name LIKE '%Female%' THEN s.length_seconds * COALESCE(p.play_count, 1) ELSE 0 END) as female_time_listened,
+                SUM(CASE WHEN gn.name IS NOT NULL AND gn.name NOT LIKE '%Male%' AND gn.name NOT LIKE '%Female%' THEN s.length_seconds * COALESCE(p.play_count, 1) ELSE 0 END) as other_time_listened
             FROM Artist ar
             JOIN Song s ON ar.id = s.artist_id
             LEFT JOIN Album al ON s.album_id = al.id
             LEFT JOIN Gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
-            LEFT JOIN Play p ON s.id = p.song_id
+            LEFT JOIN song_play_counts p ON s.id = p.song_id
             WHERE ar.country IS NOT NULL AND ar.country != ''
                 AND (? IS NULL OR ar.country LIKE '%' || ? || '%')
             GROUP BY ar.country
-            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling;
+            )
+            SELECT country_stats.*,
+                CASE WHEN male_artist_count + female_artist_count + other_artist_count > 0
+                     THEN CAST(male_artist_count AS REAL) / (male_artist_count + female_artist_count + other_artist_count)
+                     ELSE NULL END as male_artist_pct,
+                CASE WHEN male_album_count + female_album_count + other_album_count > 0
+                     THEN CAST(male_album_count AS REAL) / (male_album_count + female_album_count + other_album_count)
+                     ELSE NULL END as male_album_pct,
+                CASE WHEN male_song_count + female_song_count + other_song_count > 0
+                     THEN CAST(male_song_count AS REAL) / (male_song_count + female_song_count + other_song_count)
+                     ELSE NULL END as male_song_pct,
+                CASE WHEN male_play_count + female_play_count + other_play_count > 0
+                     THEN CAST(male_play_count AS REAL) / (male_play_count + female_play_count + other_play_count)
+                     ELSE NULL END as male_play_pct,
+                CASE WHEN male_time_listened + female_time_listened + other_time_listened > 0
+                     THEN CAST(male_time_listened AS REAL) / (male_time_listened + female_time_listened + other_time_listened)
+                     ELSE NULL END as male_time_pct
+            FROM country_stats
+            ORDER BY """ + " " + sortColumn + " " + sortDirection + nullsHandling
+                // Preserve the previous grouped query's country order for tied
+                // statistics now that percentages are computed in an outer query.
+                + ", country " + ("DESC".equals(sortDirection) ? "DESC" : "ASC");
 
         List<Object[]> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Object[] row = new Object[23];

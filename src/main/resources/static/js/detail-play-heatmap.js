@@ -27,4 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
         url.searchParams.delete('playsPage');
         window.location.assign(url);
     });
+
+    const calendar = section.querySelector('.detail-heatmap');
+    const detail = calendar?.querySelector('.detail-heatmap-detail');
+    if (calendar && detail) {
+        const showDetail = event => {
+            const day = event.target.closest('.detail-heatmap-day');
+            if (day) detail.textContent = day.dataset.detail;
+        };
+        calendar.addEventListener('pointerover', showDetail);
+        calendar.addEventListener('focusin', showDetail);
+        calendar.addEventListener('click', showDetail);
+    }
 });

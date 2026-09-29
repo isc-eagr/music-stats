@@ -20,6 +20,7 @@ import java.util.TreeSet;
 @Service
 public class PlaygroundService {
     private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter MONTH_NAME = DateTimeFormatter.ofPattern("MMMM", Locale.ENGLISH);
     private final JdbcTemplate jdbcTemplate;
 
     public PlaygroundService(JdbcTemplate jdbcTemplate) {
@@ -65,6 +66,21 @@ public class PlaygroundService {
         long max = counts.values().stream().mapToLong(c -> c[0]).max().orElse(0);
         List<HeatmapDay> days = new ArrayList<>();
         int offset = start.getDayOfWeek().getValue() - 1;
+        int[] monthFirstColumns = new int[12];
+        int monthColumns = 0;
+        StringBuilder monthTracks = new StringBuilder();
+        for (int month = 1; month <= 12; month++) {
+            LocalDate monthStart = start.withMonth(month);
+            monthFirstColumns[month - 1] = monthColumns + 2;
+            int monthOffset = monthStart.getDayOfWeek().getValue() - 1;
+            int monthWeeks = (monthOffset + monthStart.lengthOfMonth() + 6) / 7;
+            monthColumns += monthWeeks;
+            monthTracks.append(" repeat(").append(monthWeeks).append(", minmax(0, 1fr))");
+            if (month < 12) {
+                monthColumns++;
+                monthTracks.append(" minmax(0, 0.4fr)");
+            }
+        }
         for (int i = 0; i < start.lengthOfYear(); i++) {
             LocalDate date = start.plusDays(i);
             long[] count = counts.getOrDefault(date, new long[3]);
@@ -74,14 +90,25 @@ public class PlaygroundService {
                     : count[2] > count[1] && count[2] > other ? "female" : "neutral";
             String purity = count[0] > 0 && count[1] == count[0] ? "all-male"
                     : count[0] > 0 && count[2] == count[0] ? "all-female" : "mixed";
+            long leaderPlays = gender.equals("male") ? count[1] : gender.equals("female") ? count[2] : 0;
+            int leaderPercent = count[0] == 0 ? 0 : (int) Math.round(100.0 * leaderPlays / count[0]);
+            int genderShade = leaderPlays == 0 ? 0 : leaderPercent <= 55 ? 1
+                    : leaderPercent <= 65 ? 2 : leaderPercent <= 75 ? 3
+                    : leaderPercent < 90 ? 4 : 5;
             int intensity = count[0] == 0 ? 0 : (int) Math.ceil(4.0 * count[0] / max);
             String label = date.format(DISPLAY_DATE) + ": " + count[0] + " plays; "
-                    + count[1] + " male, " + count[2] + " female, " + other + " other/unknown";
-            days.add(new HeatmapDay(date, count[0], count[1], count[2], other, gender, purity, intensity,
-                    (offset + i) / 7 + 2, date.getDayOfWeek().getValue() + 1, label));
+                    + count[1] + " male, " + count[2] + " female, " + other + " other/unknown"
+                    + (leaderPlays > 0 ? "; " + leaderPercent + "% " + gender : "");
+            int monthOffset = date.withDayOfMonth(1).getDayOfWeek().getValue() - 1;
+            int monthColumn = monthFirstColumns[date.getMonthValue() - 1]
+                    + (monthOffset + date.getDayOfMonth() - 1) / 7;
+            days.add(new HeatmapDay(date, count[0], count[1], count[2], other, gender, purity,
+                    leaderPercent, genderShade, intensity,
+                    (offset + i) / 7 + 2, monthColumn, date.getDayOfWeek().getValue() + 1, label));
         }
         return new YearHeatmap(year, days, days.stream().mapToLong(HeatmapDay::total).sum(),
-                counts.size(), max, (offset + start.lengthOfYear() + 6) / 7);
+                counts.size(), max, (offset + start.lengthOfYear() + 6) / 7,
+                monthColumns, monthTracks.toString().trim());
     }
 
     public FlashbackReview getFlashback(String reviewType, int year, String season, int month) {
@@ -379,10 +406,20 @@ public class PlaygroundService {
     }
 
     public record HeatmapDay(LocalDate date, long total, long male, long female, long other,
-                             String gender, String purity, int intensity, int column, int row, String label) {}
+                             String gender, String purity, int leaderPercent, int genderShade,
+                             int intensity, int column, int monthColumn, int row, String label) {}
 
     public record YearHeatmap(int year, List<HeatmapDay> days, long totalPlays,
-                              int activeDays, long maxPlays, int weeks) {}
+                              int activeDays, long maxPlays, int weeks, int monthColumns, String monthTracks) {
+        public List<HeatmapMonth> months() {
+            return java.util.stream.IntStream.rangeClosed(1, 12).mapToObj(month ->
+                    new HeatmapMonth(LocalDate.of(year, month, 1).format(MONTH_NAME),
+                            days.stream().filter(day -> day.date().getMonthValue() == month).toList()))
+                    .toList();
+        }
+    }
+
+    public record HeatmapMonth(String name, List<HeatmapDay> days) {}
 
     private record ReviewPeriod(LocalDate start, LocalDate end, String title) {}
     private record DailyPlayCount(LocalDate date, long plays) {}

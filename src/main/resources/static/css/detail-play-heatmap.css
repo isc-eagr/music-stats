@@ -11,25 +11,26 @@
 .detail-heatmap-summary strong { color: var(--text); margin-right: 3px; }
 .detail-heatmap-year { gap: 8px; color: var(--text-muted); }
 .detail-heatmap-scroll { overflow-x: auto; padding: 8px 3px 12px; }
-.detail-heatmap-grid { display: grid; grid-template-columns: 34px repeat(var(--weeks), minmax(12px, 1fr)); grid-template-rows: 22px repeat(7, auto); gap: 4px; min-width: 920px; }
+.detail-heatmap-grid { display: grid; grid-template-columns: 34px var(--month-tracks); grid-template-rows: 22px repeat(7, auto); gap: 4px; width: 100%; min-width: 920px; }
 .detail-heatmap-weekday { grid-column: 1; align-self: center; font-size: 11px; color: var(--text-muted); }
 .detail-heatmap-month { grid-row: 1; overflow: visible; font-size: 12px; color: var(--text-muted); }
-.detail-heatmap-month-boundary { grid-row: 2 / 9; justify-self: start; align-self: stretch; width: 3px; background: rgba(255,255,255,0.72); box-shadow: 0 0 0 1px rgba(0,0,0,0.48); border-radius: 1px; pointer-events: none; position: relative; z-index: 1; }
-.detail-heatmap-day { display: block; width: 100%; min-width: 0; aspect-ratio: 1; padding: 0; border: 1px solid #ffffff18; border-radius: 3px; cursor: pointer; }
+.detail-heatmap-day { display: block; width: 100%; height: auto; min-width: 0; min-height: 0; aspect-ratio: 1; align-self: start; padding: 0; appearance: none; border: 1px solid #ffffff18; border-radius: 3px; cursor: pointer; }
 .detail-heatmap-day:hover, .detail-heatmap-day:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; position: relative; z-index: 1; }
-.detail-heatmap-male .intensity-1 { background: #172a52; }
-.detail-heatmap-male .intensity-2 { background: #1e429f; }
+.detail-heatmap-mobile { display: none; }
+.detail-heatmap-male .intensity-1 { background: #93c5fd; }
+.detail-heatmap-male .intensity-2 { background: #60a5fa; }
 .detail-heatmap-male .intensity-3 { background: #2563eb; }
-.detail-heatmap-male .intensity-4 { background: #60a5fa; }
-.detail-heatmap-female .intensity-1 { background: #4c1833; }
-.detail-heatmap-female .intensity-2 { background: #9d174d; }
+.detail-heatmap-male .intensity-4 { background: #172a52; }
+.detail-heatmap-female .intensity-1 { background: #f9a8d4; }
+.detail-heatmap-female .intensity-2 { background: #f472b6; }
 .detail-heatmap-female .intensity-3 { background: #db2777; }
-.detail-heatmap-female .intensity-4 { background: #f472b6; }
-.detail-heatmap-other .intensity-1 { background: #33333a; }
-.detail-heatmap-other .intensity-2 { background: #52525b; }
-.detail-heatmap-other .intensity-3 { background: #71717a; }
-.detail-heatmap-other .intensity-4 { background: #a1a1aa; }
+.detail-heatmap-female .intensity-4 { background: #4c1833; }
+.detail-heatmap-other .intensity-1 { background: #a1a1aa; }
+.detail-heatmap-other .intensity-2 { background: #71717a; }
+.detail-heatmap-other .intensity-3 { background: #52525b; }
+.detail-heatmap-other .intensity-4 { background: #33333a; }
 .detail-heatmap-day.no-plays, .detail-heatmap-legend .no-plays { background: linear-gradient(135deg, transparent 43%, #74747c 46%, #74747c 54%, transparent 57%), var(--surface-2); }
+.detail-heatmap-detail { min-height: 21px; margin: 8px 0 0; color: var(--text); font-variant-numeric: tabular-nums; }
 .detail-heatmap-legend { gap: 9px; margin-top: 8px; color: var(--text-muted); font-size: 12px; }
 .detail-heatmap-legend span { display: inline-flex; align-items: center; }
 .detail-heatmap-legend i { display: inline-block; width: 13px; height: 13px; border: 1px solid #ffffff20; border-radius: 2px; }
@@ -38,4 +39,17 @@
     .plays-visualization-header { padding: 12px; }
     .plays-chart-section > [data-plays-visualization] { padding: 14px 12px 12px; }
     .detail-heatmap-summary { gap: 8px 14px; }
+    .detail-heatmap-scroll { display: none; }
+    .detail-heatmap-mobile { display: block; }
+    .detail-heatmap-swipe-hint { margin: 4px 0 8px; color: var(--text-muted); font-size: 12px; }
+    .detail-heatmap-months { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 12px; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+    .detail-heatmap-month-card { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
+    .detail-heatmap-month-card h3 { margin: 0 0 10px; font-size: 16px; }
+    .detail-heatmap-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 18px; grid-auto-rows: auto; gap: 5px; }
+    .detail-heatmap-month-weekday { text-align: center; color: var(--text-muted); font-size: 11px; }
+    .detail-heatmap-month-grid .detail-heatmap-day { border-radius: 5px; color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .detail-heatmap-month-grid .detail-heatmap-day.intensity-1,
+    .detail-heatmap-month-grid .detail-heatmap-day.intensity-2 { color: #111827; }
+    .detail-heatmap-other .detail-heatmap-month-grid .detail-heatmap-day.intensity-2 { color: #fff; }
+    .detail-heatmap-month-grid .detail-heatmap-day.no-plays { color: var(--text-muted); }
 }

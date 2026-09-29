@@ -587,8 +587,7 @@ public class ArtistController {
         boolean hasGroups = !groupIds.isEmpty();
         
         // Check if artist has an image (always use raw image on detail page, bypassing theme)
-        byte[] image = artistService.getRawArtistImage(id);
-        boolean hasImage = (image != null && image.length > 0);
+        boolean hasImage = artistService.hasRawArtistImage(id);
         
         model.addAttribute("currentSection", "artists");
         model.addAttribute("artist", artist.get());
@@ -977,7 +976,6 @@ public class ArtistController {
         model.addAttribute("rankByEthnicity", rankings.get("ethnicity"));
         model.addAttribute("rankByLanguage", rankings.get("language"));
         model.addAttribute("rankByCountry", rankings.get("country"));
-        model.addAttribute("ranksByYear", artistService.getArtistRanksByYear(id));
         
         // Add Spanish Rap rank (special combination)
         if (artistService.isArtistSpanishRap(id)) {
@@ -1100,13 +1098,7 @@ public class ArtistController {
     @GetMapping("/{id}/images")
     @ResponseBody
     public List<Map<String, Object>> getArtistImages(@PathVariable Integer id) {
-        var images = artistService.getSecondaryImages(id);
-        return images.stream()
-                .map(img -> Map.<String, Object>of(
-                        "id", img.getId(),
-                        "displayOrder", img.getDisplayOrder() != null ? img.getDisplayOrder() : 0
-                ))
-                .toList();
+        return artistService.getSecondaryImageMetadata(id);
     }
 
     @GetMapping("/{id}/images/{imageId}")

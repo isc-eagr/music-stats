@@ -506,6 +506,14 @@ public class ArtistService {
     }
     
     // Gallery methods for secondary images
+    public List<Map<String, Object>> getSecondaryImageMetadata(Integer artistId) {
+        return jdbcTemplate.queryForList("SELECT id, COALESCE(display_order, 0) AS displayOrder FROM ArtistImage WHERE artist_id = ? ORDER BY display_order", artistId);
+    }
+
+    public boolean hasRawArtistImage(Integer artistId) {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject("SELECT COALESCE(length(image), 0) > 0 FROM Artist WHERE id = ?", Boolean.class, artistId));
+    }
+
     public List<ArtistImage> getSecondaryImages(Integer artistId) {
         return artistImageRepository.findByArtistIdOrderByDisplayOrderAsc(artistId);
     }
@@ -953,6 +961,7 @@ public class ArtistService {
     // Get all songs for an artist with play counts
     public List<ArtistSongDTO> getSongsForArtist(int artistId) {
         String sql = """
+            WITH selected_songs AS MATERIALIZED (SELECT id FROM Song WHERE artist_id = ?)
             SELECT 
                 s.id,
                 s.name,
@@ -986,6 +995,7 @@ public class ArtistService {
                     MIN(play_date) as first_listen,
                     MAX(play_date) as last_listen
                 FROM Play
+                WHERE song_id IN (SELECT id FROM selected_songs)
                 GROUP BY song_id
             ) play_stats ON s.id = play_stats.song_id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
@@ -999,7 +1009,7 @@ public class ArtistService {
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
-            WHERE s.artist_id = ?
+            WHERE s.id IN (SELECT id FROM selected_songs)
             ORDER BY total_plays DESC
             """;
         
@@ -1136,6 +1146,7 @@ public class ArtistService {
     // Get all albums for an artist with play counts
     public List<ArtistAlbumDTO> getAlbumsForArtist(int artistId) {
         String sql = """
+            WITH selected_albums AS MATERIALIZED (SELECT id FROM Album WHERE artist_id = ?)
             SELECT 
                 a.id,
                 a.name,
@@ -1166,6 +1177,7 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT album_id, COUNT(*) as song_count, SUM(length_seconds) as total_length_seconds
                 FROM Song
+                WHERE album_id IN (SELECT id FROM selected_albums)
                 GROUP BY album_id
             ) song_stats ON a.id = song_stats.album_id
             LEFT JOIN (
@@ -1179,10 +1191,10 @@ public class ArtistService {
                     SUM(s.length_seconds) as total_listening_seconds
                 FROM Play p
                 INNER JOIN Song s ON p.song_id = s.id
-                WHERE s.album_id IS NOT NULL
+                WHERE s.album_id IN (SELECT id FROM selected_albums)
                 GROUP BY s.album_id
             ) play_stats ON a.id = play_stats.album_id
-            WHERE a.artist_id = ?
+            WHERE a.id IN (SELECT id FROM selected_albums)
             ORDER BY total_plays DESC
             """;
         
@@ -2444,6 +2456,7 @@ public class ArtistService {
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
         String sql = """
+            WITH selected_songs AS MATERIALIZED (SELECT id FROM Song WHERE artist_id IN (%s))
             SELECT 
                 s.id,
                 s.name,
@@ -2478,6 +2491,7 @@ public class ArtistService {
                     MIN(play_date) as first_listen,
                     MAX(play_date) as last_listen
                 FROM Play
+                WHERE song_id IN (SELECT id FROM selected_songs)
                 GROUP BY song_id
             ) play_stats ON s.id = play_stats.song_id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
@@ -2491,7 +2505,7 @@ public class ArtistService {
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
-            WHERE s.artist_id IN (%s)
+            WHERE s.id IN (SELECT id FROM selected_songs)
             ORDER BY total_plays DESC
             """.formatted(placeholders);
         
@@ -2565,6 +2579,7 @@ public class ArtistService {
         
         String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
         String sql = """
+            WITH selected_albums AS MATERIALIZED (SELECT id FROM Album WHERE artist_id IN (%s))
             SELECT 
                 a.id,
                 a.name,
@@ -2596,6 +2611,7 @@ public class ArtistService {
             LEFT JOIN (
                 SELECT album_id, COUNT(*) as song_count, SUM(length_seconds) as total_length_seconds
                 FROM Song
+                WHERE album_id IN (SELECT id FROM selected_albums)
                 GROUP BY album_id
             ) song_stats ON a.id = song_stats.album_id
             LEFT JOIN (
@@ -2609,10 +2625,10 @@ public class ArtistService {
                     SUM(s.length_seconds) as total_listening_seconds
                 FROM Play p
                 INNER JOIN Song s ON p.song_id = s.id
-                WHERE s.album_id IS NOT NULL
+                WHERE s.album_id IN (SELECT id FROM selected_albums)
                 GROUP BY s.album_id
             ) play_stats ON a.id = play_stats.album_id
-            WHERE a.artist_id IN (%s)
+            WHERE a.id IN (SELECT id FROM selected_albums)
             ORDER BY total_plays DESC
             """.formatted(placeholders);
         
@@ -3126,6 +3142,7 @@ public class ArtistService {
      */
     public List<ArtistSongDTO> getFeaturedSongsForArtist(int artistId) {
         String sql = """
+            WITH selected_features AS MATERIALIZED (SELECT song_id FROM SongFeaturedArtist WHERE artist_id = ?)
             SELECT 
                 s.id,
                 s.name,
@@ -3148,7 +3165,7 @@ public class ArtistService {
                 play_stats.first_listen,
                 play_stats.last_listen,
                 s.is_single
-            FROM SongFeaturedArtist sfa
+            FROM selected_features sfa
             INNER JOIN Song s ON sfa.song_id = s.id
             INNER JOIN Artist ar ON s.artist_id = ar.id
             LEFT JOIN Album a ON s.album_id = a.id
@@ -3161,6 +3178,7 @@ public class ArtistService {
                     MIN(play_date) as first_listen,
                     MAX(play_date) as last_listen
                 FROM Play
+                WHERE song_id IN (SELECT song_id FROM selected_features)
                 GROUP BY song_id
             ) play_stats ON s.id = play_stats.song_id
             LEFT JOIN Genre g_song ON s.override_genre_id = g_song.id
@@ -3174,7 +3192,6 @@ public class ArtistService {
             LEFT JOIN Language l_artist ON ar.language_id = l_artist.id
             LEFT JOIN Ethnicity eth_song ON s.override_ethnicity_id = eth_song.id
             LEFT JOIN Ethnicity eth_artist ON ar.ethnicity_id = eth_artist.id
-            WHERE sfa.artist_id = ?
             ORDER BY total_plays DESC
             """;
         
@@ -3379,14 +3396,18 @@ public class ArtistService {
      */
     public Map<Integer, Integer> getArtistRanksByYear(int artistId) {
         String sql = """
+            WITH year_song_plays AS MATERIALIZED (
+                SELECT strftime('%Y', play_date) AS year, song_id, COUNT(*) AS plays
+                FROM Play GROUP BY year, song_id
+            )
             SELECT year, rank FROM (
                 SELECT a.id, 
-                       strftime('%Y', p.play_date) as year,
-                       ROW_NUMBER() OVER (PARTITION BY strftime('%Y', p.play_date) ORDER BY COUNT(p.id) DESC) as rank
+                       p.year,
+                       ROW_NUMBER() OVER (PARTITION BY p.year ORDER BY SUM(p.plays) DESC, a.id) as rank
                 FROM Artist a
                 INNER JOIN Song s ON s.artist_id = a.id
-                INNER JOIN Play p ON p.song_id = s.id
-                GROUP BY a.id, strftime('%Y', p.play_date)
+                INNER JOIN year_song_plays p ON p.song_id = s.id
+                GROUP BY a.id, p.year
             ) ranked
             WHERE id = ?
             ORDER BY year

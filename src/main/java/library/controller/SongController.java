@@ -803,8 +803,7 @@ public class SongController {
         }
         
         // Check if song has its own image (not falling back to album)
-        byte[] ownImage = songService.getSongOwnImage(id);
-        boolean hasImage = (ownImage != null && ownImage.length > 0);
+        boolean hasImage = songService.hasSongOwnImage(id);
         
         // Get artist and album names
         String artistName = songService.getArtistName(song.get().getArtistId());
@@ -954,10 +953,11 @@ public class SongController {
         // Always load plays data (eager loading for all tabs)
         int pageSize = appConfigService.getSongDetailPlaysPageSize();
         model.addAttribute("plays", songService.getPlaysForSong(id, playsPage, pageSize));
-        model.addAttribute("playsTotalCount", songService.countPlaysForSong(id));
+        long playsTotalCount = songService.countPlaysForSong(id);
+        model.addAttribute("playsTotalCount", playsTotalCount);
         model.addAttribute("playsPage", playsPage);
         model.addAttribute("playsPageSize", pageSize);
-        model.addAttribute("playsTotalPages", (int) Math.ceil((double) songService.countPlaysForSong(id) / pageSize));
+        model.addAttribute("playsTotalPages", (int) Math.ceil((double) playsTotalCount / pageSize));
         model.addAttribute("playsByYear", songService.getPlaysByYearForSong(id));
         model.addAttribute("playsByMonth", songService.getPlaysByMonthForSong(id));
         
@@ -1105,13 +1105,7 @@ public class SongController {
     @GetMapping("/{id}/images")
     @ResponseBody
     public List<Map<String, Object>> getSongImages(@PathVariable Integer id) {
-        var images = songService.getSecondaryImages(id);
-        return images.stream()
-                .map(img -> Map.<String, Object>of(
-                        "id", img.getId(),
-                        "displayOrder", img.getDisplayOrder() != null ? img.getDisplayOrder() : 0
-                ))
-                .toList();
+        return songService.getSecondaryImageMetadata(id);
     }
 
     @GetMapping("/{id}/images/{imageId}")

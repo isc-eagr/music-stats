@@ -94,28 +94,28 @@ public class AlbumFullListenCalculator {
             });
         } else {
             String placeholders = String.join(",", Collections.nCopies(targetAlbumIds.size(), "?"));
-            String sql = """
-                    WITH ranked_plays AS (
-                        SELECT p.play_date, p.song_id,
-                               ROW_NUMBER() OVER (ORDER BY p.play_date, p.id) AS global_position
-                        FROM Play p
-                        LEFT JOIN Song s ON s.id = p.song_id
-                        WHERE s.id IS NULL OR LOWER(s.name) NOT LIKE '%%remix%%'
-                    )
-                    SELECT rp.play_date, rp.song_id, rp.global_position, s.album_id
-                    FROM ranked_plays rp
-                    JOIN Song s ON s.id = rp.song_id
-                    WHERE s.album_id IN (%s)
-                    ORDER BY rp.global_position
-                    """.formatted(placeholders);
-            jdbcTemplate.query(sql, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                int albumId = rs.getInt("album_id");
-                boolean albumWasNull = rs.wasNull();
+            Map<Integer, Integer> albumBySong = new HashMap<>();
+            jdbcTemplate.query("SELECT id, album_id FROM Song WHERE album_id IN (" + placeholders + ")",
+                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> albumBySong.put(rs.getInt("id"), rs.getInt("album_id")),
+                    targetAlbumIds.toArray());
+            // NULL names, like remixes, are excluded by the original SQL predicate.
+            Set<Integer> excludedSongs = new HashSet<>(jdbcTemplate.queryForList(
+                    "SELECT id FROM Song WHERE name IS NULL OR LOWER(name) LIKE '%remix%'", Integer.class));
+            long[] globalPosition = {0L};
+            // Stream the covering Play index once. Ranking and materializing the entire
+            // history in SQL is unnecessary; interruptions still count across all albums.
+            jdbcTemplate.query("SELECT play_date, song_id FROM Play ORDER BY play_date, id",
+                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
                 int songId = rs.getInt("song_id");
                 boolean songWasNull = rs.wasNull();
-                acceptPlay(rs.getLong("global_position"), 0L, albumId, albumWasNull, songId, songWasNull,
-                        rs.getString("play_date"), requiredSongsByAlbum, states, config);
-            }, targetAlbumIds.toArray());
+                if (!songWasNull && excludedSongs.contains(songId)) return;
+                long position = ++globalPosition[0];
+                Integer albumId = songWasNull ? null : albumBySong.get(songId);
+                if (albumId != null) {
+                    acceptPlay(position, 0L, albumId, false, songId, false,
+                            rs.getString("play_date"), requiredSongsByAlbum, states, config);
+                }
+            });
         }
 
         Map<Integer, AlbumFullListenStats> result = new HashMap<>();

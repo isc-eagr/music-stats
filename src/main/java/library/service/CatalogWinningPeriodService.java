@@ -121,20 +121,26 @@ public class CatalogWinningPeriodService {
                 WHERE p.play_date IS NOT NULL
             ),
             base_plays AS (
-                SELECT play_date, attr_key
+                -- Reduce repeated plays before the six period aggregations.
+                -- Keep the original week key as well as the calendar day so
+                -- strftime timezone/invalid-date behavior remains unchanged.
+                SELECT SUBSTR(play_date, 1, 10) as play_date,
+                       strftime('%%Y-W%%W', play_date) as week_key,
+                       attr_key, COUNT(*) as cnt
                 FROM raw_plays
                 WHERE attr_key IS NOT NULL
+                GROUP BY SUBSTR(play_date, 1, 10), strftime('%%Y-W%%W', play_date), attr_key
             ),
             period_attr_counts AS (
-                SELECT 'days' as period_type, SUBSTR(play_date, 1, 10) as period_key, attr_key, COUNT(*) as cnt
+                SELECT 'days' as period_type, SUBSTR(play_date, 1, 10) as period_key, attr_key, SUM(cnt) as cnt
                 FROM base_plays
                 GROUP BY period_key, attr_key
                 UNION ALL
-                SELECT 'weeks' as period_type, strftime('%%Y-W%%W', play_date) as period_key, attr_key, COUNT(*) as cnt
+                SELECT 'weeks' as period_type, week_key as period_key, attr_key, SUM(cnt) as cnt
                 FROM base_plays
                 GROUP BY period_key, attr_key
                 UNION ALL
-                SELECT 'months' as period_type, SUBSTR(play_date, 1, 7) as period_key, attr_key, COUNT(*) as cnt
+                SELECT 'months' as period_type, SUBSTR(play_date, 1, 7) as period_key, attr_key, SUM(cnt) as cnt
                 FROM base_plays
                 GROUP BY period_key, attr_key
                 UNION ALL
@@ -151,15 +157,15 @@ public class CatalogWinningPeriodService {
                         ELSE SUBSTR(play_date, 1, 4) || '-Fall'
                     END as period_key,
                     attr_key,
-                    COUNT(*) as cnt
+                    SUM(cnt) as cnt
                 FROM base_plays
                 GROUP BY period_key, attr_key
                 UNION ALL
-                SELECT 'years' as period_type, SUBSTR(play_date, 1, 4) as period_key, attr_key, COUNT(*) as cnt
+                SELECT 'years' as period_type, SUBSTR(play_date, 1, 4) as period_key, attr_key, SUM(cnt) as cnt
                 FROM base_plays
                 GROUP BY period_key, attr_key
                 UNION ALL
-                SELECT 'decades' as period_type, (SUBSTR(play_date, 1, 4) / 10 * 10) || 's' as period_key, attr_key, COUNT(*) as cnt
+                SELECT 'decades' as period_type, (SUBSTR(play_date, 1, 4) / 10 * 10) || 's' as period_key, attr_key, SUM(cnt) as cnt
                 FROM base_plays
                 GROUP BY period_key, attr_key
             ),

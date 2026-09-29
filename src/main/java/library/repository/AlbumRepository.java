@@ -2093,8 +2093,10 @@ public class AlbumRepository {
     }
 
     private String fullListenStatsCte() {
+        // Materialize once so SQLite can index album_id instead of reparsing and
+        // scanning the entire JSON array for every album in each join.
         return """
-                WITH last_full_listen AS (
+                WITH last_full_listen AS MATERIALIZED (
                     SELECT CAST(json_extract(value, '$.albumId') AS INTEGER) AS album_id,
                            json_extract(value, '$.firstFullListenDate') AS first_full_listen_date,
                            json_extract(value, '$.lastFullListenDate') AS last_full_listen_date,

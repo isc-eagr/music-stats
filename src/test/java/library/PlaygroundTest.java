@@ -79,6 +79,10 @@ class PlaygroundTest {
         assertThat(heatmap.days().get(61).gender()).isEqualTo("neutral");
         assertThat(heatmap.days().get(62).gender()).isEqualTo("neutral");
         assertThat(heatmap.days().getLast().total()).isEqualTo(1);
+        assertThat(heatmap.days().get(31).monthColumn() - heatmap.days().get(30).monthColumn())
+                .isEqualTo(2);
+        assertThat(heatmap.monthColumns()).isGreaterThan(heatmap.weeks());
+        assertThat(heatmap.monthTracks()).contains("minmax(0, 0.4fr)");
         assertThat(service.getYears()).contains(2023, 2024, 2025);
     }
 
@@ -104,6 +108,28 @@ class PlaygroundTest {
         }
         assertThat(service.getHeatmap(2024).days().subList(0, 4))
                 .extracting(PlaygroundService.HeatmapDay::intensity).containsExactly(1, 2, 3, 4);
+    }
+
+    @Test
+    void genderShadeGetsDarkerAsLeaderShareIncreases() {
+        for (int i = 0; i < 11; i++) play("2024-04-01 12:00", 1);
+        for (int i = 0; i < 9; i++) play("2024-04-01 12:00", 2);
+        for (int i = 0; i < 9; i++) play("2024-04-02 12:00", 1);
+        play("2024-04-02 12:00", 2);
+        for (int i = 0; i < 9; i++) play("2024-04-03 12:00", 2);
+        play("2024-04-03 12:00", 1);
+
+        var days = service.getHeatmap(2024).days();
+        var slightMaleLead = days.get(91);
+        var strongMaleLead = days.get(92);
+        var strongFemaleLead = days.get(93);
+        assertThat(slightMaleLead.leaderPercent()).isEqualTo(55);
+        assertThat(strongMaleLead.leaderPercent()).isEqualTo(90);
+        assertThat(slightMaleLead.genderShade()).isEqualTo(1);
+        assertThat(strongMaleLead.genderShade()).isEqualTo(5);
+        assertThat(strongFemaleLead.gender()).isEqualTo("female");
+        assertThat(strongFemaleLead.genderShade()).isEqualTo(strongMaleLead.genderShade());
+        assertThat(strongMaleLead.label()).contains("90% male");
     }
 
     @Test
@@ -133,9 +159,19 @@ class PlaygroundTest {
         var context = new WebContext(exchange, Locale.ENGLISH, model);
         var document = Jsoup.parse(engine.process(template, context));
         assertThat(document.select(".heatmap-panel")).hasSize(2);
-        assertThat(document.select(".heatmap-day")).hasSize(732);
+        assertThat(document.select(".heatmap-day")).hasSize(1464);
         assertThat(document.select(".heatmap-month")).hasSize(24);
-        assertThat(document.select(".heatmap-day.no-plays")).hasSize(730);
+        assertThat(document.select(".heatmap-month-boundary")).isEmpty();
+        assertThat(document.select(".heatmap-grid")).allSatisfy(grid ->
+                assertThat(grid.attr("style")).contains("minmax(0, 0.4fr)"));
+        assertThat(document.select(".heatmap-day.no-plays")).hasSize(1460);
+        assertThat(document.select(".heatmap-month-card")).hasSize(24);
+        assertThat(document.select(".heatmap-month-card").getFirst().select(".heatmap-day")).hasSize(31);
+        assertThat(document.select(".heatmap-month-card").getFirst().select(".heatmap-month-weekday")).hasSize(7);
+        assertThat(document.select(".heatmap-month-card").getFirst().select(".heatmap-day").first().className())
+                .contains("male", "shade-5");
+        assertThat(document.select(".heatmap-panel").get(1).select(".heatmap-month-card").first()
+                .select(".heatmap-day").first().className()).doesNotContain("shade-");
         assertThat(document.select(".heatmap-panel").get(0).select(".all-male, .all-female"))
                 .as("gender panel pure-day classes; first day=%s", document.select(".heatmap-panel").get(0).select(".heatmap-day").first().className())
                 .isNotEmpty();
@@ -176,14 +212,32 @@ class PlaygroundTest {
     }
 
     @Test
-    void pureGenderDaysUseDistinctColorsAndDiagonalSwipe() throws Exception {
+    void genderShadesAndMobileCalendarsHaveDedicatedStyles() throws Exception {
         String stylesheet = Files.readString(Path.of("src/main/resources/static/css/playground.css"));
-        assertThat(stylesheet).contains(".heatmap-day.all-male { background-color: #1d4ed8; }")
-                .contains(".heatmap-day.all-female { background-color: #be185d; }")
+        assertThat(stylesheet).contains(".heatmap-day.male.shade-1 { background-color: #93c5fd; }")
+                .contains(".heatmap-day.male.shade-5 { background-color: #172554; }")
+                .contains(".heatmap-day.female.shade-1 { background-color: #f9a8d4; }")
+                .contains(".heatmap-day.female.shade-5 { background-color: #831843; }")
                 .contains("all-gender-diagonal-swipe")
                 .contains("skewX(-20deg)")
                 .contains(".heatmap-day.all-male::after")
-                .contains("prefers-reduced-motion");
+                .contains("prefers-reduced-motion")
+                .contains("grid-template-columns: 34px var(--month-tracks)")
+                .contains("grid-template-rows: 22px repeat(7, auto)")
+                .contains("width: 100%; min-width: 920px")
+                .contains("aspect-ratio: 1")
+                .contains(".heatmap-months { display: flex")
+                .contains(".heatmap-legend i.male { background: linear-gradient")
+                .contains("scroll-snap-type: x mandatory");
+    }
+
+    @Test
+    void playCountColorsGetDarkerAsCountsIncrease() throws Exception {
+        String stylesheet = Files.readString(Path.of("src/main/resources/static/css/playground.css"));
+        assertThat(stylesheet).contains(".intensity-1 { background-color: #83ed95; }")
+                .contains(".intensity-2 { background-color: #32b65b; }")
+                .contains(".intensity-3 { background-color: #208047; }")
+                .contains(".intensity-4 { background-color: #144b32; }");
     }
 
     private void play(String date, Integer songId) {

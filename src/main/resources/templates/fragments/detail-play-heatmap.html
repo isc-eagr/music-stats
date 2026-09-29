@@ -15,22 +15,39 @@
             </select>
         </label>
     </div>
-    <div class="detail-heatmap-scroll" tabindex="0" aria-label="Daily play calendar; scroll horizontally on smaller screens">
-        <div class="detail-heatmap-grid" th:style="${'--weeks: ' + heatmap.weeks}">
+    <div class="detail-heatmap-scroll" tabindex="0" aria-label="Daily play calendar; scroll horizontally">
+        <div class="detail-heatmap-grid" th:style="${'--month-tracks: ' + heatmap.monthTracks}">
             <span th:each="weekday, status : ${ {'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'} }"
                   class="detail-heatmap-weekday" th:style="${'grid-row: ' + (status.index + 2)}" th:text="${weekday}"></span>
             <th:block th:each="day : ${heatmap.days}">
                 <span th:if="${day.date.dayOfMonth == 1}" class="detail-heatmap-month"
-                      th:style="${'grid-column: ' + day.column}" th:text="${#temporals.format(day.date, 'MMM')}"></span>
-                <span th:if="${day.date.dayOfMonth == 1}" class="detail-heatmap-month-boundary" aria-hidden="true"
-                      th:style="${'grid-column: ' + day.column}"></span>
+                      th:style="${'grid-column: ' + day.monthColumn}" th:text="${#temporals.format(day.date, 'MMM')}"></span>
                 <button type="button" class="detail-heatmap-day"
                         th:classappend="${day.total == 0 ? 'no-plays' : 'intensity-' + day.intensity}"
-                        th:style="${'grid-column: ' + day.column + '; grid-row: ' + day.row}"
+                        th:style="${'grid-column: ' + day.monthColumn + '; grid-row: ' + day.row}"
                         th:title="${day.label}" th:attr="aria-label=${day.label},data-detail=${day.label}"></button>
             </th:block>
         </div>
     </div>
+    <div class="detail-heatmap-mobile">
+        <p class="detail-heatmap-swipe-hint">Swipe sideways to explore each month</p>
+        <div class="detail-heatmap-months" tabindex="0" aria-label="Monthly play calendars; swipe or scroll horizontally">
+            <section th:each="month : ${heatmap.months}" class="detail-heatmap-month-card"
+                     th:attr="aria-label=${month.name + ' ' + heatmap.year}">
+                <h3 th:text="${month.name}">January</h3>
+                <div class="detail-heatmap-month-grid">
+                    <span th:each="weekday : ${ {'M', 'T', 'W', 'T', 'F', 'S', 'S'} }"
+                          class="detail-heatmap-month-weekday" th:text="${weekday}"></span>
+                    <button th:each="day : ${month.days}" type="button" class="detail-heatmap-day"
+                            th:classappend="${day.total == 0 ? 'no-plays' : 'intensity-' + day.intensity}"
+                            th:style="${'grid-column: ' + day.date.dayOfWeek.value}"
+                            th:text="${day.date.dayOfMonth}" th:title="${day.label}"
+                            th:attr="aria-label=${day.label},data-detail=${day.label}"></button>
+                </div>
+            </section>
+        </div>
+    </div>
+    <p class="detail-heatmap-detail" aria-live="polite">Select a day for details</p>
     <div class="detail-heatmap-legend">
         <span><i class="no-plays"></i> No plays</span><span>Fewer</span>
         <span th:each="level : ${#numbers.sequence(1, 4)}"><i th:class="${'intensity-' + level}"></i></span>

@@ -737,8 +737,7 @@ public class AlbumController {
         }
         
         // Check if album has an image
-        byte[] image = albumService.getAlbumImage(id);
-        boolean hasImage = (image != null && image.length > 0);
+        boolean hasImage = albumService.hasAlbumImage(id);
         
         // Get song count
         int songCount = albumService.getSongCount(id);
@@ -881,10 +880,11 @@ public class AlbumController {
         // Always load plays data (eager loading for all tabs)
         int pageSize = appConfigService.getAlbumDetailPlaysPageSize();
         model.addAttribute("plays", albumService.getPlaysForAlbum(id, playsPage, pageSize));
-        model.addAttribute("playsTotalCount", albumService.countPlaysForAlbum(id));
+        long playsTotalCount = albumService.countPlaysForAlbum(id);
+        model.addAttribute("playsTotalCount", playsTotalCount);
         model.addAttribute("playsPage", playsPage);
         model.addAttribute("playsPageSize", pageSize);
-        model.addAttribute("playsTotalPages", (int) Math.ceil((double) albumService.countPlaysForAlbum(id) / pageSize));
+        model.addAttribute("playsTotalPages", (int) Math.ceil((double) playsTotalCount / pageSize));
         model.addAttribute("playsByYear", albumService.getPlaysByYearForAlbum(id));
         model.addAttribute("playsByMonth", albumService.getPlaysByMonthForAlbum(id));
         
@@ -987,13 +987,7 @@ public class AlbumController {
     @GetMapping("/{id}/images")
     @ResponseBody
     public List<Map<String, Object>> getAlbumImages(@PathVariable Integer id) {
-        var images = albumService.getSecondaryImages(id);
-        return images.stream()
-                .map(img -> Map.<String, Object>of(
-                        "id", img.getId(),
-                        "displayOrder", img.getDisplayOrder() != null ? img.getDisplayOrder() : 0
-                ))
-                .toList();
+        return albumService.getSecondaryImageMetadata(id);
     }
 
     @GetMapping("/{id}/images/{imageId}")
