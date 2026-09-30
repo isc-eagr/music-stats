@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw.cmd:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)"
+    ],
+    "ask": [
+      "Bash(*music-stats.bat*)",
+      "Bash(*deploy-prod.bat*)",
+      "PowerShell(*music-stats.bat*)",
+      "PowerShell(*deploy-prod.bat*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "PowerShell(git push:*)",
+      "PowerShell(git pull:*)",
+      "PowerShell(git checkout:*)",
+      "PowerShell(git commit:*)"
+    ]
+  }
+}

@@ -10,7 +10,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service for building "Top Played Reigns" data.
@@ -33,61 +32,74 @@ public class TopPlayedTimelineService {
 
     public List<TopPlayedSnapshotDTO> getArtistTimeline() {
         String sql = """
-            SELECT p.play_date, s.artist_id as item_id, ar.name as item_name,
+            SELECT s.id as song_id, s.artist_id as item_id, ar.name as item_name,
                    NULL as secondary_name,
                    COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
                    gn.name as gender_name
-            FROM play p
-            JOIN song s ON p.song_id = s.id
+            FROM song s
             JOIN artist ar ON s.artist_id = ar.id
             LEFT JOIN gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
-            WHERE p.song_id IS NOT NULL
-            ORDER BY p.play_date ASC
             """;
         return buildSnapshots(sql);
     }
 
     public List<TopPlayedSnapshotDTO> getSongTimeline() {
         String sql = """
-            SELECT p.play_date, p.song_id as item_id, s.name as item_name,
+            SELECT s.id as song_id, s.id as item_id, s.name as item_name,
                    ar.name as secondary_name,
                    COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
                    gn.name as gender_name
-            FROM play p
-            JOIN song s ON p.song_id = s.id
+            FROM song s
             JOIN artist ar ON s.artist_id = ar.id
             LEFT JOIN gender gn ON COALESCE(s.override_gender_id, ar.gender_id) = gn.id
-            WHERE p.song_id IS NOT NULL
-            ORDER BY p.play_date ASC
             """;
         return buildSnapshots(sql);
     }
 
     public List<TopPlayedSnapshotDTO> getGenreTimeline() {
         String sql = """
-            SELECT p.play_date,
+            SELECT s.id as song_id,
                    COALESCE(s.override_genre_id, al.override_genre_id, ar.genre_id) as item_id,
                    g.name as item_name,
                    NULL as secondary_name,
                    NULL as gender_id,
                    NULL as gender_name
-            FROM play p
-            JOIN song s ON p.song_id = s.id
+            FROM song s
             JOIN artist ar ON s.artist_id = ar.id
             LEFT JOIN album al ON s.album_id = al.id
             LEFT JOIN genre g ON COALESCE(s.override_genre_id, al.override_genre_id, ar.genre_id) = g.id
-            WHERE p.song_id IS NOT NULL
-            ORDER BY p.play_date ASC
             """;
         return buildSnapshots(sql);
+    }
+
+    /** Timeline item a song's plays count toward, with its display fields. */
+    private record SongItem(Integer itemId, String itemName, String secondaryName, Integer genderId, String genderName) {
     }
 
     /**
      * Core algorithm: replays all plays in order, tracks cumulative counts per item,
      * builds a new snapshot whenever the top-3 ranking changes.
+     * Song-to-item metadata is loaded once; the replay then only streams (play_date, song_id)
+     * from the covering index, ordered by (play_date, song_id) to keep tie order deterministic.
      */
-    private List<TopPlayedSnapshotDTO> buildSnapshots(String sql) {
-        return jdbcTemplate.query(sql, rs -> {
+    private List<TopPlayedSnapshotDTO> buildSnapshots(String songItemSql) {
+        Map<Integer, SongItem> songItems = new HashMap<>();
+        jdbcTemplate.query(songItemSql, rs -> {
+            songItems.put(rs.getInt("song_id"), new SongItem(
+                    getNullableInt(rs, "item_id"),
+                    rs.getString("item_name"),
+                    rs.getString("secondary_name"),
+                    getNullableInt(rs, "gender_id"),
+                    rs.getString("gender_name")));
+        });
+
+        String playSql = """
+            SELECT p.play_date, p.song_id
+            FROM play p
+            WHERE p.song_id IS NOT NULL AND p.play_date IS NOT NULL
+            ORDER BY p.play_date ASC, p.song_id ASC
+            """;
+        return jdbcTemplate.query(playSql, rs -> {
             List<TopPlayedSnapshotDTO> snapshots = new ArrayList<>();
 
             Map<Integer, Integer> playCounts = new HashMap<>();
@@ -107,12 +119,12 @@ public class TopPlayedTimelineService {
 
             while (rs.next()) {
                 String playDateStr = rs.getString("play_date");
-                Integer itemIdValue = getNullableInt(rs, "item_id");
-                if (itemIdValue == null || playDateStr == null) {
+                SongItem songItem = songItems.get(rs.getInt("song_id"));
+                if (songItem == null || songItem.itemId() == null || playDateStr == null) {
                     continue;
                 }
 
-                int itemId = itemIdValue;
+                int itemId = songItem.itemId();
                 String playDate = extractDate(playDateStr);
 
                 int previousCount = playCounts.getOrDefault(itemId, 0);
@@ -120,15 +132,10 @@ public class TopPlayedTimelineService {
                 playCounts.put(itemId, newCount);
 
                 if (!nameCache.containsKey(itemId)) {
-                    String itemName = rs.getString("item_name");
-                    String secondaryName = rs.getString("secondary_name");
-                    Integer genderId = getNullableInt(rs, "gender_id");
-                    String genderName = rs.getString("gender_name");
-
-                    nameCache.put(itemId, itemName != null ? itemName : "Unknown");
-                    secondaryNameCache.put(itemId, secondaryName);
-                    genderIdCache.put(itemId, genderId);
-                    genderNameCache.put(itemId, genderName);
+                    nameCache.put(itemId, songItem.itemName() != null ? songItem.itemName() : "Unknown");
+                    secondaryNameCache.put(itemId, songItem.secondaryName());
+                    genderIdCache.put(itemId, songItem.genderId());
+                    genderNameCache.put(itemId, songItem.genderName());
                     positionDays.put(itemId, new int[]{0, 0, 0});
                     positionEntryPlays.put(itemId, new int[]{0, 0, 0});
                 }
@@ -141,15 +148,14 @@ public class TopPlayedTimelineService {
                     }
                 }
 
-                List<Integer> newTop3 = computeTop3(playCounts, currentTop3);
+                List<Integer> newTop3 = computeTop3(playCounts, currentTop3, itemId);
 
                 if (!top3Equal(currentTop3, newTop3)) {
                     if (snapshotStartDate != null && !currentTop3.isEmpty()) {
-                        Map<Integer, Integer> playCountsBeforeChange = new HashMap<>(playCounts);
-                        if (previousCount == 0) {
-                            playCountsBeforeChange.remove(itemId);
-                        } else {
-                            playCountsBeforeChange.put(itemId, previousCount);
+                        // Only the outgoing top-3 counts are read when building the snapshot.
+                        Map<Integer, Integer> playCountsBeforeChange = new HashMap<>();
+                        for (int topId : currentTop3) {
+                            playCountsBeforeChange.put(topId, topId == itemId ? previousCount : playCounts.get(topId));
                         }
 
                         int days = daysBetween(snapshotStartDate, playDate);
@@ -262,22 +268,24 @@ public class TopPlayedTimelineService {
     }
 
     /**
-     * Compute the top-3 item IDs sorted by play count descending.
-     * Uses item ID as secondary sort key for stability (consistent tiebreaking).
+     * Compute the top-3 item IDs sorted by play count descending, then previous top-3
+     * position (incumbents keep ties), then item ID.
+     * Counts only ever grow by one play, so the only item that can enter or move is the one
+     * just played: ranking the previous top 3 plus that item gives the same result as ranking
+     * every item.
      */
-    private List<Integer> computeTop3(Map<Integer, Integer> playCounts, List<Integer> previousTop3) {
-        Map<Integer, Integer> previousPosition = new HashMap<>();
-        for (int i = 0; i < previousTop3.size(); i++) {
-            previousPosition.put(previousTop3.get(i), i);
+    static List<Integer> computeTop3(Map<Integer, Integer> playCounts, List<Integer> previousTop3, int playedItemId) {
+        List<Integer> candidates = new ArrayList<>(previousTop3);
+        if (!candidates.contains(playedItemId)) {
+            candidates.add(playedItemId);
         }
-
-        return playCounts.entrySet().stream()
-                .sorted(Map.Entry.<Integer, Integer>comparingByValue(Comparator.reverseOrder())
-                        .thenComparing(entry -> previousPosition.getOrDefault(entry.getKey(), Integer.MAX_VALUE))
-                        .thenComparing(Map.Entry.comparingByKey()))
-                .limit(3)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+        candidates.sort(Comparator.<Integer>comparingInt(id -> -playCounts.get(id))
+                .thenComparingInt(id -> {
+                    int position = previousTop3.indexOf(id);
+                    return position >= 0 ? position : Integer.MAX_VALUE;
+                })
+                .thenComparingInt(id -> id));
+        return candidates.size() > 3 ? new ArrayList<>(candidates.subList(0, 3)) : candidates;
     }
 
     /**

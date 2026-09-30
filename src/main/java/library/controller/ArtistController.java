@@ -1055,12 +1055,12 @@ public class ArtistController {
     }
     
     @GetMapping("/{id}/image")
-    @ResponseBody
-    public byte[] getArtistImage(@PathVariable Integer id,
+    public ResponseEntity<byte[]> getArtistImage(@PathVariable Integer id,
                                  @RequestParam(required = false, defaultValue = "false") boolean raw,
-                                 @RequestParam(required = false, defaultValue = "false") boolean thumbnail) {
+                                 @RequestParam(required = false, defaultValue = "false") boolean thumbnail,
+                                 @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
         byte[] image = raw ? artistService.getRawArtistImage(id) : artistService.getArtistImage(id);
-        return thumbnail ? library.util.ImageUtil.resizeThumbnail(image, 600) : image;
+        return library.util.ImageResponses.image(image, thumbnail, ifNoneMatch);
     }
     
     @PostMapping("/{id}/image")

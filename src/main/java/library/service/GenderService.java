@@ -67,8 +67,17 @@ public class GenderService {
             }
         }
         
+        // Plays are counted per song first, so the gender aggregation works on one row per
+        // song instead of one row per play. An unplayed song still adds its length once.
         String sql = """
-            SELECT 
+            WITH song_play_counts AS MATERIALIZED (
+                SELECT song_id, COUNT(*) as play_count,
+                       SUM(CASE WHEN account = 'vatito' THEN 1 ELSE 0 END) as vatito_play_count,
+                       SUM(CASE WHEN account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_play_count
+                FROM Play
+                GROUP BY song_id
+            )
+            SELECT
                 g.id,
                 g.name,
                 COALESCE(stats.play_count, 0) as play_count,
@@ -80,19 +89,19 @@ public class GenderService {
                 COALESCE(stats.song_count, 0) as song_count
             FROM Gender g
             LEFT JOIN (
-                SELECT 
+                SELECT
                     COALESCE(s.override_gender_id, ar.gender_id) as effective_gender_id,
-                    COUNT(DISTINCT p.id) as play_count,
-                    COUNT(DISTINCT CASE WHEN p.account = 'vatito' THEN p.id END) as vatito_play_count,
-                    COUNT(DISTINCT CASE WHEN p.account = 'robertlover' THEN p.id END) as robertlover_play_count,
-                    SUM(s.length_seconds) as time_listened,
+                    SUM(COALESCE(p.play_count, 0)) as play_count,
+                    SUM(COALESCE(p.vatito_play_count, 0)) as vatito_play_count,
+                    SUM(COALESCE(p.robertlover_play_count, 0)) as robertlover_play_count,
+                    SUM(s.length_seconds * COALESCE(p.play_count, 1)) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT al.id) as album_count,
                     COUNT(DISTINCT s.id) as song_count
                 FROM Song s
                 JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Play p ON s.id = p.song_id
+                LEFT JOIN song_play_counts p ON s.id = p.song_id
                 WHERE COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL
                 GROUP BY effective_gender_id
             ) stats ON g.id = stats.effective_gender_id
@@ -161,9 +170,9 @@ public class GenderService {
             "        COALESCE(s.override_gender_id, ar.gender_id) as gender_id, " +
             "        ar.id as artist_id, " +
             "        ar.name as artist_name, " +
-            "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Play p " +
+            "        SUM(p.play_count) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY SUM(p.play_count) DESC) as rn " +
+            "    FROM (SELECT song_id, COUNT(*) AS play_count FROM Play GROUP BY song_id) p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +
@@ -185,9 +194,9 @@ public class GenderService {
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as artist_gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Play p " +
+            "        SUM(p.play_count) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY SUM(p.play_count) DESC) as rn " +
+            "    FROM (SELECT song_id, COUNT(*) AS play_count FROM Play GROUP BY song_id) p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
@@ -211,9 +220,9 @@ public class GenderService {
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as artist_gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Play p " +
+            "        SUM(p.play_count) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_gender_id, ar.gender_id) ORDER BY SUM(p.play_count) DESC) as rn " +
+            "    FROM (SELECT song_id, COUNT(*) AS play_count FROM Play GROUP BY song_id) p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    WHERE COALESCE(s.override_gender_id, ar.gender_id) IN (" + placeholders + ") " +

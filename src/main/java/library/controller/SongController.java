@@ -1066,11 +1066,10 @@ public class SongController {
     }
     
     @GetMapping("/{id}/image")
-    @ResponseBody
-    public byte[] getSongImage(@PathVariable Integer id,
-                               @RequestParam(required = false, defaultValue = "false") boolean thumbnail) {
-        byte[] image = songService.getSongImage(id);
-        return thumbnail ? library.util.ImageUtil.resizeThumbnail(image, 600) : image;
+    public ResponseEntity<byte[]> getSongImage(@PathVariable Integer id,
+                               @RequestParam(required = false, defaultValue = "false") boolean thumbnail,
+                               @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
+        return library.util.ImageResponses.image(songService.getSongImage(id), thumbnail, ifNoneMatch);
     }
     
     @PostMapping("/{id}/image")

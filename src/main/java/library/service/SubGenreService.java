@@ -284,9 +284,9 @@ public class SubGenreService {
             "        ar.id as artist_id, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Play p " +
+            "        SUM(p.play_count) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY SUM(p.play_count) DESC) as rn " +
+            "    FROM (SELECT song_id, COUNT(*) AS play_count FROM Play GROUP BY song_id) p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
@@ -310,9 +310,9 @@ public class SubGenreService {
             "        al.name as album_name, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Play p " +
+            "        SUM(p.play_count) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY SUM(p.play_count) DESC) as rn " +
+            "    FROM (SELECT song_id, COUNT(*) AS play_count FROM Play GROUP BY song_id) p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +
@@ -336,9 +336,9 @@ public class SubGenreService {
             "        s.name as song_name, " +
             "        ar.name as artist_name, " +
             "        ar.gender_id as gender_id, " +
-            "        COUNT(*) as play_count, " +
-            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY COUNT(*) DESC) as rn " +
-            "    FROM Play p " +
+            "        SUM(p.play_count) as play_count, " +
+            "        ROW_NUMBER() OVER (PARTITION BY COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) ORDER BY SUM(p.play_count) DESC) as rn " +
+            "    FROM (SELECT song_id, COUNT(*) AS play_count FROM Play GROUP BY song_id) p " +
             "    JOIN Song s ON p.song_id = s.id " +
             "    JOIN Artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN Album al ON s.album_id = al.id " +

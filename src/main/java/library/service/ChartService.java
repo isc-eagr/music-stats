@@ -1200,12 +1200,26 @@ public class ChartService {
      * Excludes W00 (days before first Monday of year) since those are covered by the last week of the previous year.
      */
     public List<String> getWeeksWithoutCharts() {
+        // Loose index scan: one seek per distinct week on idx_play_period_week_song instead of
+        // reading every play. Runs on every rendered page (missing-charts banner).
         String sql = """
-            SELECT DISTINCT strftime('%Y-W%W', p.play_date) as period_key
-            FROM Play p
-            WHERE p.play_date IS NOT NULL
-              AND p.song_id IS NOT NULL
-              AND strftime('%Y-W%W', p.play_date) NOT IN (
+            WITH RECURSIVE play_weeks(period_key) AS (
+                SELECT (SELECT strftime('%Y-W%W', p.play_date) FROM Play p
+                        WHERE p.play_date IS NOT NULL AND p.song_id IS NOT NULL
+                          AND strftime('%Y-W%W', p.play_date) IS NOT NULL
+                        ORDER BY strftime('%Y-W%W', p.play_date) LIMIT 1)
+                UNION ALL
+                SELECT (SELECT strftime('%Y-W%W', p.play_date) FROM Play p
+                        WHERE p.play_date IS NOT NULL AND p.song_id IS NOT NULL
+                          AND strftime('%Y-W%W', p.play_date) > play_weeks.period_key
+                        ORDER BY strftime('%Y-W%W', p.play_date) LIMIT 1)
+                FROM play_weeks
+                WHERE play_weeks.period_key IS NOT NULL
+            )
+            SELECT period_key
+            FROM play_weeks
+            WHERE period_key IS NOT NULL
+              AND period_key NOT IN (
                   SELECT period_key FROM Chart WHERE chart_type = 'song'
               )
             ORDER BY period_key ASC

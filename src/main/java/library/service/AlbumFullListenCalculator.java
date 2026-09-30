@@ -3,6 +3,8 @@ package library.service;
 import library.dto.AlbumFullListenStats;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -17,6 +19,7 @@ import java.util.TreeMap;
 public class AlbumFullListenCalculator {
 
     private static final int MIN_ALBUM_TRACKS_FOR_FULL_LISTENS = 5;
+    private static final String REQUEST_MEMO_ATTRIBUTE = AlbumFullListenCalculator.class.getName() + ".allJson:";
 
     private final JdbcTemplate jdbcTemplate;
     private final AppConfigService appConfigService;
@@ -30,10 +33,29 @@ public class AlbumFullListenCalculator {
         return calculate(null);
     }
 
+    /**
+     * All-album stats as JSON for the list queries. A catalog request can run the list, count
+     * and gender-count queries with the same full-listen filters, so the result is shared for
+     * the rest of the current HTTP request (never across requests).
+     */
     public String calculateAllAsJson() {
+        AppConfigService.AlbumFullListenConfig config = appConfigService.getAlbumFullListenConfig();
+        RequestAttributes request = RequestContextHolder.getRequestAttributes();
+        String memoKey = REQUEST_MEMO_ATTRIBUTE + config;
+        if (request != null && request.getAttribute(memoKey, RequestAttributes.SCOPE_REQUEST) instanceof String json) {
+            return json;
+        }
+        String json = toJson(calculate(null, config));
+        if (request != null) {
+            request.setAttribute(memoKey, json, RequestAttributes.SCOPE_REQUEST);
+        }
+        return json;
+    }
+
+    private static String toJson(Map<Integer, AlbumFullListenStats> statsByAlbum) {
         StringBuilder json = new StringBuilder("[");
         boolean first = true;
-        for (Map.Entry<Integer, AlbumFullListenStats> entry : calculateAll().entrySet()) {
+        for (Map.Entry<Integer, AlbumFullListenStats> entry : statsByAlbum.entrySet()) {
             if (!first) {
                 json.append(',');
             }
@@ -67,7 +89,11 @@ public class AlbumFullListenCalculator {
     }
 
     private Map<Integer, AlbumFullListenStats> calculate(Set<Integer> targetAlbumIds) {
-        AppConfigService.AlbumFullListenConfig config = appConfigService.getAlbumFullListenConfig();
+        return calculate(targetAlbumIds, appConfigService.getAlbumFullListenConfig());
+    }
+
+    private Map<Integer, AlbumFullListenStats> calculate(Set<Integer> targetAlbumIds,
+                                                         AppConfigService.AlbumFullListenConfig config) {
         Map<Integer, Integer> requiredSongsByAlbum = loadRequiredSongs(config, targetAlbumIds);
         if (requiredSongsByAlbum.isEmpty()) {
             return Collections.emptyMap();
@@ -76,47 +102,36 @@ public class AlbumFullListenCalculator {
         // One chronological pass keeps this O(number of plays). Each album state
         // retains only its current candidate window and slides past excess interruptions.
         Map<Integer, RunState> states = new HashMap<>();
+        Map<Integer, Integer> albumBySong = new HashMap<>();
         if (targetAlbumIds == null) {
-            long[] globalPosition = {0L};
-            jdbcTemplate.query("""
-                    SELECT p.play_date, p.song_id, s.album_id
-                    FROM Play p
-                    LEFT JOIN Song s ON s.id = p.song_id
-                    WHERE s.id IS NULL OR LOWER(s.name) NOT LIKE '%remix%'
-                    ORDER BY p.play_date, p.id
-                    """, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                int albumId = rs.getInt("album_id");
-                boolean albumWasNull = rs.wasNull();
-                int songId = rs.getInt("song_id");
-                boolean songWasNull = rs.wasNull();
-                acceptPlay(0L, ++globalPosition[0], albumId, albumWasNull, songId, songWasNull,
-                        rs.getString("play_date"), requiredSongsByAlbum, states, config);
-            });
+            jdbcTemplate.query("SELECT id, album_id FROM Song WHERE album_id IS NOT NULL",
+                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> albumBySong.put(rs.getInt("id"), rs.getInt("album_id")));
         } else {
             String placeholders = String.join(",", Collections.nCopies(targetAlbumIds.size(), "?"));
-            Map<Integer, Integer> albumBySong = new HashMap<>();
             jdbcTemplate.query("SELECT id, album_id FROM Song WHERE album_id IN (" + placeholders + ")",
                     (org.springframework.jdbc.core.RowCallbackHandler) rs -> albumBySong.put(rs.getInt("id"), rs.getInt("album_id")),
                     targetAlbumIds.toArray());
-            // NULL names, like remixes, are excluded by the original SQL predicate.
-            Set<Integer> excludedSongs = new HashSet<>(jdbcTemplate.queryForList(
-                    "SELECT id FROM Song WHERE name IS NULL OR LOWER(name) LIKE '%remix%'", Integer.class));
-            long[] globalPosition = {0L};
-            // Stream the covering Play index once. Ranking and materializing the entire
-            // history in SQL is unnecessary; interruptions still count across all albums.
-            jdbcTemplate.query("SELECT play_date, song_id FROM Play ORDER BY play_date, id",
-                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                int songId = rs.getInt("song_id");
-                boolean songWasNull = rs.wasNull();
-                if (!songWasNull && excludedSongs.contains(songId)) return;
-                long position = ++globalPosition[0];
-                Integer albumId = songWasNull ? null : albumBySong.get(songId);
-                if (albumId != null) {
-                    acceptPlay(position, 0L, albumId, false, songId, false,
-                            rs.getString("play_date"), requiredSongsByAlbum, states, config);
-                }
-            });
         }
+        // NULL names, like remixes, are excluded by the original SQL predicate.
+        Set<Integer> excludedSongs = new HashSet<>(jdbcTemplate.queryForList(
+                "SELECT id FROM Song WHERE name IS NULL OR LOWER(name) LIKE '%remix%'", Integer.class));
+        long[] globalPosition = {0L};
+        // Stream the Play index once instead of joining Song for every play. Plays of excluded
+        // songs are skipped without taking a position; every other play (including unmatched
+        // ones) counts as an interruption for the albums it does not belong to.
+        jdbcTemplate.query("SELECT play_date, song_id FROM Play ORDER BY play_date, id",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+            int songId = rs.getInt("song_id");
+            boolean songWasNull = rs.wasNull();
+            if (!songWasNull && excludedSongs.contains(songId)) return;
+            long position = ++globalPosition[0];
+            Integer albumId = songWasNull ? null : albumBySong.get(songId);
+            if (albumId != null && requiredSongsByAlbum.containsKey(albumId)) {
+                states.computeIfAbsent(albumId, ignored -> new RunState())
+                        .accept(position, songId, rs.getString("play_date"),
+                                requiredSongsByAlbum.get(albumId), config.allowedInterruptingSongs());
+            }
+        });
 
         Map<Integer, AlbumFullListenStats> result = new HashMap<>();
         states.forEach((albumId, state) -> {
@@ -126,22 +141,6 @@ public class AlbumFullListenCalculator {
             }
         });
         return Collections.unmodifiableMap(result);
-    }
-
-    private void acceptPlay(long rankedPosition, long fallbackPosition, int albumId, boolean albumWasNull,
-                            int songId, boolean songWasNull, String playDate,
-                            Map<Integer, Integer> requiredSongsByAlbum, Map<Integer, RunState> states,
-                            AppConfigService.AlbumFullListenConfig config) {
-            long position = rankedPosition > 0 ? rankedPosition : fallbackPosition;
-            if (albumWasNull || !requiredSongsByAlbum.containsKey(albumId)) {
-                return;
-            }
-            if (songWasNull) {
-                return;
-            }
-            states.computeIfAbsent(albumId, ignored -> new RunState())
-                    .accept(position, songId, playDate,
-                            requiredSongsByAlbum.get(albumId), config.allowedInterruptingSongs());
     }
 
     private Map<Integer, Integer> loadRequiredSongs(AppConfigService.AlbumFullListenConfig config,

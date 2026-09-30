@@ -5,20 +5,38 @@ import library.dto.TimeframeResultDTO;
 import library.util.RandomSortUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 public class TimeframeService {
+    // Top items, winning attributes and male days fill different fields of the same page of
+    // cards, so on a connection pool they run at the same time (SQLite WAL allows concurrent
+    // readers). A single shared connection (tests, benchmark tools) runs them one by one.
+    private static final ExecutorService PAGE_DETAIL_EXECUTOR = Executors.newFixedThreadPool(4, task -> {
+        Thread thread = new Thread(task, "timeframe-page-details");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     private final JdbcTemplate jdbcTemplate;
-    
+    private final boolean concurrentPageQueries;
+
     public TimeframeService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+        DataSource dataSource = jdbcTemplate.getDataSource();
+        this.concurrentPageQueries = dataSource != null && !(dataSource instanceof SingleConnectionDataSource);
     }
     
     /**
@@ -152,10 +170,12 @@ public class TimeframeService {
                     COALESCE(SUM(s.length_seconds * p.play_count), 0) as time_listened,
                     COUNT(DISTINCT ar.id) as artist_count,
                     COUNT(DISTINCT CASE WHEN s.album_id IS NOT NULL THEN s.album_id END) as album_count,
-                    COUNT(DISTINCT s.id) as song_count,
-                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN s.id END) as male_song_count,
-                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN s.id END) as female_song_count,
-                    COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN s.id END) as other_song_count,
+                    -- song_period_counts holds one row per period and song, so song counts
+                    -- are plain sums instead of COUNT(DISTINCT) temp b-trees.
+                    COUNT(*) as song_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) as male_song_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) as female_song_count,
+                    SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN 1 ELSE 0 END) as other_song_count,
                     COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN ar.id END) as male_artist_count,
                     COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN ar.id END) as female_artist_count,
                     COUNT(DISTINCT CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) NOT IN (1,2) AND COALESCE(s.override_gender_id, ar.gender_id) IS NOT NULL THEN ar.id END) as other_artist_count,
@@ -549,17 +569,11 @@ public class TimeframeService {
                 results = new ArrayList<>(results.subList(start, end));
             }
             
-            // Step 6: Populate deferred data for the paginated page only
+            // Step 6: Populate deferred data for the paginated page only. Winning attributes
+            // are computed here if deferred; maleDays if not needed for filtering/sorting.
             if (!results.isEmpty()) {
-                populateTopItems(results, periodType);
-                // Compute winning attributes post-pagination if deferred
-                if (deferWinningAttributes) {
-                    populateWinningAttributes(results, periodType);
-                }
-                // Compute maleDays post-pagination if not needed for filtering/sorting
-                if (!"days".equals(periodType) && !needsMaleDaysPrePagination) {
-                    populateMaleDays(results, periodType);
-                }
+                populatePageDetails(results, periodType, deferWinningAttributes,
+                        !"days".equals(periodType) && !needsMaleDaysPrePagination);
             }
             
             return new TimeframeResultDTO(results, totalCount);
@@ -578,16 +592,56 @@ public class TimeframeService {
                 dateFrom, dateTo, maleDaysMin, maleDaysMax);
             
             if (!results.isEmpty()) {
-                populateTopItems(results, periodType);
-                if (deferWinningAttributes) {
-                    populateWinningAttributes(results, periodType);
+                populatePageDetails(results, periodType, deferWinningAttributes, !"days".equals(periodType));
+            }
+
+            return new TimeframeResultDTO(results, totalCount);
+        }
+    }
+
+    private void populatePageDetails(List<TimeframeCardDTO> page, String periodType,
+                                     boolean includeWinningAttributes, boolean includeMaleDays) {
+        List<Runnable> tasks = new ArrayList<>();
+        tasks.add(() -> populateTopItems(page, periodType));
+        if (includeWinningAttributes) {
+            tasks.add(() -> populateWinningAttributes(page, periodType));
+        }
+        if (includeMaleDays) {
+            tasks.add(() -> populateMaleDays(page, periodType));
+        }
+        if (!concurrentPageQueries || tasks.size() == 1) {
+            tasks.forEach(Runnable::run);
+            return;
+        }
+
+        List<Future<?>> background = new ArrayList<>();
+        for (Runnable task : tasks.subList(1, tasks.size())) {
+            background.add(PAGE_DETAIL_EXECUTOR.submit(task));
+        }
+        RuntimeException failure = null;
+        try {
+            tasks.getFirst().run();
+        } catch (RuntimeException e) {
+            failure = e;
+        }
+        // Always wait for every query so no task keeps writing to the page after we return.
+        for (Future<?> future : background) {
+            try {
+                future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                if (failure == null) {
+                    failure = new IllegalStateException("Interrupted while loading timeframe details", e);
                 }
-                if (!"days".equals(periodType)) {
-                    populateMaleDays(results, periodType);
+            } catch (ExecutionException e) {
+                if (failure == null) {
+                    failure = e.getCause() instanceof RuntimeException runtime
+                            ? runtime : new IllegalStateException(e.getCause());
                 }
             }
-            
-            return new TimeframeResultDTO(results, totalCount);
+        }
+        if (failure != null) {
+            throw failure;
         }
     }
 
@@ -624,7 +678,9 @@ public class TimeframeService {
             "    FROM Play p " +
             "    WHERE p.play_date IS NOT NULL AND " + periodKeyExpr + " IN (" + placeholders + ") " + dateBoundsClause +
             "    GROUP BY period_key, p.song_id " +
-            "), base_plays AS ( " +
+            // Materialized so all three rankings share one metadata join; inlined, SQLite
+            // re-planned top albums/songs as a scan of every artist and song.
+            "), base_plays AS MATERIALIZED ( " +
             "    SELECT " +
             "        p.period_key, p.play_count, " +
             "        s.id as song_id, " +

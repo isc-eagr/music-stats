@@ -948,11 +948,10 @@ public class AlbumController {
     }
     
     @GetMapping("/{id}/image")
-    @ResponseBody
-    public byte[] getAlbumImage(@PathVariable Integer id,
-                                @RequestParam(required = false, defaultValue = "false") boolean thumbnail) {
-        byte[] image = albumService.getAlbumImage(id);
-        return thumbnail ? library.util.ImageUtil.resizeThumbnail(image, 600) : image;
+    public ResponseEntity<byte[]> getAlbumImage(@PathVariable Integer id,
+                                @RequestParam(required = false, defaultValue = "false") boolean thumbnail,
+                                @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
+        return library.util.ImageResponses.image(albumService.getAlbumImage(id), thumbnail, ifNoneMatch);
     }
     
     @PostMapping("/{id}/image")
