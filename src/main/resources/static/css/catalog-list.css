@@ -48,41 +48,6 @@
     line-height: 1.2;
 }
 
-.card-detail-modal-body .modal-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.card-detail-modal-body .modal-chip {
-    font-size: 0.75rem;
-    padding: 2px 8px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
-    background-color: #333;
-}
-
-.card-detail-modal-body .modal-chip.genre {
-    background-color: rgba(139, 92, 246, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.5);
-}
-
-.card-detail-modal-body .modal-chip.subgenre {
-    background-color: rgba(167, 139, 250, 0.3);
-    border: 1px solid rgba(167, 139, 250, 0.5);
-}
-
-.card-detail-modal-body .modal-chip.ethnicity {
-    background-color: rgba(245, 158, 11, 0.3);
-    border: 1px solid rgba(245, 158, 11, 0.5);
-}
-
-.card-detail-modal-body .modal-chip.language {
-    background-color: rgba(16, 185, 129, 0.3);
-    border: 1px solid rgba(16, 185, 129, 0.5);
-}
-
 /* Ranked chips below title in detail card */
 .card-detail-modal-body .modal-rank-chips {
     margin-top: 0;
@@ -849,14 +814,6 @@ a.winning-chip:hover {
     gap: 12px;
 }
 
-.catalog-toolbar-meta-row {
-    display: flex;
-    gap: 12px;
-    align-items: stretch;
-    width: 100%;
-    flex-wrap: wrap;
-}
-
 .toolbar-field-panel {
     display: flex;
     align-items: center;
@@ -1022,13 +979,6 @@ a.winning-chip:hover {
     background: rgba(255, 255, 255, 0.04);
 }
 
-.catalog-content-shell {
-    width: calc(100% - 44px);
-    margin: 0 auto;
-    box-sizing: border-box;
-}
-
-
 .gender-counters-container {
     display: flex;
     align-items: center;
@@ -1173,11 +1123,6 @@ a.winning-chip:hover {
         width: 100%;
     }
 
-    .catalog-content-shell {
-        width: calc(100% - 32px);
-        padding: 0;
-    }
-
     .toolbar-sort-label {
         grid-column: 1 / -1;
         justify-self: start;
@@ -1210,8 +1155,7 @@ a.winning-chip:hover {
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
 }
 
-.catalog-list-table,
-#listViewTable {
+.catalog-list-table {
     width: 100%;
     min-width: 1120px;
     border-collapse: collapse;
@@ -1225,16 +1169,8 @@ a.winning-chip:hover {
     table-layout: auto;
 }
 
-#listViewTable {
-    width: 100%;
-    min-width: 1120px;
-    table-layout: fixed;
-}
-
 .catalog-list-table th,
-.catalog-list-table td,
-#listViewTable th,
-#listViewTable td {
+.catalog-list-table td {
     padding: 11px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     vertical-align: middle;
@@ -1245,8 +1181,7 @@ a.winning-chip:hover {
     white-space: nowrap;
 }
 
-.catalog-list-table thead th,
-#listViewTable thead th {
+.catalog-list-table thead th {
     position: sticky;
     top: 0;
     z-index: 1;
@@ -1257,32 +1192,27 @@ a.winning-chip:hover {
     white-space: nowrap;
 }
 
-.catalog-list-table th[data-sort-key],
-#listViewTable th[data-sort-key] {
+.catalog-list-table th[data-sort-key] {
     cursor: pointer;
     user-select: none;
 }
 
-.catalog-list-table th[data-sort-key]:hover,
-#listViewTable th[data-sort-key]:hover {
+.catalog-list-table th[data-sort-key]:hover {
     background: #303030;
     color: #fff;
 }
 
-.catalog-list-table th.sort-asc::after,
-#listViewTable th.sort-asc::after {
+.catalog-list-table th.sort-asc::after {
     content: " \2191";
     color: #9acd32;
 }
 
-.catalog-list-table th.sort-desc::after,
-#listViewTable th.sort-desc::after {
+.catalog-list-table th.sort-desc::after {
     content: " \2193";
     color: #9acd32;
 }
 
-.catalog-list-table tbody tr:hover,
-#listViewTable tbody tr:hover {
+.catalog-list-table tbody tr:hover {
     background: rgba(255, 255, 255, 0.04);
 }
 
@@ -1290,8 +1220,7 @@ a.winning-chip:hover {
     cursor: pointer;
 }
 
-.catalog-list-table .rank-col,
-#listViewTable .rank-col {
+.catalog-list-table .rank-col {
     width: 58px;
     color: var(--text-muted);
     text-align: right;
@@ -1311,26 +1240,22 @@ a.winning-chip:hover {
     min-width: 220px;
 }
 
-.catalog-list-table .numeric-cell,
-#listViewTable .numeric-cell {
+.catalog-list-table .numeric-cell {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
 
-.catalog-list-table .name-cell,
-#listViewTable .name-cell {
+.catalog-list-table .name-cell {
     color: #f3f4f6;
     font-weight: 700;
 }
 
-.catalog-list-table a,
-#listViewTable a {
+.catalog-list-table a {
     color: #9acd32;
     text-decoration: none;
 }
 
-.catalog-list-table a:hover,
-#listViewTable a:hover {
+.catalog-list-table a:hover {
     text-decoration: underline;
 }
 
@@ -1368,8 +1293,7 @@ a.winning-chip:hover {
     color: rgba(229, 229, 229, 0.42);
 }
 
-.catalog-list-table .no-data td,
-#listViewTable .no-data td {
+.catalog-list-table .no-data td {
     padding: 24px;
     text-align: center;
     color: var(--text-muted);
@@ -1452,15 +1376,6 @@ a.winning-chip:hover {
     }
 }
 
-/* Graphs view chart tabs */
-.charts-tabs-bar {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 8px;
-}
 .charts-tab-btn {
     background: transparent;
     border: none;
@@ -1502,28 +1417,11 @@ a.winning-chip:hover {
     color: rgba(255,100,100,0.8);
     gap: 12px;
 }
-.combined-chart-container {
-    position: relative;
-    height: 400px;
-    margin-bottom: 24px;
-}
+
 .charts-controls-bar {
     display: flex;
     align-items: center;
     gap: 16px;
     margin-bottom: 12px;
     font-size: 13px;
-}
-.reload-charts-btn {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.7);
-    padding: 5px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-}
-.reload-charts-btn:hover {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
 }

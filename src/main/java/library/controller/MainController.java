@@ -13,8 +13,6 @@ import library.repository.SongRepositoryImpl;
 import library.service.GlobalSearchService;
 
 import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 
 @Controller
 public class MainController {
@@ -49,25 +47,6 @@ public class MainController {
 		model.addAttribute("listeningTimeByGender", songRepositoryImpl.getListeningTimeByGender());
 		
 		return "index";
-	}
-
-	// API endpoint for gender breakdown chart data
-	@GetMapping("/api/charts/gender")
-	@ResponseBody
-	public Map<String, Object> getGenderChartData() {
-		Map<String, Object> data = new HashMap<>();
-		
-		data.put("playsByGender", songRepositoryImpl.getPlayCountsByGender());
-		data.put("artistsByGender", songRepositoryImpl.getArtistCountsByGender());
-		data.put("songsByGender", songRepositoryImpl.getSongCountsByGender());
-		data.put("albumsByGender", songRepositoryImpl.getAlbumCountsByGender());
-		data.put("listeningTimeByGender", songRepositoryImpl.getListeningTimeByGender());
-		data.put("playsByGenreAndGender", songRepositoryImpl.getPlayCountsByGenreAndGender());
-		data.put("playsByEthnicityAndGender", songRepositoryImpl.getPlayCountsByEthnicityAndGender());
-		data.put("playsByLanguageAndGender", songRepositoryImpl.getPlayCountsByLanguageAndGender());
-		data.put("playsByYearAndGender", songRepositoryImpl.getPlayCountsByYearAndGender());
-		
-		return data;
 	}
 
 	@GetMapping("/api/search/global")

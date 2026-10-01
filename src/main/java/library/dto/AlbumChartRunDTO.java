@@ -133,16 +133,8 @@ public class AlbumChartRunDTO {
             return display;
         }
         
-        public void setDisplay(String display) {
-            this.display = display;
-        }
-        
         public boolean isOnChart() {
             return onChart;
-        }
-        
-        public void setOnChart(boolean onChart) {
-            this.onChart = onChart;
         }
         
         public Integer getPosition() {
@@ -163,10 +155,6 @@ public class AlbumChartRunDTO {
         
         public String getDateRange() {
             return dateRange;
-        }
-        
-        public void setDateRange(String dateRange) {
-            this.dateRange = dateRange;
         }
     }
 }

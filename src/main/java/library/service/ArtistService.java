@@ -8,7 +8,6 @@ import library.dto.ArtistStatsQuery;
 import library.dto.ArtistStatsRow;
 import library.dto.FeaturedArtistCardDTO;
 import library.dto.GenderCountDTO;
-import library.dto.PlaysByYearDTO;
 import library.dto.PlaysByMonthDTO;
 import library.dto.PlayDTO;
 import library.entity.Artist;
@@ -16,6 +15,7 @@ import library.entity.ArtistImage;
 import library.repository.ArtistImageRepository;
 import library.repository.ArtistRepository;
 import library.repository.LookupRepository;
+import library.util.DateFormatUtils;
 import library.util.StringNormalizer;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -33,7 +33,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 @Service
 public class ArtistService {
@@ -163,8 +162,8 @@ public class ArtistService {
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             
-            dto.setFirstListenedDate(row.firstListened() != null ? formatDate(row.firstListened()) : null);
-            dto.setLastListenedDate(row.lastListened() != null ? formatDate(row.lastListened()) : null);
+            dto.setFirstListenedDate(row.firstListened() != null ? DateFormatUtils.formatPlayDate(row.firstListened()) : null);
+            dto.setLastListenedDate(row.lastListened() != null ? DateFormatUtils.formatPlayDate(row.lastListened()) : null);
             dto.setDaysListened(row.daysListened());
             dto.setWeeksListened(row.weeksListened());
             dto.setMonthsListened(row.monthsListened());
@@ -514,10 +513,6 @@ public class ArtistService {
         return Boolean.TRUE.equals(jdbcTemplate.queryForObject("SELECT COALESCE(length(image), 0) > 0 FROM Artist WHERE id = ?", Boolean.class, artistId));
     }
 
-    public List<ArtistImage> getSecondaryImages(Integer artistId) {
-        return artistImageRepository.findByArtistIdOrderByDisplayOrderAsc(artistId);
-    }
-
     public int getSecondaryImageCount(Integer artistId) {
         return artistImageRepository.countByArtistId(artistId);
     }
@@ -644,118 +639,16 @@ public class ArtistService {
         }
         return new ArrayList<>(names);
     }
-    
-    public int[] getAlbumAndSongCounts(int artistId) {
-        Integer songCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM Song WHERE artist_id = ?", Integer.class, artistId);
-        Integer albumCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM Album WHERE artist_id = ?", Integer.class, artistId);
-        return new int[]{albumCount != null ? albumCount : 0, songCount != null ? songCount : 0};
-    }
-    
-    // Cached play stats to avoid multiple queries
-    private static class PlayStats {
-        int totalPlays;
-        int vatitoPlays;
-        int robertloverPlays;
-    }
-    
-    private PlayStats getPlayStatsForArtist(int artistId) {
-        String sql = """
-            SELECT 
-                COUNT(*) as total_plays,
-                SUM(CASE WHEN p.account = 'vatito' THEN 1 ELSE 0 END) as vatito_plays,
-                SUM(CASE WHEN p.account = 'robertlover' THEN 1 ELSE 0 END) as robertlover_plays
-            FROM Play p 
-            INNER JOIN Song s ON p.song_id = s.id 
-            WHERE s.artist_id = ?
-            """;
-        
-        PlayStats stats = jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
-            PlayStats ps = new PlayStats();
-            ps.totalPlays = rs.getInt("total_plays");
-            ps.vatitoPlays = rs.getInt("vatito_plays");
-            ps.robertloverPlays = rs.getInt("robertlover_plays");
-            return ps;
-        }, artistId);
-        
-        return stats != null ? stats : new PlayStats();
-    }
-    
+
     public int getPlayCountForArtist(int artistId) {
-        return getPlayStatsForArtist(artistId).totalPlays;
-    }
-    
-    // Get vatito (primary) play count for artist
-    public int getVatitoPlayCountForArtist(int artistId) {
-        return getPlayStatsForArtist(artistId).vatitoPlays;
-    }
-    
-    // Get robertlover (legacy) play count for artist
-    public int getRobertloverPlayCountForArtist(int artistId) {
-        return getPlayStatsForArtist(artistId).robertloverPlays;
-    }
-    
-    // Return a string with per-account play counts for this artist (e.g. "lastfm: 12\nspotify: 3\n")
-    public String getPlaysByAccountForArtist(int artistId) {
-        String sql = "SELECT p.account, COUNT(*) as cnt FROM Play p JOIN Song s ON p.song_id = s.id WHERE s.artist_id = ? GROUP BY p.account ORDER BY cnt DESC";
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, artistId);
-        StringBuilder sb = new StringBuilder();
-        for (Map<String, Object> row : rows) {
-            Object account = row.get("account");
-            Object cnt = row.get("cnt");
-            sb.append(account != null ? account.toString() : "unknown");
-            sb.append(": ");
-            sb.append(cnt != null ? cnt.toString() : "0");
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
-    
-    // Get total listening time for an artist (sum of all songs' listening time)
-    public String getTotalListeningTimeForArtist(int artistId) {
         String sql = """
-            SELECT SUM(s.length_seconds) as total_seconds
+            SELECT COUNT(*)
             FROM Play p
             INNER JOIN Song s ON p.song_id = s.id
             WHERE s.artist_id = ?
             """;
-        
-        Long totalSeconds = jdbcTemplate.queryForObject(sql, Long.class, artistId);
-        if (totalSeconds == null || totalSeconds == 0) {
-            return "-";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        long seconds = totalSeconds % 60;
-        
-        // Smart formatting
-        if (days > 0) {
-            return String.format("%dd:%02d:%02d:%02d", days, hours, minutes, seconds);
-        } else if (hours > 0) {
-            return String.format("%d:%02d:%02d", hours, minutes, seconds);
-        } else {
-            return String.format("%d:%02d", minutes, seconds);
-        }
-    }
-    
-    // Get first listened date for an artist (earliest play)
-    public String getFirstListenedDateForArtist(int artistId) {
-        String sql = """
-            SELECT MIN(p.play_date)
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ?
-            """;
-        
-        try {
-            String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
-            return formatDate(date);
-        } catch (Exception e) {
-            return "-";
-        }
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
+        return count != null ? count : 0;
     }
 
     public ArtistFirstListenedSongDTO getFirstListenedSongForArtist(int artistId) {
@@ -776,114 +669,6 @@ public class ArtistService {
         }
     }
 
-    // Get first listened date for an artist as LocalDate (for calculations)
-    public java.time.LocalDate getFirstListenedDateAsLocalDateForArtist(int artistId) {
-        String sql = """
-            SELECT MIN(DATE(p.play_date))
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ?
-            """;
-        
-        try {
-            String dateStr = jdbcTemplate.queryForObject(sql, String.class, artistId);
-            return dateStr != null ? java.time.LocalDate.parse(dateStr) : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    // Get last listened date for an artist (most recent play)
-    public String getLastListenedDateForArtist(int artistId) {
-        String sql = """
-            SELECT MAX(p.play_date)
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ?
-            """;
-        
-        try {
-            String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
-            return formatDate(date);
-        } catch (Exception e) {
-            return "-";
-        }
-    }
-
-    // Get unique days played for an artist
-    public int getUniqueDaysPlayedForArtist(int artistId) {
-        String sql = """
-            SELECT COUNT(DISTINCT DATE(p.play_date))
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
-            """;
-        try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-            return count != null ? count : 0;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    // Get unique weeks played for an artist
-    public int getUniqueWeeksPlayedForArtist(int artistId) {
-        String sql = """
-            SELECT COUNT(DISTINCT strftime('%Y-%W', p.play_date))
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
-            """;
-        try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-            return count != null ? count : 0;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    // Get unique months played for an artist
-    public int getUniqueMonthsPlayedForArtist(int artistId) {
-        String sql = """
-            SELECT COUNT(DISTINCT strftime('%Y-%m', p.play_date))
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
-            """;
-        try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-            return count != null ? count : 0;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    // Get unique years played for an artist
-    public int getUniqueYearsPlayedForArtist(int artistId) {
-        String sql = """
-            SELECT COUNT(DISTINCT strftime('%Y', p.play_date))
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
-            """;
-        try {
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-            return count != null ? count : 0;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    // Get earliest release date for an artist (from all songs)
-    public String getEarliestReleaseDateForArtist(int artistId) {
-        String sql = "SELECT MIN(release_date) FROM Song WHERE artist_id = ? AND release_date IS NOT NULL";
-        try {
-            return jdbcTemplate.queryForObject(sql, String.class, artistId);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-    
     // Get average song length for an artist (formatted as mm:ss)
     public String getAverageSongLengthFormatted(int artistId) {
         String sql = "SELECT AVG(length_seconds) FROM Song WHERE artist_id = ? AND length_seconds IS NOT NULL";
@@ -1019,7 +804,7 @@ public class ArtistService {
             dto.setName(rs.getString("name"));
             dto.setHasImage(rs.getBoolean("has_image"));
             dto.setAlbumHasImage(rs.getBoolean("album_has_image"));
-            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setReleaseDate(DateFormatUtils.formatPlayDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
             dto.setSubgenre(rs.getString("subgenre"));
@@ -1042,8 +827,8 @@ public class ArtistService {
             // Format first and last listen dates
             String firstListen = rs.getString("first_listen");
             String lastListen = rs.getString("last_listen");
-            dto.setFirstListenedDate(formatDate(firstListen));
-            dto.setLastListenedDate(formatDate(lastListen));
+            dto.setFirstListenedDate(DateFormatUtils.formatPlayDate(firstListen));
+            dto.setLastListenedDate(DateFormatUtils.formatPlayDate(lastListen));
             
             // Calculate total listening time
             dto.calculateTotalListeningTime();
@@ -1202,7 +987,7 @@ public class ArtistService {
             ArtistAlbumDTO dto = new ArtistAlbumDTO();
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
-            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setReleaseDate(DateFormatUtils.formatPlayDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
             dto.setSubgenre(rs.getString("subgenre"));
@@ -1229,8 +1014,8 @@ public class ArtistService {
             // Format first and last listen dates
             String firstListen = rs.getString("first_listen");
             String lastListen = rs.getString("last_listen");
-            dto.setFirstListenedDate(formatDate(firstListen));
-            dto.setLastListenedDate(formatDate(lastListen));
+            dto.setFirstListenedDate(DateFormatUtils.formatPlayDate(firstListen));
+            dto.setLastListenedDate(DateFormatUtils.formatPlayDate(lastListen));
             dto.setInItunes(itunesService.albumExistsInItunes(rs.getString("artist_name"), dto.getName()));
             
             // Calculate and format total listening time
@@ -1319,7 +1104,7 @@ public class ArtistService {
             ArtistAlbumDTO dto = new ArtistAlbumDTO();
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
-            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setReleaseDate(DateFormatUtils.formatPlayDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
             dto.setSubgenre(rs.getString("subgenre"));
@@ -1344,8 +1129,8 @@ public class ArtistService {
             
             String firstListen = rs.getString("first_listen");
             String lastListen = rs.getString("last_listen");
-            dto.setFirstListenedDate(formatDate(firstListen));
-            dto.setLastListenedDate(formatDate(lastListen));
+            dto.setFirstListenedDate(DateFormatUtils.formatPlayDate(firstListen));
+            dto.setLastListenedDate(DateFormatUtils.formatPlayDate(lastListen));
             
             int listeningSeconds = rs.getInt("total_listening_seconds");
             if (!rs.wasNull() && listeningSeconds > 0) {
@@ -1587,40 +1372,6 @@ public class ArtistService {
         return null;
     }
 
-    // Helper method to format date strings (from play_date)
-    private String formatDate(String dateTimeString) {
-        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
-            return "-";
-        }
-        
-        try {
-            // Parse various formats (handles "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD")
-            String datePart = dateTimeString.trim();
-            if (datePart.contains(" ")) {
-                datePart = datePart.split(" ")[0];
-            }
-            
-            // Parse YYYY-MM-DD
-            String[] parts = datePart.split("-");
-            if (parts.length == 3) {
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]);
-                int day = Integer.parseInt(parts[2]);
-                
-                // Month names (3-character)
-                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                
-                // Format as DD-Mon-YYYY (e.g., "01-Nov-2025") with zero-padded day
-                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
-            }
-            
-            return datePart;
-        } catch (Exception e) {
-            return dateTimeString;
-        }
-    }
-    
     /**
      * Safely parse a date stored as ISO string (YYYY-MM-DD).
      * Will fail on numeric timestamps - those should be fixed in the database.
@@ -1688,27 +1439,6 @@ public class ArtistService {
             """;
         Long count = jdbcTemplate.queryForObject(sql, Long.class, artistId);
         return count != null ? count : 0;
-    }
-    
-    // Get plays by year for an artist
-    public List<PlaysByYearDTO> getPlaysByYearForArtist(int artistId) {
-        String sql = """
-            SELECT 
-                strftime('%Y', p.play_date) as year,
-                COUNT(*) as play_count
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
-            GROUP BY strftime('%Y', p.play_date)
-            ORDER BY year ASC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByYearDTO dto = new PlaysByYearDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, artistId);
     }
     
     // Get plays by month for an artist
@@ -2285,139 +2015,7 @@ public class ArtistService {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
         return count != null ? count : 0;
     }
-    
-    /**
-     * Get aggregated vatito (primary) play count for an artist including all groups
-     */
-    public int getAggregatedVatitoPlayCount(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ") AND p.account = 'vatito'";
-        
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
-        return count != null ? count : 0;
-    }
-    
-    /**
-     * Get aggregated robertlover (legacy) play count for an artist including all groups
-     */
-    public int getAggregatedRobertloverPlayCount(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ") AND p.account = 'robertlover'";
-        
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
-        return count != null ? count : 0;
-    }
-    
-    /**
-     * Get aggregated listening time for an artist including all groups they belong to
-     */
-    public String getAggregatedListeningTime(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT SUM(s.length_seconds) as total_seconds FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
-        
-        Long totalSeconds = jdbcTemplate.queryForObject(sql, Long.class, allArtistIds.toArray());
-        if (totalSeconds == null || totalSeconds == 0) {
-            return "-";
-        }
-        
-        long days = totalSeconds / 86400;
-        long hours = (totalSeconds % 86400) / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        long seconds = totalSeconds % 60;
-        
-        if (days > 0) {
-            return String.format("%dd:%02d:%02d:%02d", days, hours, minutes, seconds);
-        } else if (hours > 0) {
-            return String.format("%d:%02d:%02d", hours, minutes, seconds);
-        } else {
-            return String.format("%d:%02d", minutes, seconds);
-        }
-    }
-    
-    /**
-     * Get aggregated first listened date for an artist including all groups
-     */
-    public String getAggregatedFirstListenedDate(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT MIN(p.play_date) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
-        
-        try {
-            String date = jdbcTemplate.queryForObject(sql, String.class, allArtistIds.toArray());
-            return formatDate(date);
-        } catch (Exception e) {
-            return "-";
-        }
-    }
-    
-    /**
-     * Get aggregated last listened date for an artist including all groups
-     */
-    public String getAggregatedLastListenedDate(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT MAX(p.play_date) FROM Play p INNER JOIN Song s ON p.song_id = s.id WHERE s.artist_id IN (" + placeholders + ")";
-        
-        try {
-            String date = jdbcTemplate.queryForObject(sql, String.class, allArtistIds.toArray());
-            return formatDate(date);
-        } catch (Exception e) {
-            return "-";
-        }
-    }
-    
-    /**
-     * Get aggregated plays by year for an artist including all groups
-     */
-    public List<PlaysByYearDTO> getAggregatedPlaysByYear(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT strftime('%Y', p.play_date) as year, COUNT(*) as play_count " +
-            "FROM Play p INNER JOIN Song s ON p.song_id = s.id " +
-            "WHERE s.artist_id IN (" + placeholders + ") AND p.play_date IS NOT NULL " +
-            "GROUP BY strftime('%Y', p.play_date) ORDER BY year ASC";
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByYearDTO dto = new PlaysByYearDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, allArtistIds.toArray());
-    }
-    
+
     /**
      * Get aggregated plays by month for an artist including all groups
      */
@@ -2516,7 +2114,7 @@ public class ArtistService {
             dto.setName(rs.getString("name"));
             dto.setHasImage(rs.getBoolean("has_image"));
             dto.setAlbumHasImage(rs.getBoolean("album_has_image"));
-            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setReleaseDate(DateFormatUtils.formatPlayDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
             dto.setSubgenre(rs.getString("subgenre"));
@@ -2539,8 +2137,8 @@ public class ArtistService {
             // Format first and last listen dates
             String firstListen = rs.getString("first_listen");
             String lastListen = rs.getString("last_listen");
-            dto.setFirstListenedDate(formatDate(firstListen));
-            dto.setLastListenedDate(formatDate(lastListen));
+            dto.setFirstListenedDate(DateFormatUtils.formatPlayDate(firstListen));
+            dto.setLastListenedDate(DateFormatUtils.formatPlayDate(lastListen));
             
             // Calculate total listening time
             dto.calculateTotalListeningTime();
@@ -2638,7 +2236,7 @@ public class ArtistService {
             ArtistAlbumDTO dto = new ArtistAlbumDTO();
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
-            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setReleaseDate(DateFormatUtils.formatPlayDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
             dto.setSubgenre(rs.getString("subgenre"));
@@ -2665,8 +2263,8 @@ public class ArtistService {
             // Format first and last listen dates
             String firstListen = rs.getString("first_listen");
             String lastListen = rs.getString("last_listen");
-            dto.setFirstListenedDate(formatDate(firstListen));
-            dto.setLastListenedDate(formatDate(lastListen));
+            dto.setFirstListenedDate(DateFormatUtils.formatPlayDate(firstListen));
+            dto.setLastListenedDate(DateFormatUtils.formatPlayDate(lastListen));
             
             // Calculate and format total listening time
             int listeningSeconds = rs.getInt("total_listening_seconds");
@@ -2820,41 +2418,7 @@ public class ArtistService {
         }
         return String.format("%d:%02d", minutes, seconds);
     }
-    
-    /**
-     * Get aggregated song count for an artist including all groups
-     */
-    public int getAggregatedSongCount(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Song WHERE artist_id IN (" + placeholders + ")";
-        
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
-        return count != null ? count : 0;
-    }
-    
-    /**
-     * Get aggregated album count for an artist including all groups
-     */
-    public int getAggregatedAlbumCount(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT COUNT(*) FROM Album WHERE artist_id IN (" + placeholders + ")";
-        
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, allArtistIds.toArray());
-        return count != null ? count : 0;
-    }
-    
+
     /**
      * Get aggregated plays with pagination for an artist including all groups
      */
@@ -3093,50 +2657,7 @@ public class ArtistService {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
         return count != null ? count : 0;
     }
-    
-    /**
-     * Get total listening time for songs where this artist is featured
-     */
-    public String getFeaturedListeningTime(int artistId) {
-        String sql = """
-            SELECT COALESCE(SUM(s.length_seconds), 0)
-            FROM Play p
-            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE sfa.artist_id = ?
-            """;
-        Integer totalSeconds = jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-        return TimeFormatUtils.formatTime(totalSeconds != null ? totalSeconds : 0);
-    }
-    
-    /**
-     * Get first listened date for songs where this artist is featured
-     */
-    public String getFeaturedFirstListenedDate(int artistId) {
-        String sql = """
-            SELECT MIN(p.play_date)
-            FROM Play p
-            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
-            WHERE sfa.artist_id = ?
-            """;
-        String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
-        return formatDate(date);
-    }
-    
-    /**
-     * Get last listened date for songs where this artist is featured
-     */
-    public String getFeaturedLastListenedDate(int artistId) {
-        String sql = """
-            SELECT MAX(p.play_date)
-            FROM Play p
-            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
-            WHERE sfa.artist_id = ?
-            """;
-        String date = jdbcTemplate.queryForObject(sql, String.class, artistId);
-        return formatDate(date);
-    }
-    
+
     /**
      * Get songs where this artist is featured (for Songs table in General tab)
      */
@@ -3201,7 +2722,7 @@ public class ArtistService {
             dto.setName(rs.getString("name"));
             dto.setHasImage(rs.getBoolean("has_image"));
             dto.setAlbumHasImage(rs.getBoolean("album_has_image"));
-            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setReleaseDate(DateFormatUtils.formatPlayDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
             dto.setSubgenre(rs.getString("subgenre"));
@@ -3222,8 +2743,8 @@ public class ArtistService {
             dto.setRobertloverPlays(rs.getInt("robertlover_plays"));
             dto.setTotalPlays(rs.getInt("total_plays"));
             
-            dto.setFirstListenedDate(formatDate(rs.getString("first_listen")));
-            dto.setLastListenedDate(formatDate(rs.getString("last_listen")));
+            dto.setFirstListenedDate(DateFormatUtils.formatPlayDate(rs.getString("first_listen")));
+            dto.setLastListenedDate(DateFormatUtils.formatPlayDate(rs.getString("last_listen")));
             
             dto.calculateTotalListeningTime();
             if (dto.getLength() != null && dto.getTotalPlays() != null) {
@@ -3287,29 +2808,6 @@ public class ArtistService {
             """;
         Long count = jdbcTemplate.queryForObject(sql, Long.class, artistId);
         return count != null ? count : 0L;
-    }
-    
-    /**
-     * Get plays by year for songs where this artist is featured
-     */
-    public java.util.Map<Integer, Integer> getFeaturedPlaysByYear(int artistId) {
-        String sql = """
-            SELECT strftime('%Y', p.play_date) as year, COUNT(*) as count
-            FROM Play p
-            INNER JOIN SongFeaturedArtist sfa ON p.song_id = sfa.song_id
-            WHERE sfa.artist_id = ?
-            GROUP BY year
-            ORDER BY year
-            """;
-        
-        java.util.Map<Integer, Integer> result = new java.util.LinkedHashMap<>();
-        jdbcTemplate.query(sql, rs -> {
-            String yearStr = rs.getString("year");
-            if (yearStr != null) {
-                result.put(Integer.parseInt(yearStr), rs.getInt("count"));
-            }
-        }, artistId);
-        return result;
     }
     
     // ============= RANKING METHODS =============
@@ -3543,52 +3041,5 @@ public class ArtistService {
         params.add(artistId);
         
         jdbcTemplate.update(sql.toString(), params.toArray());
-    }
-
-    public int getSoloSongCountForArtist(Integer artistId) {
-        String sql = "SELECT COUNT(*) FROM Song s WHERE s.artist_id = ? AND s.id NOT IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa)";
-        return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-    }
-
-    public int getSongsWithFeatCountForArtist(Integer artistId) {
-        // Count songs where this artist is the primary artist AND has featured artists,
-        // PLUS foreign songs in this artist's albums (songs by a different primary artist)
-        String sql = """
-            SELECT COUNT(DISTINCT s.id) FROM Song s
-            LEFT JOIN Album al ON s.album_id = al.id
-            WHERE (
-                (s.artist_id = ? AND EXISTS (SELECT 1 FROM SongFeaturedArtist sfa WHERE sfa.song_id = s.id))
-                OR (al.artist_id = ? AND s.artist_id != ?)
-            )
-            """;
-        return jdbcTemplate.queryForObject(sql, Integer.class, artistId, artistId, artistId);
-    }
-
-    public int getStandaloneSongCountForArtist(Integer artistId) {
-        String sql = "SELECT COUNT(*) FROM Song WHERE artist_id = ? AND album_id IS NULL";
-        return jdbcTemplate.queryForObject(sql, Integer.class, artistId);
-    }
-
-    public String getAverageAlbumLengthFormatted(int artistId) {
-        String sql = """
-            SELECT AVG(album_total_length) FROM (
-                SELECT al.id, COALESCE(SUM(s.length_seconds), 0) AS album_total_length
-                FROM Album al
-                LEFT JOIN Song s ON s.album_id = al.id AND s.length_seconds IS NOT NULL
-                WHERE al.artist_id = ?
-                GROUP BY al.id
-            )
-            """;
-        try {
-            Double avgSeconds = jdbcTemplate.queryForObject(sql, Double.class, artistId);
-            if (avgSeconds == null || avgSeconds == 0) return "-";
-            int totalSeconds = (int) Math.round(avgSeconds);
-            int h = totalSeconds / 3600;
-            int m = (totalSeconds % 3600) / 60;
-            int s = totalSeconds % 60;
-            return h > 0 ? String.format("%d:%02d:%02d", h, m, s) : String.format("%d:%02d", m, s);
-        } catch (Exception e) {
-            return "-";
-        }
     }
 }

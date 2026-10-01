@@ -150,25 +150,6 @@ public class PlayAutomationStateService {
         return Math.max(0L, stored);
     }
 
-    public void updateRunIntervalMinutes(int runIntervalMinutes) {
-        AppConfigService.AutomationConfig automationConfig = appConfigService.getAutomationConfig();
-        int safeRunIntervalMinutes = Math.max(AppConfigService.MIN_AUTOMATION_INTERVAL_MINUTES,
-            Math.min(AppConfigService.MAX_AUTOMATION_INTERVAL_MINUTES, runIntervalMinutes));
-        appConfigService.updateAutomationConfig(new AppConfigService.AutomationConfig(
-            automationConfig.enabled(),
-            automationConfig.account(),
-            automationConfig.apiKey(),
-            safeRunIntervalMinutes,
-            automationConfig.importLogLimit(),
-            automationConfig.startHour(),
-            automationConfig.endHour()
-        ));
-        jdbcTemplate.update(
-                "UPDATE play_import_automation_state SET run_interval_minutes = ? WHERE id = 1",
-            safeRunIntervalMinutes
-        );
-    }
-
     public void appendRunLog(String status, String message, int importedCount, int unmatchedCount, PlayService.ValidationResult validation) {
         StateRow row = loadStateRow();
         jdbcTemplate.update(

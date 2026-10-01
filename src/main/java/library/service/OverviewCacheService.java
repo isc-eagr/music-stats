@@ -43,10 +43,6 @@ public class OverviewCacheService {
         return new ArrayList<>((List<T>) entry.rows());
     }
 
-    public void invalidateAll() {
-        entries.clear();
-    }
-
     private record CacheEntry(long createdAtNanos, List<?> rows) {
     }
 }

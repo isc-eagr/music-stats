@@ -44,7 +44,7 @@ final class TestDatabaseSupport implements AutoCloseable {
         seedCatalog();
 
         AlbumFullListenCalculator fullListenCalculator = new AlbumFullListenCalculator(jdbcTemplate, appConfigService);
-        this.songRepository = new SongRepository(jdbcTemplate, fullListenCalculator);
+        this.songRepository = new SongRepository(jdbcTemplate);
         this.artistRepository = new ArtistRepositoryImpl(jdbcTemplate);
         this.albumRepository = new AlbumRepository(jdbcTemplate, fullListenCalculator);
     }

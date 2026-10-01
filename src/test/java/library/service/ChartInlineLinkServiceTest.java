@@ -2,7 +2,6 @@ package library.service;
 
 import library.dto.PcOverviewRowDTO;
 import library.entity.TrlDebut;
-import library.repository.TrlDebutRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -77,7 +76,7 @@ class ChartInlineLinkServiceTest {
     @Test
     void trlMatchReturnsTheFreshDebutRowForInlineReplacement() {
         JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
-        TrlService service = spy(new TrlService(mock(TrlDebutRepository.class), jdbcTemplate));
+        TrlService service = spy(new TrlService(jdbcTemplate));
         TrlDebut updatedRow = new TrlDebut();
         updatedRow.setId(7);
         updatedRow.setSongId(42);

@@ -253,7 +253,6 @@ public class TimeframeController {
         // Sorting
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "period");
         
         // Lookup data for filters

@@ -382,24 +382,6 @@ public class YearService {
         return years;
     }
 
-    public long countListenYears() {
-        // Count total years in the range (including empty years)
-        String minMaxSql = "SELECT MIN(CAST(strftime('%Y', play_date) AS INTEGER)) as min_year, " +
-                          "MAX(CAST(strftime('%Y', play_date) AS INTEGER)) as max_year " +
-                          "FROM Play WHERE play_date IS NOT NULL";
-        try {
-            var result = jdbcTemplate.queryForMap(minMaxSql);
-            Integer minYear = result.get("min_year") != null ? ((Number) result.get("min_year")).intValue() : null;
-            Integer maxYear = result.get("max_year") != null ? ((Number) result.get("max_year")).intValue() : null;
-            if (minYear != null && maxYear != null) {
-                return maxYear - minYear + 1;
-            }
-        } catch (Exception e) {
-            // No data
-        }
-        return 0;
-    }
-
     public long countReleaseYears() {
         String sql = "SELECT COUNT(DISTINCT strftime('%Y', COALESCE(s.release_date, al.release_date))) " +
                      "FROM Song s LEFT JOIN Album al ON s.album_id = al.id " +

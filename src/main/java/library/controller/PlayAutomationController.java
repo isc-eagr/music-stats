@@ -1,9 +1,7 @@
 package library.controller;
 
-import library.service.AppConfigService;
 import library.service.PlayAutomationStateService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,27 +39,5 @@ public class PlayAutomationController {
         response.put("success", true);
         response.put("unmatchedBanner", bannerState.getUnmatchedBanner());
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/config")
-    public ResponseEntity<Map<String, Object>> updateAutomationConfig(@RequestBody Map<String, Object> request) {
-        Integer runIntervalMinutes = request.get("runIntervalMinutes") instanceof Number number
-                ? number.intValue()
-                : null;
-
-        if (runIntervalMinutes == null
-            || runIntervalMinutes < AppConfigService.MIN_AUTOMATION_INTERVAL_MINUTES
-            || runIntervalMinutes > AppConfigService.MAX_AUTOMATION_INTERVAL_MINUTES) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "error", "Run interval must be between 1 and 180 minutes."
-            ));
-        }
-
-        automationStateService.updateRunIntervalMinutes(runIntervalMinutes);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "runIntervalMinutes", runIntervalMinutes
-        ));
     }
 }

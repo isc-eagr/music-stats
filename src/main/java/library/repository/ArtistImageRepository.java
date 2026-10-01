@@ -16,7 +16,5 @@ public interface ArtistImageRepository extends JpaRepository<ArtistImage, Intege
     @Query("SELECT COALESCE(MAX(ai.displayOrder), 0) FROM ArtistImage ai WHERE ai.artistId = :artistId")
     Integer getMaxDisplayOrder(@Param("artistId") Integer artistId);
 
-    void deleteByArtistId(Integer artistId);
-
     int countByArtistId(Integer artistId);
 }

@@ -68,7 +68,6 @@ class OverviewTemplateRenderTest {
         model.put("pageTitle", "Chart Overview");
         model.put("unitLabel", "Weeks");
         model.put("serverInfiniteScrollEnabled", true);
-        model.put("weeklyInfiniteScrollEnabled", source.equals("weekly"));
         model.put("pageSize", 25);
         model.put("activeTotalCount", 1);
         model.put("resultTotal", 0);

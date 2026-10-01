@@ -7,62 +7,19 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ChartEntryRepository extends JpaRepository<ChartEntry, Integer> {
-    
-    /**
-     * Find all entries for a chart, ordered by position.
-     */
-    @Query("SELECT e FROM ChartEntry e WHERE e.chartId = :chartId ORDER BY e.position ASC")
-    List<ChartEntry> findByChartIdOrderByPosition(@Param("chartId") Integer chartId);
-    
-    /**
-     * Find an entry by chart and song.
-     */
-    Optional<ChartEntry> findByChartIdAndSongId(Integer chartId, Integer songId);
-    
-    /**
-     * Find an entry by chart and album.
-     */
-    Optional<ChartEntry> findByChartIdAndAlbumId(Integer chartId, Integer albumId);
-    
-    /**
-     * Find all chart entries for a song across all charts of a given type.
-     * Used for calculating chart run history.
-     */
-    @Query(value = "SELECT ce.* FROM ChartEntry ce " +
-            "INNER JOIN Chart c ON ce.chart_id = c.id " +
-            "WHERE ce.song_id = :songId AND c.chart_type = :chartType " +
-            "ORDER BY c.period_start_date ASC", nativeQuery = true)
-    List<ChartEntry> findAllBySongIdAndChartType(@Param("songId") Integer songId, @Param("chartType") String chartType);
-    
-    /**
-     * Find all chart entries for an album across all charts of a given type.
-     */
-    @Query(value = "SELECT ce.* FROM ChartEntry ce " +
-            "INNER JOIN Chart c ON ce.chart_id = c.id " +
-            "WHERE ce.album_id = :albumId AND c.chart_type = :chartType " +
-            "ORDER BY c.period_start_date ASC", nativeQuery = true)
-    List<ChartEntry> findAllByAlbumIdAndChartType(@Param("albumId") Integer albumId, @Param("chartType") String chartType);
-    
     /**
      * Delete all entries for a chart (used when regenerating).
      */
     void deleteByChartId(Integer chartId);
-    
+
     /**
      * Count entries for a chart.
      */
     long countByChartId(Integer chartId);
-    
-    /**
-     * Find the position of a song in a specific chart (if it exists).
-     */
-    @Query("SELECT e.position FROM ChartEntry e WHERE e.chartId = :chartId AND e.songId = :songId")
-    Optional<Integer> findPositionByChartIdAndSongId(@Param("chartId") Integer chartId, @Param("songId") Integer songId);
-    
+
     /**
      * Get chart entries with song and artist names populated.
      * Returns entries with transient fields filled via a native query.

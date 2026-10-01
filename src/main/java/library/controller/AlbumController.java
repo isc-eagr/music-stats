@@ -373,8 +373,6 @@ public class AlbumController {
         model.addAttribute("ageMin", ageMin);
         model.addAttribute("ageMax", ageMax);
         model.addAttribute("ageMode", ageMode);
-        model.addAttribute("ageAtReleaseMin", ageAtReleaseMin);
-        model.addAttribute("ageAtReleaseMax", ageAtReleaseMax);
         model.addAttribute("birthDate", birthDate);
         model.addAttribute("birthDateFrom", birthDateFrom);
         model.addAttribute("birthDateTo", birthDateTo);
@@ -413,22 +411,16 @@ public class AlbumController {
         model.addAttribute("weeklyChartPeakWeeksMode", weeklyChartPeakWeeksMode != null ? weeklyChartPeakWeeksMode : "gte");
         model.addAttribute("weeklyChartDateFrom", weeklyChartDateFrom);
         model.addAttribute("weeklyChartDateTo", weeklyChartDateTo);
-        model.addAttribute("weeklyChartDateFromFormatted", formatDateForDisplay(weeklyChartDateFrom));
-        model.addAttribute("weeklyChartDateToFormatted", formatDateForDisplay(weeklyChartDateTo));
         model.addAttribute("weeklyChartSeason", weeklyChartSeason);
         model.addAttribute("seasonalChartPeak", seasonalChartPeak);
         model.addAttribute("seasonalChartSeasons", seasonalChartSeasons);
         model.addAttribute("seasonalChartDateFrom", seasonalChartDateFrom);
         model.addAttribute("seasonalChartDateTo", seasonalChartDateTo);
-        model.addAttribute("seasonalChartDateFromFormatted", formatDateForDisplay(seasonalChartDateFrom));
-        model.addAttribute("seasonalChartDateToFormatted", formatDateForDisplay(seasonalChartDateTo));
         model.addAttribute("seasonalChartSeason", seasonalChartSeason);
         model.addAttribute("yearlyChartPeak", yearlyChartPeak);
         model.addAttribute("yearlyChartYears", yearlyChartYears);
         model.addAttribute("yearlyChartDateFrom", yearlyChartDateFrom);
         model.addAttribute("yearlyChartDateTo", yearlyChartDateTo);
-        model.addAttribute("yearlyChartDateFromFormatted", formatDateForDisplay(yearlyChartDateFrom));
-        model.addAttribute("yearlyChartDateToFormatted", formatDateForDisplay(yearlyChartDateTo));
         
         // Release date filter attributes
         model.addAttribute("releaseDate", releaseDate);
@@ -441,42 +433,42 @@ public class AlbumController {
         model.addAttribute("firstListenedDateFrom", firstListenedDateFrom);
         model.addAttribute("firstListenedDateTo", firstListenedDateTo);
         model.addAttribute("firstListenedDateMode", firstListenedDateMode != null ? firstListenedDateMode : "exact");
-        model.addAttribute("firstListenedDateFormatted", formatDateForDisplay(firstListenedDate));
-        model.addAttribute("firstListenedDateFromFormatted", formatDateForDisplay(firstListenedDateFrom));
-        model.addAttribute("firstListenedDateToFormatted", formatDateForDisplay(firstListenedDateTo));
+        model.addAttribute("firstListenedDateFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDate));
+        model.addAttribute("firstListenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDateFrom));
+        model.addAttribute("firstListenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDateTo));
         
         // Last listened date filter attributes
         model.addAttribute("lastListenedDate", lastListenedDate);
         model.addAttribute("lastListenedDateFrom", lastListenedDateFrom);
         model.addAttribute("lastListenedDateTo", lastListenedDateTo);
         model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
-        model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
-        model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
-        model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        model.addAttribute("lastListenedDateFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDate));
+        model.addAttribute("lastListenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDateFrom));
+        model.addAttribute("lastListenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDateTo));
         
         // Last full listen date filter attributes
         model.addAttribute("firstFullListenDate", firstFullListenDate);
         model.addAttribute("firstFullListenDateFrom", firstFullListenDateFrom);
         model.addAttribute("firstFullListenDateTo", firstFullListenDateTo);
         model.addAttribute("firstFullListenDateMode", firstFullListenDateMode != null ? firstFullListenDateMode : "exact");
-        model.addAttribute("firstFullListenDateFormatted", formatDateForDisplay(firstFullListenDate));
-        model.addAttribute("firstFullListenDateFromFormatted", formatDateForDisplay(firstFullListenDateFrom));
-        model.addAttribute("firstFullListenDateToFormatted", formatDateForDisplay(firstFullListenDateTo));
+        model.addAttribute("firstFullListenDateFormatted", DateFormatUtils.formatIsoDateForDisplay(firstFullListenDate));
+        model.addAttribute("firstFullListenDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(firstFullListenDateFrom));
+        model.addAttribute("firstFullListenDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(firstFullListenDateTo));
         model.addAttribute("lastFullListenDate", lastFullListenDate);
         model.addAttribute("lastFullListenDateFrom", lastFullListenDateFrom);
         model.addAttribute("lastFullListenDateTo", lastFullListenDateTo);
         model.addAttribute("lastFullListenDateMode", lastFullListenDateMode != null ? lastFullListenDateMode : "exact");
-        model.addAttribute("lastFullListenDateFormatted", formatDateForDisplay(lastFullListenDate));
-        model.addAttribute("lastFullListenDateFromFormatted", formatDateForDisplay(lastFullListenDateFrom));
-        model.addAttribute("lastFullListenDateToFormatted", formatDateForDisplay(lastFullListenDateTo));
+        model.addAttribute("lastFullListenDateFormatted", DateFormatUtils.formatIsoDateForDisplay(lastFullListenDate));
+        model.addAttribute("lastFullListenDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(lastFullListenDateFrom));
+        model.addAttribute("lastFullListenDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(lastFullListenDateTo));
         model.addAttribute("fullAlbumPlaysMin", fullAlbumPlaysMin);
         model.addAttribute("fullAlbumPlaysMax", fullAlbumPlaysMax);
         
         // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
         model.addAttribute("listenedDateTo", listenedDateTo);
-        model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
-        model.addAttribute("listenedDateToFormatted", formatDateForDisplay(listenedDateTo));
+        model.addAttribute("listenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateFrom));
+        model.addAttribute("listenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateTo));
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
@@ -486,9 +478,7 @@ public class AlbumController {
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "plays");
-        model.addAttribute("includeExtendedStats", includeExtendedStats);
         model.addAttribute("includeFullListenStats", false);
         model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         
@@ -789,15 +779,12 @@ public class AlbumController {
         // Add inherited value names (what would be used if no album override) for dropdown "Inherit" options
         model.addAttribute("inheritedGenreName", a.getArtistGenreId() != null ? genres.get(a.getArtistGenreId()) : null);
         model.addAttribute("inheritedSubgenreName", a.getArtistSubgenreId() != null ? subgenres.get(a.getArtistSubgenreId()) : null);
-        model.addAttribute("inheritedLanguageName", a.getArtistLanguageId() != null ? languages.get(a.getArtistLanguageId()) : null);
         
         // NEW: add album play count
         model.addAttribute("albumPlayCount", albumService.getPlayCountForAlbum(id));
         model.addAttribute("albumVatitoPlayCount", albumService.getVatitoPlayCountForAlbum(id));
         model.addAttribute("albumRobertloverPlayCount", albumService.getRobertloverPlayCountForAlbum(id));
-        // Add per-account breakdown string for tooltip
-        model.addAttribute("albumPlaysByAccount", albumService.getPlaysByAccountForAlbum(id));
-        
+
         // Add album length formatted
         model.addAttribute("albumLengthFormatted", albumService.getAlbumLengthFormatted(id));
         
@@ -821,9 +808,9 @@ public class AlbumController {
                 : new AlbumFullListenStats(null, null, 0);
         model.addAttribute("fullListenEligible", fullListenEligible);
         model.addAttribute("firstFullListenDate", fullListenStats.firstFullListenDate() != null
-                ? formatDateForDisplay(fullListenStats.firstFullListenDate()) : null);
+                ? DateFormatUtils.formatIsoDateForDisplay(fullListenStats.firstFullListenDate()) : null);
         model.addAttribute("lastFullListenDate", fullListenStats.lastFullListenDate() != null
-                ? formatDateForDisplay(fullListenStats.lastFullListenDate()) : null);
+                ? DateFormatUtils.formatIsoDateForDisplay(fullListenStats.lastFullListenDate()) : null);
         model.addAttribute("fullAlbumPlays", fullListenStats.fullAlbumPlays());
         
         // Add unique period stats for the album
@@ -883,14 +870,11 @@ public class AlbumController {
         long playsTotalCount = albumService.countPlaysForAlbum(id);
         model.addAttribute("playsTotalCount", playsTotalCount);
         model.addAttribute("playsPage", playsPage);
-        model.addAttribute("playsPageSize", pageSize);
         model.addAttribute("playsTotalPages", (int) Math.ceil((double) playsTotalCount / pageSize));
-        model.addAttribute("playsByYear", albumService.getPlaysByYearForAlbum(id));
         model.addAttribute("playsByMonth", albumService.getPlaysByMonthForAlbum(id));
         
         // Always load chart history data (eager loading for all tabs)
         model.addAttribute("chartHistory", chartService.getAlbumChartHistory(id));
-        model.addAttribute("songChartHistory", chartService.getAlbumSongChartHistory(id));
         model.addAttribute("allSongsWeeklyStats", chartService.getAlbumAllSongsWithWeeklyStats(id));
         // Songs' seasonal/yearly chart history
         model.addAttribute("seasonalSongChartHistory", chartService.getAlbumSongsChartHistoryByPeriodType(id, "seasonal"));
@@ -1104,9 +1088,9 @@ public class AlbumController {
                 : new AlbumFullListenStats(null, null, 0);
         response.put("fullListenEligible", fullListenEligible);
         response.put("firstFullListenDate", stats.firstFullListenDate() != null
-                ? formatDateForDisplay(stats.firstFullListenDate()) : null);
+                ? DateFormatUtils.formatIsoDateForDisplay(stats.firstFullListenDate()) : null);
         response.put("lastFullListenDate", stats.lastFullListenDate() != null
-                ? formatDateForDisplay(stats.lastFullListenDate()) : null);
+                ? DateFormatUtils.formatIsoDateForDisplay(stats.lastFullListenDate()) : null);
         response.put("fullAlbumPlays", stats.fullAlbumPlays());
         return response;
     }
@@ -1128,27 +1112,6 @@ public class AlbumController {
         return albumService.searchAlbums(query, limit);
     }
     
-    // Helper method to format date strings for display (yyyy-MM-dd -> dd-MMM-yyyy)
-    private String formatDateForDisplay(String dateStr) {
-        if (dateStr == null || dateStr.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            String[] parts = dateStr.split("-");
-            if (parts.length == 3) {
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]);
-                int day = Integer.parseInt(parts[2]);
-                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
-            }
-        } catch (Exception e) {
-            // If parsing fails, return original
-        }
-        return dateStr;
-    }
-
     /**
      * API: Get gender ID for an album (for UI coloring in chart editors).
      */

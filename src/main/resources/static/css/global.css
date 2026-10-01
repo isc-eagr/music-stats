@@ -154,29 +154,6 @@ select:focus {
   box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
 }
 
-/* Search button - compact with green arrow */
-.btn-search {
-  padding: 6px 10px;
-  min-height: auto;
-  background-color: #1a1a1a !important;
-  color: #22c55e;
-  border: 1px solid #333333;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-search:hover {
-  background-color: #2a2a2a !important;
-  border-color: #444444;
-  color: #4ade80;
-}
-
 /* Negative action buttons - dark red theme for Delete, etc. */
 .btn-negative {
   padding: 10px 18px;
@@ -365,67 +342,6 @@ select:focus {
   position: relative;
   display: inline-block;
   border-bottom: 1px dotted transparent;
-}
-
-.tooltip .tooltiptext {
-  display: block;
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px); /* place above the trigger */
-  transform: translateX(-50%) translateY(6px);
-  background-color: rgba(0,0,0,0.92);
-  color: #fff;
-  text-align: left;
-  border-radius: 8px;
-  padding: 8px 10px;
-  z-index: 1000;
-  max-width: 360px;
-  white-space: pre-line; /* preserve line breaks from the plays-by-account string */
-  box-shadow: var(--shadow);
-
-  /* Hidden state */
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
-  will-change: opacity, transform;
-}
-
-
-/* Visible state on hover or keyboard focus */
-.tooltip:hover .tooltiptext,
-.tooltip:focus-within .tooltiptext {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(0);
-  pointer-events: auto;
-  transition-delay: 0s;
-}
-
-/* Small arrow */
-.tooltip .tooltiptext::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  transform: translateX(-50%);
-  border-width: 6px 6px 0 6px;
-  border-style: solid;
-  border-color: rgba(0,0,0,0.92) transparent transparent transparent;
-}
-
-/* Fallback for very narrow screens: show tooltip below trigger */
-@media (max-width: 420px) {
-  .tooltip .tooltiptext {
-    left: 50%;
-    bottom: auto;
-    top: calc(100% + 8px);
-    transform: translateX(-50%) translateY(-6px);
-  }
-  .tooltip:hover .tooltiptext,
-  .tooltip:focus-within .tooltiptext {
-    transform: translateX(-50%) translateY(0);
-  }
 }
 
 .linked-song-tooltip {
@@ -922,9 +838,7 @@ select:focus {
 }
 
 /* Shared dates styles for cards */
-.album-dates,
-.song-dates,
-.artist-dates {
+.song-dates {
     font-size: 11px;
     color: #777;
     margin-top: 8px;
@@ -933,25 +847,6 @@ select:focus {
     display: flex;
     flex-direction: column;
     gap: 3px;
-}
-
-.album-dates .date-item,
-.song-dates .date-item,
-.artist-dates .date-item {
-    display: flex;
-    justify-content: space-between;
-}
-
-.album-dates .date-label,
-.song-dates .date-label,
-.artist-dates .date-label {
-    color: #666;
-}
-
-.album-dates .date-value,
-.song-dates .date-value,
-.artist-dates .date-value {
-    color: #999;
 }
 
 /* Sort metric display for cards */
@@ -1023,51 +918,6 @@ select:focus {
 
 .card-expand-toggle.expanded .expand-arrow {
     /* no rotate - plus sign stays as-is */
-}
-
-.card-expanded-stats {
-    display: none;
-    padding: 8px 0 2px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    margin-top: 4px;
-}
-
-.card-expanded-stats.visible {
-    display: block;
-}
-
-.expanded-stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 10px;
-}
-
-.expanded-stat {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.expanded-stat-label {
-    font-size: 0.6rem;
-    color: #777;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    line-height: 1.2;
-}
-
-.expanded-stat-value {
-    font-size: 0.75rem;
-    color: #d0d0d0;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.expanded-stat-value.null-value {
-    color: #555;
-    font-style: italic;
 }
 
 /* ============================
@@ -1268,14 +1118,6 @@ select:focus {
     word-break: break-word;
 }
 
-/* Force expanded stats visible in modal */
-.card-detail-modal-body .card-expanded-stats {
-    display: block !important;
-    border-top: none;
-    padding-top: 0;
-    margin-top: 0;
-}
-
 /* Hide the expand toggle in modal */
 .card-detail-modal-body .card-expand-toggle {
     display: none !important;
@@ -1315,101 +1157,6 @@ select:focus {
     margin-bottom: 3px;
 }
 
-.card-modal-text-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 6px;
-    font-size: 0.75rem;
-}
-
-.card-modal-text-stat-label {
-    color: #888;
-    white-space: nowrap;
-}
-
-.card-modal-text-stat-value {
-    color: #e0e0e0;
-    font-weight: 600;
-    text-align: right;
-}
-
-/* Wider extended stats grid in modal */
-.card-detail-modal-body .expanded-stats-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.card-detail-modal-body .expanded-stat {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 6px;
-    font-size: 0.75rem;
-}
-
-.card-detail-modal-body .expanded-stat-label {
-    color: #888;
-    white-space: nowrap;
-    font-size: 0.75rem;
-    text-transform: none;
-    letter-spacing: normal;
-}
-
-.card-detail-modal-body .expanded-stat-value {
-    color: #e0e0e0;
-    font-weight: 600;
-    text-align: right;
-    font-size: 0.75rem;
-    white-space: normal;
-    overflow: visible;
-    line-height: normal;
-}
-
-/* Detail page: always show extended stats */
-.detail-content-card .card-expanded-stats.always-visible {
-    display: block;
-    border-top: none;
-    padding: 0;
-    margin-top: 0;
-}
-
-/* Extra stats block - same cell style as stats-consistency */
-.stats-extra {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-extra .stat-mini {
-    text-align: center;
-    padding: 10px 6px;
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-extra .stat-mini:last-child {
-    border-right: none;
-}
-
-/* Stats row wrapping for 2-column rows inside stats-extra */
-.stats-extra-2col {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-extra-2col .stat-mini {
-    text-align: center;
-    padding: 10px 6px;
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-extra-2col .stat-mini:last-child {
-    border-right: none;
-}
-
 /* ── Detail page statistics panel (modal-style label/value rows) ── */
 .detail-stats-panel {
     padding: 14px 16px;
@@ -1447,13 +1194,11 @@ select:focus {
 
 /* Gender-colored values in Statistics panel */
 .artist-detail.gender-male .detail-stats-panel .ds-value,
-.album-detail.gender-male .detail-stats-panel .ds-value,
 .song-detail.gender-male .detail-stats-panel .ds-value {
     color: #60a5fa; /* Blue for male */
 }
 
 .artist-detail.gender-female .detail-stats-panel .ds-value,
-.album-detail.gender-female .detail-stats-panel .ds-value,
 .song-detail.gender-female .detail-stats-panel .ds-value {
     color: #f472b6; /* Pink for female */
 }
@@ -1732,52 +1477,6 @@ select:focus {
     color: #fff !important;
 }
 
-.btn-apple-music {
-    padding: 8px 12px;
-    background-color: #2d5016;
-    color: white;
-    border: 1px solid #3d6b1f;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.btn-apple-music:hover {
-    background-color: #3d6b1f;
-    border-color: #4d8028;
-}
-
-.btn-spotify {
-    padding: 8px 12px;
-    background-color: #1a472d;
-    color: #1DB954;
-    border: 1px solid #1DB954;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.btn-spotify:hover {
-    background-color: #1DB954;
-    color: #fff;
-    border-color: #1ed760;
-}
-
-.btn-spotify-edit {
-    background-color: #1a472d !important;
-    color: #1DB954 !important;
-    border: 1px solid #1DB954 !important;
-}
-
-.btn-spotify-edit:hover {
-    background-color: #1DB954 !important;
-    color: #fff !important;
-}
-
 .btn-remove-image {
     padding: 8px 12px;
     background-color: #7f1d1d;
@@ -2051,129 +1750,6 @@ select:focus {
 
 /* ---- STATISTICS SECTION (Redesigned) ---- */
 
-/* Hero stats - prominent display */
-.stats-hero {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-hero .stat-hero-item {
-    padding: 14px 16px;
-    text-align: center;
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-hero .stat-hero-item:last-child {
-    border-right: none;
-}
-
-.stat-hero-item .stat-label {
-    display: block;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #9ca3af;
-    margin-bottom: 6px;
-}
-
-.stat-hero-item .stat-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: #ffffff;
-    line-height: 1.2;
-}
-
-/* Date range row */
-.stats-dates {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-dates .stat-date-item {
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-dates .stat-date-item:last-child {
-    border-right: none;
-}
-
-.stat-date-item .stat-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.04);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
-}
-
-.stat-date-item .stat-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.stat-date-item .stat-label {
-    display: block;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #9ca3af;
-    margin-bottom: 2px;
-}
-
-.stat-date-item .stat-value {
-    font-size: 13px;
-    font-weight: 600;
-    color: #ffffff;
-}
-
-/* Consistency metrics row */
-.stats-consistency {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-}
-
-.stats-consistency .stat-mini {
-    text-align: center;
-    padding: 10px 6px;
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-
-.stats-consistency .stat-mini:last-child {
-    border-right: none;
-}
-
-.stat-mini .stat-label {
-    display: block;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #9ca3af;
-    margin-bottom: 4px;
-}
-
-.stat-mini .stat-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: #ffffff;
-}
-
-.stat-mini .stat-value .stat-total {
-    font-weight: 400;
-    color: #555555;
-}
-
 /* ---- GENERAL/ATTRIBUTES SECTION (Redesigned) ---- */
 
 /* Form container */
@@ -2395,44 +1971,6 @@ select:focus {
 
 /* ---- RESPONSIVE for new design ---- */
 @media (max-width: 768px) {
-    .stats-hero {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-hero .stat-hero-item {
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    
-    .stats-hero .stat-hero-item:last-child {
-        border-bottom: none;
-    }
-    
-    .stats-dates {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-dates .stat-date-item {
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    
-    .stats-dates .stat-date-item:last-child {
-        border-bottom: none;
-    }
-    
-    .stats-consistency {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .stats-consistency .stat-mini:nth-child(2) {
-        border-right: none;
-    }
-    
-    .stats-consistency .stat-mini:nth-child(-n+2) {
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    
     .attributes-grid {
         grid-template-columns: 1fr;
     }
@@ -2569,15 +2107,6 @@ select:focus {
         display: none;
     }
 
-    /* Expanded stats container */
-    .card-expanded-stats {
-        width: 100%;
-        flex-basis: 100%;
-        padding-top: 12px;
-        border-top: 1px solid rgba(255,255,255,0.06);
-        margin-top: 12px;
-    }
-
     /* Show text stats in expanded view on mobile */
     .card-modal-text-stats {
         display: none;
@@ -2586,44 +2115,6 @@ select:focus {
         margin-bottom: 12px;
         padding-bottom: 12px;
         border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    /* Make the expanded stats grid look like the text stats list */
-    .artist-card.mobile-expanded .expanded-stats-grid,
-    .album-card.mobile-expanded .expanded-stats-grid,
-    .song-card.mobile-expanded .expanded-stats-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .artist-card.mobile-expanded .expanded-stat,
-    .album-card.mobile-expanded .expanded-stat,
-    .song-card.mobile-expanded .expanded-stat {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 6px;
-        font-size: 0.75rem;
-    }
-
-    .artist-card.mobile-expanded .expanded-stat-label,
-    .album-card.mobile-expanded .expanded-stat-label,
-    .song-card.mobile-expanded .expanded-stat-label {
-        color: #888;
-        white-space: nowrap;
-        font-size: 0.75rem;
-        text-transform: none;
-        letter-spacing: normal;
-    }
-
-    .artist-card.mobile-expanded .expanded-stat-value,
-    .album-card.mobile-expanded .expanded-stat-value,
-    .song-card.mobile-expanded .expanded-stat-value {
-        color: #e0e0e0;
-        font-weight: 600;
-        text-align: right;
     }
 
     /* When card is expanded via JS */
@@ -2677,12 +2168,6 @@ select:focus {
     .album-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value,
     .song-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value {
         color: #f472b6; /* Pink for female */
-    }
-
-    .artist-card.mobile-expanded .card-expanded-stats,
-    .album-card.mobile-expanded .card-expanded-stats,
-    .song-card.mobile-expanded .card-expanded-stats {
-        display: block;
     }
 
     /* Hide the basic info when expanded to avoid duplication */
@@ -3078,28 +2563,6 @@ select:focus {
   white-space: nowrap;
 }
 
-.global-search-more-link {
-  display: block;
-  padding: 5px 10px 7px;
-  color: #858585;
-  font-size: 11px;
-  font-weight: 500;
-  text-align: right;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.global-search-more-link:hover,
-.global-search-more-link:focus {
-  color: var(--text);
-  text-decoration: none;
-  outline: none;
-}
-
-.global-search-more-link:last-child {
-  border-bottom: none;
-}
-
 .global-search-thumb,
 .global-search-thumb-placeholder {
   width: 40px;
@@ -3277,73 +2740,12 @@ select:focus {
   color: #ffffff;
 }
 
-/* Page header row - title + actions */
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.header-row h1 {
-  margin: 0;
-  flex: 1;
-  min-width: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* Back link (used on detail pages) */
-.back-link {
-  margin-bottom: 20px;
-}
-
-.back-link a {
-  color: #999999;
-  text-decoration: none;
-  font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.back-link a:hover {
-  color: #cccccc;
-}
-
 /* Search and controls (used on list pages) */
 .controls {
   display: flex;
   gap: 20px;
   align-items: flex-start;
   flex-wrap: wrap;
-}
-
-/* List controls row - sort, page size, toggles */
-.list-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.list-controls label {
-  font-weight: bold;
-  margin-right: 5px;
-  white-space: nowrap;
-}
-
-.list-controls .control-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .search-bar {
@@ -3423,28 +2825,6 @@ select:focus {
   box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
 }
 
-/* Charts Toggle Button */
-.charts-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid #2a2a4a;
-  border-radius: 6px;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-left: 10px;
-}
-
-.charts-toggle:hover {
-  background: linear-gradient(135deg, #2a2a4e 0%, #26315e 100%);
-  border-color: #4a4a6a;
-}
-
 /* Active filters chips */
 .active-filters {
   display: flex;
@@ -3496,13 +2876,6 @@ select:focus {
   color: #ffffff;
   font-weight: 700;
   font-size: 1.05em;
-}
-
-/* Highlighted filter values in charts modal */
-.filter-value-highlight {
-  font-weight: 700;
-  font-size: 14px;
-  color: #ffffff;
 }
 
 .filter-chip-remove {
@@ -3751,39 +3124,6 @@ select:focus {
   line-height: 1.4;
 }
 
-.filter-options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.filter-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.filter-option:hover {
-  background-color: #2a2a2a;
-}
-
-.filter-option input[type="checkbox"] {
-  cursor: pointer;
-}
-
-.filter-option label {
-  cursor: pointer;
-  font-size: 13px;
-  color: #e5e7eb;
-  flex: 1;
-}
-
 .filter-actions {
   padding: 20px;
   border-top: 1px solid #2a2a2a;
@@ -3802,30 +3142,6 @@ select:focus {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-}
-
-.filter-actions .apply-filters {
-  background-color: #2d5016 !important;
-  color: white !important;
-  border: 1px solid #3d6b1f !important;
-  box-shadow: 0 2px 4px rgba(45, 80, 22, 0.3);
-}
-
-.filter-actions .apply-filters:hover {
-  background-color: #3d6b1f !important;
-  border-color: #4d8028 !important;
-  box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
-}
-
-.filter-actions .reset-filters {
-  background-color: transparent;
-  color: #999999;
-  border: 1px solid #333333;
-}
-
-.filter-actions .reset-filters:hover {
-  background-color: #1a1a1a;
-  color: #e5e7eb;
 }
 
 /* Alternative button names used in some templates */
@@ -3870,120 +3186,10 @@ select:focus {
 
 /* Album cover thumbnail column */
 .cover-col { width: 68px; padding: 8px 12px; }
-.album-cover-thumb {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 6px;
-    display: block;
-    background: #0f0f0f;
-    border: 1px solid #2a2a2a;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-}
-.cover-link { display: inline-flex; align-items: center; justify-content: center; width: 50px; height: 50px; }
-.album-cover-placeholder {
-    width: 50px;
-    height: 50px;
-    border-radius: 6px;
-    background: linear-gradient(135deg,#1a1a1a,#262626);
-    border: 1px dashed #333;
-    align-items: center;
-    justify-content: center;
-    display: flex;
-}
-
-/* Artist cover thumbnail with 2:3 portrait ratio */
-.artist-cover-thumb {
-    width: 40px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 6px;
-    display: block;
-    background: #0f0f0f;
-    border: 1px solid #2a2a2a;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-}
-.artist-cover-link { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 60px; }
-.artist-cover-placeholder {
-    width: 40px;
-    height: 60px;
-    border-radius: 6px;
-    background: linear-gradient(135deg,#1a1a1a,#262626);
-    border: 1px dashed #333;
-    align-items: center;
-    justify-content: center;
-    display: flex;
-}
-
-/* Catalog buttons grid for main page */
-.catalog-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 16px;
-    margin-top: 16px;
-}
-
-.catalog-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 24px 16px;
-    background: var(--surface);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius);
-    text-decoration: none;
-    color: var(--text);
-    transition: all 0.2s;
-    box-shadow: var(--shadow);
-}
-
-.catalog-btn:hover {
-    background: var(--surface-2);
-    border-color: rgba(255, 255, 255, 0.12);
-    transform: translateY(-2px);
-    text-decoration: none;
-}
-
-.catalog-btn-icon {
-    font-size: 32px;
-}
-
-.catalog-btn-text {
-    font-size: 14px;
-    font-weight: 600;
-}
 
 /* Data section styling for main page */
 .data-section {
     margin-bottom: 32px;
-}
-
-.list-links {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-}
-
-.list-links li a {
-    display: block;
-    padding: 12px 16px;
-    background: var(--surface);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 6px;
-    color: var(--text);
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-.list-links li a:hover {
-    background: var(--surface-2);
-    border-color: rgba(255, 255, 255, 0.12);
-    text-decoration: none;
 }
 
 /* Metadata links in list cards - use neutral styling like detail pages */
@@ -4832,36 +4038,7 @@ body.gender-other .mobile-row-expand-btn.expanded,
     .header h1 {
         font-size: 24px;
     }
-    
-    .header-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .header-actions {
-        width: 100%;
-    }
-    
-    .header-actions .btn-action {
-        flex: 1;
-    }
-    
-    /* List controls - stack vertically on mobile */
-    .list-controls {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-    
-    .list-controls .control-group {
-        width: 100%;
-    }
-    
-    .list-controls select,
-    .list-controls input {
-        flex: 1;
-    }
-    
+
     /* Controls section - stack vertically */
     .controls {
         flex-direction: column;
@@ -5023,18 +4200,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         white-space: normal;
     }
 
-    .table.chart-history-fit-table {
-        width: 100%;
-        min-width: 0;
-        table-layout: fixed;
-    }
-
-    .table.chart-history-fit-table th,
-    .table.chart-history-fit-table td {
-        white-space: normal !important;
-        overflow-wrap: anywhere;
-    }
-    
     .top-table th,
     .top-table td {
         padding: 8px 6px;
@@ -5578,11 +4743,7 @@ body.gender-other .mobile-row-expand-btn.expanded,
         display: flex;
         align-items: center;
     }
-    
-    .filter-option {
-        min-height: 44px;
-    }
-    
+
     .filter-modifier {
         min-height: 40px;
         padding: 10px 14px;

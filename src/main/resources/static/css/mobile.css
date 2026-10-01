@@ -372,10 +372,8 @@
     }
 
     /* Related items tables - ensure horizontal scroll */
-    .detail-content-card .table-container,
     .detail-content-card .top-table-container,
     .detail-content-card .table-wrapper,
-    .detail-content-section .table-container,
     .detail-content-section .top-table-container,
     .detail-content-section .table-wrapper {
         min-width: 0 !important;
@@ -460,12 +458,6 @@
     .toggles-container .include-groups-toggle {
         margin: 0 !important;
         flex-shrink: 0 !important;
-    }
-
-    /* Chart history grid with table overflow handling */
-    .chart-history-grid > .detail-content-card {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -931,7 +923,6 @@
         display: none;
     }
 
-    .active-filters .active-filter-chip,
     .active-filters .chip {
         flex-shrink: 0;
     }
@@ -961,10 +952,6 @@
         justify-content: center;
         flex-wrap: wrap;
     }
-
-    .per-page-container {
-        justify-content: center;
-    }
 }
 
 
@@ -985,37 +972,6 @@
     }
 
     .charts-tabs::-webkit-scrollbar {
-        display: none;
-    }
-
-    .charts-tabs .charts-tab {
-        flex-shrink: 0 !important;
-        white-space: nowrap;
-        border-radius: 20px !important;
-        padding: 8px 16px !important;
-        font-size: 13px !important;
-    }
-
-    /* Controls row - stack vertically */
-    .charts-controls-row {
-        flex-direction: column !important;
-        gap: 10px !important;
-        align-items: stretch !important;
-    }
-
-    /* Sort metric buttons - horizontal scroll */
-    .charts-controls-row .sort-buttons,
-    .charts-controls-row .metric-buttons {
-        display: flex;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        gap: 6px;
-        flex-wrap: nowrap;
-    }
-
-    .charts-controls-row .sort-buttons::-webkit-scrollbar,
-    .charts-controls-row .metric-buttons::-webkit-scrollbar {
         display: none;
     }
 
@@ -1041,7 +997,7 @@
     }
 
     /* Top tables - NO sticky columns on mobile to prevent overlapping */
-    .top-table-container, .table-wrapper, .table-responsive {
+    .top-table-container, .table-wrapper {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
         max-width: 100vw;
@@ -1056,7 +1012,6 @@
     }
 
     /* Column toggle - 2 columns for mobile */
-    .column-toggle-panel .toggle-grid,
     .column-toggle-grid {
         grid-template-columns: 1fr 1fr !important;
         gap: 4px !important;
@@ -1080,18 +1035,6 @@
     /* Stats tables container */
     .stats-tables-row {
         flex-direction: column !important;
-    }
-
-    /* Charts filter display - horizontal scroll */
-    .charts-filters-display {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        flex-wrap: nowrap !important;
-    }
-
-    .charts-filters-display::-webkit-scrollbar {
-        display: none;
     }
 }
 
@@ -1163,7 +1106,6 @@
     .btn,
     .btn-action,
     .btn-negative,
-    .btn-search,
     button {
         min-height: 40px;
     }

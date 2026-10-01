@@ -3,9 +3,7 @@ package library.repository;
 import library.dto.ChartFilterDTO;
 import library.dto.SongStatsQuery;
 import library.dto.SongStatsRow;
-import library.service.AlbumFullListenCalculator;
 import library.util.RandomSortUtils;
-import library.util.TimeFormatUtils;
 import library.util.SqlFilterHelper;
 import library.util.ArtistFilterMode;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,15 +16,12 @@ import java.util.Map;
 
 @Repository
 public class SongRepository {
-    
     private final JdbcTemplate jdbcTemplate;
-    private final AlbumFullListenCalculator fullListenCalculator;
-    
-    public SongRepository(JdbcTemplate jdbcTemplate, AlbumFullListenCalculator fullListenCalculator) {
+
+    public SongRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.fullListenCalculator = fullListenCalculator;
     }
-    
+
     public List<SongStatsRow> findSongsWithStats(SongStatsQuery query) {
         String name = query.name();
         List<Integer> artistName = query.artistName();

@@ -67,9 +67,4 @@ public class TopPlayedSnapshotItemDTO {
 
     public String getMovement() { return movement; }
     public void setMovement(String movement) { this.movement = movement; }
-
-    /** Total days ever in the top 3 */
-    public int getTotalDaysInTop3() {
-        return daysAtPos1 + daysAtPos2 + daysAtPos3;
-    }
 }

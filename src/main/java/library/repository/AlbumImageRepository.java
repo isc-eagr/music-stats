@@ -16,8 +16,6 @@ public interface AlbumImageRepository extends JpaRepository<AlbumImage, Integer>
     @Query("SELECT COALESCE(MAX(ai.displayOrder), 0) FROM AlbumImage ai WHERE ai.albumId = :albumId")
     Integer getMaxDisplayOrder(@Param("albumId") Integer albumId);
 
-    void deleteByAlbumId(Integer albumId);
-
     int countByAlbumId(Integer albumId);
 }
 

@@ -6,11 +6,9 @@ import library.service.LanguageService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/languages")
@@ -46,75 +44,18 @@ public class LanguageController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         return "languages/list";
     }
-    
-    @GetMapping("/{id}")
-    public String viewLanguage(@PathVariable Integer id, Model model) {
-        Optional<Language> language = languageService.getLanguageById(id);
-        
-        if (language.isEmpty()) {
-            return "redirect:/languages";
-        }
-        
-        // Check if language has an image
-        byte[] image = languageService.getLanguageImage(id);
-        boolean hasImage = (image != null && image.length > 0);
-        
-        model.addAttribute("currentSection", "languages");
-        model.addAttribute("language", language.get());
-        model.addAttribute("hasImage", hasImage);
-        
-        // Add statistics for the language
-        Map<String, Object> stats = languageService.getLanguageStats(id);
-        model.addAttribute("stats", stats);
-        
-        // Add top 50 artists, albums, and songs
-        model.addAttribute("topArtists", languageService.getTopArtistsForLanguage(id));
-        model.addAttribute("topAlbums", languageService.getTopAlbumsForLanguage(id));
-        model.addAttribute("topSongs", languageService.getTopSongsForLanguage(id));
-        
-        return "languages/detail";
-    }
-    
+
     @GetMapping("/{id}/image")
     @ResponseBody
     public byte[] getLanguageImage(@PathVariable Integer id) {
         byte[] image = languageService.getLanguageImage(id);
         return image != null ? image : new byte[0];
     }
-    
-    @PostMapping("/{id}/image")
-    @ResponseBody
-    public String uploadLanguageImage(@PathVariable Integer id, @RequestParam("image") MultipartFile file) {
-        try {
-            if (file.isEmpty()) {
-                return "error";
-            }
-            
-            languageService.updateLanguageImage(id, file.getBytes());
-            return "success";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "error";
-        }
-    }
-    
-    @DeleteMapping("/{id}/image")
-    @ResponseBody
-    public String deleteLanguageImage(@PathVariable Integer id) {
-        try {
-            languageService.updateLanguageImage(id, null);
-            return "success";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "error";
-        }
-    }
-    
+
     /**
      * API endpoint to get all languages for dropdowns.
      */

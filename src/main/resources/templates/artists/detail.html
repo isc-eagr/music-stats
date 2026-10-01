@@ -3182,39 +3182,6 @@
                 });
         }
 
-        function handleGalleryImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!file.type.startsWith('image/')) {
-                showWarningToast('Please select an image file');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('image', file);
-
-            fetch(`/artists/${artistId}/images`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Reload gallery to get the new image
-                    window.location.reload();
-                } else {
-                    throw new Error('Failed to add image to gallery');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding image to gallery:', error);
-                showErrorToast('Error adding image to gallery');
-            });
-
-            // Clear the input so the same file can be selected again
-            event.target.value = '';
-        }
-
         function setAsDefaultImage() {
             const currentImageId = galleryImages[currentGalleryIndex];
             if (currentImageId === 0) return; // Already on default
@@ -3266,26 +3233,6 @@
         }
         // ============ END GALLERY FUNCTIONALITY ============
 
-        function showTooltip(element) {
-            const tooltip = element.querySelector('.tooltiptext') || element;
-            if (tooltip.classList.contains('tooltiptext')) {
-                const dataPlays = element.getAttribute('data-plays') || element.parentElement.getAttribute('data-plays');
-                if (dataPlays) {
-                    tooltip.textContent = dataPlays;
-                }
-                tooltip.style.opacity = '1';
-                tooltip.style.visibility = 'visible';
-            }
-        }
-        
-        function hideTooltip(element) {
-            const tooltip = element.querySelector('.tooltiptext') || element;
-            if (tooltip.classList.contains('tooltiptext')) {
-                tooltip.style.opacity = '0';
-                tooltip.style.visibility = 'hidden';
-            }
-        }
-        
         // Initialize table sorting using shared module
         document.addEventListener('DOMContentLoaded', function() {
             // Albums table sorting
@@ -4314,7 +4261,6 @@
             color: rgba(255,255,255,0.55);
         }
         .btn-assign-theme.no-theme:hover { background: rgba(74,144,226,0.55); color: #fff; }
-        #atConfirmBtn:not(:disabled) { opacity: 1; cursor: pointer; }
     </style>
 
     <script>
@@ -4570,56 +4516,6 @@
         button.classList.toggle('expanded', !isVisible);
         button.textContent = isVisible ? '+' : '-';
         button.setAttribute('aria-expanded', String(!isVisible));
-    }
-
-    function toggleMobileChartRow(button) {
-        const mainRow = button.closest('tr');
-        if (!mainRow) return;
-
-        let detailRow = mainRow.nextElementSibling;
-        if (!detailRow || !detailRow.classList.contains('mobile-table-detail-row')) {
-            detailRow = document.createElement('tr');
-            detailRow.className = 'detail-row mobile-table-detail-row';
-
-            const detailCell = document.createElement('td');
-            detailCell.className = 'mobile-table-detail-cell';
-            detailCell.colSpan = mainRow.cells.length;
-            detailCell.innerHTML = renderMobileChartDetails(mainRow);
-
-            detailRow.appendChild(detailCell);
-            mainRow.insertAdjacentElement('afterend', detailRow);
-        }
-
-        const isVisible = detailRow.classList.contains('visible');
-        detailRow.classList.toggle('visible', !isVisible);
-        button.classList.toggle('expanded', !isVisible);
-        button.textContent = isVisible ? '+' : '-';
-        button.setAttribute('aria-expanded', String(!isVisible));
-    }
-
-    function renderMobileChartDetails(row) {
-        const detailFields = [
-            ['Track #', row.dataset.mobileTrackNumber],
-            ['Release', row.dataset.mobileReleaseDate],
-            ['Debut', row.dataset.mobileDebutDate],
-            ['Peak Date', row.dataset.mobilePeakDate]
-        ].filter(([, value]) => value !== undefined);
-
-        return `<div class="mobile-table-detail-grid">${detailFields.map(([label, value]) => `
-            <div class="mobile-table-detail-item">
-                <span class="mobile-table-detail-label">${escapeMobileChartDetailHtml(label)}</span>
-                <span class="mobile-table-detail-value">${escapeMobileChartDetailHtml(value || '-')}</span>
-            </div>
-        `).join('')}</div>`;
-    }
-
-    function escapeMobileChartDetailHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
     }
 
     function renderArtistMobileTableDetails(row) {

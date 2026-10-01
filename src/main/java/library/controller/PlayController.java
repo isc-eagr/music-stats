@@ -4,6 +4,7 @@ import library.service.PlayService;
 import library.service.AppConfigService;
 import library.service.ArtistService;
 import library.service.AlbumService;
+import library.service.ExternalImageService;
 import library.service.PlayAutomationStateService;
 import library.service.SongService;
 import org.springframework.http.ResponseEntity;
@@ -26,19 +27,22 @@ public class PlayController {
     private final SongService songService;
     private final AppConfigService appConfigService;
     private final PlayAutomationStateService automationStateService;
+    private final ExternalImageService externalImageService;
     
     public PlayController(PlayService playService,
                               ArtistService artistService,
                               AlbumService albumService,
                               SongService songService,
                               PlayAutomationStateService automationStateService,
-                              AppConfigService appConfigService) {
+                              AppConfigService appConfigService,
+                              ExternalImageService externalImageService) {
         this.playService = playService;
         this.artistService = artistService;
         this.albumService = albumService;
         this.songService = songService;
         this.automationStateService = automationStateService;
         this.appConfigService = appConfigService;
+        this.externalImageService = externalImageService;
     }
     
     // File upload UI
@@ -344,7 +348,7 @@ public class PlayController {
             // 2b. Download and save album image if provided
             if (isNewAlbum && newAlbumImageUrl != null && !newAlbumImageUrl.isBlank()) {
                 try {
-                    byte[] imageBytes = downloadImage(newAlbumImageUrl);
+                    byte[] imageBytes = externalImageService.downloadImage(newAlbumImageUrl);
                     if (imageBytes != null && imageBytes.length > 0) {
                         albumService.updateAlbumImage(albumId, imageBytes);
                     }
@@ -375,7 +379,7 @@ public class PlayController {
             // 3b. Download and save song image if provided
             if (songImageUrl != null && !songImageUrl.isBlank()) {
                 try {
-                    byte[] imageBytes = downloadImage(songImageUrl);
+                    byte[] imageBytes = externalImageService.downloadImage(songImageUrl);
                     if (imageBytes != null && imageBytes.length > 0) {
                         songService.updateSongImage(songId, imageBytes);
                     }
@@ -531,27 +535,6 @@ public class PlayController {
                 "success", false,
                 "error", e.getMessage()
             ));
-        }
-    }
-    
-    /**
-     * Download image from URL and return bytes.
-     */
-    private byte[] downloadImage(String imageUrl) throws Exception {
-        java.net.URI uri = java.net.URI.create(imageUrl);
-        java.net.HttpURLConnection connection = (java.net.HttpURLConnection) uri.toURL().openConnection();
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("User-Agent", "MusicStatsApp/1.0");
-        connection.setConnectTimeout(15000);
-        connection.setReadTimeout(15000);
-
-        int responseCode = connection.getResponseCode();
-        if (responseCode != 200) {
-            throw new RuntimeException("HTTP error downloading image: " + responseCode);
-        }
-
-        try (java.io.InputStream is = connection.getInputStream()) {
-            return is.readAllBytes();
         }
     }
 }

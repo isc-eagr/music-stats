@@ -59,16 +59,8 @@ public class GlobalSearchResultDTO {
         return detailUrl;
     }
 
-    public void setDetailUrl(String detailUrl) {
-        this.detailUrl = detailUrl;
-    }
-
     public String getImageUrl() {
         return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
     }
 
     public boolean isHasImage() {

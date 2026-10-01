@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -391,26 +390,7 @@ public class EthnicityService {
         Long count = jdbcTemplate.queryForObject(sql, Long.class, name, name);
         return count != null ? count : 0;
     }
-    
-    public Optional<Ethnicity> getEthnicityById(Integer id) {
-        String sql = """
-            SELECT id, name, creation_date, update_date
-            FROM Ethnicity
-            WHERE id = ?
-            """;
-        
-        List<Ethnicity> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Ethnicity ethnicity = new Ethnicity();
-            ethnicity.setId(rs.getInt("id"));
-            ethnicity.setName(rs.getString("name"));
-            ethnicity.setCreationDate(rs.getTimestamp("creation_date"));
-            ethnicity.setUpdateDate(rs.getTimestamp("update_date"));
-            return ethnicity;
-        }, id);
-        
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
-    }
-    
+
     public Ethnicity createEthnicity(Ethnicity ethnicity) {
         return ethnicityRepository.save(ethnicity);
     }
@@ -423,122 +403,11 @@ public class EthnicityService {
             return null;
         }
     }
-    
-    public void updateEthnicityImage(Integer id, byte[] imageData) {
-        ethnicityRepository.updateImage(id, imageData);
-    }
-    
+
     public Map<Integer, String> getEthnicities() {
         return lookupRepository.getAllEthnicities();
     }
-    
-    // Get top 50 artists for an ethnicity by play count
-    public List<Map<String, Object>> getTopArtistsForEthnicity(Integer ethnicityId) {
-        String sql = """
-            SELECT 
-                ar.id,
-                ar.name,
-                COUNT(p.id) as play_count,
-                CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Artist ar
-            JOIN Song s ON ar.id = s.artist_id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = ?
-            GROUP BY ar.id, ar.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> artist = new java.util.HashMap<>();
-            artist.put("id", rs.getInt("id"));
-            artist.put("name", rs.getString("name"));
-            artist.put("playCount", rs.getInt("play_count"));
-            artist.put("hasImage", rs.getInt("has_image") == 1);
-            return artist;
-        }, ethnicityId);
-    }
-    
-    // Get top 50 albums for an ethnicity by play count
-    public List<Map<String, Object>> getTopAlbumsForEthnicity(Integer ethnicityId) {
-        String sql = """
-            SELECT 
-                al.id,
-                al.name,
-                ar.name as artist_name,
-                COUNT(p.id) as play_count,
-                CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Album al
-            JOIN Artist ar ON al.artist_id = ar.id
-            JOIN Song s ON al.id = s.album_id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = ?
-            GROUP BY al.id, al.name, ar.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> album = new java.util.HashMap<>();
-            album.put("id", rs.getInt("id"));
-            album.put("name", rs.getString("name"));
-            album.put("artistName", rs.getString("artist_name"));
-            album.put("playCount", rs.getInt("play_count"));
-            album.put("hasImage", rs.getInt("has_image") == 1);
-            return album;
-        }, ethnicityId);
-    }
-    
-    // Get top 50 songs for an ethnicity by play count
-    public List<Map<String, Object>> getTopSongsForEthnicity(Integer ethnicityId) {
-        String sql = """
-            SELECT 
-                s.id,
-                s.name,
-                ar.name as artist_name,
-                al.name as album_name,
-                COUNT(p.id) as play_count
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_ethnicity_id, ar.ethnicity_id) = ?
-            GROUP BY s.id, s.name, ar.name, al.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> song = new java.util.HashMap<>();
-            song.put("id", rs.getInt("id"));
-            song.put("name", rs.getString("name"));
-            song.put("artistName", rs.getString("artist_name"));
-            song.put("albumName", rs.getString("album_name"));
-            song.put("playCount", rs.getInt("play_count"));
-            return song;
-        }, ethnicityId);
-    }
-    
-    public Map<String, Object> getEthnicityStats(Integer ethnicityId) {
-        String sql = """
-            SELECT 
-                COUNT(DISTINCT p.id) as play_count,
-                COALESCE(SUM(s.length_seconds), 0) as total_length,
-                COUNT(DISTINCT ar.id) as artist_count,
-                COUNT(DISTINCT al.id) as album_count,
-                COUNT(DISTINCT s.id) as song_count,
-                MIN(p.play_date) as first_listened,
-                MAX(p.play_date) as last_listened
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE ar.ethnicity_id = ?
-            """;
-        
-        return jdbcTemplate.queryForMap(sql, ethnicityId);
-    }
-    
+
     /**
      * Get all ethnicities as simple id/name maps for dropdown lists.
      */

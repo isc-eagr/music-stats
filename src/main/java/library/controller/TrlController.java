@@ -8,6 +8,7 @@ import library.service.AppConfigService;
 import library.service.TrlService;
 import library.service.OverviewFilterService;
 import library.service.OverviewCacheService;
+import library.util.ChartOverviewSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -56,11 +57,11 @@ public class TrlController {
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
-        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        String normalizedOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
         int safeSize = normalizeSize(size);
         String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
-        String normalizedDir = normalizeDir(normalizedOverviewTab, dir);
+        String normalizedDir = ChartOverviewSupport.normalizeDir(normalizedOverviewTab, dir);
 
         List<TrlDebut> debuts = List.of();
         List<ChartAlbumOverviewRowDTO> albumOverviewRows = List.of();
@@ -68,17 +69,17 @@ public class TrlController {
         int activeTotalCount;
 
         if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = ChartOverviewSupport.sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allAlbumRows.size();
-            albumOverviewRows = paginateRows(allAlbumRows, safePage, safeSize);
+            albumOverviewRows = ChartOverviewSupport.paginateRows(allAlbumRows, safePage, safeSize);
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
+            List<ChartArtistOverviewRowDTO> allArtistRows = ChartOverviewSupport.sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allArtistRows.size();
-            artistOverviewRows = paginateRows(allArtistRows, safePage, safeSize);
+            artistOverviewRows = ChartOverviewSupport.paginateRows(allArtistRows, safePage, safeSize);
         } else {
             List<TrlDebut> allDebuts = sortSongRows(overviewFilterService.filter("trl", "song", trlSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
             activeTotalCount = allDebuts.size();
-            debuts = paginateRows(allDebuts, safePage, safeSize);
+            debuts = ChartOverviewSupport.paginateRows(allDebuts, safePage, safeSize);
         }
 
         model.addAttribute("debuts", debuts);
@@ -105,40 +106,32 @@ public class TrlController {
             @RequestParam(required = false) String dir,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam MultiValueMap<String, String> filterParams) {
-        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        String normalizedOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
         int safePage = Math.max(1, page);
         int safeSize = normalizeSize(size);
         String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
-        String normalizedDir = normalizeDir(normalizedOverviewTab, dir);
+        String normalizedDir = ChartOverviewSupport.normalizeDir(normalizedOverviewTab, dir);
         Map<String, Object> result = new java.util.LinkedHashMap<>();
 
         if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", paginateRows(allAlbumRows, safePage, safeSize));
+            List<ChartAlbumOverviewRowDTO> allAlbumRows = ChartOverviewSupport.sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
+            result.put("entries", ChartOverviewSupport.paginateRows(allAlbumRows, safePage, safeSize));
             result.put("totalCount", allAlbumRows.size());
             result.put("hasMore", (long) safePage * safeSize < allAlbumRows.size());
         } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", paginateRows(allArtistRows, safePage, safeSize));
+            List<ChartArtistOverviewRowDTO> allArtistRows = ChartOverviewSupport.sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
+            result.put("entries", ChartOverviewSupport.paginateRows(allArtistRows, safePage, safeSize));
             result.put("totalCount", allArtistRows.size());
             result.put("hasMore", (long) safePage * safeSize < allArtistRows.size());
         } else {
             List<TrlDebut> allDebuts = sortSongRows(overviewFilterService.filter("trl", "song", trlSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", paginateRows(allDebuts, safePage, safeSize));
+            result.put("entries", ChartOverviewSupport.paginateRows(allDebuts, safePage, safeSize));
             result.put("totalCount", allDebuts.size());
             result.put("hasMore", (long) safePage * safeSize < allDebuts.size());
         }
 
         result.put("nextPage", safePage + 1);
         return ResponseEntity.ok(result);
-    }
-
-    /** Search songs by title/artist for the match modal. */
-    @GetMapping("/songs/search")
-    @ResponseBody
-    public List<Map<String, Object>> searchSongs(
-            @RequestParam(defaultValue = "") String q) {
-        return trlService.searchSongs(q);
     }
 
     /** Link a TRL entry to a song in the library. */
@@ -148,14 +141,6 @@ public class TrlController {
             @PathVariable Integer id,
             @RequestParam Integer songId) {
         return ResponseEntity.ok(trlService.matchSong(id, songId));
-    }
-
-    /** Remove the song link from a TRL entry. */
-    @PostMapping("/{id}/unmatch")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> unmatchSong(@PathVariable Integer id) {
-        trlService.unmatchSong(id);
-        return ResponseEntity.ok(Map.of("ok", true));
     }
 
     /** Retroactively normalize all linked debuts + their chart entries to library names. */
@@ -284,16 +269,6 @@ public class TrlController {
         return List.of();
     }
 
-    private String normalizeOverviewTab(String overviewTab) {
-        if ("album".equalsIgnoreCase(overviewTab)) {
-            return "album";
-        }
-        if ("artist".equalsIgnoreCase(overviewTab)) {
-            return "artist";
-        }
-        return "song";
-    }
-
     private String normalizeSort(String overviewTab, String sort) {
         if ("album".equals(overviewTab)) {
             return switch (sort == null ? "" : sort) {
@@ -313,31 +288,9 @@ public class TrlController {
         };
     }
 
-    private String normalizeDir(String overviewTab, String dir) {
-        if (dir == null || dir.isBlank()) {
-            if ("song".equals(overviewTab)) {
-                return "asc";
-            }
-            return "desc";
-        }
-        return "asc".equalsIgnoreCase(dir) ? "asc" : "desc";
-    }
-
     private List<TrlDebut> sortSongRows(List<TrlDebut> rows, String sort, String dir) {
         List<TrlDebut> sortedRows = new ArrayList<>(rows);
         sortedRows.sort(buildSongComparator(sort, dir));
-        return sortedRows;
-    }
-
-    private List<ChartAlbumOverviewRowDTO> sortAlbumRows(List<ChartAlbumOverviewRowDTO> rows, String sort, String dir) {
-        List<ChartAlbumOverviewRowDTO> sortedRows = new ArrayList<>(rows);
-        sortedRows.sort(buildAlbumComparator(sort, dir));
-        return sortedRows;
-    }
-
-    private List<ChartArtistOverviewRowDTO> sortArtistRows(List<ChartArtistOverviewRowDTO> rows, String sort, String dir) {
-        List<ChartArtistOverviewRowDTO> sortedRows = new ArrayList<>(rows);
-        sortedRows.sort(buildArtistComparator(sort, dir));
         return sortedRows;
     }
 
@@ -361,39 +314,6 @@ public class TrlController {
         return "asc".equals(dir) ? comparator : comparator.reversed();
     }
 
-    private Comparator<ChartAlbumOverviewRowDTO> buildAlbumComparator(String sort, String dir) {
-        Comparator<ChartAlbumOverviewRowDTO> comparator = switch (sort) {
-            case "artist" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "album" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getAlbumName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "songs" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getChartedSongsCount);
-            case "peak" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo));
-            case "numberOnes" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getNumberOneSongsCount);
-            case "atNumberOne" -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalSpanAtNumberOne);
-            case "firstDebut" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getFirstDebutDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "lastAppearance" -> Comparator.comparing(ChartAlbumOverviewRowDTO::getLastAppearanceDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            default -> Comparator.comparingInt(ChartAlbumOverviewRowDTO::getTotalChartSpan);
-        };
-        comparator = comparator
-            .thenComparing(ChartAlbumOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-            .thenComparing(ChartAlbumOverviewRowDTO::getAlbumName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-        return "asc".equals(dir) ? comparator : comparator.reversed();
-    }
-
-    private Comparator<ChartArtistOverviewRowDTO> buildArtistComparator(String sort, String dir) {
-        Comparator<ChartArtistOverviewRowDTO> comparator = switch (sort) {
-            case "artist" -> Comparator.comparing(ChartArtistOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "songs" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getChartedSongsCount);
-            case "peak" -> Comparator.comparing(ChartArtistOverviewRowDTO::getHighestPeak, Comparator.nullsLast(Integer::compareTo));
-            case "numberOnes" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getNumberOneSongsCount);
-            case "atNumberOne" -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalSpanAtNumberOne);
-            case "firstDebut" -> Comparator.comparing(ChartArtistOverviewRowDTO::getFirstDebutDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "lastAppearance" -> Comparator.comparing(ChartArtistOverviewRowDTO::getLastAppearanceDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            default -> Comparator.comparingInt(ChartArtistOverviewRowDTO::getTotalChartSpan);
-        };
-        comparator = comparator.thenComparing(ChartArtistOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-        return "asc".equals(dir) ? comparator : comparator.reversed();
-    }
-
     private int normalizeSize(Integer size) {
         return appConfigService.normalizePageSize(size, appConfigService.getTrlOverviewPageSize(), 25, 200);
     }
@@ -409,14 +329,5 @@ public class TrlController {
     private List<ChartArtistOverviewRowDTO> trlArtistOverviewRows(boolean includeFeatured) {
         return overviewCacheService.get("trl:artist:" + includeFeatured,
                 () -> trlService.getArtistOverviewRows(trlSongOverviewRows(), includeFeatured));
-    }
-
-    private <T> List<T> paginateRows(List<T> rows, int page, int size) {
-        int fromIndex = Math.max(0, (page - 1) * size);
-        if (fromIndex >= rows.size()) {
-            return List.of();
-        }
-        int toIndex = Math.min(rows.size(), fromIndex + size);
-        return rows.subList(fromIndex, toIndex);
     }
 }

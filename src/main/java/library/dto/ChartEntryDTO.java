@@ -221,36 +221,6 @@ public class ChartEntryDTO {
         }
         return lastWeekPosition - position; // Higher last week position = moved up
     }
-    
-    /**
-     * Returns formatted last week display string.
-     * "NEW" for new entries, "RE" for re-entries, or the position number.
-     */
-    public String getLastWeekDisplay() {
-        if (isNewEntry()) {
-            return "NEW";
-        } else if (isReEntry()) {
-            return "RE";
-        } else if (lastWeekPosition != null) {
-            return String.valueOf(lastWeekPosition);
-        }
-        return "-";
-    }
-    
-    /**
-     * Returns CSS class for position change indicator.
-     */
-    public String getPositionChangeClass() {
-        Integer change = getPositionChange();
-        if (change == null) {
-            if (isNewEntry()) return "new-entry";
-            if (isReEntry()) return "re-entry";
-            return "";
-        }
-        if (change > 0) return "position-up";
-        if (change < 0) return "position-down";
-        return "position-same";
-    }
 
     public String getMovementDisplay() {
         if (isNewEntry()) {

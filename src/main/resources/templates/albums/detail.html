@@ -2397,18 +2397,6 @@
             }
         }
 
-        function handleGalleryImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (!file.type.startsWith('image/')) { showWarningToast('Please select an image file'); return; }
-            const formData = new FormData();
-            formData.append('image', file);
-            fetch(`/albums/${albumId}/images`, { method: 'POST', body: formData })
-                .then(response => { if (response.ok) window.location.reload(); else throw new Error('Failed'); })
-                .catch(error => { console.error('Error:', error); showErrorToast('Error adding image to gallery'); });
-            event.target.value = '';
-        }
-
         function setAsDefaultImage() {
             const currentImageId = galleryImages[currentGalleryIndex];
             if (currentImageId === 0) return; // Already on default
@@ -2444,39 +2432,9 @@
                 });
             }
         });
-        
-        // Tooltip functionality
-        function showTooltip(element) {
-            if (!element) return;
-            const tooltip = element.classList.contains('tooltip') 
-                ? element.querySelector('.tooltiptext')
-                : element;
-            if (tooltip) {
-                const playsData = element.closest('.tooltip')?.dataset?.plays || element.dataset?.plays;
-                if (playsData && tooltip.id === 'album-plays-tooltip') {
-                    tooltip.textContent = playsData;
-                }
-                tooltip.style.opacity = '1';
-                tooltip.style.visibility = 'visible';
-                tooltip.style.transform = 'translateX(-50%) translateY(0)';
-                tooltip.style.transition = 'opacity 180ms ease, transform 180ms ease, visibility 0s linear 0s';
-            }
-        }
 
-        function hideTooltip(element) {
-            if (!element) return;
-            const tooltip = element.classList.contains('tooltip') 
-                ? element.querySelector('.tooltiptext')
-                : element;
-            if (tooltip) {
-                tooltip.style.opacity = '0';
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.transform = 'translateX(-50%) translateY(6px)';
-                tooltip.style.transition = 'opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms';
-            }
-        }
     </script>
-    
+
     <style>
         /* Make disabled delete buttons visually distinct */
         .btn-negative:disabled {
@@ -2635,20 +2593,7 @@
         .chart-run-box:hover {
             text-decoration: none;
         }
-        
-        .chart-run-box.on-chart {
-            background: #1a1a2e;
-            color: #e5e7eb;
-            border-color: #333;
-        }
-        
-        .chart-run-box.on-chart.peak-one {
-            background: #3d3012;
-            color: #fbbf24;
-            border-color: #6b5c1f;
-            box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
-        }
-        
+
         .chart-run-box.absent {
             color: #555;
         }
@@ -2731,7 +2676,6 @@
         /*<![CDATA[*/
         const albumId = /*[[${album.id}]]*/ null;
         const activeTab = /*[[${activeTab}]]*/ 'general';
-        const hasChartHistory = /*[[${chartHistory != null and !chartHistory.isEmpty()}]]*/ false;
         
         // Make album image clickable to open modal
         document.addEventListener('DOMContentLoaded', function() {
@@ -2874,223 +2818,7 @@
                 }
             });
         }
-        
-        // Apple Music Metadata Search for Album Edit Mode (Legacy - kept for reference)
-        function openAppleMetadataSearch() {
-            const artistName = /*[[${artistName}]]*/ '';
-            const albumName = document.getElementById('name').value || /*[[${album.name}]]*/ '';
-            
-            // Create modal if needed
-            let modal = document.getElementById('appleMetadataModal');
-            if (!modal) {
-                createAppleMetadataModal();
-                modal = document.getElementById('appleMetadataModal');
-            }
-            
-            document.getElementById('appleMetaSearchInput').value = artistName + ' - ' + albumName;
-            document.getElementById('appleMetaResults').innerHTML = '<div style="text-align:center; color:#888; padding:40px;">Click Search to find results</div>';
-            document.getElementById('appleMetaStatus').style.display = 'none';
-            
-            modal.style.display = 'flex';
-            performAppleMetadataSearch();
-        }
-        
-        let appleMetaSearchResults = [];
-        
-        function createAppleMetadataModal() {
-            const modalHtml = `
-                <div id="appleMetadataModal" class="am-modal" onclick="if(event.target===this) closeAppleMetadataModal()">
-                    <div class="am-modal-content" onclick="event.stopPropagation()">
-                        <div class="am-modal-header">
-                            <h3>Search Apple Music for Album</h3>
-                            <button class="am-modal-close" onclick="closeAppleMetadataModal()">&times;</button>
-                        </div>
-                        <div class="am-modal-body">
-                            <div class="am-search-form">
-                                <input type="text" id="appleMetaSearchInput" class="am-search-input" placeholder="Artist - Album">
-                                <select id="appleMetaCountrySelect" class="am-country-select" style="width:100px;">
-                                    <option value="us">🇺🇸 US</option>
-                                    <option value="mx">🇲🇽 MX</option>
-                                    <option value="es">🇪🇸 ES</option>
-                                    <option value="gb">🇬🇧 UK</option>
-                                </select>
-                                <button type="button" class="am-btn-search" onclick="performAppleMetadataSearch()">Search</button>
-                            </div>
-                            <div id="appleMetaStatus" class="am-search-status" style="display:none;">Searching...</div>
-                            <div id="appleMetaResults" class="am-results-grid" style="display:none;"></div>
-                        </div>
-                        <div class="am-modal-footer">
-                            <span style="color:#888; font-size:12px;">Select an item to populate release date and image</span>
-                            <button type="button" class="am-btn-cancel" onclick="closeAppleMetadataModal()">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }
-        
-        function closeAppleMetadataModal() {
-            const modal = document.getElementById('appleMetadataModal');
-            if (modal) modal.style.display = 'none';
-        }
-        
-        function performAppleMetadataSearch() {
-            const searchInput = document.getElementById('appleMetaSearchInput').value.trim();
-            const country = document.getElementById('appleMetaCountrySelect').value;
-            if (!searchInput) return;
-            
-            const statusEl = document.getElementById('appleMetaStatus');
-            const resultsEl = document.getElementById('appleMetaResults');
-            statusEl.style.display = 'block';
-            resultsEl.style.display = 'none';
-            
-            const parts = searchInput.split(' - ');
-            const artist = parts[0] || searchInput;
-            const title = parts.length > 1 ? parts.slice(1).join(' - ') : parts[0];
-            
-            fetch(`/api/apple-music/search?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&country=${country}`)
-                .then(r => r.json())
-                .then(data => {
-                    statusEl.style.display = 'none';
-                    if (!data || data.length === 0) {
-                        resultsEl.innerHTML = '<div style="text-align:center; color:#888; padding:40px;">No results found</div>';
-                        resultsEl.style.display = 'block';
-                        return;
-                    }
-                    appleMetaSearchResults = sortAppleMetaResults(data, artist, title);
-                    renderAppleMetaResults();
-                    resultsEl.style.display = 'grid';
-                })
-                .catch(err => {
-                    statusEl.style.display = 'none';
-                    resultsEl.innerHTML = '<div style="text-align:center; color:#ff6b6b; padding:40px;">Error searching Apple Music</div>';
-                    resultsEl.style.display = 'block';
-                });
-        }
-        
-        function sortAppleMetaResults(results, searchArtist, searchTitle) {
-            const normArtist = (searchArtist || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            const normTitle = (searchTitle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            const fuzzyTitle = removeVariationKeywords(searchTitle);
-            
-            return results.map(item => {
-                const itemArtist = (item.artistName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                const itemTitle = (item.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                const itemTitleFuzzy = removeVariationKeywords(item.title);
-                
-                let score = 0, matchType = 'none';
-                if (itemArtist === normArtist && itemTitle === normTitle) { score = 1000; matchType = 'exact'; }
-                else if (itemArtist === normArtist && itemTitleFuzzy === fuzzyTitle && fuzzyTitle) { score = 950; matchType = 'fuzzy'; }
-                else if (itemArtist === normArtist) { score = 500; matchType = 'artist'; }
-                else if (itemTitle === normTitle) { score = 400; matchType = 'title'; }
-                else if (itemArtist.includes(normArtist) || normArtist.includes(itemArtist)) { score = 200; }
-                else if (itemTitle.includes(normTitle) || normTitle.includes(itemTitle)) { score = 100; }
-                return { ...item, matchScore: score, matchType };
-            }).sort((a, b) => b.matchScore - a.matchScore);
-        }
-        
-        function removeVariationKeywords(str) {
-            if (!str) return '';
-            const keywords = ['deluxe', 'remaster', 'remastered', 'anniversary', 'special', 'revised', 'edition', 'version', 'expanded', 'bonus', 'explicit', 'clean'];
-            let normalized = str.toLowerCase();
-            keywords.forEach(k => normalized = normalized.replace(new RegExp(k, 'g'), ''));
-            normalized = normalized.replace(/\d+(st|nd|rd|th)?/g, '');
-            return normalized.trim().replace(/[^a-z0-9]/g, '');
-        }
-        
-        function renderAppleMetaResults() {
-            const resultsEl = document.getElementById('appleMetaResults');
-            resultsEl.innerHTML = appleMetaSearchResults.map((item, idx) => {
-                const matchClass = item.matchType === 'exact' ? 'exact-match' : item.matchType === 'fuzzy' ? 'fuzzy-match' : '';
-                const matchBadge = item.matchType === 'exact' ? '<span class="match-badge exact">Exact</span>' :
-                                  item.matchType === 'fuzzy' ? '<span class="match-badge fuzzy">Close</span>' : '';
-                let releaseDateDisplay = '';
-                if (item.releaseDate) {
-                    const d = new Date(item.releaseDate + 'T00:00:00');
-                    releaseDateDisplay = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                }
-                return `
-                    <div class="am-result-item ${matchClass}" onclick="selectAppleMetaResult(${idx})" style="cursor:pointer;">
-                        <span class="am-result-type">${item.type}</span>
-                        ${matchBadge}
-                        <img class="am-result-image" src="${item.thumbnailUrl}" alt="" loading="lazy">
-                        <div class="am-result-info">
-                            <div class="am-result-title" title="${escapeAttr(item.title)}">${escapeHtml(item.title)}</div>
-                            <div class="am-result-artist">${escapeHtml(item.artistName)}</div>
-                            ${releaseDateDisplay ? `<div class="am-result-meta">${releaseDateDisplay}</div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        function escapeAttr(text) {
-            if (!text) return '';
-            return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        }
-        
-        function selectAppleMetaResult(index) {
-            const item = appleMetaSearchResults[index];
-            if (!item) return;
-            
-            const statusEl = document.getElementById('appleMetadataStatus');
-            const parts = [];
-            
-            // Set release date if available
-            if (item.releaseDate) {
-                const dateParts = item.releaseDate.split('-');
-                if (dateParts.length === 3) {
-                    const formatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                    document.getElementById('releaseDate').value = formatted;
-                    // Trigger Flatpickr update if it's initialized
-                    const fp = document.getElementById('releaseDate')._flatpickr;
-                    if (fp) {
-                        fp.setDate(document.getElementById('releaseDate').value, true, 'd/m/Y');
-                    }
-                    parts.push('Release: ' + formatted);
-                }
-            }
-            
-            // Save image via API
-            if (item.fullUrl) {
-                parts.push('Image queued...');
-                fetch('/api/apple-music/save-images', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        imageUrls: [item.fullUrl],
-                        entityId: albumId,
-                        entityType: 'album',
-                        hasExistingImage: /*[[${hasImage}]]*/ false
-                    })
-                }).then(r => r.json()).then(data => {
-                    if (data.success) {
-                        // Update status and reload to show new image
-                        if (statusEl) {
-                            statusEl.textContent = '✓ Image saved! Reload to see changes.';
-                            statusEl.style.color = '#69db7c';
-                        }
-                    }
-                }).catch(err => console.error('Failed to save image:', err));
-            }
-            
-            if (statusEl) {
-                statusEl.textContent = '✓ ' + (parts.length > 0 ? parts.join(', ') : 'Selected from Apple Music');
-                statusEl.style.color = '#69db7c';
-            }
-            
-            closeAppleMetadataModal();
-        }
-        
-        // (Spotify metadata search removed)
-        
+
         function switchTab(event, tabName) {
             event.preventDefault();
             
@@ -3151,56 +2879,6 @@
             button.classList.toggle('expanded', !isVisible);
             button.textContent = isVisible ? '+' : '-';
             button.setAttribute('aria-expanded', String(!isVisible));
-        }
-
-        function toggleMobileChartRow(button) {
-            const mainRow = button.closest('tr');
-            if (!mainRow) return;
-
-            let detailRow = mainRow.nextElementSibling;
-            if (!detailRow || !detailRow.classList.contains('mobile-table-detail-row')) {
-                detailRow = document.createElement('tr');
-                detailRow.className = 'detail-row mobile-table-detail-row';
-
-                const detailCell = document.createElement('td');
-                detailCell.className = 'mobile-table-detail-cell';
-                detailCell.colSpan = mainRow.cells.length;
-                detailCell.innerHTML = renderMobileChartDetails(mainRow);
-
-                detailRow.appendChild(detailCell);
-                mainRow.insertAdjacentElement('afterend', detailRow);
-            }
-
-            const isVisible = detailRow.classList.contains('visible');
-            detailRow.classList.toggle('visible', !isVisible);
-            button.classList.toggle('expanded', !isVisible);
-            button.textContent = isVisible ? '+' : '-';
-            button.setAttribute('aria-expanded', String(!isVisible));
-        }
-
-        function renderMobileChartDetails(row) {
-            const detailFields = [
-                ['Track #', row.dataset.mobileTrackNumber],
-                ['Release', row.dataset.mobileReleaseDate],
-                ['Debut', row.dataset.mobileDebutDate],
-                ['Peak Date', row.dataset.mobilePeakDate]
-            ].filter(([, value]) => value !== undefined);
-
-            return `<div class="mobile-table-detail-grid">${detailFields.map(([label, value]) => `
-                <div class="mobile-table-detail-item">
-                    <span class="mobile-table-detail-label">${escapeMobileChartDetailHtml(label)}</span>
-                    <span class="mobile-table-detail-value">${escapeMobileChartDetailHtml(value || '-')}</span>
-                </div>
-            `).join('')}</div>`;
-        }
-
-        function escapeMobileChartDetailHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
         }
 
         function renderAlbumMobileTableDetails(row) {

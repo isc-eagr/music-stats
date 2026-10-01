@@ -1,6 +1,5 @@
 package library.controller;
 
-import library.repository.SongRepository;
 import library.service.BillboardHot100Service;
 import library.service.SongService;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,8 +25,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 public class NowPlayingLookupController {
-
-    private final SongRepository songRepository;
     private final JdbcTemplate jdbcTemplate;
     private final SongService songService;
     private final ChartService chartService;
@@ -35,8 +32,7 @@ public class NowPlayingLookupController {
     private final PcService pcService;
     private final TrlService trlService;
 
-    public NowPlayingLookupController(SongRepository songRepository, JdbcTemplate jdbcTemplate, SongService songService, ChartService chartService, BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService) {
-        this.songRepository = songRepository;
+    public NowPlayingLookupController(JdbcTemplate jdbcTemplate, SongService songService, ChartService chartService, BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService) {
         this.jdbcTemplate = jdbcTemplate;
         this.songService = songService;
         this.chartService = chartService;

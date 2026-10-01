@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -412,26 +411,7 @@ public class GenreService {
         Long count = jdbcTemplate.queryForObject(sql, Long.class, name, name);
         return count != null ? count : 0;
     }
-    
-    public Optional<Genre> getGenreById(Integer id) {
-        String sql = """
-            SELECT id, name, creation_date, update_date
-            FROM Genre
-            WHERE id = ?
-            """;
-        
-        List<Genre> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Genre genre = new Genre();
-            genre.setId(rs.getInt("id"));
-            genre.setName(rs.getString("name"));
-            genre.setCreationDate(rs.getTimestamp("creation_date"));
-            genre.setUpdateDate(rs.getTimestamp("update_date"));
-            return genre;
-        }, id);
-        
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
-    }
-    
+
     public Genre createGenre(Genre genre) {
         return genreRepository.save(genre);
     }
@@ -444,154 +424,11 @@ public class GenreService {
             return null;
         }
     }
-    
-    public void updateGenreImage(Integer id, byte[] imageData) {
-        genreRepository.updateImage(id, imageData);
-    }
-    
+
     public Map<Integer, String> getGenres() {
         return lookupRepository.getAllGenres();
     }
-    
-    // Get top 50 artists for a genre by play count
-    public List<Map<String, Object>> getTopArtistsForGenre(Integer genreId) {
-        String sql = """
-            SELECT 
-                ar.id,
-                ar.name,
-                COALESCE(play_stats.play_count, 0) as play_count,
-                CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Artist ar
-            LEFT JOIN (
-                SELECT 
-                    s.artist_id,
-                    COUNT(p.id) as play_count
-                FROM Song s
-                LEFT JOIN Play p ON s.id = p.song_id
-                GROUP BY s.artist_id
-            ) play_stats ON ar.id = play_stats.artist_id
-            WHERE ar.genre_id = ?
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> artist = new java.util.HashMap<>();
-            artist.put("id", rs.getInt("id"));
-            artist.put("name", rs.getString("name"));
-            artist.put("playCount", rs.getInt("play_count"));
-            artist.put("hasImage", rs.getInt("has_image") == 1);
-            return artist;
-        }, genreId);
-    }
-    
-    // Get top 50 albums for a genre by play count
-    public List<Map<String, Object>> getTopAlbumsForGenre(Integer genreId) {
-        String sql = """
-            SELECT 
-                al.id,
-                al.name,
-                ar.name as artist_name,
-                COALESCE(play_stats.play_count, 0) as play_count,
-                CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Album al
-            JOIN Artist ar ON al.artist_id = ar.id
-            LEFT JOIN (
-                SELECT 
-                    s.album_id,
-                    COUNT(p.id) as play_count
-                FROM Song s
-                LEFT JOIN Play p ON s.id = p.song_id
-                WHERE s.album_id IS NOT NULL
-                GROUP BY s.album_id
-            ) play_stats ON al.id = play_stats.album_id
-            WHERE COALESCE(al.override_genre_id, ar.genre_id) = ?
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> album = new java.util.HashMap<>();
-            album.put("id", rs.getInt("id"));
-            album.put("name", rs.getString("name"));
-            album.put("artistName", rs.getString("artist_name"));
-            album.put("playCount", rs.getInt("play_count"));
-            album.put("hasImage", rs.getInt("has_image") == 1);
-            return album;
-        }, genreId);
-    }
-    
-    // Get top 50 songs for a genre by play count
-    public List<Map<String, Object>> getTopSongsForGenre(Integer genreId) {
-        String sql = """
-            SELECT 
-                s.id,
-                s.name,
-                ar.name as artist_name,
-                al.name as album_name,
-                COUNT(p.id) as play_count
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = ?
-            GROUP BY s.id, s.name, ar.name, al.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> song = new java.util.HashMap<>();
-            song.put("id", rs.getInt("id"));
-            song.put("name", rs.getString("name"));
-            song.put("artistName", rs.getString("artist_name"));
-            song.put("albumName", rs.getString("album_name"));
-            song.put("playCount", rs.getInt("play_count"));
-            return song;
-        }, genreId);
-    }
-    
-    // Get genre stats for detail page
-    public Map<String, Object> getGenreStats(Integer genreId) {
-        String sql = """
-            SELECT 
-                COALESCE(song_stats.play_count, 0) as play_count,
-                COALESCE(song_stats.total_length, 0) as total_length,
-                COALESCE(artist_stats.artist_count, 0) as artist_count,
-                COALESCE(album_stats.album_count, 0) as album_count,
-                COALESCE(song_stats.song_count, 0) as song_count,
-                song_stats.first_listened as first_listened,
-                song_stats.last_listened as last_listened
-            FROM (SELECT 1 as dummy) base
-            LEFT JOIN (
-                SELECT 
-                    COUNT(DISTINCT p.id) as play_count,
-                    SUM(s.length_seconds) as total_length,
-                    COUNT(DISTINCT s.id) as song_count,
-                    MIN(p.play_date) as first_listened,
-                    MAX(p.play_date) as last_listened
-                FROM Song s
-                JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                LEFT JOIN Play p ON s.id = p.song_id
-                WHERE COALESCE(s.override_genre_id, COALESCE(al.override_genre_id, ar.genre_id)) = ?
-            ) song_stats ON 1=1
-            LEFT JOIN (
-                SELECT COUNT(*) as artist_count
-                FROM Artist
-                WHERE genre_id = ?
-            ) artist_stats ON 1=1
-            LEFT JOIN (
-                SELECT COUNT(DISTINCT al.id) as album_count
-                FROM Album al
-                JOIN Artist ar ON al.artist_id = ar.id
-                WHERE COALESCE(al.override_genre_id, ar.genre_id) = ?
-            ) album_stats ON 1=1
-            """;
-        
-        return jdbcTemplate.queryForMap(sql, genreId, genreId, genreId);
-    }
-    
+
     /**
      * Get all genres as simple id/name maps for dropdown lists.
      */

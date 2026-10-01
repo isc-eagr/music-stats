@@ -8,8 +8,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Repository for iTunes snapshot persistence operations.
@@ -17,12 +15,6 @@ import java.util.Optional;
  */
 @Repository
 public interface ItunesSnapshotRepository extends JpaRepository<ItunesSnapshot, Long> {
-
-    /**
-     * Find a snapshot entry by its persistent ID.
-     */
-    Optional<ItunesSnapshot> findByPersistentId(String persistentId);
-
     /**
      * Check if any snapshot exists (to determine if this is the first run).
      */
@@ -34,12 +26,6 @@ public interface ItunesSnapshotRepository extends JpaRepository<ItunesSnapshot, 
      */
     @Query("SELECT MAX(s.snapshotDate) FROM ItunesSnapshot s")
     LocalDateTime getLastSnapshotDate();
-
-    /**
-     * Get all persistent IDs from the snapshot.
-     */
-    @Query("SELECT s.persistentId FROM ItunesSnapshot s")
-    List<String> findAllPersistentIds();
 
     /**
      * Delete all snapshot entries (for full refresh).

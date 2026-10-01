@@ -29,10 +29,6 @@ public class AlbumFullListenCalculator {
         this.appConfigService = appConfigService;
     }
 
-    public Map<Integer, AlbumFullListenStats> calculateAll() {
-        return calculate(null);
-    }
-
     /**
      * All-album stats as JSON for the list queries. A catalog request can run the list, count
      * and gender-count queries with the same full-listen filters, so the result is shared for

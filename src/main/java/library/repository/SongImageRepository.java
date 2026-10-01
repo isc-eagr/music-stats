@@ -16,8 +16,6 @@ public interface SongImageRepository extends JpaRepository<SongImage, Integer> {
     @Query("SELECT COALESCE(MAX(si.displayOrder), 0) FROM SongImage si WHERE si.songId = :songId")
     Integer getMaxDisplayOrder(@Param("songId") Integer songId);
 
-    void deleteBySongId(Integer songId);
-
     int countBySongId(Integer songId);
 }
 

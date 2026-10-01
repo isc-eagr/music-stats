@@ -46,13 +46,10 @@ public class ItunesAddedSongDTO {
     public Long getDatabaseSongId() { return databaseSongId; }
 
     // Setters
-    public void setPersistentId(String persistentId) { this.persistentId = persistentId; }
     public void setArtist(String artist) { this.artist = artist; }
     public void setAlbum(String album) { this.album = album; }
     public void setName(String name) { this.name = name; }
     public void setTrackNumber(Integer trackNumber) { this.trackNumber = trackNumber; }
     public void setYear(Integer year) { this.year = year; }
     public void setGenre(String genre) { this.genre = genre; }
-    public void setFoundInDatabase(boolean foundInDatabase) { this.foundInDatabase = foundInDatabase; }
-    public void setDatabaseSongId(Long databaseSongId) { this.databaseSongId = databaseSongId; }
 }

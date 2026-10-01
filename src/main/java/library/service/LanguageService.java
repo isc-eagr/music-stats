@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -393,26 +392,7 @@ public class LanguageService {
         Long count = jdbcTemplate.queryForObject(sql, Long.class, name, name);
         return count != null ? count : 0;
     }
-    
-    public Optional<Language> getLanguageById(Integer id) {
-        String sql = """
-            SELECT id, name, creation_date, update_date
-            FROM Language
-            WHERE id = ?
-            """;
-        
-        List<Language> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Language language = new Language();
-            language.setId(rs.getInt("id"));
-            language.setName(rs.getString("name"));
-            language.setCreationDate(rs.getTimestamp("creation_date"));
-            language.setUpdateDate(rs.getTimestamp("update_date"));
-            return language;
-        }, id);
-        
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
-    }
-    
+
     public Language createLanguage(Language language) {
         return languageRepository.save(language);
     }
@@ -425,123 +405,11 @@ public class LanguageService {
             return null;
         }
     }
-    
-    public void updateLanguageImage(Integer id, byte[] imageData) {
-        languageRepository.updateImage(id, imageData);
-    }
-    
+
     public Map<Integer, String> getLanguages() {
         return lookupRepository.getAllLanguages();
     }
-    
-    // Get top 50 artists for a language by play count
-    public List<Map<String, Object>> getTopArtistsForLanguage(Integer languageId) {
-        String sql = """
-            SELECT 
-                ar.id,
-                ar.name,
-                COUNT(p.id) as play_count,
-                CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Artist ar
-            JOIN Song s ON ar.id = s.artist_id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = ?
-            GROUP BY ar.id, ar.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> artist = new java.util.HashMap<>();
-            artist.put("id", rs.getInt("id"));
-            artist.put("name", rs.getString("name"));
-            artist.put("playCount", rs.getInt("play_count"));
-            artist.put("hasImage", rs.getInt("has_image") == 1);
-            return artist;
-        }, languageId);
-    }
-    
-    // Get top 50 albums for a language by play count
-    public List<Map<String, Object>> getTopAlbumsForLanguage(Integer languageId) {
-        String sql = """
-            SELECT 
-                al.id,
-                al.name,
-                ar.name as artist_name,
-                COUNT(p.id) as play_count,
-                CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Album al
-            JOIN Artist ar ON al.artist_id = ar.id
-            JOIN Song s ON al.id = s.album_id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = ?
-            GROUP BY al.id, al.name, ar.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> album = new java.util.HashMap<>();
-            album.put("id", rs.getInt("id"));
-            album.put("name", rs.getString("name"));
-            album.put("artistName", rs.getString("artist_name"));
-            album.put("playCount", rs.getInt("play_count"));
-            album.put("hasImage", rs.getInt("has_image") == 1);
-            return album;
-        }, languageId);
-    }
-    
-    // Get top 50 songs for a language by play count
-    public List<Map<String, Object>> getTopSongsForLanguage(Integer languageId) {
-        String sql = """
-            SELECT 
-                s.id,
-                s.name,
-                ar.name as artist_name,
-                al.name as album_name,
-                COUNT(p.id) as play_count
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = ?
-            GROUP BY s.id, s.name, ar.name, al.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> song = new java.util.HashMap<>();
-            song.put("id", rs.getInt("id"));
-            song.put("name", rs.getString("name"));
-            song.put("artistName", rs.getString("artist_name"));
-            song.put("albumName", rs.getString("album_name"));
-            song.put("playCount", rs.getInt("play_count"));
-            return song;
-        }, languageId);
-    }
-    
-    public Map<String, Object> getLanguageStats(Integer languageId) {
-        String sql = """
-            SELECT 
-                COUNT(DISTINCT p.id) as play_count,
-                COALESCE(SUM(s.length_seconds), 0) as total_length,
-                COUNT(DISTINCT ar.id) as artist_count,
-                COUNT(DISTINCT al.id) as album_count,
-                COUNT(DISTINCT s.id) as song_count,
-                MIN(p.play_date) as first_listened,
-                MAX(p.play_date) as last_listened
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_language_id, COALESCE(al.override_language_id, ar.language_id)) = ?
-            """;
-        
-        return jdbcTemplate.queryForMap(sql, languageId);
-    }
-    
+
     /**
      * Get all languages as simple id/name maps for dropdown lists.
      */

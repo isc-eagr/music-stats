@@ -35,21 +35,10 @@ public class MusicBrainzController {
     private static final String MUSICBRAINZ_API = "https://musicbrainz.org/ws/2";
     private static final String USER_AGENT = "MusicStatsApp/1.0 ( isc.eagr@gmail.com )";
     private static final long RATE_LIMIT_MS = 1100; // 1.1 seconds between requests
-    
-    private static long lastRequestTime = 0;
-    
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Check if MusicBrainz is available (always configured since it's free).
-     */
-    @GetMapping("/status")
-    public Map<String, Object> getStatus() {
-        Map<String, Object> status = new HashMap<>();
-        status.put("configured", true);
-        status.put("authenticated", true);
-        return status;
-    }
+    private static long lastRequestTime = 0;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Search MusicBrainz for artists by name.
@@ -153,74 +142,6 @@ public class MusicBrainzController {
         }
         
         return results;
-    }
-
-    /**
-     * Get detailed artist info by MusicBrainz ID.
-     * Use this after user selects an artist from search results to get fuller info.
-     * 
-     * @param mbid MusicBrainz artist ID
-     * @return Detailed artist metadata
-     */
-    @GetMapping("/artist/{mbid}")
-    public Map<String, Object> getArtist(@PathVariable String mbid) {
-        Map<String, Object> result = new HashMap<>();
-        
-        try {
-            respectRateLimit();
-            
-            String url = MUSICBRAINZ_API + "/artist/" + mbid + "?inc=tags+area-rels&fmt=json";
-            
-            String response = makeHttpRequest(url);
-            JsonNode artist = objectMapper.readTree(response);
-            
-            result.put("mbid", mbid);
-            result.put("name", getJsonText(artist, "name"));
-            result.put("sortName", getJsonText(artist, "sort-name"));
-            result.put("disambiguation", getJsonText(artist, "disambiguation"));
-            result.put("type", getJsonText(artist, "type"));
-            
-            // Life span
-            JsonNode lifeSpan = artist.get("life-span");
-            if (lifeSpan != null) {
-                result.put("birthDate", getJsonText(lifeSpan, "begin"));
-                result.put("deathDate", getJsonText(lifeSpan, "end"));
-                result.put("isDeceased", lifeSpan.has("ended") && lifeSpan.get("ended").asBoolean());
-            }
-            
-            // Country/Area
-            JsonNode area = artist.get("area");
-            if (area != null) {
-                result.put("country", getJsonText(area, "name"));
-            }
-            
-            // Begin area (birthplace)
-            JsonNode beginArea = artist.get("begin-area");
-            if (beginArea != null) {
-                result.put("birthPlace", getJsonText(beginArea, "name"));
-            }
-            
-            // Tags (genres)
-            JsonNode tags = artist.get("tags");
-            if (tags != null && tags.isArray()) {
-                List<Map<String, Object>> tagList = new ArrayList<>();
-                for (JsonNode tag : tags) {
-                    Map<String, Object> tagInfo = new HashMap<>();
-                    tagInfo.put("name", getJsonText(tag, "name"));
-                    tagInfo.put("count", tag.has("count") ? tag.get("count").asInt() : 0);
-                    tagList.add(tagInfo);
-                }
-                // Sort by count descending
-                tagList.sort((a, b) -> (Integer) b.get("count") - (Integer) a.get("count"));
-                result.put("tags", tagList);
-            }
-            
-        } catch (Exception e) {
-            System.err.println("MusicBrainz lookup error: " + e.getMessage());
-            result.put("error", e.getMessage());
-        }
-        
-        return result;
     }
 
     /**

@@ -22,7 +22,6 @@ import library.service.BillboardHot100Service;
 import library.service.DetailPlayHeatmapService;
 import library.util.DateFormatUtils;
 import library.util.ArtistFilterMode;
-import library.util.StringNormalizer;
 import library.service.iTunesLibraryService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
@@ -33,21 +32,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.sql.Date;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,7 +58,6 @@ public class SongController {
     private final BillboardHot100Service billboardHot100Service;
     private final SongLinkService songLinkService;
     private final TagService tagService;
-    private final JdbcTemplate jdbcTemplate;
     private final DetailPlayHeatmapService detailPlayHeatmapService;
     private static final Pattern PARENTHETICAL_PATTERN = Pattern.compile("\\(([^)]*)\\)");
     private static final Pattern BRACKET_PATTERN = Pattern.compile("\\[([^]]*)\\]");
@@ -77,7 +66,7 @@ public class SongController {
                          AlbumService albumService, iTunesLibraryService iTunesLibraryService, LookupRepository lookupRepository,
                          AppConfigService appConfigService,
                          ItunesService itunesService, TrlService trlService, PcService pcService,
-                         BillboardHot100Service billboardHot100Service, JdbcTemplate jdbcTemplate, SongLinkService songLinkService,
+                         BillboardHot100Service billboardHot100Service, SongLinkService songLinkService,
                          TagService tagService, DetailPlayHeatmapService detailPlayHeatmapService) {
         this.songService = songService;
         this.chartService = chartService;
@@ -90,7 +79,6 @@ public class SongController {
         this.trlService = trlService;
         this.pcService = pcService;
         this.billboardHot100Service = billboardHot100Service;
-        this.jdbcTemplate = jdbcTemplate;
         this.songLinkService = songLinkService;
         this.tagService = tagService;
         this.detailPlayHeatmapService = detailPlayHeatmapService;
@@ -464,8 +452,6 @@ public class SongController {
         model.addAttribute("weeklyChartPeakWeeksMode", weeklyChartPeakWeeksMode != null ? weeklyChartPeakWeeksMode : "gte");
         model.addAttribute("weeklyChartDateFrom", weeklyChartDateFrom);
         model.addAttribute("weeklyChartDateTo", weeklyChartDateTo);
-        model.addAttribute("weeklyChartDateFromFormatted", formatDateForDisplay(weeklyChartDateFrom));
-        model.addAttribute("weeklyChartDateToFormatted", formatDateForDisplay(weeklyChartDateTo));
         model.addAttribute("weeklyChartSeason", weeklyChartSeason);
         model.addAttribute("trlPeak", trlPeak);
         model.addAttribute("trlPeakMode", trlPeakMode != null ? trlPeakMode : "top");
@@ -474,8 +460,6 @@ public class SongController {
         model.addAttribute("trlDaysAtPeakMode", trlDaysAtPeakMode != null ? trlDaysAtPeakMode : "gte");
         model.addAttribute("trlDateFrom", trlDateFrom);
         model.addAttribute("trlDateTo", trlDateTo);
-        model.addAttribute("trlDateFromFormatted", formatDateForDisplay(trlDateFrom));
-        model.addAttribute("trlDateToFormatted", formatDateForDisplay(trlDateTo));
         model.addAttribute("vatosCuntdownPeak", vatosCuntdownPeak);
         model.addAttribute("vatosCuntdownPeakMode", vatosCuntdownPeakMode != null ? vatosCuntdownPeakMode : "top");
         model.addAttribute("vatosCuntdownDays", vatosCuntdownDays);
@@ -483,8 +467,6 @@ public class SongController {
         model.addAttribute("vatosCuntdownDaysAtPeakMode", vatosCuntdownDaysAtPeakMode != null ? vatosCuntdownDaysAtPeakMode : "gte");
         model.addAttribute("vatosCuntdownDateFrom", vatosCuntdownDateFrom);
         model.addAttribute("vatosCuntdownDateTo", vatosCuntdownDateTo);
-        model.addAttribute("vatosCuntdownDateFromFormatted", formatDateForDisplay(vatosCuntdownDateFrom));
-        model.addAttribute("vatosCuntdownDateToFormatted", formatDateForDisplay(vatosCuntdownDateTo));
         model.addAttribute("billboardPeak", billboardPeak);
         model.addAttribute("billboardPeakMode", billboardPeakMode != null ? billboardPeakMode : "top");
         model.addAttribute("billboardWeeks", billboardWeeks);
@@ -492,54 +474,48 @@ public class SongController {
         model.addAttribute("billboardWeeksAtPeakMode", billboardWeeksAtPeakMode != null ? billboardWeeksAtPeakMode : "gte");
         model.addAttribute("billboardDateFrom", billboardDateFrom);
         model.addAttribute("billboardDateTo", billboardDateTo);
-        model.addAttribute("billboardDateFromFormatted", formatDateForDisplay(billboardDateFrom));
-        model.addAttribute("billboardDateToFormatted", formatDateForDisplay(billboardDateTo));
         model.addAttribute("seasonalChartPeak", seasonalChartPeak);
         model.addAttribute("seasonalChartSeasons", seasonalChartSeasons);
         model.addAttribute("seasonalChartDateFrom", seasonalChartDateFrom);
         model.addAttribute("seasonalChartDateTo", seasonalChartDateTo);
-        model.addAttribute("seasonalChartDateFromFormatted", formatDateForDisplay(seasonalChartDateFrom));
-        model.addAttribute("seasonalChartDateToFormatted", formatDateForDisplay(seasonalChartDateTo));
         model.addAttribute("seasonalChartSeason", seasonalChartSeason);
         model.addAttribute("yearlyChartPeak", yearlyChartPeak);
         model.addAttribute("yearlyChartYears", yearlyChartYears);
         model.addAttribute("yearlyChartDateFrom", yearlyChartDateFrom);
         model.addAttribute("yearlyChartDateTo", yearlyChartDateTo);
-        model.addAttribute("yearlyChartDateFromFormatted", formatDateForDisplay(yearlyChartDateFrom));
-        model.addAttribute("yearlyChartDateToFormatted", formatDateForDisplay(yearlyChartDateTo));
         
         model.addAttribute("releaseDate", releaseDate);
         model.addAttribute("releaseDateFrom", releaseDateFrom);
         model.addAttribute("releaseDateTo", releaseDateTo);
         model.addAttribute("releaseDateMode", releaseDateMode != null ? releaseDateMode : "exact");
         // Add formatted dates for display
-        model.addAttribute("releaseDateFormatted", formatDateForDisplay(releaseDate));
-        model.addAttribute("releaseDateFromFormatted", formatDateForDisplay(releaseDateFrom));
-        model.addAttribute("releaseDateToFormatted", formatDateForDisplay(releaseDateTo));
+        model.addAttribute("releaseDateFormatted", DateFormatUtils.formatIsoDateForDisplay(releaseDate));
+        model.addAttribute("releaseDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(releaseDateFrom));
+        model.addAttribute("releaseDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(releaseDateTo));
         
         // First listened date filter attributes
         model.addAttribute("firstListenedDate", firstListenedDate);
         model.addAttribute("firstListenedDateFrom", firstListenedDateFrom);
         model.addAttribute("firstListenedDateTo", firstListenedDateTo);
         model.addAttribute("firstListenedDateMode", firstListenedDateMode != null ? firstListenedDateMode : "exact");
-        model.addAttribute("firstListenedDateFormatted", formatDateForDisplay(firstListenedDate));
-        model.addAttribute("firstListenedDateFromFormatted", formatDateForDisplay(firstListenedDateFrom));
-        model.addAttribute("firstListenedDateToFormatted", formatDateForDisplay(firstListenedDateTo));
+        model.addAttribute("firstListenedDateFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDate));
+        model.addAttribute("firstListenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDateFrom));
+        model.addAttribute("firstListenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDateTo));
         
         // Last listened date filter attributes
         model.addAttribute("lastListenedDate", lastListenedDate);
         model.addAttribute("lastListenedDateFrom", lastListenedDateFrom);
         model.addAttribute("lastListenedDateTo", lastListenedDateTo);
         model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
-        model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
-        model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
-        model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        model.addAttribute("lastListenedDateFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDate));
+        model.addAttribute("lastListenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDateFrom));
+        model.addAttribute("lastListenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDateTo));
         
         // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
         model.addAttribute("listenedDateTo", listenedDateTo);
-        model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
-        model.addAttribute("listenedDateToFormatted", formatDateForDisplay(listenedDateTo));
+        model.addAttribute("listenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateFrom));
+        model.addAttribute("listenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateTo));
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
@@ -549,7 +525,6 @@ public class SongController {
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "plays");
         model.addAttribute("hasActiveFilters", hasActiveFilters(request));
         
@@ -832,7 +807,6 @@ public class SongController {
         model.addAttribute("albumName", albumName);
         model.addAttribute("whoSampledUrl", whoSampledUrl);
         model.addAttribute("whoSampledSearchUrl", whoSampledSearchUrl);
-        model.addAttribute("combineLinkedSongs", appConfigService.isCombineLinkedSongsEnabled());
         model.addAttribute("linkedSongs", songLinkService.getLinkedSongs(id));
         
         // Add artist and album entities for ranking chips
@@ -856,8 +830,6 @@ public class SongController {
         model.addAttribute("songPlayCount", songService.getPlayCountForSong(id));
         model.addAttribute("songVatitoPlayCount", songService.getVatitoPlayCountForSong(id));
         model.addAttribute("songRobertloverPlayCount", songService.getRobertloverPlayCountForSong(id));
-        // Add per-account breakdown string for tooltip
-        model.addAttribute("songPlaysByAccount", songService.getPlaysByAccountForSong(id));
         
         // Add statistics for the song
         model.addAttribute("totalListeningTime", songService.getTotalListeningTimeForSong(id));
@@ -956,9 +928,7 @@ public class SongController {
         long playsTotalCount = songService.countPlaysForSong(id);
         model.addAttribute("playsTotalCount", playsTotalCount);
         model.addAttribute("playsPage", playsPage);
-        model.addAttribute("playsPageSize", pageSize);
         model.addAttribute("playsTotalPages", (int) Math.ceil((double) playsTotalCount / pageSize));
-        model.addAttribute("playsByYear", songService.getPlaysByYearForSong(id));
         model.addAttribute("playsByMonth", songService.getPlaysByMonthForSong(id));
         
         // Always load seasonal/yearly chart history for sidebar chips
@@ -994,7 +964,6 @@ public class SongController {
         model.addAttribute("rankByAlbum", songService.getSongRankByAlbum(id));
 
         // TRL chip
-        model.addAttribute("trlDays", trlService.getDaysOnTrlBySongId(id));
         model.addAttribute("trlStats", trlService.getTrlStatsBySongId(id));
 
         // Vato's Cuntdown chip
@@ -1165,86 +1134,7 @@ public class SongController {
             return "error";
         }
     }
-    
-    /**
-     * Fetch sampling information from WhoSampled for a specific song.
-     * Returns HTML content if found, or error status if not.
-     */
-    @GetMapping("/{id}/whosampled")
-    @ResponseBody
-    public Map<String, Object> fetchWhoSampledData(@PathVariable Integer id) {
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            Optional<Song> songOpt = songService.getSongById(id);
-            if (!songOpt.isPresent()) {
-                response.put("success", false);
-                response.put("message", "Song not found");
-                return response;
-            }
-            
-            Song song = songOpt.get();
-            String artistName = songService.getArtistName(song.getArtistId());
-            String songName = song.getName();
-            
-            if (artistName == null || songName == null) {
-                response.put("success", false);
-                response.put("message", "Missing artist or song name");
-                return response;
-            }
-            
-            // Build WhoSampled URL: https://www.whosampled.com/Artist-Name/Song-Name/
-            String urlPath = buildWhoSampledUrl(artistName, songName);
-            String fullUrl = "https://www.whosampled.com" + urlPath;
-            String searchUrl = buildWhoSampledSearchUrl(artistName, songName);
 
-            response.put("url", fullUrl);
-            response.put("searchUrl", searchUrl);
-            
-            System.out.println("Attempting WhoSampled URL: " + fullUrl);
-            
-            // Try to fetch the page
-            try {
-                org.jsoup.nodes.Document doc = fetchWhoSampledDocument(fullUrl);
-                
-                System.out.println("Successfully fetched WhoSampled page!");
-                
-                org.jsoup.nodes.Element mainContent = extractWhoSampledContent(doc, fullUrl);
-                
-                if (mainContent != null) {
-                    response.put("success", true);
-                    response.put("html", mainContent.outerHtml());
-                } else {
-                    response.put("success", false);
-                    response.put("parseFailed", true);
-                    response.put("message", "WhoSampled loaded, but the expected song content could not be parsed.");
-                }
-            } catch (org.jsoup.HttpStatusException e) {
-                int statusCode = e.getStatusCode();
-                System.out.println("WhoSampled request failed (status " + statusCode + "): " + fullUrl);
-                response.put("success", false);
-                response.put("statusCode", statusCode);
-
-                if (statusCode == 404) {
-                    response.put("notFound", true);
-                    response.put("message", "WhoSampled does not appear to have a direct page for this song.");
-                } else if (statusCode == 403) {
-                    response.put("blocked", true);
-                    response.put("message", "WhoSampled blocked the server-side fetch for this page.");
-                } else {
-                    response.put("message", "WhoSampled returned HTTP " + statusCode + " while fetching this page.");
-                }
-            }
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.put("success", false);
-            response.put("message", "Error fetching WhoSampled data: " + e.getMessage());
-        }
-        
-        return response;
-    }
-    
     /**
      * Build WhoSampled URL path from artist and song name.
      * Format: /Artist-Name/Song-Name/
@@ -1323,536 +1213,6 @@ public class SongController {
 
     private String buildWhoSampledSearchUrl(String artistName, String songName) throws java.io.UnsupportedEncodingException {
         return "https://www.whosampled.com/search/?q=" + java.net.URLEncoder.encode(artistName + " " + songName, "UTF-8");
-    }
-
-    private org.jsoup.nodes.Element extractWhoSampledContent(org.jsoup.nodes.Document doc, String fullUrl) throws IOException {
-        java.util.List<org.jsoup.nodes.Element> sections = extractSongConnectionSections(doc);
-        if (sections.isEmpty()) {
-            return null;
-        }
-
-        Map<String, Integer> artistCache = new HashMap<>();
-        Map<String, Integer> songCache = new HashMap<>();
-        org.jsoup.nodes.Element container = new org.jsoup.nodes.Element("div");
-        container.addClass("whosampled-song-connections");
-        container.appendElement("h2").text("Song Connections");
-
-        for (org.jsoup.nodes.Element section : sections) {
-            org.jsoup.nodes.Element preparedSection = expandAndPrepareConnectionSection(section, fullUrl, artistCache, songCache);
-            if (preparedSection != null) {
-                container.appendChild(preparedSection);
-            }
-        }
-
-        return container.children().isEmpty() ? null : container;
-    }
-
-    private java.util.List<org.jsoup.nodes.Element> extractSongConnectionSections(org.jsoup.nodes.Document doc) {
-        java.util.List<org.jsoup.nodes.Element> sections = new ArrayList<>();
-        org.jsoup.nodes.Element article = doc.selectFirst("main article.leftContent, main article");
-        if (article == null) {
-            return sections;
-        }
-
-        org.jsoup.nodes.Element songConnectionsHeading = article.selectFirst("h2:matchesOwn(^\\s*Song Connections\\s*$)");
-        if (songConnectionsHeading == null) {
-            return sections;
-        }
-
-        for (org.jsoup.nodes.Element sibling = songConnectionsHeading.nextElementSibling(); sibling != null; sibling = sibling.nextElementSibling()) {
-            if ("h2".equalsIgnoreCase(sibling.tagName())) {
-                break;
-            }
-
-            if (sibling.selectFirst("h3") != null) {
-                sections.add(sibling.clone());
-            }
-        }
-
-        return sections;
-    }
-
-    private org.jsoup.nodes.Element expandAndPrepareConnectionSection(org.jsoup.nodes.Element section,
-                                                                     String fullUrl,
-                                                                     Map<String, Integer> artistCache,
-                                                                     Map<String, Integer> songCache) throws IOException {
-        org.jsoup.nodes.Element workingSection = section.clone();
-        String headingText = getConnectionSectionHeading(workingSection);
-        if (headingText.startsWith("remixed in")) {
-            return null;
-        }
-        String seeAllUrl = findSeeAllUrl(workingSection);
-
-        if (seeAllUrl != null && (headingText.startsWith("contains samples") || headingText.startsWith("sampled in"))) {
-            try {
-                org.jsoup.nodes.Document detailDoc = fetchWhoSampledDocument(seeAllUrl);
-                org.jsoup.nodes.Element fullSection = extractDetailedConnectionSection(detailDoc);
-                if (fullSection != null) {
-                    workingSection = fullSection;
-                }
-            } catch (Exception e) {
-                System.out.println("Failed to expand WhoSampled section from " + seeAllUrl + ": " + e.getMessage());
-            }
-        }
-
-        normalizeConnectionSection(workingSection, fullUrl, artistCache, songCache);
-        return workingSection;
-    }
-
-    private org.jsoup.nodes.Element extractDetailedConnectionSection(org.jsoup.nodes.Document doc) {
-        org.jsoup.nodes.Element article = doc.selectFirst("main article.leftContent, main article");
-        if (article == null) {
-            return null;
-        }
-
-        org.jsoup.nodes.Element heading = article.selectFirst("h2");
-        if (heading == null) {
-            return null;
-        }
-
-        org.jsoup.nodes.Element section = new org.jsoup.nodes.Element("div");
-        section.addClass("ws-connection-section");
-        org.jsoup.nodes.Element headingHeader = heading.parent();
-        if (headingHeader != null && "header".equalsIgnoreCase(headingHeader.tagName())) {
-            section.appendChild(headingHeader.clone());
-            for (org.jsoup.nodes.Element sibling = headingHeader.nextElementSibling(); sibling != null; sibling = sibling.nextElementSibling()) {
-                if ("header".equalsIgnoreCase(sibling.tagName())) {
-                    break;
-                }
-
-                if ("h1".equalsIgnoreCase(sibling.tagName()) || "h2".equalsIgnoreCase(sibling.tagName())) {
-                    break;
-                }
-
-                if ("nav".equalsIgnoreCase(sibling.tagName()) || "table".equalsIgnoreCase(sibling.tagName()) || sibling.selectFirst("table") != null) {
-                    section.appendChild(sibling.clone());
-                }
-            }
-            return section;
-        }
-
-        section.appendChild(heading.clone());
-
-        for (org.jsoup.nodes.Element sibling = heading.nextElementSibling(); sibling != null; sibling = sibling.nextElementSibling()) {
-            if ("h2".equalsIgnoreCase(sibling.tagName())) {
-                break;
-            }
-
-            if ("h1".equalsIgnoreCase(sibling.tagName())) {
-                break;
-            }
-
-            if (sibling.selectFirst("table") != null || "nav".equalsIgnoreCase(sibling.tagName())) {
-                section.appendChild(sibling.clone());
-            }
-        }
-
-        return section;
-    }
-
-    private void normalizeConnectionSection(org.jsoup.nodes.Element section,
-                                            String baseUrl,
-                                            Map<String, Integer> artistCache,
-                                            Map<String, Integer> songCache) {
-        section.select("script, style, .ad, .ads, .ad-wrapper, .comment, .comments, .comment-form, nav").remove();
-        removeSeeAllLinks(section);
-
-        section.select("img[src]").forEach(image -> image.attr("src", image.absUrl("src")));
-        section.select("img[srcset]").forEach(image -> image.attr("srcset", absolutizeSrcSet(image.attr("srcset"), baseUrl)));
-
-        for (org.jsoup.nodes.Element row : section.select("tr")) {
-            if (!row.select("th").isEmpty()) {
-                continue;
-            }
-
-            org.jsoup.select.Elements cells = row.select("> td");
-            if (cells.size() < 3) {
-                continue;
-            }
-
-            String songTitle = cells.get(1).text().trim();
-            String primaryArtist = extractPrimaryArtistName(cells.get(2));
-            Integer localSongId = findLocalSongId(primaryArtist, songTitle, songCache);
-
-            rewriteSongLinks(cells.get(0), localSongId);
-            rewriteSongLinks(cells.get(1), localSongId);
-            rewriteArtistLinks(cells.get(2), artistCache);
-        }
-
-        section.select("a[href]").forEach(link -> {
-            String href = link.attr("href");
-            if (!href.startsWith("/songs/") && !href.startsWith("/artists/")) {
-                link.unwrap();
-            }
-        });
-    }
-
-    private String getConnectionSectionHeading(org.jsoup.nodes.Element section) {
-        org.jsoup.nodes.Element heading = section.selectFirst("h3, h2");
-        return heading != null ? heading.text().toLowerCase().trim() : "";
-    }
-
-    private String findSeeAllUrl(org.jsoup.nodes.Element section) {
-        org.jsoup.nodes.Element seeAllLink = findSeeAllLink(section);
-        return seeAllLink != null ? seeAllLink.absUrl("href") : null;
-    }
-
-    private org.jsoup.nodes.Element findSeeAllLink(org.jsoup.nodes.Element section) {
-        for (org.jsoup.nodes.Element link : section.select("a[href]")) {
-            if ("see all".equalsIgnoreCase(link.text().trim())) {
-                return link;
-            }
-        }
-        return null;
-    }
-
-    private void removeSeeAllLinks(org.jsoup.nodes.Element section) {
-        for (org.jsoup.nodes.Element link : section.select("a[href]")) {
-            if ("see all".equalsIgnoreCase(link.text().trim())) {
-                link.remove();
-            }
-        }
-    }
-
-    private String extractPrimaryArtistName(org.jsoup.nodes.Element artistCell) {
-        org.jsoup.nodes.Element firstArtistLink = artistCell.selectFirst("a");
-        if (firstArtistLink != null) {
-            return firstArtistLink.text().trim();
-        }
-
-        String artistText = artistCell.text().trim();
-        if (artistText.isEmpty()) {
-            return artistText;
-        }
-
-        return artistText.split("(?i)\\s+(feat\\.?|featuring|and|&)\\s+")[0].trim();
-    }
-
-    private void rewriteSongLinks(org.jsoup.nodes.Element cell, Integer localSongId) {
-        for (org.jsoup.nodes.Element link : cell.select("a[href]")) {
-            if (localSongId != null) {
-                link.attr("href", "/songs/" + localSongId);
-            } else {
-                link.unwrap();
-            }
-        }
-    }
-
-    private void rewriteArtistLinks(org.jsoup.nodes.Element cell, Map<String, Integer> artistCache) {
-        for (org.jsoup.nodes.Element link : cell.select("a[href]")) {
-            Integer localArtistId = findLocalArtistId(link.text().trim(), artistCache);
-            if (localArtistId != null) {
-                link.attr("href", "/artists/" + localArtistId);
-            } else {
-                link.unwrap();
-            }
-        }
-    }
-
-    private Integer findLocalArtistId(String artistName, Map<String, Integer> artistCache) {
-        if (artistName == null || artistName.isBlank()) {
-            return null;
-        }
-
-        String cacheKey = normalizeForLookup(artistName);
-        if (artistCache.containsKey(cacheKey)) {
-            return artistCache.get(cacheKey);
-        }
-
-        String sql = "SELECT id FROM Artist WHERE " + StringNormalizer.sqlNormalizeColumn("name") + " = ? LIMIT 1";
-        List<Integer> results = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getInt("id"), cacheKey);
-        Integer artistId = results.isEmpty() ? null : results.get(0);
-        artistCache.put(cacheKey, artistId);
-        return artistId;
-    }
-
-    private Integer findLocalSongId(String artistName, String songTitle, Map<String, Integer> songCache) {
-        if (artistName == null || artistName.isBlank() || songTitle == null || songTitle.isBlank()) {
-            return null;
-        }
-
-        String normalizedArtist = normalizeForLookup(artistName);
-        String normalizedSong = normalizeForLookup(songTitle);
-        String normalizedWhoSampledSong = normalizeForWhoSampledLookup(songTitle);
-        String cacheKey = normalizedArtist + "||" + normalizedWhoSampledSong;
-        if (songCache.containsKey(cacheKey)) {
-            return songCache.get(cacheKey);
-        }
-
-        String sql = "SELECT s.id, s.name FROM Song s JOIN Artist a ON s.artist_id = a.id " +
-                "WHERE " + StringNormalizer.sqlNormalizeColumn("a.name") + " = ?";
-        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, normalizedArtist);
-
-        Integer songId = null;
-        for (Map<String, Object> result : results) {
-            String candidateTitle = result.get("name") != null ? result.get("name").toString() : "";
-            String candidateNormalized = normalizeForLookup(candidateTitle);
-            String candidateWhoSampledNormalized = normalizeForWhoSampledLookup(candidateTitle);
-
-            if (candidateNormalized.equals(normalizedSong)
-                    || candidateNormalized.equals(normalizedWhoSampledSong)
-                    || candidateWhoSampledNormalized.equals(normalizedSong)
-                    || candidateWhoSampledNormalized.equals(normalizedWhoSampledSong)) {
-                songId = ((Number) result.get("id")).intValue();
-                break;
-            }
-        }
-
-        // If no match found, try stripping title variants like "Single Version", "Radio Edit", "Album Version"
-        if (songId == null) {
-            String strippedSong = stripTitleVariants(songTitle);
-            if (!strippedSong.equals(songTitle)) {
-                String strippedNormalized = normalizeForLookup(strippedSong);
-                String strippedWhoSampled = normalizeForWhoSampledLookup(strippedSong);
-                for (Map<String, Object> result : results) {
-                    String candidateTitle = result.get("name") != null ? result.get("name").toString() : "";
-                    String candidateNormalized = normalizeForLookup(candidateTitle);
-                    String candidateWhoSampledNormalized = normalizeForWhoSampledLookup(candidateTitle);
-
-                    if (candidateNormalized.equals(strippedNormalized)
-                            || candidateNormalized.equals(strippedWhoSampled)
-                            || candidateWhoSampledNormalized.equals(strippedNormalized)
-                            || candidateWhoSampledNormalized.equals(strippedWhoSampled)) {
-                        songId = ((Number) result.get("id")).intValue();
-                        break;
-                    }
-                }
-            }
-        }
-
-        songCache.put(cacheKey, songId);
-        return songId;
-    }
-
-    private String stripTitleVariants(String title) {
-        if (title == null) return title;
-        // Strip common title variants like "Single Version", "Radio Edit", "Album Version", etc.
-        return title
-                .replaceAll("(?i)\\s*[-–]\\s*(Single|Album|Extended|Clean|Explicit|Radio|Acoustic|Remix|Remaster|Version|Edit|Mix).*$", "")
-                .replaceAll("(?i)\\s*\\(\s*(Single|Album|Extended|Clean|Explicit|Radio|Acoustic|Remix|Remaster|Version|Edit|Mix|Feat\\..*?)\\s*\\).*$", "")
-                .replaceAll("(?i)\\s*\\[\\s*(Single|Album|Extended|Clean|Explicit|Radio|Acoustic|Remix|Remaster|Version|Edit|Mix).*?\\].*$", "")
-                .trim();
-    }
-
-    private String normalizeForLookup(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        return StringNormalizer.stripAccents(value.toLowerCase().trim()).replace("'", "");
-    }
-
-    private String normalizeForWhoSampledLookup(String value) {
-        return normalizeForLookup(normalizeWhoSampledSongTitle(value))
-                .replace("[", "")
-                .replace("]", "");
-    }
-
-    private String absolutizeSrcSet(String srcSet, String baseUri) {
-        String[] entries = srcSet.split(",");
-        java.util.List<String> rewrittenEntries = new java.util.ArrayList<>();
-
-        for (String entry : entries) {
-            String trimmedEntry = entry.trim();
-            if (trimmedEntry.isEmpty()) {
-                continue;
-            }
-
-            String[] parts = trimmedEntry.split("\\s+", 2);
-            String absoluteUrl = org.jsoup.internal.StringUtil.resolve(baseUri, parts[0]);
-            if (parts.length == 2) {
-                rewrittenEntries.add(absoluteUrl + " " + parts[1]);
-            } else {
-                rewrittenEntries.add(absoluteUrl);
-            }
-        }
-
-        return String.join(", ", rewrittenEntries);
-    }
-
-    private org.jsoup.nodes.Document fetchWhoSampledDocument(String fullUrl) throws IOException {
-        org.jsoup.nodes.Document curlDocument = fetchWhoSampledDocumentWithCurl(fullUrl);
-        if (curlDocument != null) {
-            return curlDocument;
-        }
-
-        return org.jsoup.Jsoup.connect(fullUrl)
-            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
-            .referrer("https://www.google.com/")
-            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-            .header("Accept-Language", "en-US,en;q=0.9")
-            .header("Cache-Control", "no-cache")
-            .header("Pragma", "no-cache")
-            .header("Sec-Fetch-Site", "none")
-            .header("Sec-Fetch-Mode", "navigate")
-            .header("Sec-Fetch-User", "?1")
-            .header("Sec-Fetch-Dest", "document")
-            .timeout(10000)
-            .get();
-    }
-
-    private org.jsoup.nodes.Document fetchWhoSampledDocumentWithCurl(String fullUrl) {
-        File tempFile = null;
-        List<String> command = new ArrayList<>();
-        command.add("curl.exe");
-        command.add("-L");
-        command.add("--silent");
-        command.add("--show-error");
-        command.add("--compressed");
-        command.add("--max-time");
-        command.add("20");
-        command.add(fullUrl);
-        command.add("-H");
-        command.add("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
-        command.add("-H");
-        command.add("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
-        command.add("-H");
-        command.add("Accept-Language: en-US,en;q=0.9");
-        command.add("-H");
-        command.add("Cache-Control: no-cache");
-        command.add("-H");
-        command.add("Pragma: no-cache");
-        command.add("-H");
-        command.add("Sec-Fetch-Site: none");
-        command.add("-H");
-        command.add("Sec-Fetch-Mode: navigate");
-        command.add("-H");
-        command.add("Sec-Fetch-User: ?1");
-        command.add("-H");
-        command.add("Sec-Fetch-Dest: document");
-
-        try {
-            tempFile = Files.createTempFile("whosampled-", ".html").toFile();
-            command.add("--output");
-            command.add(tempFile.getAbsolutePath());
-        } catch (IOException e) {
-            System.out.println("Unable to create temp file for WhoSampled curl fetch: " + e.getMessage());
-            return null;
-        }
-
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.redirectErrorStream(true);
-
-        try {
-            Process process = processBuilder.start();
-            boolean finished = process.waitFor(20, TimeUnit.SECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                System.out.println("curl.exe timed out while fetching WhoSampled page.");
-                return null;
-            }
-
-            String stderrOutput;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                StringBuilder builder = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    builder.append(line).append('\n');
-                }
-                stderrOutput = builder.toString();
-            }
-
-            if (process.exitValue() != 0) {
-                System.out.println("curl.exe did not return usable WhoSampled HTML. Exit code: " + process.exitValue());
-                if (!stderrOutput.isBlank()) {
-                    System.out.println(stderrOutput);
-                }
-                return null;
-            }
-
-            String output = Files.readString(tempFile.toPath(), StandardCharsets.UTF_8);
-            if (output.isBlank()) {
-                System.out.println("curl.exe completed but returned an empty WhoSampled response.");
-                return null;
-            }
-
-            if (output.contains("Song Connections") || output.contains("Rain on Me by Ashanti") || output.contains("WhoSampled")) {
-                return org.jsoup.Jsoup.parse(output, fullUrl);
-            }
-
-            System.out.println("curl.exe output did not look like a WhoSampled song page.");
-        } catch (IOException e) {
-            System.out.println("curl.exe is not available for WhoSampled fetch: " + e.getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.out.println("curl.exe fetch was interrupted.");
-        } finally {
-            if (tempFile != null && tempFile.exists() && !tempFile.delete()) {
-                tempFile.deleteOnExit();
-            }
-        }
-
-        return null;
-    }
-    
-    /**
-     * Fetch release date and song length from iTunes XML for a specific song.
-     * Returns JSON with releaseDate (YYYY-MM-DD) and lengthSeconds.
-     */
-    @PostMapping("/{id}/fetch-itunes-data")
-    @ResponseBody
-    public Map<String, Object> fetchItunesData(@PathVariable Integer id) {
-        Map<String, Object> response = new java.util.HashMap<>();
-        
-        try {
-            // Get the song details
-            Optional<Song> songOpt = songService.getSongById(id);
-            if (!songOpt.isPresent()) {
-                response.put("success", false);
-                response.put("message", "Song not found");
-                return response;
-            }
-            
-            Song song = songOpt.get();
-            
-            // Get artist and album names
-            String artistName = null;
-            String albumName = null;
-            
-            if (song.getArtistId() != null) {
-                Optional<Artist> artistOpt = artistService.getArtistById(song.getArtistId());
-                if (artistOpt.isPresent()) {
-                    artistName = artistOpt.get().getName();
-                }
-            }
-            
-            if (song.getAlbumId() != null) {
-                Optional<Album> albumOpt = albumService.getAlbumById(song.getAlbumId());
-                if (albumOpt.isPresent()) {
-                    albumName = albumOpt.get().getName();
-                }
-            }
-            
-            // Look up in iTunes XML
-            iTunesLibraryService.iTunesTrackData trackData = 
-                iTunesLibraryService.findTrackData(song.getName(), artistName, albumName);
-            
-            if (trackData != null) {
-                response.put("success", true);
-                response.put("songName", trackData.songName);
-                response.put("releaseDate", trackData.releaseDate);
-                response.put("lengthSeconds", trackData.lengthSeconds);
-                response.put("trackNumber", trackData.trackNumber);
-                response.put("matchType", trackData.matchType);
-                
-                // Format length as mm:ss for display
-                if (trackData.lengthSeconds != null) {
-                    int minutes = trackData.lengthSeconds / 60;
-                    int seconds = trackData.lengthSeconds % 60;
-                    response.put("lengthFormatted", String.format("%d:%02d", minutes, seconds));
-                }
-            } else {
-                response.put("success", false);
-                response.put("message", "Song not found in iTunes library");
-            }
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.put("success", false);
-            response.put("message", "Error: " + e.getMessage());
-        }
-        
-        return response;
     }
 
     /**
@@ -2969,127 +2329,7 @@ public class SongController {
         filter.setIncludeFeatured(includeFeatured);
         return songService.getListenYearChartData(filter);
     }
-    
-    // Legacy API endpoint for filtered gender breakdown chart data (kept for backwards compatibility)
-    @GetMapping("/api/charts/gender")
-    @ResponseBody
-    public Map<String, Object> getFilteredGenderChartData(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) List<Integer> artist,
-            @RequestParam(required = false) List<Integer> album,
-            @RequestParam(required = false) List<Integer> song,
-            @RequestParam(required = false) List<Integer> genre,
-            @RequestParam(required = false) String genreMode,
-            @RequestParam(required = false) List<Integer> subgenre,
-            @RequestParam(required = false) String subgenreMode,
-            @RequestParam(required = false) List<Integer> language,
-            @RequestParam(required = false) String languageMode,
-            @RequestParam(required = false) List<Integer> gender,
-            @RequestParam(required = false) String genderMode,
-            @RequestParam(required = false) List<Integer> ethnicity,
-            @RequestParam(required = false) String ethnicityMode,
-            @RequestParam(required = false) List<String> country,
-            @RequestParam(required = false) String countryMode,
-            @RequestParam(required = false) List<String> account,
-            @RequestParam(required = false) String accountMode,
-            @RequestParam(required = false) String releaseDate,
-            @RequestParam(required = false) String releaseDateFrom,
-            @RequestParam(required = false) String releaseDateTo,
-            @RequestParam(required = false) String releaseDateMode,
-            @RequestParam(required = false) String firstListenedDate,
-            @RequestParam(required = false) String firstListenedDateFrom,
-            @RequestParam(required = false) String firstListenedDateTo,
-            @RequestParam(required = false) String firstListenedDateMode,
-            @RequestParam(required = false) String firstListenedDateEntity,
-            @RequestParam(required = false) String lastListenedDate,
-            @RequestParam(required = false) String lastListenedDateFrom,
-            @RequestParam(required = false) String lastListenedDateTo,
-            @RequestParam(required = false) String lastListenedDateMode,
-            @RequestParam(required = false) String lastListenedDateEntity,
-            @RequestParam(required = false) String lastFullListenDate,
-            @RequestParam(required = false) String lastFullListenDateFrom,
-            @RequestParam(required = false) String lastFullListenDateTo,
-            @RequestParam(required = false) String lastFullListenDateMode,
-            @RequestParam(required = false) String listenedDateFrom,
-            @RequestParam(required = false) String listenedDateTo,
-            @RequestParam(required = false) Integer playCountMin,
-            @RequestParam(required = false) Integer playCountMax,
-            @RequestParam(required = false) String playCountEntity,
-            @RequestParam(required = false) String hasFeaturedArtists,
-            @RequestParam(required = false) String isBand,
-            @RequestParam(required = false) String isSingle,
-            @RequestParam(required = false) String inItunes,
-            @RequestParam(required = false) Integer albumsWeeklyChartPeak,
-            @RequestParam(required = false) Integer albumsWeeklyChartWeeks,
-            @RequestParam(required = false) Integer albumsSeasonalChartPeak,
-            @RequestParam(required = false) Integer albumsSeasonalChartSeasons,
-            @RequestParam(required = false) Integer albumsYearlyChartPeak,
-            @RequestParam(required = false) Integer albumsYearlyChartYears,
-            @RequestParam(required = false) Integer songsWeeklyChartPeak,
-            @RequestParam(required = false) Integer songsWeeklyChartWeeks,
-            @RequestParam(required = false) Integer songsSeasonalChartPeak,
-            @RequestParam(required = false) Integer songsSeasonalChartSeasons,
-            @RequestParam(required = false) Integer songsYearlyChartPeak,
-            @RequestParam(required = false) Integer songsYearlyChartYears,
-            @RequestParam(required = false) Integer ageMin,
-            @RequestParam(required = false) Integer ageMax,
-            @RequestParam(required = false) String ageMode,
-            @RequestParam(required = false) Integer ageAtReleaseMin,
-            @RequestParam(required = false) Integer ageAtReleaseMax,
-            @RequestParam(required = false) String birthDate,
-            @RequestParam(required = false) String birthDateFrom,
-            @RequestParam(required = false) String birthDateTo,
-            @RequestParam(required = false) String birthDateMode,
-            @RequestParam(required = false) String deathDate,
-            @RequestParam(required = false) String deathDateFrom,
-            @RequestParam(required = false) String deathDateTo,
-            @RequestParam(required = false) String deathDateMode) {
-        
-        ChartFilterDTO filter = buildChartFilter(
-            q, artist, album, song, genre, genreMode, subgenre, subgenreMode,
-            language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
-            country, countryMode, account, accountMode,
-            releaseDate, releaseDateFrom, releaseDateTo, releaseDateMode,
-            firstListenedDate, firstListenedDateFrom, firstListenedDateTo, firstListenedDateMode, firstListenedDateEntity,
-            lastListenedDate, lastListenedDateFrom, lastListenedDateTo, lastListenedDateMode, lastListenedDateEntity,
-            lastFullListenDate, lastFullListenDateFrom, lastFullListenDateTo, lastFullListenDateMode,
-            listenedDateFrom, listenedDateTo, playCountMin, playCountMax, playCountEntity,
-            hasFeaturedArtists, isBand, isSingle, inItunes, null, null, 0,
-            albumsWeeklyChartPeak, albumsWeeklyChartWeeks,
-            albumsSeasonalChartPeak, albumsSeasonalChartSeasons,
-            albumsYearlyChartPeak, albumsYearlyChartYears,
-            songsWeeklyChartPeak, songsWeeklyChartWeeks,
-            songsSeasonalChartPeak, songsSeasonalChartSeasons,
-            songsYearlyChartPeak, songsYearlyChartYears,
-            ageMin, ageMax, ageMode,
-            ageAtReleaseMin, ageAtReleaseMax,
-            birthDate, birthDateFrom, birthDateTo, birthDateMode,
-            deathDate, deathDateFrom, deathDateTo, deathDateMode);
-        
-        return songService.getFilteredChartData(filter);
-    }
-    
-    // Helper method to format date strings for display (yyyy-MM-dd -> dd-MMM-yyyy)
-    private String formatDateForDisplay(String dateStr) {
-        if (dateStr == null || dateStr.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            String[] parts = dateStr.split("-");
-            if (parts.length == 3) {
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]);
-                int day = Integer.parseInt(parts[2]);
-                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
-            }
-        } catch (Exception e) {
-            // If parsing fails, return original
-        }
-        return dateStr;
-    }
-    
+
 
     
     // ============================================
@@ -3103,15 +2343,6 @@ public class SongController {
     @ResponseBody
     public List<FeaturedArtistDTO> searchArtists(@RequestParam String q) {
         return songService.searchArtists(q, 10);
-    }
-    
-    /**
-     * Get featured artists for a song
-     */
-    @GetMapping("/{id}/featured-artists")
-    @ResponseBody
-    public List<FeaturedArtistDTO> getFeaturedArtists(@PathVariable Integer id) {
-        return songService.getFeaturedArtistsForSong(id);
     }
     
     /**

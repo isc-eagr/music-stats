@@ -46,11 +46,8 @@ import java.util.regex.Pattern;
 @Controller
 @RequestMapping("/charts")
 public class ChartsController {
-
-    private static final int WEEKLY_OVERVIEW_PAGE_SIZE = 100;
     private static final int WEEKLY_CHART_SIZE = 20;
     private static final int WEEKLY_PREVIEW_CONTENDER_COUNT = 30;
-    private static final int SEASONAL_SONG_OVERVIEW_PAGE_SIZE = 100;
     private static final Pattern OVERVIEW_RANGE_PATTERN = Pattern.compile("^(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)$");
     private static final Pattern OVERVIEW_COMPARE_PATTERN = Pattern.compile("^(<=|>=|=|<|>)?\\s*(-?\\d+(?:\\.\\d+)?)$");
 
@@ -168,7 +165,6 @@ public class ChartsController {
             model.addAttribute("hasChart", false);
             model.addAttribute("isPreview", false);
             model.addAttribute("periodKey", periodKey);
-            model.addAttribute("weekComplete", weekComplete);
             model.addAttribute("missingWeeksCount", chartService.getWeeksWithoutCharts().size());
             model.addAttribute("selectedView", selectedView);
             model.addAttribute("availableDates", availableDates);
@@ -1021,9 +1017,6 @@ public class ChartsController {
         model.addAttribute("albumRows", pagedAlbumRows);
         model.addAttribute("artistRows", pagedArtistRows);
         model.addAttribute("pageTitle", "Weekly Chart Overview");
-        model.addAttribute("mainChartUrl", "/charts/weekly");
-        model.addAttribute("mainChartLabel", "Weekly Charts");
-        model.addAttribute("weeklyInfiniteScrollEnabled", true);
         model.addAttribute("serverInfiniteScrollEnabled", true);
         model.addAttribute("overviewDataPath", "/charts/weekly/overview/data");
         model.addAttribute("pageSize", pageSize);
@@ -1032,8 +1025,6 @@ public class ChartsController {
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
-        model.addAttribute("selectedTopSong", topSong);
-        model.addAttribute("selectedTopAlbum", topAlbum);
         model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("weekly", normalizedOverviewTab));
         model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
 
@@ -1321,9 +1312,6 @@ public class ChartsController {
         model.addAttribute("albumRows", pagedAlbumRows);
         model.addAttribute("artistRows", pagedArtistRows);
         model.addAttribute("pageTitle", "yearly".equals(periodType) ? "Yearly Chart Overview" : "Seasonal Chart Overview");
-        model.addAttribute("mainChartUrl", "/charts/" + periodType);
-        model.addAttribute("mainChartLabel", "yearly".equals(periodType) ? "Yearly Charts" : "Seasonal Charts");
-        model.addAttribute("weeklyInfiniteScrollEnabled", false);
         model.addAttribute("serverInfiniteScrollEnabled", true);
         model.addAttribute("overviewDataPath", "/charts/" + periodType + "/overview/data");
         model.addAttribute("pageSize", pageSize);
@@ -1332,8 +1320,6 @@ public class ChartsController {
         model.addAttribute("selectedDir", normalizedDir);
         model.addAttribute("searchQuery", normalizedQuery);
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
-        model.addAttribute("selectedTopSong", topSong);
-        model.addAttribute("selectedTopAlbum", topAlbum);
         model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor(periodType, overviewTab));
         model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
         return "charts/overview";

@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -397,38 +396,11 @@ public class SubGenreService {
         Long count = jdbcTemplate.queryForObject(sql, Long.class, name, name, parentGenreId, parentGenreId);
         return count != null ? count : 0;
     }
-    
-    public Optional<SubGenre> getSubGenreById(Integer id) {
-        String sql = """
-            SELECT sg.id, sg.name, sg.parent_genre_id, sg.creation_date, sg.update_date,
-                   g.name as parent_genre_name
-            FROM SubGenre sg
-            LEFT JOIN Genre g ON sg.parent_genre_id = g.id
-            WHERE sg.id = ?
-            """;
-        
-        List<SubGenre> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            SubGenre subGenre = new SubGenre();
-            subGenre.setId(rs.getInt("id"));
-            subGenre.setName(rs.getString("name"));
-            subGenre.setParentGenreId(rs.getInt("parent_genre_id"));
-            subGenre.setCreationDate(rs.getTimestamp("creation_date"));
-            subGenre.setUpdateDate(rs.getTimestamp("update_date"));
-            subGenre.setParentGenreName(rs.getString("parent_genre_name"));
-            return subGenre;
-        }, id);
-        
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
-    }
-    
+
     public SubGenre createSubGenre(SubGenre subGenre) {
         return subGenreRepository.save(subGenre);
     }
-    
-    public void updateParentGenre(Integer id, Integer parentGenreId) {
-        subGenreRepository.updateParentGenre(id, parentGenreId);
-    }
-    
+
     public byte[] getSubGenreImage(Integer id) {
         String sql = "SELECT image FROM SubGenre WHERE id = ?";
         try {
@@ -437,11 +409,7 @@ public class SubGenreService {
             return null;
         }
     }
-    
-    public void updateSubGenreImage(Integer id, byte[] imageData) {
-        subGenreRepository.updateImage(id, imageData);
-    }
-    
+
     public Map<Integer, String> getGenres() {
         return lookupRepository.getAllGenres();
     }
@@ -449,115 +417,7 @@ public class SubGenreService {
     public Map<Integer, String> getSubGenres() {
         return lookupRepository.getAllSubGenres();
     }
-    
-    // Get top 50 artists for a subgenre by play count
-    public List<Map<String, Object>> getTopArtistsForSubGenre(Integer subGenreId) {
-        String sql = """
-            SELECT 
-                ar.id,
-                ar.name,
-                COUNT(p.id) as play_count,
-                CASE WHEN ar.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Artist ar
-            JOIN Song s ON ar.id = s.artist_id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) = ?
-            GROUP BY ar.id, ar.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> artist = new java.util.HashMap<>();
-            artist.put("id", rs.getInt("id"));
-            artist.put("name", rs.getString("name"));
-            artist.put("playCount", rs.getInt("play_count"));
-            artist.put("hasImage", rs.getInt("has_image") == 1);
-            return artist;
-        }, subGenreId);
-    }
-    
-    // Get top 50 albums for a subgenre by play count
-    public List<Map<String, Object>> getTopAlbumsForSubGenre(Integer subGenreId) {
-        String sql = """
-            SELECT 
-                al.id,
-                al.name,
-                ar.name as artist_name,
-                COUNT(p.id) as play_count,
-                CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image
-            FROM Album al
-            JOIN Artist ar ON al.artist_id = ar.id
-            JOIN Song s ON al.id = s.album_id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(al.override_subgenre_id, ar.subgenre_id) = ?
-            GROUP BY al.id, al.name, ar.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> album = new java.util.HashMap<>();
-            album.put("id", rs.getInt("id"));
-            album.put("name", rs.getString("name"));
-            album.put("artistName", rs.getString("artist_name"));
-            album.put("playCount", rs.getInt("play_count"));
-            album.put("hasImage", rs.getInt("has_image") == 1);
-            return album;
-        }, subGenreId);
-    }
-    
-    // Get top 50 songs for a subgenre by play count
-    public List<Map<String, Object>> getTopSongsForSubGenre(Integer subGenreId) {
-        String sql = """
-            SELECT 
-                s.id,
-                s.name,
-                ar.name as artist_name,
-                al.name as album_name,
-                COUNT(p.id) as play_count
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) = ?
-            GROUP BY s.id, s.name, ar.name, al.name
-            ORDER BY play_count DESC
-            LIMIT 50
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> song = new java.util.HashMap<>();
-            song.put("id", rs.getInt("id"));
-            song.put("name", rs.getString("name"));
-            song.put("artistName", rs.getString("artist_name"));
-            song.put("albumName", rs.getString("album_name"));
-            song.put("playCount", rs.getInt("play_count"));
-            return song;
-        }, subGenreId);
-    }
-    
-    public Map<String, Object> getSubGenreStats(Integer subGenreId) {
-        String sql = """
-            SELECT 
-                COUNT(DISTINCT p.id) as play_count,
-                COALESCE(SUM(s.length_seconds), 0) as total_length,
-                COUNT(DISTINCT ar.id) as artist_count,
-                COUNT(DISTINCT al.id) as album_count,
-                COUNT(DISTINCT s.id) as song_count,
-                MIN(p.play_date) as first_listened,
-                MAX(p.play_date) as last_listened
-            FROM Song s
-            JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            LEFT JOIN Play p ON s.id = p.song_id
-            WHERE COALESCE(s.override_subgenre_id, COALESCE(al.override_subgenre_id, ar.subgenre_id)) = ?
-            """;
-        
-        return jdbcTemplate.queryForMap(sql, subGenreId);
-    }
-    
+
     /**
      * Get all subgenres as simple id/name maps for dropdown lists.
      */

@@ -67,8 +67,4 @@ public class CountryCodeMapper {
         
         return null;
     }
-
-    public Map<String, String> getNameToCodeMap() {
-        return nameToCode;
-    }
 }

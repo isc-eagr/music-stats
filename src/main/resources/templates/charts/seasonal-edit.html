@@ -55,13 +55,7 @@
             align-items: center;
             gap: 12px;
         }
-        
-        .chart-header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        
+
         .back-btn {
             background: #1a1a1a;
             border: 1px solid #333;
@@ -79,13 +73,7 @@
             background: #2a2a2a;
             border-color: #444;
         }
-        
-        .chart-title {
-            font-size: 1.8rem;
-            color: #fff;
-            margin: 0;
-        }
-        
+
         .chart-actions {
             display: flex;
             gap: 12px;
@@ -133,13 +121,7 @@
             opacity: 0.4;
             cursor: not-allowed;
         }
-        
-        .status-info {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        
+
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -382,18 +364,6 @@
             color: #aaa;
             text-decoration: underline;
         }
-        
-        .entry-plays {
-            color: #888;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            padding-right: 12px;
-        }
-
-        .entry-genre {
-            font-size: 0.75rem;
-            color: #888;
-        }
 
         /* Finalized table view */
         .seasonal-table-container {
@@ -558,8 +528,7 @@
             .chart-header,
             .chart-actions,
             .chart-period-nav,
-            .chart-period-nav-center,
-            .status-info {
+            .chart-period-nav-center {
                 flex-wrap: wrap;
             }
 
@@ -912,7 +881,7 @@
     </style>
 </head>
 <body>
-    <th:block th:replace="~{fragments/navigation :: nav}"></th:block>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
     
     <div class="chart-editor">
         <div class="overview-hero">

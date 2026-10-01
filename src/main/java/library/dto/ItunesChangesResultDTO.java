@@ -59,15 +59,4 @@ public class ItunesChangesResultDTO {
     public int getAddedCount() { return addedCount; }
     public int getRemovedCount() { return removedCount; }
     public int getChangedNotFoundCount() { return changedNotFoundCount; }
-
-    // Setters
-    public void setLastSnapshotDate(LocalDateTime lastSnapshotDate) { this.lastSnapshotDate = lastSnapshotDate; }
-    public void setHasSnapshot(boolean hasSnapshot) { this.hasSnapshot = hasSnapshot; }
-    public void setChangedSongs(List<ItunesChangedSongDTO> changedSongs) { this.changedSongs = changedSongs; }
-    public void setAddedSongs(List<ItunesAddedSongDTO> addedSongs) { this.addedSongs = addedSongs; }
-    public void setRemovedSongs(List<ItunesRemovedSongDTO> removedSongs) { this.removedSongs = removedSongs; }
-    public void setChangedCount(int changedCount) { this.changedCount = changedCount; }
-    public void setAddedCount(int addedCount) { this.addedCount = addedCount; }
-    public void setRemovedCount(int removedCount) { this.removedCount = removedCount; }
-    public void setChangedNotFoundCount(int changedNotFoundCount) { this.changedNotFoundCount = changedNotFoundCount; }
 }

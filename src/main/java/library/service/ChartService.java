@@ -47,14 +47,7 @@ public class ChartService {
     public Set<String> getExistingChartPeriodKeys(String chartType) {
         return chartRepository.findAllPeriodKeysByChartType(chartType);
     }
-    
-    /**
-     * Check if a chart exists for a given type and period.
-     */
-    public boolean chartExists(String chartType, String periodKey) {
-        return chartRepository.existsByChartTypeAndPeriodKey(chartType, periodKey);
-    }
-    
+
     /**
      * Get the latest chart for a given type.
      */
@@ -1285,14 +1278,7 @@ public class ChartService {
         return generationProgress.getOrDefault(sessionId, 
             ChartGenerationProgressDTO.error("Session not found"));
     }
-    
-    /**
-     * Clean up completed generation session.
-     */
-    public void cleanupGenerationSession(String sessionId) {
-        generationProgress.remove(sessionId);
-    }
-    
+
     /**
      * Get all weeks that have charts (for regeneration).
      */
@@ -1517,106 +1503,7 @@ public class ChartService {
             return null;
         }
     }
-    
-    /**
-     * Get chart history for an artist (all their songs and albums that have charted).
-     * Returns list sorted by peak position, then by weeks at peak (descending).
-     */
-    public List<ChartHistoryDTO> getArtistChartHistory(Integer artistId) {
-        List<ChartHistoryDTO> result = new ArrayList<>();
-        
-        // Get song chart history for this artist (weekly charts only)
-        String songSql = """
-            SELECT s.id, s.name, MIN(ce.position) as peak_position, 
-                   COUNT(*) as total_weeks
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN Song s ON ce.song_id = s.id
-            WHERE s.artist_id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name
-            """;
-        
-        List<Map<String, Object>> songRows = jdbcTemplate.queryForList(songSql, artistId);
-        for (Map<String, Object> row : songRows) {
-            Integer songId = ((Number) row.get("id")).intValue();
-            Integer peakPosition = ((Number) row.get("peak_position")).intValue();
-            Integer totalWeeks = ((Number) row.get("total_weeks")).intValue();
-            
-            // Count weeks at peak
-            Integer weeksAtPeak = countWeeksAtPosition(songId, peakPosition, "song");
-            String releaseDate = getReleaseDate(songId, "song");
-            String peakDate = getFirstPeakDate(songId, peakPosition, "song");
-            String debutDate = getDebutDate(songId, "song");
-            String peakWeek = getFirstPeakWeek(songId, peakPosition, "song");
-            String debutWeek = getDebutWeek(songId, "song");
-            
-            result.add(new ChartHistoryDTO(
-                songId,
-                (String) row.get("name"),
-                null, // artist name not needed for artist's own songs
-                peakPosition,
-                weeksAtPeak,
-                totalWeeks,
-                "song",
-                releaseDate,
-                peakDate,
-                debutDate,
-                peakWeek,
-                debutWeek
-            ));
-        }
-        
-        // Get album chart history for this artist (weekly charts only)
-        String albumSql = """
-            SELECT al.id, al.name, MIN(ce.position) as peak_position, 
-                   COUNT(*) as total_weeks
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN Album al ON ce.album_id = al.id
-            WHERE al.artist_id = ? AND c.chart_type = 'album' AND c.period_type = 'weekly'
-            GROUP BY al.id, al.name
-            """;
-        
-        List<Map<String, Object>> albumRows = jdbcTemplate.queryForList(albumSql, artistId);
-        for (Map<String, Object> row : albumRows) {
-            Integer albumId = ((Number) row.get("id")).intValue();
-            Integer peakPosition = ((Number) row.get("peak_position")).intValue();
-            Integer totalWeeks = ((Number) row.get("total_weeks")).intValue();
-            
-            // Count weeks at peak
-            Integer weeksAtPeak = countWeeksAtPosition(albumId, peakPosition, "album");
-            String releaseDate = getReleaseDate(albumId, "album");
-            String peakDate = getFirstPeakDate(albumId, peakPosition, "album");
-            String debutDate = getDebutDate(albumId, "album");
-            String peakWeek = getFirstPeakWeek(albumId, peakPosition, "album");
-            String debutWeek = getDebutWeek(albumId, "album");
-            
-            result.add(new ChartHistoryDTO(
-                albumId,
-                (String) row.get("name"),
-                null,
-                peakPosition,
-                weeksAtPeak,
-                totalWeeks,
-                "album",
-                releaseDate,
-                peakDate,
-                debutDate,
-                peakWeek,
-                debutWeek
-            ));
-        }
-        
-        // Sort by peak position (ascending), then by weeks at peak (descending)
-        result.sort((a, b) -> {
-            int peakCompare = a.getPeakPosition().compareTo(b.getPeakPosition());
-            if (peakCompare != 0) return peakCompare;
-            return b.getWeeksAtPeak().compareTo(a.getWeeksAtPeak());
-        });
-        
-        return result;
-    }
-    
+
     /**
      * Get song chart history for an artist (just songs).
      */
@@ -1715,61 +1602,6 @@ public class ChartService {
                 weeksAtPeak,
                 totalWeeks,
                 "album",
-                releaseDate,
-                peakDate,
-                debutDate,
-                peakWeek,
-                debutWeek
-            );
-            applyItunesPresence(dto);
-            result.add(dto);
-        }
-        
-        result.sort((a, b) -> {
-            int peakCompare = a.getPeakPosition().compareTo(b.getPeakPosition());
-            if (peakCompare != 0) return peakCompare;
-            return b.getWeeksAtPeak().compareTo(a.getWeeksAtPeak());
-        });
-        
-        return result;
-    }
-    
-    /**
-     * Get song chart history for songs on an album (songs that have charted).
-     */
-    public List<ChartHistoryDTO> getAlbumSongChartHistory(Integer albumId) {
-        List<ChartHistoryDTO> result = new ArrayList<>();
-        
-        String songSql = """
-            SELECT s.id, s.name, MIN(ce.position) as peak_position, 
-                   COUNT(*) as total_weeks
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN Song s ON ce.song_id = s.id
-            WHERE s.album_id = ? AND c.chart_type = 'song' AND c.period_type = 'weekly'
-            GROUP BY s.id, s.name
-            """;
-        
-        List<Map<String, Object>> songRows = jdbcTemplate.queryForList(songSql, albumId);
-        for (Map<String, Object> row : songRows) {
-            Integer songId = ((Number) row.get("id")).intValue();
-            Integer peakPosition = ((Number) row.get("peak_position")).intValue();
-            Integer totalWeeks = ((Number) row.get("total_weeks")).intValue();
-            Integer weeksAtPeak = countWeeksAtPosition(songId, peakPosition, "song");
-            String releaseDate = getReleaseDate(songId, "song");
-            String peakDate = getFirstPeakDate(songId, peakPosition, "song");
-            String debutDate = getDebutDate(songId, "song");
-            String peakWeek = getFirstPeakWeek(songId, peakPosition, "song");
-            String debutWeek = getDebutWeek(songId, "song");
-            
-            ChartHistoryDTO dto = new ChartHistoryDTO(
-                songId,
-                (String) row.get("name"),
-                null,
-                peakPosition,
-                weeksAtPeak,
-                totalWeeks,
-                "song",
                 releaseDate,
                 peakDate,
                 debutDate,
@@ -2084,28 +1916,14 @@ public class ChartService {
     public Set<String> getAllChartPeriodKeys(String periodType) {
         return chartRepository.findAllPeriodKeysByPeriodType(periodType);
     }
-    
-    /**
-     * Check if a finalized chart exists for a given period type and period key.
-     */
-    public boolean hasFinalizedChart(String periodType, String periodKey) {
-        return chartRepository.existsFinalizedChart(periodType, periodKey);
-    }
-    
+
     /**
      * Check if any chart (draft or finalized) exists for a given period type, chart type, and period key.
      */
     public boolean hasChart(String periodType, String chartType, String periodKey) {
         return chartRepository.existsByChartTypeAndPeriodTypeAndPeriodKey(chartType, periodType, periodKey);
     }
-    
-    /**
-     * Get a seasonal or yearly chart by period type, chart type, and period key.
-     */
-    public Optional<Chart> getSeasonalYearlyChart(String periodType, String chartType, String periodKey) {
-        return chartRepository.findByPeriodTypeAndPeriodKeyAndChartType(periodType, periodKey, chartType);
-    }
-    
+
     /**
      * Get the latest finalized chart for a period type.
      */
@@ -2476,83 +2294,7 @@ public class ChartService {
             return null;
         }
     }
-    
-    /**
-     * Get #1 song and album with artist names for a finalized weekly chart.
-     * Returns format "Artist - Song/Album".
-     */
-    public Map<String, String> getWeeklyChartTopEntries(String periodKey) {
-        Map<String, String> result = new HashMap<>();
-        
-        String songSql = """
-            SELECT ar.name || ' - ' || s.name as display_name
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN Song s ON ce.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            WHERE c.chart_type = 'song' AND c.period_key = ? AND ce.position = 1
-            """;
-        try {
-            result.put("song", jdbcTemplate.queryForObject(songSql, String.class, periodKey));
-        } catch (Exception e) {
-            result.put("song", null);
-        }
-        
-        String albumSql = """
-            SELECT ar.name || ' - ' || a.name as display_name
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN Album a ON ce.album_id = a.id
-            INNER JOIN Artist ar ON a.artist_id = ar.id
-            WHERE c.chart_type = 'album' AND c.period_key = ? AND ce.position = 1
-            """;
-        try {
-            result.put("album", jdbcTemplate.queryForObject(albumSql, String.class, periodKey));
-        } catch (Exception e) {
-            result.put("album", null);
-        }
-        
-        return result;
-    }
-    
-    /**
-     * Get gender IDs for the #1 song and album artists in a weekly chart.
-     * Returns map with "song" and "album" keys containing gender IDs (may be null).
-     */
-    public Map<String, Integer> getWeeklyChartTopGenderIds(String periodKey) {
-        Map<String, Integer> result = new HashMap<>();
-        
-        String songSql = """
-            SELECT ar.gender_id
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN Song s ON ce.song_id = s.id
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            WHERE c.chart_type = 'song' AND c.period_key = ? AND ce.position = 1
-            """;
-        try {
-            result.put("song", jdbcTemplate.queryForObject(songSql, Integer.class, periodKey));
-        } catch (Exception e) {
-            result.put("song", null);
-        }
-        
-        String albumSql = """
-            SELECT ar.gender_id
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN Album a ON ce.album_id = a.id
-            INNER JOIN Artist ar ON a.artist_id = ar.id
-            WHERE c.chart_type = 'album' AND c.period_key = ? AND ce.position = 1
-            """;
-        try {
-            result.put("album", jdbcTemplate.queryForObject(albumSql, Integer.class, periodKey));
-        } catch (Exception e) {
-            result.put("album", null);
-        }
-        
-        return result;
-    }
-    
+
     /**
      * BATCH: Get #1 entries for multiple periods at once (weekly charts).
      * Eliminates N+1 queries when displaying timeframe lists.
@@ -3033,51 +2775,6 @@ public class ChartService {
         String[] parts = periodKey.split("-");
         if (parts.length == 2) {
             return parts[1] + " " + parts[0];
-        }
-        return periodKey;
-    }
-    
-    /**
-     * Get all weeks that have charts (for weekly overview page).
-     * Returns list of maps with periodKey, displayName, hasChart, #1 info, etc.
-     */
-    public List<Map<String, Object>> getAllWeeksWithCharts() {
-        // Get all weeks that have song charts
-        String sql = """
-            SELECT c.period_key, c.period_start_date, c.period_end_date, c.is_finalized,
-                   (SELECT COUNT(*) FROM ChartEntry ce WHERE ce.chart_id = c.id) as entry_count
-            FROM Chart c
-            WHERE c.chart_type = 'song' AND c.period_type IS NULL
-            ORDER BY c.period_start_date DESC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            String periodKey = rs.getString("period_key");
-            Map<String, Object> map = new HashMap<>();
-            map.put("periodKey", periodKey);
-            map.put("displayName", formatWeekPeriodKey(periodKey));
-            map.put("periodStartDate", rs.getString("period_start_date"));
-            map.put("periodEndDate", rs.getString("period_end_date"));
-            map.put("entryCount", rs.getInt("entry_count"));
-            
-            // Get #1 song and album names
-            Map<String, String> topEntries = getWeeklyChartTopEntries(periodKey);
-            map.put("numberOneSongName", topEntries.get("song"));
-            map.put("numberOneAlbumName", topEntries.get("album"));
-            
-            return map;
-        });
-    }
-    
-    /**
-     * Format a week period key (e.g., "2024-W45") to display name (e.g., "Week 45, 2024").
-     */
-    public String formatWeekPeriodKey(String periodKey) {
-        if (periodKey == null) return null;
-        // Format: "2024-W45" -> "Week 45, 2024"
-        String[] parts = periodKey.split("-W");
-        if (parts.length == 2) {
-            return "Week " + Integer.parseInt(parts[1]) + ", " + parts[0];
         }
         return periodKey;
     }

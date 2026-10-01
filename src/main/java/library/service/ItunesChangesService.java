@@ -64,8 +64,8 @@ public class ItunesChangesService {
             .collect(Collectors.toMap(ItunesSnapshot::getPersistentId, s -> s, (a, b) -> a));
 
         // Build database lookup for checking if songs exist
-        Set<String> dbSongKeys = buildDatabaseLookup();
         Map<String, Long> dbSongKeyToId = buildDatabaseLookupWithIds();
+        Set<String> dbSongKeys = dbSongKeyToId.keySet();
 
         List<ItunesChangedSongDTO> changedSongs = new ArrayList<>();
         List<ItunesAddedSongDTO> addedSongs = new ArrayList<>();
@@ -274,27 +274,6 @@ public class ItunesChangesService {
 
     private String createSongLookupKey(String artist, String album, String song) {
         return itunesService.createStrictSongLookupKey(artist, album, song);
-    }
-
-    private Set<String> buildDatabaseLookup() {
-        Set<String> keys = new HashSet<>();
-
-        String sql = """
-            SELECT ar.name as artist_name, al.name as album_name, s.name as song_name
-            FROM Song s
-            INNER JOIN Artist ar ON s.artist_id = ar.id
-            LEFT JOIN Album al ON s.album_id = al.id
-            """;
-
-        jdbcTemplate.query(sql, rs -> {
-            String artistName = rs.getString("artist_name");
-            String albumName = rs.getString("album_name");
-            String songName = rs.getString("song_name");
-            String key = createSongLookupKey(artistName, albumName, songName);
-            keys.add(key);
-        });
-
-        return keys;
     }
 
     private Map<String, Long> buildDatabaseLookupWithIds() {

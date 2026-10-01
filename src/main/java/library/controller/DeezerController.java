@@ -1,7 +1,7 @@
 package library.controller;
 
-import library.service.AlbumService;
-import library.service.SongService;
+import library.dto.SaveImagesRequest;
+import library.service.ExternalImageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.JsonNode;
@@ -29,26 +29,12 @@ import java.util.*;
 public class DeezerController {
 
     @Autowired
-    private AlbumService albumService;
-    
-    @Autowired
-    private SongService songService;
+    private ExternalImageService externalImageService;
 
     private static final String DEEZER_API = "https://api.deezer.com";
     private static final String USER_AGENT = "MusicStatsApp/1.0 ( isc.eagr@gmail.com )";
-    
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Check if Deezer is available (always configured since it's free).
-     */
-    @GetMapping("/status")
-    public Map<String, Object> getStatus() {
-        Map<String, Object> status = new HashMap<>();
-        status.put("configured", true);
-        status.put("authenticated", true);
-        return status;
-    }
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Search Deezer for images and metadata.
@@ -296,116 +282,10 @@ public class DeezerController {
     }
 
     /**
-     * Download image from URL and return bytes.
-     */
-    private byte[] downloadImage(String imageUrl) throws Exception {
-        URI uri = URI.create(imageUrl);
-        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("User-Agent", USER_AGENT);
-        connection.setConnectTimeout(15000);
-        connection.setReadTimeout(15000);
-
-        int responseCode = connection.getResponseCode();
-        if (responseCode != 200) {
-            throw new RuntimeException("HTTP error downloading image: " + responseCode);
-        }
-
-        try (InputStream is = connection.getInputStream()) {
-            return is.readAllBytes();
-        }
-    }
-
-    /**
-     * DTO for save images request (same as Apple Music/Spotify).
-     */
-    public static class SaveImagesRequest {
-        private List<String> imageUrls;
-        private Long entityId;
-        private String entityType; // "album" or "song"
-        private boolean hasExistingImage;
-
-        public List<String> getImageUrls() { return imageUrls; }
-        public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
-        public Long getEntityId() { return entityId; }
-        public void setEntityId(Long entityId) { this.entityId = entityId; }
-        public String getEntityType() { return entityType; }
-        public void setEntityType(String entityType) { this.entityType = entityType; }
-        public boolean isHasExistingImage() { return hasExistingImage; }
-        public void setHasExistingImage(boolean hasExistingImage) { this.hasExistingImage = hasExistingImage; }
-    }
-
-    /**
      * Save selected images from Deezer to album or song.
-     * If entity has no existing image, first selected becomes default, rest are secondary.
-     * If entity has existing image, all selected become secondary.
      */
     @PostMapping("/save-images")
     public Map<String, Object> saveImages(@RequestBody SaveImagesRequest request) {
-        Map<String, Object> response = new HashMap<>();
-        int saved = 0;
-        int skippedDuplicates = 0;
-        List<String> errors = new ArrayList<>();
-
-        try {
-            List<String> urls = request.getImageUrls();
-            Long entityId = request.getEntityId();
-            Integer id = entityId != null ? entityId.intValue() : null;
-            String entityType = request.getEntityType();
-            boolean hasExisting = request.isHasExistingImage();
-
-            for (int i = 0; i < urls.size(); i++) {
-                String url = urls.get(i);
-                try {
-                    byte[] imageBytes = downloadImage(url);
-                    
-                    if (entityType.equals("album")) {
-                        // Check for duplicate before saving
-                        if (albumService.isDuplicateImage(id, imageBytes)) {
-                            skippedDuplicates++;
-                            continue;
-                        }
-                        if (!hasExisting && i == 0) {
-                            albumService.updateAlbumImage(id, imageBytes);
-                            hasExisting = true;
-                        } else {
-                            albumService.addSecondaryImage(id, imageBytes);
-                        }
-                    } else if (entityType.equals("song")) {
-                        // Check for duplicate before saving
-                        if (songService.isDuplicateImage(id, imageBytes)) {
-                            skippedDuplicates++;
-                            continue;
-                        }
-                        if (!hasExisting && i == 0) {
-                            songService.updateSongImage(id, imageBytes);
-                            hasExisting = true;
-                        } else {
-                            songService.addSecondaryImage(id, imageBytes);
-                        }
-                    } else {
-                        errors.add("Unknown entity type: " + entityType);
-                        continue;
-                    }
-                    saved++;
-                } catch (Exception e) {
-                    errors.add("Failed to download image " + (i + 1) + ": " + e.getMessage());
-                }
-            }
-
-            response.put("success", true);
-            response.put("savedCount", saved);
-            if (skippedDuplicates > 0) {
-                response.put("skippedDuplicates", skippedDuplicates);
-            }
-            if (!errors.isEmpty()) {
-                response.put("errors", errors);
-            }
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("error", e.getMessage());
-        }
-
-        return response;
+        return externalImageService.saveImages(request);
     }
 }

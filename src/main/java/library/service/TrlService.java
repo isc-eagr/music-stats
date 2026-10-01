@@ -1,10 +1,10 @@
 package library.service;
 
+import library.dto.FeaturedArtistRef;
 import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.TrlChartEntryGroupDTO;
 import library.entity.TrlDebut;
-import library.repository.TrlDebutRepository;
 import library.util.ChartAggregationUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -21,12 +21,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class TrlService {
-
-    private final TrlDebutRepository trlDebutRepository;
     private final JdbcTemplate jdbcTemplate;
 
-    public TrlService(TrlDebutRepository trlDebutRepository, JdbcTemplate jdbcTemplate) {
-        this.trlDebutRepository = trlDebutRepository;
+    public TrlService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -198,7 +195,7 @@ public class TrlService {
         }
 
         if (includeFeatured) {
-            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = getFeaturedArtistRefsBySongId(debuts.stream()
+            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = ChartAggregationUtils.loadFeaturedArtistRefs(jdbcTemplate, debuts.stream()
                 .map(TrlDebut::getSongId)
                 .filter(java.util.Objects::nonNull)
                 .distinct()
@@ -260,17 +257,6 @@ public class TrlService {
             artistName, songTitle);
     }
 
-    public Integer getDaysOnTrlBySongId(Integer songId) {
-        if (songId == null) return null;
-        try {
-            return jdbcTemplate.queryForObject(
-                "SELECT days_on_countdown FROM trl_debut WHERE song_id = ? LIMIT 1",
-                Integer.class, songId);
-        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
-
     public Map<String, Object> getTrlStatsBySongId(Integer songId) {
         if (songId == null) return null;
         String sql =
@@ -322,24 +308,6 @@ public class TrlService {
                 return null;
             }
         }
-    }
-
-    /** Search songs by title/artist for the match modal. */
-    public List<Map<String, Object>> searchSongs(String q) {
-        String like = "%" + q.toLowerCase() + "%";
-        String sql =
-            "SELECT s.id, s.name AS title, a.name AS artist_name " +
-            "FROM Song s " +
-            "JOIN Artist a ON a.id = s.artist_id " +
-            "WHERE LOWER(s.name) LIKE ? OR LOWER(a.name) LIKE ? " +
-            "ORDER BY s.name COLLATE NOCASE ASC";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", rs.getInt("id"));
-            row.put("title", rs.getString("title"));
-            row.put("artistName", rs.getString("artist_name"));
-            return row;
-        }, like, like);
     }
 
     /** Link a TRL debut entry to a song in the library and normalize names. */
@@ -400,11 +368,6 @@ public class TrlService {
             updated++;
         }
         return updated;
-    }
-
-    /** Remove the song link from a TRL debut entry. */
-    public void unmatchSong(Integer trlId) {
-        jdbcTemplate.update("UPDATE trl_debut SET song_id = NULL WHERE id = ?", trlId);
     }
 
     /** Get all distinct (artist, song) combos from trl_chart_entry with counts. */
@@ -752,37 +715,6 @@ public class TrlService {
         return debut.getDebutPosition();
     }
 
-    private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
-        if (songIds == null || songIds.isEmpty()) {
-            return Map.of();
-        }
-        String placeholders = songIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
-        String sql = """
-            SELECT sfa.song_id,
-                   a.id AS artist_id,
-                   a.name AS artist_name,
-                   LOWER(g.name) AS gender_name,
-                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image
-            FROM SongFeaturedArtist sfa
-            INNER JOIN Artist a ON a.id = sfa.artist_id
-            LEFT JOIN Gender g ON g.id = a.gender_id
-            WHERE sfa.song_id IN (%s)
-            ORDER BY sfa.song_id ASC, a.name COLLATE NOCASE ASC
-            """.formatted(placeholders);
-
-        Map<Integer, List<FeaturedArtistRef>> refsBySongId = new LinkedHashMap<>();
-        jdbcTemplate.query(sql, (rs) -> {
-            FeaturedArtistRef ref = new FeaturedArtistRef(
-                rs.getInt("artist_id"),
-                rs.getString("artist_name"),
-                mapGenderClass(rs.getString("gender_name")),
-                rs.getInt("artist_has_image") == 1
-            );
-            refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
-        }, songIds.toArray());
-        return refsBySongId;
-    }
-
     private TrlDebut copyDebutForFeaturedArtist(TrlDebut source, FeaturedArtistRef featuredArtistRef) {
         TrlDebut target = new TrlDebut();
         target.setId(source.getId());
@@ -812,19 +744,6 @@ public class TrlService {
         return target;
     }
 
-    private String mapGenderClass(String genderName) {
-        if (genderName == null) {
-            return null;
-        }
-        if (genderName.contains("female")) {
-            return "gender-female";
-        }
-        if (genderName.contains("male")) {
-            return "gender-male";
-        }
-        return null;
-    }
-
     private String formatNumberOneSongLabel(String title, int daysAtTop1) {
         if (title == null || title.isBlank()) {
             return title;
@@ -835,8 +754,6 @@ public class TrlService {
         return title + " (" + daysAtTop1 + (daysAtTop1 == 1 ? " day" : " days") + ")";
     }
 
-    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass, boolean hasImage) {
-    }
 
     private final class AlbumOverviewAccumulator {
         private final ChartAlbumOverviewRowDTO row;

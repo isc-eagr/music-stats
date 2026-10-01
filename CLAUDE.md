@@ -27,7 +27,7 @@ Read-only query benchmarks (no Spring, SQLite opened `mode=ro`) live in `tools/p
 
 **Where the weight is.** Aggregation logic is concentrated in a few very large services: `ChartService` (~5k lines), `ArtistService`, `SongService`, `TimeframeService`, `AlbumService`. Timeframe, year and chart pages are the slow paths (many `COUNT(DISTINCT CASE ...)` over the full `Play` table), so measure before and after touching them.
 
-**Runtime config is in the database.** `AppConfigService` creates and reads an `app_config` table itself, so settings are not in `application.properties`. `AutomatedPlayImportService` fires every minute via `@Scheduled` and is gated by that config (enabled flag, time window, interval). Any Spring context started against the real DB can therefore trigger imports, which is why `MusicStatsApplicationTests.contextLoads` is deliberately commented out.
+**Runtime config is in the database.** `AppConfigService` creates and reads an `app_config` table itself, so settings are not in `application.properties`. `AutomatedPlayImportService` fires every minute via `@Scheduled` and is gated by that config (enabled flag, time window, interval). Any Spring context started against the real DB can therefore trigger imports, which is why there is deliberately no `@SpringBootTest` context-load test.
 
 **Standalone maintenance scripts.** The classes directly under `src/main/java/library/*.java` (the `*Populator`, `PlayMatcherScript`, `PlaySyncScript`, `CaseDuplicateMerger`, `BillboardHot100ImportRunner`, and so on) each have their own `main()` and a hardcoded `DB_PATH` pointing at the live database. They write real data, so never run them without the user asking. They are separate from the Spring app, which starts only from `MusicLibraryApplication`.
 

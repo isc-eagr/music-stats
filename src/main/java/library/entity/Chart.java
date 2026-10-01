@@ -112,23 +112,7 @@ public class Chart {
     public void setPeriodEndDate(String periodEndDate) {
         this.periodEndDate = periodEndDate;
     }
-    
-    /**
-     * Get period start date as LocalDate.
-     */
-    public LocalDate getPeriodStartDateAsLocalDate() {
-        if (periodStartDate == null) return null;
-        return LocalDate.parse(periodStartDate);
-    }
-    
-    /**
-     * Get period end date as LocalDate.
-     */
-    public LocalDate getPeriodEndDateAsLocalDate() {
-        if (periodEndDate == null) return null;
-        return LocalDate.parse(periodEndDate);
-    }
-    
+
     public String getGeneratedDate() {
         return generatedDate;
     }

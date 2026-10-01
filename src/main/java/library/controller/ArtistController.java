@@ -365,24 +365,24 @@ public class ArtistController {
         model.addAttribute("firstListenedDateFrom", firstListenedDateFrom);
         model.addAttribute("firstListenedDateTo", firstListenedDateTo);
         model.addAttribute("firstListenedDateMode", firstListenedDateMode != null ? firstListenedDateMode : "exact");
-        model.addAttribute("firstListenedDateFormatted", formatDateForDisplay(firstListenedDate));
-        model.addAttribute("firstListenedDateFromFormatted", formatDateForDisplay(firstListenedDateFrom));
-        model.addAttribute("firstListenedDateToFormatted", formatDateForDisplay(firstListenedDateTo));
+        model.addAttribute("firstListenedDateFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDate));
+        model.addAttribute("firstListenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDateFrom));
+        model.addAttribute("firstListenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(firstListenedDateTo));
         
         // Last listened date filter attributes
         model.addAttribute("lastListenedDate", lastListenedDate);
         model.addAttribute("lastListenedDateFrom", lastListenedDateFrom);
         model.addAttribute("lastListenedDateTo", lastListenedDateTo);
         model.addAttribute("lastListenedDateMode", lastListenedDateMode != null ? lastListenedDateMode : "exact");
-        model.addAttribute("lastListenedDateFormatted", formatDateForDisplay(lastListenedDate));
-        model.addAttribute("lastListenedDateFromFormatted", formatDateForDisplay(lastListenedDateFrom));
-        model.addAttribute("lastListenedDateToFormatted", formatDateForDisplay(lastListenedDateTo));
+        model.addAttribute("lastListenedDateFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDate));
+        model.addAttribute("lastListenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDateFrom));
+        model.addAttribute("lastListenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(lastListenedDateTo));
         
         // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
         model.addAttribute("listenedDateTo", listenedDateTo);
-        model.addAttribute("listenedDateFromFormatted", formatDateForDisplay(listenedDateFrom));
-        model.addAttribute("listenedDateToFormatted", formatDateForDisplay(listenedDateTo));
+        model.addAttribute("listenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateFrom));
+        model.addAttribute("listenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateTo));
         
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
@@ -392,7 +392,6 @@ public class ArtistController {
         model.addAttribute("sortBy3", sortby3);
         model.addAttribute("sortDir3", sortdir3 != null ? sortdir3 : "asc");
         model.addAttribute("sortDir3Param", sortby3 != null && !sortby3.isBlank() ? (sortdir3 != null ? sortdir3 : "asc") : null);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "plays");
         
         // Add filter options
@@ -623,11 +622,9 @@ public class ArtistController {
         // Get group/member cards for Artist Associations tab
         List<FeaturedArtistCardDTO> groupArtistCards = artistService.getGroupsForArtist(id);
         List<FeaturedArtistCardDTO> memberArtistCards = artistService.getMembersForArtist(id);
-        boolean hasMembers = !memberArtistCards.isEmpty();
         
         model.addAttribute("groupArtistCards", groupArtistCards);
         model.addAttribute("memberArtistCards", memberArtistCards);
-        model.addAttribute("hasMembers", hasMembers);
         
         // Determine which data sources to use
         // includeGroups works independently from includeMain
@@ -651,8 +648,8 @@ public class ArtistController {
         model.addAttribute("groupRobertloverPlayCount", scopedMetrics.groupRobertloverPlayCount());
         model.addAttribute("featuredRobertloverPlayCount", scopedMetrics.featuredRobertloverPlayCount());
         model.addAttribute("totalListeningTime", library.util.TimeFormatUtils.formatTime(scopedMetrics.listeningSeconds()));
-        model.addAttribute("firstListenedDate", scopedMetrics.firstListened() != null ? formatDateForDisplay(scopedMetrics.firstListened().substring(0, 10)) : null);
-        model.addAttribute("lastListenedDate", scopedMetrics.lastListened() != null ? formatDateForDisplay(scopedMetrics.lastListened().substring(0, 10)) : null);
+        model.addAttribute("firstListenedDate", scopedMetrics.firstListened() != null ? DateFormatUtils.formatIsoDateForDisplay(scopedMetrics.firstListened().substring(0, 10)) : null);
+        model.addAttribute("lastListenedDate", scopedMetrics.lastListened() != null ? DateFormatUtils.formatIsoDateForDisplay(scopedMetrics.lastListened().substring(0, 10)) : null);
         model.addAttribute("firstListenedSong", includeMain && !includeGroups && !includeFeatured
                 ? artistService.getFirstListenedSongForArtist(id) : null);
         model.addAttribute("averageSongLength", scopedMetrics.songCount() > 0
@@ -794,9 +791,7 @@ public class ArtistController {
                 model.addAttribute("plays", plays);
                 model.addAttribute("playsTotalCount", totalCount);
                 model.addAttribute("playsPage", playsPage);
-                model.addAttribute("playsPageSize", pageSize);
                 model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(id, effectiveGroupIds));
                 model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(id, effectiveGroupIds));
             } else if (includeMain && effectiveGroupIds == null) {
                 // Main only
@@ -814,9 +809,7 @@ public class ArtistController {
                 model.addAttribute("plays", plays);
                 model.addAttribute("playsTotalCount", totalCount);
                 model.addAttribute("playsPage", playsPage);
-                model.addAttribute("playsPageSize", pageSize);
                 model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                model.addAttribute("playsByYear", artistService.getPlaysByYearForArtist(id));
                 model.addAttribute("playsByMonth", artistService.getPlaysByMonthForArtist(id));
             } else if (!includeMain && effectiveGroupIds != null) {
                 // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
@@ -834,9 +827,7 @@ public class ArtistController {
                 model.addAttribute("plays", plays);
                 model.addAttribute("playsTotalCount", totalCount);
                 model.addAttribute("playsPage", playsPage);
-                model.addAttribute("playsPageSize", pageSize);
                 model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                model.addAttribute("playsByYear", artistService.getAggregatedPlaysByYear(0, effectiveGroupIds));
                 model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(0, effectiveGroupIds));
             } else {
                 // No main, no groups - only featured
@@ -846,17 +837,13 @@ public class ArtistController {
                     model.addAttribute("plays", plays);
                     model.addAttribute("playsTotalCount", totalCount);
                     model.addAttribute("playsPage", playsPage);
-                    model.addAttribute("playsPageSize", pageSize);
                     model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                    model.addAttribute("playsByYear", artistService.getFeaturedPlaysByYear(id));
                     model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 } else {
                     model.addAttribute("plays", java.util.Collections.emptyList());
                     model.addAttribute("playsTotalCount", 0L);
                     model.addAttribute("playsPage", 0);
-                    model.addAttribute("playsPageSize", pageSize);
                     model.addAttribute("playsTotalPages", 0);
-                    model.addAttribute("playsByYear", java.util.Collections.emptyMap());
                     model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 }
             }
@@ -1228,15 +1215,6 @@ public class ArtistController {
         }
     }
     
-    /**
-     * Get the groups that an artist belongs to (for initial form population)
-     */
-    @GetMapping("/{id}/groups")
-    @ResponseBody
-    public List<Integer> getArtistGroups(@PathVariable Integer id) {
-        return artistService.getGroupIdsForArtist(id);
-    }
-    
     // -----------------------------------------------------------------------
     // Theme assignment endpoints (called from artist detail page)
     // -----------------------------------------------------------------------
@@ -1292,27 +1270,6 @@ public class ArtistController {
             e.printStackTrace();
             return Map.of("success", false, "message", e.getMessage());
         }
-    }
-
-    // Helper method to format date strings for display (yyyy-MM-dd -> dd-MMM-yyyy)
-    private String formatDateForDisplay(String dateStr) {
-        if (dateStr == null || dateStr.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            String[] parts = dateStr.split("-");
-            if (parts.length == 3) {
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]);
-                int day = Integer.parseInt(parts[2]);
-                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
-            }
-        } catch (Exception e) {
-            // If parsing fails, return original
-        }
-        return dateStr;
     }
 
     private String formatAverage(Double value) {

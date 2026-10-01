@@ -266,10 +266,6 @@ public class AppConfigService {
         putValue(KEY_PAGE_SIZE_BILLBOARD_OVERVIEW, Integer.toString(clamp(config.billboardOverviewPageSize(), MIN_PAGE_SIZE, MAX_PAGE_SIZE)));
     }
 
-    public int getRequiredSongsForFullListen(int totalTracks) {
-        return getAlbumFullListenConfig().requiredSongsFor(totalTracks);
-    }
-
     private void putDefault(String key, String value) {
         jdbcTemplate.update(
                 "INSERT OR IGNORE INTO app_config (config_key, config_value, updated_at) VALUES (?, ?, ?)",

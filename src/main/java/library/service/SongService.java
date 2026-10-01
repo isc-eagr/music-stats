@@ -4,7 +4,6 @@ import library.dto.ChartFilterDTO;
 import library.dto.FeaturedArtistCardDTO;
 import library.dto.FeaturedArtistDTO;
 import library.dto.GenderCountDTO;
-import library.dto.PlaysByYearDTO;
 import library.dto.PlaysByMonthDTO;
 import library.dto.PlayDTO;
 import library.dto.SongCardDTO;
@@ -15,6 +14,7 @@ import library.entity.SongImage;
 import library.repository.LookupRepository;
 import library.repository.SongImageRepository;
 import library.repository.SongRepository;
+import library.util.DateFormatUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -464,7 +463,7 @@ public class SongService {
             dto.setEthnicityId(row.ethnicityId());
             dto.setEthnicityName(row.ethnicityName());
             dto.setReleaseYear(row.releaseYear());
-            dto.setReleaseDate(row.releaseDate() != null ? formatDate(row.releaseDate()) : null);
+            dto.setReleaseDate(row.releaseDate() != null ? DateFormatUtils.formatPlayDate(row.releaseDate()) : null);
             dto.setLengthSeconds(row.lengthSeconds());
             dto.setHasImage(row.hasImage());
             dto.setGenderName(row.genderName());
@@ -477,8 +476,8 @@ public class SongService {
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
 
-            dto.setFirstListenedDate(row.firstListened() != null ? formatDate(row.firstListened()) : null);
-            dto.setLastListenedDate(row.lastListened() != null ? formatDate(row.lastListened()) : null);
+            dto.setFirstListenedDate(row.firstListened() != null ? DateFormatUtils.formatPlayDate(row.firstListened()) : null);
+            dto.setLastListenedDate(row.lastListened() != null ? DateFormatUtils.formatPlayDate(row.lastListened()) : null);
             dto.setDaysListened(row.daysListened());
             dto.setWeeksListened(row.weeksListened());
             dto.setMonthsListened(row.monthsListened());
@@ -487,8 +486,8 @@ public class SongService {
             dto.setOrganized(row.organized());
             dto.setAlbumHasImage(row.albumHasImage());
             dto.setIsSingle(row.single());
-            dto.setBirthDate(row.birthDate() != null ? formatDate(row.birthDate()) : null);
-            dto.setDeathDate(row.deathDate() != null ? formatDate(row.deathDate()) : null);
+            dto.setBirthDate(row.birthDate() != null ? DateFormatUtils.formatPlayDate(row.birthDate()) : null);
+            dto.setDeathDate(row.deathDate() != null ? DateFormatUtils.formatPlayDate(row.deathDate()) : null);
             dto.setImageCount(row.imageCount());
             dto.setBillboardPeak(row.billboardPeak());
             dto.setBillboardWeeks(row.billboardWeeks());
@@ -503,7 +502,7 @@ public class SongService {
             dto.setWeeklyChartPeak(row.weeklyChartPeak());
             dto.setWeeklyChartWeeks(row.weeklyChartWeeks() != null ? row.weeklyChartWeeks() : 0);
             dto.setYearlyChartPeak(row.yearlyChartPeak());
-            dto.setWeeklyChartPeakStartDate(row.weeklyChartPeakStartDate() != null ? formatDate(row.weeklyChartPeakStartDate()) : null);
+            dto.setWeeklyChartPeakStartDate(row.weeklyChartPeakStartDate() != null ? DateFormatUtils.formatPlayDate(row.weeklyChartPeakStartDate()) : null);
             dto.setSeasonalChartPeakPeriod(row.seasonalChartPeakPeriod());
             dto.setYearlyChartPeakPeriod(row.yearlyChartPeakPeriod());
             dto.setFeaturedArtistCount(row.featuredArtistCount());
@@ -1196,7 +1195,7 @@ public class SongService {
                             releaseDate = new java.sql.Date(timestamp);
                         } catch (NumberFormatException e2) {
                             // Try parsing as date string
-                            releaseDate = parseDate(releaseDateStr);
+                            releaseDate = DateFormatUtils.parseDate(releaseDateStr);
                         }
                     }
                 } catch (Exception e2) {
@@ -1208,8 +1207,8 @@ public class SongService {
             // Robust timestamp parsing for SQLite date-only values
             String creation = rs.getString("creation_date");
             String update = rs.getString("update_date");
-            song.setCreationDate(parseTimestamp(creation));
-            song.setUpdateDate(parseTimestamp(update));
+            song.setCreationDate(DateFormatUtils.parseTimestamp(creation));
+            song.setUpdateDate(DateFormatUtils.parseTimestamp(update));
             
             return song;
         }, id);
@@ -1372,25 +1371,6 @@ public class SongService {
         }
     }
 
-    // Gallery methods for secondary images
-    // If song has no single_cover, the first SongImage is used as the default image,
-    // so we exclude it from the gallery list to avoid showing it twice
-    public List<SongImage> getSecondaryImages(Integer songId) {
-        List<SongImage> allImages = songImageRepository.findBySongIdOrderByDisplayOrderAsc(songId);
-        
-        // Check if the song has its own single_cover
-        byte[] singleCover = getSongOwnImage(songId);
-        boolean hasSingleCover = singleCover != null && singleCover.length > 0;
-        
-        // If no single_cover and there are gallery images, the first one is the "default"
-        // so we skip it to avoid duplication in the gallery
-        if (!hasSingleCover && allImages.size() > 0) {
-            return allImages.subList(1, allImages.size());
-        }
-        
-        return allImages;
-    }
-
     public List<Map<String, Object>> getSecondaryImageMetadata(Integer songId) {
         List<Map<String, Object>> images = jdbcTemplate.queryForList(
                 "SELECT id, COALESCE(display_order, 0) AS displayOrder FROM SongImage WHERE song_id = ? ORDER BY display_order", songId);
@@ -1549,48 +1529,6 @@ public class SongService {
         return jdbcTemplate.queryForList(sql, String.class);
     }
     
-    // Helper to parse various SQLite timestamp representations
-    private static java.sql.Timestamp parseTimestamp(String value) {
-        if (value == null) return null;
-        String v = value.trim();
-        if (v.isEmpty()) return null;
-        try {
-            if (v.length() == 10 && v.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                v = v + " 00:00:00";
-            } else if (v.contains("T") && v.matches("\\d{4}-\\d{2}-\\d{2}T.*")) {
-                v = v.replace('T', ' ');
-            }
-            return java.sql.Timestamp.valueOf(v);
-        } catch (Exception e) {
-            try {
-                if (v.length() >= 10) {
-                    String datePart = v.substring(0, 10);
-                    if (datePart.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                        return java.sql.Timestamp.valueOf(datePart + " 00:00:00");
-                    }
-                }
-            } catch (Exception ignore) {}
-            return null;
-        }
-    }
-
-    // Helper to parse date values from database (yyyy-MM-dd format)
-    private static java.sql.Date parseDate(String value) {
-        if (value == null) return null;
-        String v = value.trim();
-        if (v.isEmpty()) return null;
-        
-        // Parse as date string
-        if (v.contains("T")) v = v.replace('T', ' ');
-        if (v.length() >= 10) v = v.substring(0, 10);
-        if (v.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            try {
-                return java.sql.Date.valueOf(v);
-            } catch (Exception ignore) {}
-        }
-        return null;
-    }
-
     // NEW: total plays for a song (count plays for this song)
     public int getPlayCountForSong(int songId) {
         List<Integer> ids = getEffectiveSongIdsForStats(songId);
@@ -1620,23 +1558,6 @@ public class SongService {
         return count != null ? count : 0;
     }
 
-    // Return a string with per-account play counts for this song (e.g. "lastfm: 12\nspotify: 3\n")
-    public String getPlaysByAccountForSong(int songId) {
-        List<Integer> ids = getEffectiveSongIdsForStats(songId);
-        String sql = "SELECT account, COUNT(*) as cnt FROM Play WHERE song_id IN (" + placeholders(ids) + ") GROUP BY account ORDER BY cnt DESC";
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, ids.toArray());
-        StringBuilder sb = new StringBuilder();
-        for (Map<String, Object> row : rows) {
-            Object account = row.get("account");
-            Object cnt = row.get("cnt");
-            sb.append(account != null ? account.toString() : "unknown");
-            sb.append(": ");
-            sb.append(cnt != null ? cnt.toString() : "0");
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
-
     // Get total listening time for a song
     public String getTotalListeningTimeForSong(int songId) {
         List<Integer> ids = getEffectiveSongIdsForStats(songId);
@@ -1664,7 +1585,7 @@ public class SongService {
         String sql = "SELECT MIN(play_date) FROM Play WHERE song_id IN (" + placeholders(ids) + ")";
         try {
             String date = jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
-            return formatDate(date);
+            return DateFormatUtils.formatPlayDate(date);
         } catch (Exception e) {
             return "-";
         }
@@ -1688,7 +1609,7 @@ public class SongService {
         String sql = "SELECT MAX(play_date) FROM Play WHERE song_id IN (" + placeholders(ids) + ")";
         try {
             String date = jdbcTemplate.queryForObject(sql, String.class, ids.toArray());
-            return formatDate(date);
+            return DateFormatUtils.formatPlayDate(date);
         } catch (Exception e) {
             return "-";
         }
@@ -1881,37 +1802,6 @@ public class SongService {
         }
     }
 
-    // Helper method to format date strings
-    private String formatDate(String dateTimeString) {
-        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
-            return "-";
-        }
-        
-        try {
-            String datePart = dateTimeString.trim();
-            if (datePart.contains(" ")) {
-                datePart = datePart.split(" ")[0];
-            }
-            
-            String[] parts = datePart.split("-");
-            if (parts.length == 3) {
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]);
-                int day = Integer.parseInt(parts[2]);
-                
-                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                
-                // Format as DD-Mon-YYYY (e.g., "01-Nov-2025") with zero-padded day
-                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
-            }
-        } catch (Exception e) {
-            // If parsing fails, return as is
-        }
-        
-        return dateTimeString;
-    }
-    
     /**
      * Apply iTunes filter to the ChartFilterDTO by setting songIds to only include songs
      * that match the inItunes criteria. This must be called before passing the filter
@@ -2140,27 +2030,6 @@ public class SongService {
         String sql = "SELECT COUNT(*) FROM Play WHERE song_id IN (" + placeholders(ids) + ")";
         Long count = jdbcTemplate.queryForObject(sql, Long.class, ids.toArray());
         return count != null ? count : 0;
-    }
-    
-    // Get plays by year for a song
-    public List<PlaysByYearDTO> getPlaysByYearForSong(int songId) {
-        List<Integer> ids = getEffectiveSongIdsForStats(songId);
-        String sql = """
-            SELECT 
-                strftime('%%Y', play_date) as year,
-                COUNT(*) as play_count
-            FROM Play
-            WHERE song_id IN (%s) AND play_date IS NOT NULL
-            GROUP BY strftime('%%Y', play_date)
-            ORDER BY year ASC
-            """.formatted(placeholders(ids));
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByYearDTO dto = new PlaysByYearDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, ids.toArray());
     }
     
     // Get plays by month for a song
@@ -2663,17 +2532,5 @@ public class SongService {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    public List<Map<String, Object>> getSongDetailsForIds(List<Integer> ids) {
-        if (ids == null || ids.isEmpty()) return new ArrayList<>();
-        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
-        String sql = "SELECT id, name FROM Song WHERE id IN (" + placeholders + ")";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> song = new HashMap<>();
-            song.put("id", rs.getInt("id"));
-            song.put("name", rs.getString("name"));
-            return song;
-        }, ids.toArray());
     }
 }

@@ -134,27 +134,6 @@ public class ItunesChangedSongDTO {
     public Integer getNewTotalTime() { return newTotalTime; }
 
     // Setters
-    public void setPersistentId(String persistentId) { this.persistentId = persistentId; }
-    public void setOldArtist(String oldArtist) { this.oldArtist = oldArtist; }
-    public void setOldAlbumArtist(String oldAlbumArtist) { this.oldAlbumArtist = oldAlbumArtist; }
-    public void setOldAlbum(String oldAlbum) { this.oldAlbum = oldAlbum; }
-    public void setOldName(String oldName) { this.oldName = oldName; }
-    public void setOldGenre(String oldGenre) { this.oldGenre = oldGenre; }
-    public void setNewArtist(String newArtist) { this.newArtist = newArtist; }
-    public void setNewAlbumArtist(String newAlbumArtist) { this.newAlbumArtist = newAlbumArtist; }
-    public void setNewAlbum(String newAlbum) { this.newAlbum = newAlbum; }
-    public void setNewName(String newName) { this.newName = newName; }
-    public void setNewGenre(String newGenre) { this.newGenre = newGenre; }
     public void setTrackNumber(Integer trackNumber) { this.trackNumber = trackNumber; }
     public void setYear(Integer year) { this.year = year; }
-    public void setArtistChanged(boolean artistChanged) { this.artistChanged = artistChanged; }
-    public void setAlbumArtistChanged(boolean albumArtistChanged) { this.albumArtistChanged = albumArtistChanged; }
-    public void setAlbumChanged(boolean albumChanged) { this.albumChanged = albumChanged; }
-    public void setNameChanged(boolean nameChanged) { this.nameChanged = nameChanged; }
-    public void setLengthChanged(boolean lengthChanged) { this.lengthChanged = lengthChanged; }
-    public void setGenreChanged(boolean genreChanged) { this.genreChanged = genreChanged; }
-    public void setFoundInDatabase(boolean foundInDatabase) { this.foundInDatabase = foundInDatabase; }
-    public void setDatabaseSongId(Long databaseSongId) { this.databaseSongId = databaseSongId; }
-    public void setOldTotalTime(Integer oldTotalTime) { this.oldTotalTime = oldTotalTime; }
-    public void setNewTotalTime(Integer newTotalTime) { this.newTotalTime = newTotalTime; }
 }

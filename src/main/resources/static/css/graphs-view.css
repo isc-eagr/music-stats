@@ -167,12 +167,6 @@
     border-bottom-color: #e5e7eb;
 }
 
-/* Combined chart container */
-.combined-chart-container {
-    overflow-x: auto;
-    width: 100%;
-}
-
 .chart-scroll-container {
     overflow-x: auto;
 }
@@ -357,9 +351,6 @@
 }
 .stats-table .male-col {
     color: #60a5fa;
-}
-.stats-table .female-col {
-    color: #f472b6;
 }
 
 /* Sortable header */

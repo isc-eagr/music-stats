@@ -1,10 +1,10 @@
 package library.service;
 
+import library.dto.FeaturedArtistRef;
 import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.PcOverviewRowDTO;
 import library.util.ChartAggregationUtils;
-import jakarta.annotation.PostConstruct;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +20,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class PcService {
-
-    private static final String LEGACY_TABLE = "pc_countdown_entry";
-    private static final String CURRENT_TABLE = "vatos_cuntdown_entry";
-
     private final JdbcTemplate jdbcTemplate;
 
     public PcService(JdbcTemplate jdbcTemplate) {
@@ -143,7 +139,7 @@ public class PcService {
         }
 
         if (includeFeatured) {
-            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = getFeaturedArtistRefsBySongId(entries.stream()
+            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = ChartAggregationUtils.loadFeaturedArtistRefs(jdbcTemplate, entries.stream()
                 .map(PcOverviewRowDTO::getSongId)
                 .filter(java.util.Objects::nonNull)
                 .distinct()
@@ -394,37 +390,6 @@ public class PcService {
         return result;
     }
 
-    private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
-        if (songIds == null || songIds.isEmpty()) {
-            return Map.of();
-        }
-        String placeholders = songIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
-        String sql = """
-            SELECT sfa.song_id,
-                   a.id AS artist_id,
-                   a.name AS artist_name,
-                   LOWER(g.name) AS gender_name,
-                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image
-            FROM SongFeaturedArtist sfa
-            INNER JOIN Artist a ON a.id = sfa.artist_id
-            LEFT JOIN Gender g ON g.id = a.gender_id
-            WHERE sfa.song_id IN (%s)
-            ORDER BY sfa.song_id ASC, a.name COLLATE NOCASE ASC
-            """.formatted(placeholders);
-
-        Map<Integer, List<FeaturedArtistRef>> refsBySongId = new LinkedHashMap<>();
-        jdbcTemplate.query(sql, (rs) -> {
-            FeaturedArtistRef ref = new FeaturedArtistRef(
-                rs.getInt("artist_id"),
-                rs.getString("artist_name"),
-                mapGenderClass(rs.getString("gender_name")),
-                rs.getInt("artist_has_image") == 1
-            );
-            refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
-        }, songIds.toArray());
-        return refsBySongId;
-    }
-
     private PcOverviewRowDTO copyOverviewRowForFeaturedArtist(PcOverviewRowDTO source, FeaturedArtistRef featuredArtistRef) {
         PcOverviewRowDTO target = new PcOverviewRowDTO();
         target.setMatched(true);
@@ -451,19 +416,6 @@ public class PcService {
         return target;
     }
 
-    private String mapGenderClass(String genderName) {
-        if (genderName == null) {
-            return null;
-        }
-        if (genderName.contains("female")) {
-            return "gender-female";
-        }
-        if (genderName.contains("male")) {
-            return "gender-male";
-        }
-        return null;
-    }
-
     private String formatNumberOneSongLabel(String title, int daysAtTop1) {
         if (title == null || title.isBlank()) {
             return title;
@@ -474,8 +426,6 @@ public class PcService {
         return title + " (" + daysAtTop1 + (daysAtTop1 == 1 ? " day" : " days") + ")";
     }
 
-    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass, boolean hasImage) {
-    }
 
     private final class AlbumOverviewAccumulator {
         private final ChartAlbumOverviewRowDTO row;
@@ -763,24 +713,6 @@ public class PcService {
             );
         }
         return updatedRows;
-    }
-
-    public List<Map<String, Object>> searchSongs(String q, int limit) {
-        String like = "%" + q.toLowerCase() + "%";
-        String sql =
-            "SELECT s.id, s.name AS title, a.name AS artist_name " +
-            "FROM Song s " +
-            "JOIN Artist a ON a.id = s.artist_id " +
-            "WHERE LOWER(s.name) LIKE ? OR LOWER(a.name) LIKE ? " +
-            "ORDER BY s.name COLLATE NOCASE ASC " +
-            "LIMIT ?";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", rs.getInt("id"));
-            row.put("title", rs.getString("title"));
-            row.put("artistName", rs.getString("artist_name"));
-            return row;
-        }, like, like, limit);
     }
 
     /**

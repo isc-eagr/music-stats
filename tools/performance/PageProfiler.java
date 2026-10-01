@@ -103,11 +103,11 @@ public class PageProfiler {
         var full = new AlbumFullListenCalculator(jdbc, config);
         var artists = new ArtistService(artistRepository(jdbc), null, lookup, jdbc, itunes, links);
         var albums = new AlbumService(new AlbumRepository(jdbc, full), null, lookup, jdbc, itunes);
-        var songs = new SongService(new SongRepository(jdbc, full), null, lookup, jdbc, itunes, config, links);
+        var songs = new SongService(new SongRepository(jdbc), null, lookup, jdbc, itunes, config, links);
         var charts = new ChartService(chartRepository(jdbc), null, jdbc, itunes, config, links);
         var bb = new BillboardHot100Service(jdbc, source);
         var pc = new PcService(jdbc);
-        var trl = new TrlService(null, jdbc);
+        var trl = new TrlService(jdbc);
         var tags = new TagService(jdbc);
         var heatmap = new DetailPlayHeatmapService(jdbc);
         var catalogCharts = new CatalogChartService(songs);
@@ -121,7 +121,7 @@ public class PageProfiler {
         var r = new ArrayList<Route>();
         var ac = new ArtistController(artists, charts, lookup, itunes, null, config, bb, pc, trl, catalogCharts, chartFilters, tags, heatmap);
         var alc = new AlbumController(albums, charts, artists, lookup, itunes, config, bb, pc, trl, catalogCharts, chartFilters, tags, heatmap);
-        var sc = new SongController(songs, charts, artists, albums, library, lookup, config, itunes, trl, pc, bb, jdbc, links, tags, heatmap);
+        var sc = new SongController(songs, charts, artists, albums, library, lookup, config, itunes, trl, pc, bb, links, tags, heatmap);
         var chc = new ChartsController(charts, config, bb, pc, trl, overviewFilters);
         route(r, "/", main, "index");
         route(r, "/albums", alc, "listAlbums");
@@ -190,8 +190,6 @@ public class PageProfiler {
                             "SELECT period_key FROM Chart WHERE period_type = ?", String.class, args[0]));
                     case "findAllPeriodKeysByChartType" -> new HashSet<>(jdbc.queryForList(
                             "SELECT period_key FROM Chart WHERE chart_type = ?", String.class, args[0]));
-                    case "existsFinalizedChart" -> jdbc.queryForObject(
-                            "SELECT COUNT(*) FROM Chart WHERE period_type = ? AND period_key = ? AND is_finalized = 1", Integer.class, args[0], args[1]) > 0;
                     case "existsByChartTypeAndPeriodKey" -> jdbc.queryForObject(
                             "SELECT COUNT(*) FROM Chart WHERE chart_type = ? AND period_key = ?", Integer.class, args[0], args[1]) > 0;
                     case "hashCode" -> System.identityHashCode(proxy);

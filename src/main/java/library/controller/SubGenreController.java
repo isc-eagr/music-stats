@@ -6,11 +6,9 @@ import library.service.SubGenreService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/subgenres")
@@ -48,7 +46,6 @@ public class SubGenreController {
         model.addAttribute("selectedParentGenre", parentGenre);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         // Add filter options
@@ -56,79 +53,14 @@ public class SubGenreController {
         
         return "subgenres/list";
     }
-    
-    @GetMapping("/{id}")
-    public String viewSubGenre(@PathVariable Integer id, Model model) {
-        Optional<SubGenre> subGenre = subGenreService.getSubGenreById(id);
-        
-        if (subGenre.isEmpty()) {
-            return "redirect:/subgenres";
-        }
-        
-        // Check if subgenre has an image
-        byte[] image = subGenreService.getSubGenreImage(id);
-        boolean hasImage = (image != null && image.length > 0);
-        
-        model.addAttribute("currentSection", "subgenres");
-        model.addAttribute("subgenre", subGenre.get());
-        model.addAttribute("hasImage", hasImage);
-        
-        // Add genres for the parent genre dropdown
-        model.addAttribute("genres", subGenreService.getGenres());
-        
-        // Add statistics for the subgenre
-        Map<String, Object> stats = subGenreService.getSubGenreStats(id);
-        model.addAttribute("stats", stats);
-        
-        // Add top 50 artists, albums, and songs
-        model.addAttribute("topArtists", subGenreService.getTopArtistsForSubGenre(id));
-        model.addAttribute("topAlbums", subGenreService.getTopAlbumsForSubGenre(id));
-        model.addAttribute("topSongs", subGenreService.getTopSongsForSubGenre(id));
-        
-        return "subgenres/detail";
-    }
-    
-    @PostMapping("/{id}")
-    public String updateSubGenre(@PathVariable Integer id, @RequestParam Integer parentGenreId) {
-        subGenreService.updateParentGenre(id, parentGenreId);
-        return "redirect:/subgenres/" + id;
-    }
-    
+
     @GetMapping("/{id}/image")
     @ResponseBody
     public byte[] getSubGenreImage(@PathVariable Integer id) {
         byte[] image = subGenreService.getSubGenreImage(id);
         return image != null ? image : new byte[0];
     }
-    
-    @PostMapping("/{id}/image")
-    @ResponseBody
-    public String uploadSubGenreImage(@PathVariable Integer id, @RequestParam("image") MultipartFile file) {
-        try {
-            if (file.isEmpty()) {
-                return "error";
-            }
-            
-            subGenreService.updateSubGenreImage(id, file.getBytes());
-            return "success";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "error";
-        }
-    }
-    
-    @DeleteMapping("/{id}/image")
-    @ResponseBody
-    public String deleteSubGenreImage(@PathVariable Integer id) {
-        try {
-            subGenreService.updateSubGenreImage(id, null);
-            return "success";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "error";
-        }
-    }
-    
+
     /**
      * API endpoint to get all subgenres for dropdowns.
      */

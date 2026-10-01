@@ -7,7 +7,6 @@ import library.dto.AlbumStatsQuery;
 import library.dto.AlbumStatsRow;
 import library.dto.FeaturedArtistCardDTO;
 import library.dto.GenderCountDTO;
-import library.dto.PlaysByYearDTO;
 import library.dto.PlaysByMonthDTO;
 import library.dto.PlayDTO;
 import library.entity.Album;
@@ -15,6 +14,7 @@ import library.entity.AlbumImage;
 import library.repository.AlbumImageRepository;
 import library.repository.AlbumRepository;
 import library.repository.LookupRepository;
+import library.util.DateFormatUtils;
 import library.util.TimeFormatUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -23,12 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 @Service
 public class AlbumService {
@@ -147,7 +144,7 @@ public class AlbumService {
             dto.setEthnicityId(row.ethnicityId());
             dto.setEthnicityName(row.ethnicityName());
             dto.setReleaseYear(row.releaseYear());
-            dto.setReleaseDate(row.releaseDate() != null ? formatDate(row.releaseDate()) : null);
+            dto.setReleaseDate(row.releaseDate() != null ? DateFormatUtils.formatPlayDate(row.releaseDate()) : null);
             dto.setSongCount(row.songCount());
             dto.setFullListenEligible(row.songCount() > 4);
             
@@ -166,22 +163,22 @@ public class AlbumService {
             dto.setTimeListened(timeListened);
             dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
             
-            dto.setFirstListenedDate(row.firstListened() != null ? formatDate(row.firstListened()) : null);
-            dto.setLastListenedDate(row.lastListened() != null ? formatDate(row.lastListened()) : null);
+            dto.setFirstListenedDate(row.firstListened() != null ? DateFormatUtils.formatPlayDate(row.firstListened()) : null);
+            dto.setLastListenedDate(row.lastListened() != null ? DateFormatUtils.formatPlayDate(row.lastListened()) : null);
             dto.setDaysListened(row.daysListened());
             dto.setWeeksListened(row.weeksListened());
             dto.setMonthsListened(row.monthsListened());
             dto.setYearsListened(row.yearsListened());
             dto.setCountry(row.country());
             dto.setOrganized(row.organized());
-            dto.setBirthDate(row.birthDate() != null ? formatDate(row.birthDate()) : null);
-            dto.setDeathDate(row.deathDate() != null ? formatDate(row.deathDate()) : null);
+            dto.setBirthDate(row.birthDate() != null ? DateFormatUtils.formatPlayDate(row.birthDate()) : null);
+            dto.setDeathDate(row.deathDate() != null ? DateFormatUtils.formatPlayDate(row.deathDate()) : null);
             dto.setImageCount(row.imageCount());
             dto.setSeasonalChartPeak(row.seasonalChartPeak());
             dto.setWeeklyChartPeak(row.weeklyChartPeak());
             dto.setWeeklyChartWeeks(row.weeklyChartWeeks() != null ? row.weeklyChartWeeks() : 0);
             dto.setYearlyChartPeak(row.yearlyChartPeak());
-            dto.setWeeklyChartPeakStartDate(row.weeklyChartPeakStartDate() != null ? formatDate(row.weeklyChartPeakStartDate()) : null);
+            dto.setWeeklyChartPeakStartDate(row.weeklyChartPeakStartDate() != null ? DateFormatUtils.formatPlayDate(row.weeklyChartPeakStartDate()) : null);
             dto.setSeasonalChartPeakPeriod(row.seasonalChartPeakPeriod());
             dto.setYearlyChartPeakPeriod(row.yearlyChartPeakPeriod());
 
@@ -197,8 +194,8 @@ public class AlbumService {
             dto.setWeeklyChartPeakWeeks(row.weeklyChartPeakWeekCount());
             dto.setSeasonalChartPeakSeasons(row.seasonalChartPeakSeasonCount());
             dto.setYearlyChartPeakYears(row.yearlyChartPeakYearCount());
-            dto.setFirstFullListenDate(row.firstFullListenDate() != null ? formatDate(row.firstFullListenDate()) : null);
-            dto.setLastFullListenDate(row.lastFullListenDate() != null ? formatDate(row.lastFullListenDate()) : null);
+            dto.setFirstFullListenDate(row.firstFullListenDate() != null ? DateFormatUtils.formatPlayDate(row.firstFullListenDate()) : null);
+            dto.setLastFullListenDate(row.lastFullListenDate() != null ? DateFormatUtils.formatPlayDate(row.lastFullListenDate()) : null);
             dto.setFullAlbumPlays(row.fullAlbumPlays());
             dto.setItunesPresenceRatio(row.itunesPresenceRatio());
 
@@ -212,9 +209,9 @@ public class AlbumService {
                 AlbumFullListenStats stats = statsByAlbum.getOrDefault(
                         album.getId(), new AlbumFullListenStats(null, null, 0));
                 album.setFirstFullListenDate(stats.firstFullListenDate() != null
-                        ? formatDate(stats.firstFullListenDate()) : null);
+                        ? DateFormatUtils.formatPlayDate(stats.firstFullListenDate()) : null);
                 album.setLastFullListenDate(stats.lastFullListenDate() != null
-                        ? formatDate(stats.lastFullListenDate()) : null);
+                        ? DateFormatUtils.formatPlayDate(stats.lastFullListenDate()) : null);
                 album.setFullAlbumPlays(stats.fullAlbumPlays());
             }
         }
@@ -428,7 +425,7 @@ public class AlbumService {
             album.setArtistId(rs.getInt("artist_id"));
             album.setName(rs.getString("name"));
             // Read as string to avoid strict TIMESTAMP parsing in driver
-            album.setReleaseDate(parseDate(rs.getString("release_date")));
+            album.setReleaseDate(DateFormatUtils.parseDate(rs.getString("release_date")));
             album.setNumberOfSongs(rs.getInt("number_of_songs"));
             
             int genreId = rs.getInt("override_genre_id");
@@ -456,8 +453,8 @@ public class AlbumService {
             // Robust timestamp parsing: handle date-only values gracefully
             String creation = rs.getString("creation_date");
             String update = rs.getString("update_date");
-            album.setCreationDate(parseTimestamp(creation));
-            album.setUpdateDate(parseTimestamp(update));
+            album.setCreationDate(DateFormatUtils.parseTimestamp(creation));
+            album.setUpdateDate(DateFormatUtils.parseTimestamp(update));
             
             return album;
         }, id);
@@ -609,10 +606,6 @@ public class AlbumService {
                     (SELECT length(ai.image) FROM AlbumImage ai WHERE ai.album_id = a.id ORDER BY ai.display_order LIMIT 1), 0) > 0
                 FROM Album a WHERE a.id = ?
                 """, Boolean.class, albumId));
-    }
-
-    public List<AlbumImage> getSecondaryImages(Integer albumId) {
-        return albumImageRepository.findByAlbumIdOrderByDisplayOrderAsc(albumId);
     }
 
     public int getSecondaryImageCount(Integer albumId) {
@@ -792,22 +785,6 @@ public class AlbumService {
         return count != null ? count : 0;
     }
 
-    // Return a string with per-account play counts for this album (e.g. "lastfm: 12\nspotify: 3\n")
-    public String getPlaysByAccountForAlbum(int albumId) {
-        String sql = "SELECT p.account, COUNT(*) as cnt FROM Play p JOIN Song s ON p.song_id = s.id WHERE s.album_id = ? GROUP BY p.account ORDER BY cnt DESC";
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, albumId);
-        StringBuilder sb = new StringBuilder();
-        for (Map<String, Object> row : rows) {
-            Object account = row.get("account");
-            Object cnt = row.get("cnt");
-            sb.append(account != null ? account.toString() : "unknown");
-            sb.append(": ");
-            sb.append(cnt != null ? cnt.toString() : "0");
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
-    
     // Get songs for an album with play counts per account
     public List<AlbumSongDTO> getSongsForAlbum(int albumId) {
         String sql = """
@@ -862,7 +839,7 @@ public class AlbumService {
             AlbumSongDTO dto = new AlbumSongDTO();
             dto.setId(rs.getInt("id"));
             dto.setName(rs.getString("name"));
-            dto.setReleaseDate(formatDate(rs.getString("release_date")));
+            dto.setReleaseDate(DateFormatUtils.formatPlayDate(rs.getString("release_date")));
             dto.setCountry(rs.getString("country"));
             dto.setGenre(rs.getString("genre"));
             dto.setSubgenre(rs.getString("subgenre"));
@@ -882,8 +859,8 @@ public class AlbumService {
             // Format first and last listen dates
             String firstListen = rs.getString("first_listen");
             String lastListen = rs.getString("last_listen");
-            dto.setFirstListenedDate(formatDate(firstListen));
-            dto.setLastListenedDate(formatDate(lastListen));
+            dto.setFirstListenedDate(DateFormatUtils.formatPlayDate(firstListen));
+            dto.setLastListenedDate(DateFormatUtils.formatPlayDate(lastListen));
             
             // Calculate total listening time
             dto.calculateTotalListeningTime();
@@ -914,13 +891,7 @@ public class AlbumService {
         }
         return TimeFormatUtils.formatTimeHMS(totalSeconds);
     }
-    
-    // Get album length in seconds (for sorting/calculations)
-    public Long getAlbumLengthSeconds(int albumId) {
-        String sql = "SELECT SUM(length_seconds) FROM Song WHERE album_id = ?";
-        return jdbcTemplate.queryForObject(sql, Long.class, albumId);
-    }
-    
+
     // Get average song length for an album (formatted as mm:ss)
     public String getAverageSongLengthFormatted(int albumId) {
         String sql = "SELECT AVG(length_seconds) FROM Song WHERE album_id = ? AND length_seconds IS NOT NULL";
@@ -1006,7 +977,7 @@ public class AlbumService {
         
         try {
             String date = jdbcTemplate.queryForObject(sql, String.class, albumId);
-            return formatDate(date);
+            return DateFormatUtils.formatPlayDate(date);
         } catch (Exception e) {
             return "-";
         }
@@ -1040,24 +1011,10 @@ public class AlbumService {
         
         try {
             String date = jdbcTemplate.queryForObject(sql, String.class, albumId);
-            return formatDate(date);
+            return DateFormatUtils.formatPlayDate(date);
         } catch (Exception e) {
             return "-";
         }
-    }
-
-    public String getLastFullListenDateForAlbum(int albumId) {
-        AlbumFullListenStats stats = getFullListenStatsForAlbum(albumId);
-        return stats.lastFullListenDate() != null ? formatDate(stats.lastFullListenDate()) : null;
-    }
-
-    public String getFirstFullListenDateForAlbum(int albumId) {
-        AlbumFullListenStats stats = getFullListenStatsForAlbum(albumId);
-        return stats.firstFullListenDate() != null ? formatDate(stats.firstFullListenDate()) : null;
-    }
-
-    public int getFullAlbumPlaysForAlbum(int albumId) {
-        return getFullListenStatsForAlbum(albumId).fullAlbumPlays();
     }
 
     public boolean isFullListenEligible(int albumId) {
@@ -1137,22 +1094,6 @@ public class AlbumService {
         }
     }
 
-    // Get earliest release date for an album (from album or songs)
-    public String getEarliestReleaseDateForAlbum(int albumId) {
-        String sql = """
-            SELECT COALESCE(MIN(s.release_date), a.release_date)
-            FROM Album a
-            LEFT JOIN Song s ON s.album_id = a.id AND s.release_date IS NOT NULL
-            WHERE a.id = ?
-            GROUP BY a.release_date
-            """;
-        try {
-            return jdbcTemplate.queryForObject(sql, String.class, albumId);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     // Delete album and all associated songs (only if play count is 0)
     public void deleteAlbum(Integer albumId) {
         // First check if album has any plays
@@ -1218,7 +1159,7 @@ public class AlbumService {
             Map<String, Object> album = new java.util.HashMap<>();
             album.put("id", rs.getInt("id"));
             album.put("name", rs.getString("name"));
-            java.sql.Date releaseDate = parseDate(rs.getString("release_date"));
+            java.sql.Date releaseDate = DateFormatUtils.parseDate(rs.getString("release_date"));
             album.put("releaseDate", releaseDate != null
                 ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(releaseDate)
                 : null);
@@ -1292,7 +1233,7 @@ public class AlbumService {
                 a.setId(rs.getInt("id"));
                 a.setArtistId(rs.getInt("artist_id"));
                 a.setName(rs.getString("name"));
-                a.setReleaseDate(parseDate(rs.getString("release_date")));
+                a.setReleaseDate(DateFormatUtils.parseDate(rs.getString("release_date")));
                 a.setOverrideGenreId(rs.getObject("override_genre_id") != null ? rs.getInt("override_genre_id") : null);
                 a.setOverrideSubgenreId(rs.getObject("override_subgenre_id") != null ? rs.getInt("override_subgenre_id") : null);
                 a.setOverrideLanguageId(rs.getObject("override_language_id") != null ? rs.getInt("override_language_id") : null);
@@ -1325,84 +1266,6 @@ public class AlbumService {
         return created.getId();
     }
 
-    // Helper method to format date strings (from play_date)
-    private String formatDate(String dateTimeString) {
-        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
-            return "-";
-        }
-        
-        try {
-            // Parse various formats (handles "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD")
-            String datePart = dateTimeString.trim();
-            if (datePart.contains(" ")) {
-                datePart = datePart.split(" ")[0];
-            }
-            
-            // Parse YYYY-MM-DD
-            String[] parts = datePart.split("-");
-            if (parts.length == 3) {
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]);
-                int day = Integer.parseInt(parts[2]);
-                
-                // Month names (3-character)
-                String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-                
-                // Format as DD-Mon-YYYY (e.g., "01-Nov-2025") with zero-padded day
-                return String.format("%02d-%s-%d", day, monthNames[month - 1], year);
-            }
-            
-            return datePart;
-        } catch (Exception e) {
-            return dateTimeString;
-        }
-    }
-
-    // Helper to parse various SQLite timestamp representations
-    private static java.sql.Timestamp parseTimestamp(String value) {
-        if (value == null) return null;
-        String v = value.trim();
-        if (v.isEmpty()) return null;
-        try {
-            // Normalize common variants
-            if (v.length() == 10 && v.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                v = v + " 00:00:00";
-            } else if (v.contains("T") && v.matches("\\d{4}-\\d{2}-\\d{2}T.*")) {
-                v = v.replace('T', ' ');
-            }
-            return java.sql.Timestamp.valueOf(v);
-        } catch (Exception e) {
-            // As a last resort, try parsing only the date part
-            try {
-                if (v.length() >= 10) {
-                    String datePart = v.substring(0, 10);
-                    if (datePart.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                        return java.sql.Timestamp.valueOf(datePart + " 00:00:00");
-                    }
-                }
-            } catch (Exception ignore) {}
-            return null;
-        }
-    }
-    
-    // Helper to parse date values from database (yyyy-MM-dd format)
-    private static java.sql.Date parseDate(String value) {
-        if (value == null) return null;
-        String v = value.trim();
-        if (v.isEmpty()) return null;
-        
-        // Replace ISO T if present and use date part
-        if (v.contains("T")) v = v.replace('T', ' ');
-        if (v.length() >= 10) v = v.substring(0, 10);
-        if (v.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            try {
-                return java.sql.Date.valueOf(v);
-            } catch (Exception ignore) {}
-        }
-        return null;
-    }
-    
     // Get plays for an album with pagination
     public List<PlayDTO> getPlaysForAlbum(int albumId, int page, int pageSize) {
         int offset = page * pageSize;
@@ -1452,27 +1315,6 @@ public class AlbumService {
             """;
         Long count = jdbcTemplate.queryForObject(sql, Long.class, albumId);
         return count != null ? count : 0;
-    }
-    
-    // Get plays by year for an album
-    public List<PlaysByYearDTO> getPlaysByYearForAlbum(int albumId) {
-        String sql = """
-            SELECT 
-                strftime('%Y', p.play_date) as year,
-                COUNT(*) as play_count
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.album_id = ? AND p.play_date IS NOT NULL
-            GROUP BY strftime('%Y', p.play_date)
-            ORDER BY year ASC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByYearDTO dto = new PlaysByYearDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, albumId);
     }
     
     // Get plays by month for an album
@@ -1847,18 +1689,6 @@ public class AlbumService {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    public List<Map<String, Object>> getAlbumDetailsForIds(List<Integer> ids) {
-        if (ids == null || ids.isEmpty()) return new ArrayList<>();
-        String placeholders = String.join(",", ids.stream().map(id -> "?").toList());
-        String sql = "SELECT id, name FROM Album WHERE id IN (" + placeholders + ")";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> album = new HashMap<>();
-            album.put("id", rs.getInt("id"));
-            album.put("name", rs.getString("name"));
-            return album;
-        }, ids.toArray());
     }
 
     public int getSoloSongCountForAlbum(Integer albumId) {

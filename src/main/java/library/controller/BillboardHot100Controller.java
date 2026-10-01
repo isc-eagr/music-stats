@@ -7,6 +7,7 @@ import library.service.AppConfigService;
 import library.service.BillboardHot100Service;
 import library.service.OverviewFilterService;
 import library.service.OverviewCacheService;
+import library.util.ChartOverviewSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -60,7 +61,7 @@ public class BillboardHot100Controller {
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
-        String safeOverviewTab = normalizeOverviewTab(overviewTab);
+        String safeOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
         int safeSize = normalizeSize(size);
         String safeSort = normalizeSort(safeOverviewTab, sort);
         String safeDir = normalizeDir(dir);
@@ -101,9 +102,6 @@ public class BillboardHot100Controller {
         model.addAttribute("selectedIncludeFeatured", includeFeatured);
         model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("billboard", safeOverviewTab));
         model.addAttribute("resultTotal", resultTotal);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("hasPrev", safePage > 1);
-        model.addAttribute("hasNext", safePage < totalPages);
         model.addAttribute("currentSection", "billboard-hot100");
         return "misc/billboard-hot100";
     }
@@ -119,7 +117,7 @@ public class BillboardHot100Controller {
             @RequestParam(defaultValue = "song") String overviewTab,
             @RequestParam(defaultValue = "false") boolean includeFeatured,
             @RequestParam MultiValueMap<String, String> filterParams) {
-        String safeOverviewTab = normalizeOverviewTab(overviewTab);
+        String safeOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
         int safeSize = normalizeSize(size);
         int safePage = Math.max(1, page);
         String safeSort = normalizeSort(safeOverviewTab, sort);
@@ -162,21 +160,6 @@ public class BillboardHot100Controller {
             result.put("error", e.getMessage() != null ? e.getMessage() : "Billboard import failed");
             return ResponseEntity.internalServerError().body(result);
         }
-    }
-
-    @PostMapping("/auto-link")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> autoLink() {
-        return ResponseEntity.ok(billboardHot100Service.autoLinkExactMatches());
-    }
-
-    @PostMapping("/normalize-case")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> normalizeCase() {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("ok", true);
-        result.put("updatedRows", billboardHot100Service.normalizeCaseDifferences());
-        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/match")
@@ -285,16 +268,6 @@ public class BillboardHot100Controller {
 
     private String normalizeDir(String dir) {
         return "asc".equalsIgnoreCase(dir) ? "asc" : "desc";
-    }
-
-    private String normalizeOverviewTab(String overviewTab) {
-        if ("album".equalsIgnoreCase(overviewTab)) {
-            return "album";
-        }
-        if ("artist".equalsIgnoreCase(overviewTab)) {
-            return "artist";
-        }
-        return "song";
     }
 
 }

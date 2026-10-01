@@ -107,40 +107,33 @@
         .bb-btn:hover:not(:disabled) { border-color: rgba(34, 211, 238, 0.75); color: #d5fbff; background: rgba(34, 211, 238, 0.14); }
         .bb-btn:disabled { opacity: 0.55; cursor: default; }
         .bb-search-form { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .bb-search-input-inline { width: min(340px, 100%); padding: 10px 12px; border-radius: 10px; border: 1px solid #353535; background: #101010; color: #e0e0e0; font-size: 0.88rem; outline: none; }
-        .bb-search-input-inline:focus { border-color: #22d3ee; }
+
         .bb-search-status { color: #7f9195; font-size: 0.8rem; margin-left: 2px; }
         .bb-clear-link { color: #8de7f2; text-decoration: none; font-size: 0.82rem; }
         .bb-clear-link:hover { color: #d5fbff; text-decoration: underline; }
-        .bb-page-size { display: inline-flex; gap: 8px; align-items: center; color: #888; font-size: 0.82rem; }
-        .bb-page-size a { color: #8de7f2; text-decoration: none; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(34, 211, 238, 0.28); background: rgba(34, 211, 238, 0.05); }
-        .bb-page-size a:hover { border-color: rgba(34, 211, 238, 0.68); color: #d5fbff; }
-        .bb-page-size a.active { color: #04191d; border-color: rgba(34, 211, 238, 0.9); background: #6ee7f0; }
-        .bb-panel { background: #141414; border: 1px solid #272727; border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; }
-        .bb-panel-title { font-size: 0.78rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
-        .bb-panel-copy { color: #b9b9b9; font-size: 0.9rem; line-height: 1.5; }
-        .bb-issue-table-wrap, .bb-table-wrap { overflow: visible; border-radius: 12px; border: 1px solid #2a2a2a; }
-        .bb-table, .bb-issue-table { width: 100%; border-collapse: collapse; background: #141414; }
-        .bb-table thead tr, .bb-issue-table thead tr { background: #1e1e1e; border-bottom: 2px solid #333; }
-        .bb-table th, .bb-issue-table th { padding: 11px 14px; text-align: left; font-size: 0.78rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; position: sticky; top: 0; z-index: 2; background: #1e1e1e; box-shadow: inset 0 -1px 0 #333; }
+
+        .bb-table-wrap { overflow: visible; border-radius: 12px; border: 1px solid #2a2a2a; }
+        .bb-table { width: 100%; border-collapse: collapse; background: #141414; }
+        .bb-table thead tr { background: #1e1e1e; border-bottom: 2px solid #333; }
+        .bb-table th { padding: 11px 14px; text-align: left; font-size: 0.78rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; position: sticky; top: 0; z-index: 2; background: #1e1e1e; box-shadow: inset 0 -1px 0 #333; }
 
         @media (max-width: 900px) {
-            .bb-issue-table-wrap, .bb-table-wrap {
+            .bb-table-wrap {
                 overflow-x: auto;
             }
         }
-        .bb-table th.center, .bb-table td.center, .bb-issue-table th.center, .bb-issue-table td.center { text-align: center; }
+        .bb-table th.center, .bb-table td.center { text-align: center; }
         .bb-table th { user-select: none; }
         .bb-sort-link { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
         .bb-sort-link:hover { color: #c9f7fb; }
         .bb-sort-link.active { color: #d5fbff; }
         .bb-table th.sorted-asc::after { content: ' \25B2'; font-size: 0.7em; }
         .bb-table th.sorted-desc::after { content: ' \25BC'; font-size: 0.7em; }
-        .bb-table tbody tr, .bb-issue-table tbody tr { border-bottom: 1px solid #1f1f1f; transition: background 0.12s; }
-        .bb-table tbody tr:hover, .bb-issue-table tbody tr:hover { background: #1c1c1c; }
+        .bb-table tbody tr { border-bottom: 1px solid #1f1f1f; transition: background 0.12s; }
+        .bb-table tbody tr:hover { background: #1c1c1c; }
         .bb-table tbody tr.gender-male { background: rgba(74, 144, 226, 0.06); border-left: 3px solid rgba(74, 144, 226, 0.5); }
         .bb-table tbody tr.gender-female { background: rgba(217, 74, 138, 0.06); border-left: 3px solid rgba(217, 74, 138, 0.5); }
-        .bb-table td, .bb-issue-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
+        .bb-table td { padding: 10px 14px; font-size: 0.88rem; color: #d0d0d0; vertical-align: middle; }
         .bb-table td.right, .bb-table th.right { text-align: right; }
         .bb-image-col { width: 58px; }
         .bb-overview-image-cell { width: 58px; min-width: 58px; }
@@ -269,10 +262,7 @@
         .bb-result-artist { color: #949494; font-size: 0.82rem; margin-top: 2px; }
         .bb-search-empty { padding: 20px 14px; color: #777; font-size: 0.85rem; }
         .pager { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 16px 0; flex-wrap: wrap; }
-        .pager-links { display: flex; gap: 8px; align-items: center; }
-        .pager-link { color: #8de7f2; text-decoration: none; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(34, 211, 238, 0.28); background: rgba(34, 211, 238, 0.05); }
-        .pager-link:hover:not(.disabled) { border-color: rgba(34, 211, 238, 0.68); color: #d5fbff; background: rgba(34, 211, 238, 0.1); }
-        .pager-link.disabled { pointer-events: none; opacity: 0.35; }
+
         .pager-label { color: #888; font-size: 0.82rem; }
         .number-one-tooltip {
             position: fixed;
@@ -1203,42 +1193,6 @@
                         status.textContent = 'Refreshing Billboard overview...';
                     }
                     setTimeout(() => window.location.reload(), 250);
-                });
-        }
-
-        function runBillboardAutoLink(btn) {
-            btn.disabled = true;
-            btn.textContent = 'Linking...';
-            showPageBusyOverlay('Refreshing Billboard overview', 'Linking exact and fuzzy Billboard matches...');
-            fetch('/misc/billboard-hot-100/auto-link', { method: 'POST' })
-                .then(r => r.json())
-                .then(data => {
-                    btn.textContent = 'Linked ' + data.groupsLinked + ' rows';
-                    window.location.reload();
-                })
-                .catch(() => {
-                    hidePageBusyOverlay();
-                    btn.disabled = false;
-                    btn.textContent = 'Auto-Link Matches';
-                    alert('Auto-link failed.');
-                });
-        }
-
-        function runBillboardNormalizeCase(btn) {
-            btn.disabled = true;
-            btn.textContent = 'Normalizing...';
-            showPageBusyOverlay('Refreshing Billboard overview', 'Normalizing Billboard spelling differences...');
-            fetch('/misc/billboard-hot-100/normalize-case', { method: 'POST' })
-                .then(r => r.json())
-                .then(data => {
-                    btn.textContent = 'Normalized ' + data.updatedRows + ' rows';
-                    window.location.reload();
-                })
-                .catch(() => {
-                    hidePageBusyOverlay();
-                    btn.disabled = false;
-                    btn.textContent = 'Normalize Case Differences';
-                    alert('Normalization failed.');
                 });
         }
 

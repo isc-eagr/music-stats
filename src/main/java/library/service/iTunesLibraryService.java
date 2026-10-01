@@ -180,16 +180,6 @@ public class iTunesLibraryService {
     }
 
     /**
-     * Check if a song exists in the iTunes library
-     */
-    public boolean songExists(Map<String, iTunesTrack> library, String name, String artist, String album) {
-        String lookupKey = (name != null ? name.toLowerCase().trim() : "") + "||" +
-                          (artist != null ? artist.toLowerCase().trim() : "") + "||" +
-                          (album != null ? album.toLowerCase().trim() : "");
-        return library.containsKey(lookupKey);
-    }
-
-    /**
      * Find the best match for a song in the iTunes library.
      * Returns the matched track or null if no match found.
      */

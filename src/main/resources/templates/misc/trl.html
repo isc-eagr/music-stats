@@ -147,7 +147,6 @@
             border-color: rgba(250, 128, 114, 0.5);
             color: #fff1ee;
         }
-        .trl-toggle-btn .btn-icon { font-size: 0.9em; }
 
         /* Table */
         .trl-table-wrap {
@@ -199,7 +198,6 @@
         .trl-table tbody tr.trl-row-refreshing { opacity: 0.4; pointer-events: none; }
         #trlTableBody { transition: opacity 0.18s ease; }
         #trlTableBody.trl-refreshing { opacity: 0.35; }
-        #trlTableBody tr.trl-row-fade-out { opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; }
 
         /* Gender row coloring — full row background */
         .trl-table tbody tr.gender-male {
@@ -279,16 +277,6 @@
             border: 1px solid #444;
         }
 
-        /* Days bar */
-        .days-bar-wrap { display: flex; align-items: center; gap: 8px; }
-        .days-bar {
-            height: 6px;
-            border-radius: 3px;
-            background: #4a90e2;
-            min-width: 4px;
-        }
-        .days-val { font-size: 0.82rem; color: #aaa; white-space: nowrap; }
-
         /* Song / artist links */
         .trl-song-link {
             color: #e0e0e0;
@@ -365,8 +353,7 @@
 
         /* Retired / Hall of Fame rows */
         .trl-table tbody tr.trl-retired td { color: var(--accent-strong); }
-        .trl-table tbody tr.trl-retired .days-val { color: var(--accent-strong); }
-        .trl-table tbody tr.trl-retired .days-bar { background: var(--accent); }
+
         .trl-table tbody tr.trl-retired .trl-song-link { color: #fff1ee; }
         .trl-table tbody tr.trl-retired .trl-song-link:hover { color: #ffffff; }
         .trl-table tbody tr.trl-retired .trl-artist-link { color: #f0a097; }
@@ -1706,10 +1693,6 @@
             _modalRow = null;
         }
 
-        function closeMatchModalOnBackdrop(e) {
-            if (e.target === document.getElementById('matchModal')) closeMatchModal();
-        }
-
         // Track mousedown target so text-selection drags never dismiss modals
         (function() {
             var _mdTarget = null;
@@ -1915,10 +1898,6 @@
                     hidePageBusyOverlay();
                     alert('Failed to unlink. Please try again.');
                 });
-        }
-
-        function escapeAttr(s) {
-            return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         }
 
         window.addEventListener('load', function() {

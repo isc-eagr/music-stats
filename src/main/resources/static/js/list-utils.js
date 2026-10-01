@@ -901,42 +901,6 @@ function submitFilterForm(formOrId) {
 }
 
 /**
- * Toggle sort direction for a column.
- * @param {string} column - The column name to sort by
- */
-function toggleSort(column) {
-    const url = new URL(window.location);
-    const currentSort = url.searchParams.get('sortby');
-    const currentDir = url.searchParams.get('sortdir') || 'asc';
-    
-    if (currentSort === column) {
-        // Toggle direction
-        url.searchParams.set('sortdir', currentDir === 'asc' ? 'desc' : 'asc');
-    } else {
-        // New column, default to asc (or desc for numeric columns)
-        url.searchParams.set('sortby', column);
-        url.searchParams.set('sortdir', 'asc');
-    }
-    
-    syncRandomSeedParam(url, { refresh: column === 'random' && currentSort !== column });
-    url.searchParams.set('page', '0');
-    window.location.href = url.toString();
-}
-
-/**
- * Format a song length in seconds to mm:ss format.
- * @param {number} seconds - Duration in seconds
- * @returns {string} Formatted duration (e.g., "3:45")
- */
-function formatSongLength(seconds) {
-    if (!seconds || seconds <= 0) return '-';
-    
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins + ':' + (secs < 10 ? '0' : '') + secs;
-}
-
-/**
  * Format seconds to a human-readable time string (hh:mm:ss with optional leading parts).
  * Examples: 4 -> "4", 107 -> "1:47", 3661 -> "1:01:01"
  * @param {number} totalSeconds - Total duration in seconds

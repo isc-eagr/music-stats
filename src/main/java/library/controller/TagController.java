@@ -9,11 +9,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/tags")
@@ -49,14 +47,5 @@ public class TagController {
         tagService.deleteTag(id);
         redirectAttributes.addFlashAttribute("successMessage", "Tag deleted");
         return "redirect:/tags";
-    }
-
-    @GetMapping("/api")
-    @ResponseBody
-    public List<Map<String, Object>> listTagsApi(@RequestParam(required = false) String q) {
-        String query = q != null ? q.trim().toLowerCase() : "";
-        return tagService.getAllTagOptions().stream()
-                .filter(tag -> query.isEmpty() || tag.get("name").toString().toLowerCase().contains(query))
-                .toList();
     }
 }

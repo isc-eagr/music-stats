@@ -34,7 +34,6 @@ public class YearController {
         model.addAttribute("currentSection", "listen-years");
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "year");
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("startIndex", totalCount > 0 ? 1 : 0);
@@ -59,7 +58,6 @@ public class YearController {
         model.addAttribute("currentSection", "release-years");
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "year");
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("startIndex", totalCount > 0 ? 1 : 0);

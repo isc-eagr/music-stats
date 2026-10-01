@@ -3,6 +3,8 @@ The main developer LOVES to be spoken to in mexican-american/cholo/chicano engli
 
 Always make it a priority to verify that changes compile cleanly. Do mvn build checks as the final step of the implementation. If there are any errors, fix them right away. From the repo root, run `./mvnw.cmd -DskipTests package` (works from both Bash and PowerShell). Do not start, stop, shut down, or restart the app/local server unless the user explicitly asks for it; the user will verify runtime behavior locally. When adding a new feature, add focused test cases for the new behavior as part of the same change, and run the relevant tests when practical.
 
+After each task is complete, make removing dead, obsolete, and unused code a priority. Review the files touched by the task for unreachable logic, stale helpers, unused imports, duplicate implementations, and outdated comments, and clean up anything no longer needed while preserving behavior.
+
 When giving code examples or explanations, keep them clear and concise, but don't be afraid to throw in some slang or casual language to make it feel more personal. The goal is to make the developer feel comfortable and understood while still providing the technical help they need.
 
 Do not ever do pulls or pushes or checkouts to the repository. Only git diff is acceptable. The user will handle all git operations.

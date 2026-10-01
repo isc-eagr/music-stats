@@ -42,7 +42,6 @@ public class CountryController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         return "countries/list";

@@ -6,11 +6,9 @@ import library.service.GenreService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/genres")
@@ -46,75 +44,18 @@ public class GenreController {
         model.addAttribute("searchQuery", q);
         model.addAttribute("sortBy", sortby);
         model.addAttribute("sortDir", sortdir);
-        model.addAttribute("randomSeed", randomSeed);
         model.addAttribute("defaultSortBy", "name");
         
         return "genres/list";
     }
-    
-    @GetMapping("/{id}")
-    public String viewGenre(@PathVariable Integer id, Model model) {
-        Optional<Genre> genre = genreService.getGenreById(id);
-        
-        if (genre.isEmpty()) {
-            return "redirect:/genres";
-        }
-        
-        // Check if genre has an image
-        byte[] image = genreService.getGenreImage(id);
-        boolean hasImage = (image != null && image.length > 0);
-        
-        model.addAttribute("currentSection", "genres");
-        model.addAttribute("genre", genre.get());
-        model.addAttribute("hasImage", hasImage);
-        
-        // Add statistics for the genre
-        Map<String, Object> stats = genreService.getGenreStats(id);
-        model.addAttribute("stats", stats);
-        
-        // Add top 50 artists, albums, and songs
-        model.addAttribute("topArtists", genreService.getTopArtistsForGenre(id));
-        model.addAttribute("topAlbums", genreService.getTopAlbumsForGenre(id));
-        model.addAttribute("topSongs", genreService.getTopSongsForGenre(id));
-        
-        return "genres/detail";
-    }
-    
+
     @GetMapping("/{id}/image")
     @ResponseBody
     public byte[] getGenreImage(@PathVariable Integer id) {
         byte[] image = genreService.getGenreImage(id);
         return image != null ? image : new byte[0];
     }
-    
-    @PostMapping("/{id}/image")
-    @ResponseBody
-    public String uploadGenreImage(@PathVariable Integer id, @RequestParam("image") MultipartFile file) {
-        try {
-            if (file.isEmpty()) {
-                return "error";
-            }
-            
-            genreService.updateGenreImage(id, file.getBytes());
-            return "success";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "error";
-        }
-    }
-    
-    @DeleteMapping("/{id}/image")
-    @ResponseBody
-    public String deleteGenreImage(@PathVariable Integer id) {
-        try {
-            genreService.updateGenreImage(id, null);
-            return "success";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "error";
-        }
-    }
-    
+
     /**
      * API endpoint to get all genres for dropdowns.
      */

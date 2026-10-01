@@ -1,5 +1,6 @@
 package library.service;
 
+import library.dto.FeaturedArtistRef;
 import library.dto.ChartAlbumOverviewRowDTO;
 import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.BillboardHot100OverviewRowDTO;
@@ -133,10 +134,6 @@ public class BillboardHot100Service {
         return jdbcTemplate.query(sql, this::mapOverviewRow, params.toArray());
     }
 
-    public int countAlbumOverviewRows(String query) {
-        return getAllAlbumOverviewRows(query).size();
-    }
-
     public List<ChartAlbumOverviewRowDTO> getAlbumOverviewRows(int page, int size, String sort, String dir, String query) {
         List<ChartAlbumOverviewRowDTO> rows = getAllAlbumOverviewRows(query);
         rows.sort(buildAlbumOverviewComparator(sort, dir));
@@ -159,17 +156,6 @@ public class BillboardHot100Service {
         List<ChartArtistOverviewRowDTO> rows = getAllArtistOverviewRows(query, includeFeatured);
         rows.sort(buildArtistOverviewComparator(sort, dir));
         return paginate(rows, page, size);
-    }
-
-    public int countOverviewRows(String query) {
-        ensureDebutSnapshot();
-        if (!debutTableExists()) {
-            return 0;
-        }
-        List<Object> params = new ArrayList<>();
-        String sql = "SELECT COUNT(*) FROM billboard_hot100_debut overview" + buildOverviewSearchClause(query, params);
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, params.toArray());
-        return count == null ? 0 : count;
     }
 
     private String buildOrderBy(String sort, String dir) {
@@ -252,7 +238,7 @@ public class BillboardHot100Service {
         row.setWeeksOnChart(rs.getInt("weeks_on_chart"));
         row.setPeakPosition(rs.getInt("peak_position"));
         row.setWeeksAtPeak(rs.getInt("weeks_at_peak"));
-        row.setGenderClass(toGenderClass(rs.getString("gender_name")));
+        row.setGenderClass(ChartAggregationUtils.genderClass(rs.getString("gender_name")));
         row.setWeeksAtTop1(rs.getInt("weeks_at_top1"));
         row.setWeeksAtTop5(rs.getInt("weeks_at_top5"));
         row.setWeeksAtTop10(rs.getInt("weeks_at_top10"));
@@ -315,7 +301,7 @@ public class BillboardHot100Service {
         }
 
         if (includeFeatured) {
-            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = getFeaturedArtistRefsBySongId(songRows.stream()
+            Map<Integer, List<FeaturedArtistRef>> featuredArtistRefsBySongId = ChartAggregationUtils.loadFeaturedArtistRefs(jdbcTemplate, songRows.stream()
                 .map(BillboardHot100OverviewRowDTO::getSongId)
                 .filter(java.util.Objects::nonNull)
                 .distinct()
@@ -349,37 +335,6 @@ public class BillboardHot100Service {
         return rows;
     }
 
-    private Map<Integer, List<FeaturedArtistRef>> getFeaturedArtistRefsBySongId(List<Integer> songIds) {
-        if (songIds == null || songIds.isEmpty()) {
-            return Map.of();
-        }
-        String placeholders = songIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
-        String sql = """
-            SELECT sfa.song_id,
-                   a.id AS artist_id,
-                   a.name AS artist_name,
-                   LOWER(g.name) AS gender_name,
-                   CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END AS artist_has_image
-            FROM SongFeaturedArtist sfa
-            INNER JOIN Artist a ON a.id = sfa.artist_id
-            LEFT JOIN Gender g ON g.id = a.gender_id
-            WHERE sfa.song_id IN (%s)
-            ORDER BY sfa.song_id ASC, a.name COLLATE NOCASE ASC
-            """.formatted(placeholders);
-
-        Map<Integer, List<FeaturedArtistRef>> refsBySongId = new LinkedHashMap<>();
-        jdbcTemplate.query(sql, (rs) -> {
-            FeaturedArtistRef ref = new FeaturedArtistRef(
-                rs.getInt("artist_id"),
-                rs.getString("artist_name"),
-                mapGenderClass(rs.getString("gender_name")),
-                rs.getInt("artist_has_image") == 1
-            );
-            refsBySongId.computeIfAbsent(rs.getInt("song_id"), ignored -> new ArrayList<>()).add(ref);
-        }, songIds.toArray());
-        return refsBySongId;
-    }
-
     private BillboardHot100OverviewRowDTO copyOverviewRowForFeaturedArtist(BillboardHot100OverviewRowDTO source, FeaturedArtistRef featuredArtistRef) {
         BillboardHot100OverviewRowDTO target = new BillboardHot100OverviewRowDTO();
         target.setMatched(true);
@@ -406,19 +361,6 @@ public class BillboardHot100Service {
         target.setWeeksAtTop50(source.getWeeksAtTop50());
         target.setWeeksAtTop100(source.getWeeksAtTop100());
         return target;
-    }
-
-    private String mapGenderClass(String genderName) {
-        if (genderName == null) {
-            return null;
-        }
-        if (genderName.contains("female")) {
-            return "gender-female";
-        }
-        if (genderName.contains("male")) {
-            return "gender-male";
-        }
-        return null;
     }
 
     private Comparator<ChartAlbumOverviewRowDTO> buildAlbumOverviewComparator(String sort, String dir) {
@@ -549,90 +491,6 @@ public class BillboardHot100Service {
         }
     }
 
-    public Map<String, Object> autoLinkExactMatches() {
-        try (Connection connection = dataSource.getConnection()) {
-            int unmatchedBefore = countUnmatchedGroups();
-            int rowsLinked = BillboardHot100ImportSupport.autoLinkExactMatches(connection);
-            BillboardHot100ImportSupport.rebuildDebutTable(connection);
-            int unmatchedAfter = countUnmatchedGroups();
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("ok", true);
-            result.put("rowsLinked", rowsLinked);
-            result.put("groupsLinked", Math.max(0, unmatchedBefore - unmatchedAfter));
-            return result;
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to auto-link Billboard Hot 100 entries", e);
-        }
-    }
-
-    public int normalizeCaseDifferences() {
-        int updatedRows = normalizeLinkedRowsToLibraryCase();
-
-        List<Map<String, Object>> variantGroups = jdbcTemplate.query(
-            "SELECT LOWER(TRIM(artist_name)) AS artist_key, LOWER(TRIM(song_title)) AS song_key " +
-            "FROM billboard_hot100_entry " +
-            "WHERE song_id IS NULL " +
-            "GROUP BY LOWER(TRIM(artist_name)), LOWER(TRIM(song_title)) " +
-            "HAVING COUNT(DISTINCT artist_name || '||' || song_title) > 1",
-            (rs, rowNum) -> {
-                Map<String, Object> row = new LinkedHashMap<>();
-                row.put("artistKey", rs.getString("artist_key"));
-                row.put("songKey", rs.getString("song_key"));
-                return row;
-            }
-        );
-
-        for (Map<String, Object> group : variantGroups) {
-            String artistKey = (String) group.get("artistKey");
-            String songKey = (String) group.get("songKey");
-
-            List<Map<String, Object>> canonicalChoices = jdbcTemplate.query(
-                "SELECT artist_name, song_title, COUNT(*) AS usage_count " +
-                "FROM billboard_hot100_entry " +
-                "WHERE song_id IS NULL " +
-                "  AND LOWER(TRIM(artist_name)) = ? " +
-                "  AND LOWER(TRIM(song_title)) = ? " +
-                "GROUP BY artist_name, song_title " +
-                "ORDER BY usage_count DESC, artist_name COLLATE NOCASE ASC, artist_name ASC, song_title COLLATE NOCASE ASC, song_title ASC " +
-                "LIMIT 1",
-                (rs, rowNum) -> {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("artistName", rs.getString("artist_name"));
-                    row.put("songTitle", rs.getString("song_title"));
-                    return row;
-                },
-                artistKey,
-                songKey
-            );
-
-            if (canonicalChoices.isEmpty()) {
-                continue;
-            }
-
-            Map<String, Object> canonical = canonicalChoices.get(0);
-            String canonicalArtist = (String) canonical.get("artistName");
-            String canonicalSong = (String) canonical.get("songTitle");
-
-            updatedRows += jdbcTemplate.update(
-                "UPDATE billboard_hot100_entry SET artist_name = ?, song_title = ? " +
-                "WHERE song_id IS NULL " +
-                "  AND LOWER(TRIM(artist_name)) = ? " +
-                "  AND LOWER(TRIM(song_title)) = ? " +
-                "  AND (artist_name <> ? OR song_title <> ?)",
-                canonicalArtist,
-                canonicalSong,
-                artistKey,
-                songKey,
-                canonicalArtist,
-                canonicalSong
-            );
-        }
-
-        rebuildDebutTable();
-
-        return updatedRows;
-    }
-
     public Map<String, Object> matchRawGroup(String rawArtist, String rawSong, Integer songId) {
         int updated = jdbcTemplate.update(
             "UPDATE billboard_hot100_entry SET song_id = ? " +
@@ -757,7 +615,7 @@ public class BillboardHot100Service {
             row.put("movementClass", null);
 
             String genderName = rs.getString("gender_name");
-            row.put("genderClass", toGenderClass(genderName));
+            row.put("genderClass", ChartAggregationUtils.genderClass(genderName));
 
             int weeksOnChart = rs.getInt("weeks_on_chart");
             if (!rs.wasNull()) {
@@ -901,46 +759,6 @@ public class BillboardHot100Service {
         }
     }
 
-    private int countUnmatchedGroups() {
-        if (!tableExists()) {
-            return 0;
-        }
-        Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM (SELECT artist_name, song_title FROM billboard_hot100_entry WHERE song_id IS NULL GROUP BY artist_name, song_title)",
-            Integer.class
-        );
-        return count == null ? 0 : count;
-    }
-
-    private int normalizeLinkedRowsToLibraryCase() {
-        List<Map<String, Object>> linkedRows = jdbcTemplate.query(
-            "SELECT e.id, s.name AS song_name, a.name AS artist_name " +
-            "FROM billboard_hot100_entry e " +
-            "JOIN Song s ON s.id = e.song_id " +
-            "JOIN Artist a ON a.id = s.artist_id " +
-            "WHERE e.song_id IS NOT NULL " +
-            "  AND (e.artist_name <> a.name OR e.song_title <> s.name)",
-            (rs, rowNum) -> {
-                Map<String, Object> row = new LinkedHashMap<>();
-                row.put("id", rs.getInt("id"));
-                row.put("artistName", rs.getString("artist_name"));
-                row.put("songTitle", rs.getString("song_name"));
-                return row;
-            }
-        );
-
-        int updatedRows = 0;
-        for (Map<String, Object> row : linkedRows) {
-            updatedRows += jdbcTemplate.update(
-                "UPDATE billboard_hot100_entry SET artist_name = ?, song_title = ? WHERE id = ?",
-                row.get("artistName"),
-                row.get("songTitle"),
-                row.get("id")
-            );
-        }
-        return updatedRows;
-    }
-
     private boolean tableExists() {
         Integer count = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND lower(name) = 'billboard_hot100_entry'",
@@ -986,26 +804,6 @@ public class BillboardHot100Service {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to rebuild Billboard Hot 100 debut rows", e);
         }
-    }
-
-    /**
-     * Map gender name to CSS gender class for styling.
-     * IMPORTANT: This application's gender_id mapping is:
-     *   - genderId 1 = FEMALE artists (pink/magenta color)
-     *   - genderId 2 = MALE artists (blue color)
-     * This is NOT intuitive order but matches the original schema.
-     */
-    private String toGenderClass(String genderName) {
-        if (genderName == null) {
-            return null;
-        }
-        if (genderName.contains("female")) {
-            return "gender-female";
-        }
-        if (genderName.contains("male")) {
-            return "gender-male";
-        }
-        return null;
     }
 
     private final class AlbumOverviewAccumulator {
@@ -1168,8 +966,6 @@ public class BillboardHot100Service {
                 .thenComparing(row -> ChartAggregationUtils.safeLower(row.getSongTitle()));
     }
 
-    private record FeaturedArtistRef(Integer artistId, String artistName, String genderClass, boolean hasImage) {
-    }
 
     private record AlbumSongInfoRow(Integer songId, Integer albumId, String albumName, boolean hasImage) {
     }

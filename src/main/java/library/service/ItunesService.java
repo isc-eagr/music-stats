@@ -117,21 +117,6 @@ public class ItunesService {
     }
 
     /**
-     * Invalidate the cache, forcing a reload on next access.
-     */
-    public void invalidateCache() {
-        cachedSongKeys = null;
-        cachedAlbumKeys = null;
-        cachedArtistKeys = null;
-        cachedAllSongs = null;
-        cachedFilePath = null;
-        cachedFileLastModified = 0;
-        cachedSongIdsJson = null;
-        cachedAlbumIdsJson = null;
-        cachedArtistIdsJson = null;
-    }
-
-    /**
      * Get the default iTunes library path from the existing iTunesLibraryService.
      */
     public String getDefaultLibraryPath() {
@@ -845,66 +830,6 @@ public class ItunesService {
     }
 
     // ============ Methods to get cached sets for filtering ============
-
-    /**
-     * Get the set of normalized artist names that exist in iTunes.
-     * Useful for filtering artists by iTunes presence.
-     */
-    public Set<String> getItunesArtistKeys() {
-        if (!libraryExists()) return new HashSet<>();
-        try {
-            ensureCacheLoaded();
-            return cachedArtistKeys != null ? cachedArtistKeys : new HashSet<>();
-        } catch (Exception e) {
-            return new HashSet<>();
-        }
-    }
-
-    /**
-     * Get the set of normalized album keys (artist||album) that exist in iTunes.
-     * Useful for filtering albums by iTunes presence.
-     */
-    public Set<String> getItunesAlbumKeys() {
-        if (!libraryExists()) return new HashSet<>();
-        try {
-            ensureCacheLoaded();
-            return cachedAlbumKeys != null ? cachedAlbumKeys : new HashSet<>();
-        } catch (Exception e) {
-            return new HashSet<>();
-        }
-    }
-
-    /**
-     * Get the set of normalized song keys (artist||song) that exist in iTunes.
-     * Useful for filtering songs by iTunes presence.
-     */
-    public Set<String> getItunesSongKeys() {
-        if (!libraryExists()) return new HashSet<>();
-        try {
-            ensureCacheLoaded();
-            return cachedSongKeys != null ? cachedSongKeys : new HashSet<>();
-        } catch (Exception e) {
-            return new HashSet<>();
-        }
-    }
-
-    /**
-     * Compute iTunes presence ratio for a single artist's songs.
-     * Returns null if iTunes library is not available or artist has no songs.
-     */
-    public Double getArtistItunesPresenceRatio(int artistId) {
-        if (!libraryExists()) return null;
-        String idsJson = getAllItunesSongIdsJson();
-        if ("[]".equals(idsJson)) return null;
-        Integer total = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM Song WHERE artist_id = ?", Integer.class, artistId);
-        if (total == null || total == 0) return null;
-        Integer inItunes = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM Song WHERE artist_id = ? AND id IN (SELECT value FROM json_each(?))",
-            Integer.class, artistId, idsJson);
-        if (inItunes == null) return null;
-        return (inItunes * 100.0) / total;
-    }
 
     public Map<Integer, Double> getArtistItunesPresenceRatios(List<Integer> artistIds) {
         if (!libraryExists() || artistIds == null || artistIds.isEmpty()) return Collections.emptyMap();

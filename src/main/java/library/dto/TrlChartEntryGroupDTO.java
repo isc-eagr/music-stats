@@ -20,5 +20,4 @@ public class TrlChartEntryGroupDTO {
     public void setSongTitle(String songTitle) { this.songTitle = songTitle; }
 
     public int getAppearances() { return appearances; }
-    public void setAppearances(int appearances) { this.appearances = appearances; }
 }
