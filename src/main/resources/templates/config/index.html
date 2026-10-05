@@ -111,6 +111,18 @@
             background: linear-gradient(135deg, rgba(22, 101, 52, 0.2), rgba(15, 23, 42, 0.76));
             color: #cffade;
             font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+        .config-alert-error {
+            border-color: rgba(248, 113, 113, 0.3);
+            background: rgba(127, 29, 29, 0.2);
+            color: #fecaca;
+        }
+        .config-backup {
+            margin-bottom: 18px;
+        }
+        .config-database-path {
+            overflow-wrap: anywhere;
         }
         .config-form {
             display: grid;
@@ -293,7 +305,7 @@
             <div class="config-hero-panel config-hero-copy">
                 <span class="config-kicker">Settings</span>
                 <h1 class="config-title">Config</h1>
-                <p class="config-subtitle">Automation, full-listen thresholds, and per-page defaults.</p>
+                <p class="config-subtitle">Database backups, automation, full-listen thresholds, and per-page defaults.</p>
             </div>
 
             <div class="config-hero-panel config-summary-grid">
@@ -326,6 +338,25 @@
         </section>
 
         <div class="config-alert" th:if="${saved}">Configuration saved.</div>
+        <div class="config-alert" role="status" th:if="${backupSuccess}" th:text="${backupSuccess}"></div>
+        <div class="config-alert config-alert-error" role="alert" th:if="${backupError}" th:text="${backupError}"></div>
+
+        <form id="databaseBackupForm" class="config-section config-backup" method="post" th:action="@{/config/backup}">
+            <div class="config-section-header">
+                <div>
+                    <h2 class="config-section-title">Database Backup</h2>
+                    <p class="config-section-copy">Create a complete snapshot of your music library, plays, images, and settings. Each backup is saved as a separate .db file in the same folder as the active database.</p>
+                </div>
+            </div>
+            <p class="config-card-copy config-database-path" th:if="${databasePath}">
+                Active database: <span th:text="${databasePath}"></span>
+            </p>
+            <p class="config-card-copy" th:if="${backupUnavailable}" th:text="${backupUnavailable}"></p>
+            <div class="config-save-actions">
+                <button id="databaseBackupButton" class="btn btn-action" type="submit" th:disabled="${backupUnavailable != null}">Back Up Database</button>
+                <span id="databaseBackupStatus" class="config-help" role="status">Large databases may take several minutes. Backups use the currently saved settings.</span>
+            </div>
+        </form>
 
         <form id="configForm" class="config-form" method="post" th:action="@{/config}">
             <section class="config-section">
@@ -578,5 +609,13 @@
             </div>
         </form>
     </main>
+    <script>
+        document.getElementById('databaseBackupForm').addEventListener('submit', function () {
+            const button = document.getElementById('databaseBackupButton');
+            button.disabled = true;
+            button.textContent = 'Backing Up...';
+            document.getElementById('databaseBackupStatus').textContent = 'Creating database backup. Please keep this page open until it finishes.';
+        });
+    </script>
 </body>
 </html>

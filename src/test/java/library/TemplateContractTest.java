@@ -297,6 +297,21 @@ class TemplateContractTest {
     }
 
     @Test
+    void databaseBackupHasItsOwnPostFormAndFeedback() throws IOException {
+        Document config = parse("config/index.html");
+        Element backupForm = config.selectFirst("#databaseBackupForm");
+
+        assertThat(backupForm).isNotNull();
+        assertThat(backupForm.attr("method")).isEqualTo("post");
+        assertThat(backupForm.attr("th:action")).isEqualTo("@{/config/backup}");
+        assertThat(backupForm.select("#databaseBackupButton[type=submit]")).hasSize(1);
+        assertThat(config.select("#configForm #databaseBackupForm")).isEmpty();
+        assertThat(config.select("[role=status]").eachAttr("th:text")).contains("${backupSuccess}");
+        assertThat(config.select("[role=alert]").eachAttr("th:text")).contains("${backupError}");
+        assertThat(backupForm.text()).contains("same folder as the active database");
+    }
+
+    @Test
     void albumFullListenSettingsExposeTheTrackTiersAndInterruptionBudget() throws IOException {
         Document config = parse("config/index.html");
         Element allowedMissingUpTo15Tracks = config.selectFirst("#allowedMissingUpTo15Tracks");
