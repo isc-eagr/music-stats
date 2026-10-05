@@ -8,11 +8,17 @@ import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DatabaseBackupServiceTest {
+
+    // UTC is already October 3, while Mexico City is still October 2.
+    private static final Clock BACKUP_CLOCK = Clock.fixed(Instant.parse("2026-10-03T03:00:00Z"), ZoneOffset.UTC);
 
     @TempDir
     Path tempDirectory;
@@ -31,7 +37,7 @@ class DatabaseBackupServiceTest {
             jdbc.update("INSERT INTO Song VALUES (1, 'First song', X'010203')");
             assertThat(Files.size(Path.of(database + "-wal"))).isPositive();
 
-            var service = new DatabaseBackupService(dataSource);
+            var service = new DatabaseBackupService(dataSource, BACKUP_CLOCK);
             assertThat(service.getDatabasePath()).isEqualTo(database.toAbsolutePath());
             Path firstBackup = service.backupDatabase();
             jdbc.update("INSERT INTO Song VALUES (2, 'Second song', NULL)");
@@ -41,7 +47,8 @@ class DatabaseBackupServiceTest {
             assertThat(secondBackup.getParent()).isEqualTo(directory);
             assertThat(firstBackup).isNotEqualTo(secondBackup).isNotEqualTo(database);
             assertThat(firstBackup.getFileName().toString())
-                    .matches("music-stats-backup-\\d{2}-\\d{2}-\\d{4}_\\d{2}-\\d{2}-\\d{2}-\\d+\\.db");
+                    .isEqualTo("music-stats_2026-10-02.db");
+            assertThat(secondBackup.getFileName().toString()).isEqualTo("music-stats_2026-10-02-2.db");
             var firstDataSource = dataSource(firstBackup);
             var secondDataSource = dataSource(secondBackup);
             try {
@@ -67,6 +74,31 @@ class DatabaseBackupServiceTest {
     }
 
     @Test
+    void backupSkipsExistingSameDateFilesAndStartsFreshOnTheNextDay() throws Exception {
+        Path database = tempDirectory.resolve("music-stats.db");
+        Path firstBackup = tempDirectory.resolve("music-stats_2026-10-02.db");
+        Path secondBackup = tempDirectory.resolve("music-stats_2026-10-02-2.db");
+        Files.writeString(firstBackup, "Existing first backup");
+        Files.writeString(secondBackup, "Existing second backup");
+        var dataSource = dataSource(database);
+        try {
+            new JdbcTemplate(dataSource).execute("CREATE TABLE Song (id INTEGER PRIMARY KEY)");
+            var service = new DatabaseBackupService(dataSource, BACKUP_CLOCK);
+
+            assertThat(service.backupDatabase()).hasFileName("music-stats_2026-10-02-3.db").exists();
+            assertThat(service.backupDatabase()).hasFileName("music-stats_2026-10-02-4.db").exists();
+            assertThat(Files.readString(firstBackup)).isEqualTo("Existing first backup");
+            assertThat(Files.readString(secondBackup)).isEqualTo("Existing second backup");
+
+            var nextDayClock = Clock.fixed(Instant.parse("2026-10-03T06:00:00Z"), ZoneOffset.UTC);
+            var nextDayService = new DatabaseBackupService(dataSource, nextDayClock);
+            assertThat(nextDayService.backupDatabase()).hasFileName("music-stats_2026-10-03.db").exists();
+        } finally {
+            dataSource.destroy();
+        }
+    }
+
+    @Test
     void failedSnapshotRemovesPartialFileAndAllowsRetry() throws Exception {
         Path database = tempDirectory.resolve("music-stats.db");
         var dataSource = dataSource(database);
@@ -76,15 +108,15 @@ class DatabaseBackupServiceTest {
             var connection = dataSource.getConnection();
             connection.setAutoCommit(false);
             jdbc.update("INSERT INTO Song VALUES (1)");
-            var service = new DatabaseBackupService(dataSource);
+            var service = new DatabaseBackupService(dataSource, BACKUP_CLOCK);
 
             assertThatThrownBy(service::backupDatabase).isInstanceOf(SQLException.class);
             try (var files = Files.list(tempDirectory)) {
-                assertThat(files).noneMatch(path -> path.getFileName().toString().contains("-backup-"));
+                assertThat(files).noneMatch(path -> path.getFileName().toString().startsWith("music-stats_"));
             }
             connection.rollback();
             connection.setAutoCommit(true);
-            assertThat(service.backupDatabase()).exists();
+            assertThat(service.backupDatabase()).hasFileName("music-stats_2026-10-02.db").exists();
         } finally {
             dataSource.destroy();
         }

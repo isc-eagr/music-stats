@@ -1,9 +1,11 @@
 package library.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -11,22 +13,28 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class DatabaseBackupService {
 
-    private static final DateTimeFormatter FILE_TIMESTAMP = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
     private static final ZoneId BACKUP_TIME_ZONE = ZoneId.of("America/Mexico_City");
 
     private final DataSource dataSource;
+    private final Clock clock;
     private final ReentrantLock backupLock = new ReentrantLock();
 
+    @Autowired
     public DatabaseBackupService(DataSource dataSource) {
+        this(dataSource, Clock.system(BACKUP_TIME_ZONE));
+    }
+
+    DatabaseBackupService(DataSource dataSource, Clock clock) {
         this.dataSource = dataSource;
+        this.clock = clock.withZone(BACKUP_TIME_ZONE);
     }
 
     public Path getDatabasePath() throws SQLException {
@@ -46,8 +54,8 @@ public class DatabaseBackupService {
             String filename = database.getFileName().toString();
             int extension = filename.lastIndexOf('.');
             String basename = extension > 0 ? filename.substring(0, extension) : filename;
-            String timestamp = ZonedDateTime.now(BACKUP_TIME_ZONE).format(FILE_TIMESTAMP);
-            partialBackup = Files.createTempFile(database.getParent(), basename + "-backup-" + timestamp + "-", ".partial");
+            String backupBasename = basename + "_" + LocalDate.now(clock);
+            partialBackup = Files.createTempFile(database.getParent(), backupBasename + "-", ".partial");
 
             // Use SQLite's snapshot operation so committed WAL data is included in the backup.
             try (PreparedStatement statement = connection.prepareStatement("VACUUM main INTO ?")) {
@@ -55,10 +63,7 @@ public class DatabaseBackupService {
                 statement.execute();
             }
 
-            String backupFilename = partialBackup.getFileName().toString().replaceFirst("\\.partial$", ".db");
-            Path backup = partialBackup.resolveSibling(backupFilename);
-            Files.move(partialBackup, backup);
-            return backup;
+            return moveBackup(partialBackup, backupBasename);
         } catch (SQLException | IOException | RuntimeException exception) {
             if (partialBackup != null) {
                 try {
@@ -70,6 +75,19 @@ public class DatabaseBackupService {
             throw exception;
         } finally {
             backupLock.unlock();
+        }
+    }
+
+    private Path moveBackup(Path partialBackup, String basename) throws IOException {
+        for (int number = 1; ; number++) {
+            String suffix = number == 1 ? "" : "-" + number;
+            Path backup = partialBackup.resolveSibling(basename + suffix + ".db");
+            try {
+                // Moving without replacement preserves existing backups, including concurrent creations.
+                return Files.move(partialBackup, backup);
+            } catch (FileAlreadyExistsException exception) {
+                // Try the next numbered filename.
+            }
         }
     }
 

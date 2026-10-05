@@ -35,7 +35,7 @@ class ConfigControllerTest {
 
     @Test
     void backupPostRedirectsWithSavedPathWithoutChangingConfiguration() throws Exception {
-        Path backup = Path.of("C:/Music Stats DB/music-stats-backup-04-10-2026_12-00-00-123.db");
+        Path backup = Path.of("C:/Music Stats DB/music-stats_2026-10-02.db");
         when(backupService.backupDatabase()).thenReturn(backup);
 
         MockMvcBuilders.standaloneSetup(controller).build().perform(post("/config/backup"))
