@@ -2,9 +2,15 @@ package library.controller;
 
 import library.service.BillboardHot100Service;
 import library.service.SongService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,6 +31,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 public class NowPlayingLookupController {
+    private static final Logger logger = LoggerFactory.getLogger(NowPlayingLookupController.class);
+    private static final int MAX_TRACK_CANDIDATES = 30;
+
     private final JdbcTemplate jdbcTemplate;
     private final SongService songService;
     private final ChartService chartService;
@@ -41,10 +50,35 @@ public class NowPlayingLookupController {
         this.trlService = trlService;
     }
 
-    @GetMapping("/lookup")
+    /**
+     * JSON-body variant of {@link #lookup}. Values in a request body are never parsed as URL syntax,
+     * so '#', '&' and '?' inside titles arrive intact. A form-encoded POST is handled by {@link #lookup} itself.
+     */
+    @PostMapping(value = "/lookup", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> lookupJson(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        String songId = bodyText(body, "songId");
+        return lookup(bodyText(body, "artist"), bodyText(body, "album"), bodyText(body, "song"),
+                songId != null && songId.trim().matches("\\d+") ? Integer.valueOf(songId.trim()) : null, request);
+    }
+
+    /**
+     * Same lookup as {@link #lookup}, served as a plain HTML page. The track picker links here
+     * so a tapped candidate opens straight into its card.
+     */
+    @GetMapping(value = "/lookup/card", produces = MediaType.TEXT_HTML_VALUE)
+    public String lookupCard(@RequestParam(required = false) String artist,
+                             @RequestParam(required = false) String album,
+                             @RequestParam(required = false) String song,
+                             @RequestParam(name = "songId", required = false) Integer requestedSongId,
+                             HttpServletRequest request) {
+        return safe(lookup(artist, album, song, requestedSongId, request).get("html"));
+    }
+
+    @RequestMapping(value = "/lookup", method = {RequestMethod.GET, RequestMethod.POST})
     public Map<String, Object> lookup(@RequestParam(required = false) String artist,
                                       @RequestParam(required = false) String album,
                                       @RequestParam(required = false) String song,
+                                      @RequestParam(name = "songId", required = false) Integer requestedSongId,
                                       HttpServletRequest request) {
         Map<String, Object> resp = new HashMap<>();
 
@@ -89,155 +123,22 @@ public class NowPlayingLookupController {
             }
         }
 
+        Integer songId = requestedSongId != null
+                ? existingSongId(requestedSongId)
+                : findSongId(artist, album, song, resp);
+        if (songId == null && requestedSongId == null) {
+            // A GET whose album contains an unencoded '#' arrives cut off at the '#', and every
+            // parameter after it (usually the song) is gone. Log what arrived so that is visible.
+            logger.info("Now playing lookup found no song. artist='{}', album='{}', song='{}', rawQuery='{}'",
+                    artist, album, song, request.getQueryString());
+        }
+
         resp.put("artistQuery", artist);
         resp.put("albumQuery", album);
         resp.put("songQuery", song);
 
-        // Search songs by artist+song (best-effort) using JdbcTemplate to avoid
-        // depending on a specific repository method signature.
-        StringBuilder sql = new StringBuilder(
-            "SELECT s.id, s.name, a.name as artist_name, al.name as album_name, " +
-            "CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id) THEN 1 ELSE 0 END as has_image " +
-            "FROM Song s JOIN Artist a ON s.artist_id = a.id LEFT JOIN Album al ON s.album_id = al.id WHERE 1=1 "
-        );
-        List<Object> params = new java.util.ArrayList<>();
-        String normArtist = null;
-        String normSong = null;
-        String normAlbum = null;
-        if (artist != null && !artist.trim().isEmpty()) {
-            normArtist = library.util.StringNormalizer.normalizeForSearch(artist);
-            sql.append(" AND " + library.util.StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ?");
-            params.add("%" + normArtist + "%");
-        }
-        if (song != null && !song.trim().isEmpty()) {
-            normSong = library.util.StringNormalizer.normalizeForSearch(song);
-            sql.append(" AND " + library.util.StringNormalizer.sqlNormalizeColumn("s.name") + " LIKE ?");
-            params.add("%" + normSong + "%");
-        }
-        sql.append(" ORDER BY a.name, s.name LIMIT 20");
-        List<Map<String, Object>> matches = jdbcTemplate.queryForList(sql.toString(), params.toArray());
-        resp.put("matches", matches);
-
-        // If no matches and the incoming song param may have been truncated by an un-encoded '&' (common from Shortcuts),
-        // try to reconstruct the full song value from the raw query string and re-run the query.
-        try {
-            if ((matches == null || matches.isEmpty()) && song != null && request.getQueryString() != null && request.getQueryString().contains("song=")) {
-                String raw = request.getQueryString();
-                int i = raw.indexOf("song=");
-                if (i >= 0) {
-                    String rest = raw.substring(i + "song=".length());
-                    String decoded = java.net.URLDecoder.decode(rest, java.nio.charset.StandardCharsets.UTF_8.name());
-                    // Only update if decoded is longer than original song (indicates truncation)
-                    if (decoded != null && decoded.length() > song.length()) {
-                        song = decoded;
-                        resp.put("songQuery", song);
-                        // Rebuild the limited SQL search with the corrected song
-                        StringBuilder sql2 = new StringBuilder(
-                            "SELECT s.id, s.name, a.name as artist_name, al.name as album_name, " +
-                            "CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id) THEN 1 ELSE 0 END as has_image " +
-                            "FROM Song s JOIN Artist a ON s.artist_id = a.id LEFT JOIN Album al ON s.album_id = al.id WHERE 1=1 "
-                        );
-                        List<Object> params2 = new java.util.ArrayList<>();
-                        if (artist != null && !artist.trim().isEmpty()) {
-                            String nArtist = library.util.StringNormalizer.normalizeForSearch(artist);
-                            sql2.append(" AND " + library.util.StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ?");
-                            params2.add("%" + nArtist + "%");
-                        }
-                        if (song != null && !song.trim().isEmpty()) {
-                            String nSong = library.util.StringNormalizer.normalizeForSearch(song);
-                            sql2.append(" AND " + library.util.StringNormalizer.sqlNormalizeColumn("s.name") + " LIKE ?");
-                            params2.add("%" + nSong + "%");
-                        }
-                        sql2.append(" ORDER BY a.name, s.name LIMIT 20");
-                        matches = jdbcTemplate.queryForList(sql2.toString(), params2.toArray());
-                        resp.put("matches", matches);
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
-
-        Integer songId = null;
         Integer albumId = null;
         Integer artistId = null;
-
-        // Try to find a best match by normalizing strings (use util normalizer if available)
-
-        // Use strict normalization matching like the iTunes badges: lowercase + strip accents + remove punctuation
-        String inputStrictArtist = artist != null ? normalizeForStrictMatch(artist) : null;
-        String inputStrictSong = song != null ? normalizeForStrictMatch(song) : null;
-        String inputStrictAlbum = album != null ? normalizeForStrictMatch(album) : null;
-
-        for (Map<String, Object> m : matches) {
-            String mName = m.get("name") != null ? m.get("name").toString() : null;
-            String mArtist = m.get("artist_name") != null ? m.get("artist_name").toString() : null;
-            String mAlbum = m.get("album_name") != null ? m.get("album_name").toString() : null;
-
-            String dbStrictName = mName != null ? normalizeForStrictMatch(mName) : null;
-            String dbStrictArtist = mArtist != null ? normalizeForStrictMatch(mArtist) : null;
-            String dbStrictAlbum = mAlbum != null ? normalizeForStrictMatch(mAlbum) : null;
-
-            boolean artistMatches = inputStrictArtist == null || (dbStrictArtist != null && dbStrictArtist.equals(inputStrictArtist));
-            boolean songMatches = inputStrictSong == null || (dbStrictName != null && dbStrictName.equals(inputStrictSong));
-            boolean albumMatches = inputStrictAlbum == null || (dbStrictAlbum != null && dbStrictAlbum.equals(inputStrictAlbum));
-
-            if (artistMatches && songMatches && albumMatches) {
-                Object idObj = m.get("id");
-                if (idObj instanceof Number) songId = ((Number) idObj).intValue();
-                break;
-            }
-        }
-
-        // If strict matching didn't find a song, try a fuzzy search fallback that
-        // removes parentheses and common featuring tokens (better for titles like
-        // "Top Top (feat. C-Kan, Gera MX...)" which may be stored without the paren text).
-        if (songId == null && song != null && !song.isBlank()) {
-            // First, try a DB-wide strict lookup that mirrors ItunesService.buildDatabaseLookupStrict()
-            try {
-                String sqlAll = "SELECT s.id as id, ar.name as artist_name, al.name as album_name, s.name as song_name " +
-                        "FROM Song s INNER JOIN Artist ar ON s.artist_id = ar.id LEFT JOIN Album al ON s.album_id = al.id";
-                java.util.Map<String, Integer> strictKeyToId = new java.util.HashMap<>();
-                jdbcTemplate.query(sqlAll, rs -> {
-                    String dbArtist = rs.getString("artist_name");
-                    String dbAlbum = rs.getString("album_name");
-                    String dbSong = rs.getString("song_name");
-                    String key = normalizeForStrictMatch(dbArtist) + "||" + normalizeForStrictMatch(dbAlbum) + "||" + normalizeForStrictMatch(dbSong);
-                    strictKeyToId.put(key, rs.getInt("id"));
-                });
-
-                String inputKey = normalizeForStrictMatch(artist) + "||" + normalizeForStrictMatch(album) + "||" + normalizeForStrictMatch(song);
-                if (strictKeyToId.containsKey(inputKey)) {
-                    songId = strictKeyToId.get(inputKey);
-                }
-            } catch (Exception ignored) {
-            }
-
-            // If strict DB-wide lookup didn't find it, try a fuzzy search fallback that
-            // removes parentheses and common featuring tokens (better for titles like
-            // "Top Top (feat. C-Kan, Gera MX...)" which may be stored without the paren text).
-            if (songId == null) {
-                String fuzzyInputSong = library.util.StringNormalizer.normalizeForSearch(song);
-                String fuzzyInputArtist = artist != null ? library.util.StringNormalizer.normalizeForSearch(artist) : null;
-                for (Map<String, Object> m : matches) {
-                    String mName = m.get("name") != null ? m.get("name").toString() : null;
-                    String mArtist = m.get("artist_name") != null ? m.get("artist_name").toString() : null;
-
-                    String dbFuzzyName = mName != null ? library.util.StringNormalizer.normalizeForSearch(mName) : null;
-                    String dbFuzzyArtist = mArtist != null ? library.util.StringNormalizer.normalizeForSearch(mArtist) : null;
-
-                    boolean artistMatchesFuzzy = fuzzyInputArtist == null || (dbFuzzyArtist != null && dbFuzzyArtist.equals(fuzzyInputArtist));
-                    boolean songMatchesFuzzy = fuzzyInputSong == null || (dbFuzzyName != null && dbFuzzyName.equals(fuzzyInputSong));
-
-                    if (artistMatchesFuzzy && songMatchesFuzzy) {
-                        Object idObj = m.get("id");
-                        if (idObj instanceof Number) {
-                            songId = ((Number) idObj).intValue();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
 
         // If we found a song id, fetch its artist_id and album_id
         if (songId != null) {
@@ -245,22 +146,22 @@ public class NowPlayingLookupController {
             artistId = songRow.get("artist_id") != null ? ((Number) songRow.get("artist_id")).intValue() : null;
             albumId = songRow.get("album_id") != null ? ((Number) songRow.get("album_id")).intValue() : null;
         } else {
-            // If no song match, try to find artist by name and album by name heuristically
-            if (artist != null) {
-                List<Map<String,Object>> artistMatches = jdbcTemplate.queryForList("SELECT id FROM Artist WHERE " + library.util.StringNormalizer.sqlNormalizeColumn("name") + " LIKE ? LIMIT 1", "%" + normArtist + "%");
+            // If no song match, try to find artist by name and album by (possibly truncated) name heuristically
+            if (artist != null && !artist.isBlank()) {
+                List<Map<String,Object>> artistMatches = jdbcTemplate.queryForList("SELECT id FROM Artist WHERE " + library.util.StringNormalizer.sqlNormalizeColumn("name") + " LIKE ? LIMIT 1", "%" + library.util.StringNormalizer.normalizeForSearch(artist) + "%");
                 if (!artistMatches.isEmpty()) {
                     artistId = ((Number) artistMatches.get(0).get("id")).intValue();
                 }
             }
-            if (albumId == null && album != null) {
-                List<Map<String,Object>> albumMatches = jdbcTemplate.queryForList("SELECT id, artist_id FROM Album WHERE " + library.util.StringNormalizer.sqlNormalizeColumn("name") + " LIKE ? LIMIT 1", "%" + normAlbum + "%");
-                if (!albumMatches.isEmpty()) {
-                    albumId = ((Number) albumMatches.get(0).get("id")).intValue();
-                    if (artistId == null && albumMatches.get(0).get("artist_id") != null) {
-                        artistId = ((Number) albumMatches.get(0).get("artist_id")).intValue();
-                    }
+            Map<String, Object> albumMatch = findAlbumByPrefix(artistId, album);
+            if (albumMatch != null) {
+                albumId = ((Number) albumMatch.get("id")).intValue();
+                if (artistId == null && albumMatch.get("artist_id") != null) {
+                    artistId = ((Number) albumMatch.get("artist_id")).intValue();
                 }
             }
+            List<Map<String, Object>> candidates = findTrackCandidates(artistId, albumId, song);
+            if (!candidates.isEmpty()) resp.put("candidates", candidates);
         }
 
         // Compute counts
@@ -522,9 +423,22 @@ public class NowPlayingLookupController {
                     resp.put("languageName", languageName);
                     resp.put("countryName", countryName);
                 } catch (Exception ignored) {}
+            } else {
+                // No song, but the artist/album may still have resolved from what arrived
+                try {
+                    if (artistId != null) {
+                        Map<String, Object> artistRow = jdbcTemplate.queryForMap("SELECT ar.name, (SELECT name FROM Gender WHERE id = ar.gender_id) as gender_name FROM Artist ar WHERE ar.id = ?", artistId);
+                        trueArtist = safe(artistRow.get("name"));
+                        genderName = safe(artistRow.get("gender_name"));
+                    }
+                    if (albumId != null) {
+                        trueAlbum = safe(jdbcTemplate.queryForObject("SELECT name FROM Album WHERE id = ?", String.class, albumId));
+                    }
+                } catch (Exception ignored) {}
             }
 
             if (trueSong.isEmpty()) trueSong = safe(resp.get("songQuery"));
+            if (trueSong.isEmpty() && resp.containsKey("candidates")) trueSong = "Which song?";
             if (trueArtist.isEmpty()) trueArtist = safe(resp.get("artistQuery"));
             if (trueAlbum.isEmpty()) trueAlbum = safe(resp.get("albumQuery"));
 
@@ -628,6 +542,21 @@ public class NowPlayingLookupController {
             String subLine = artistHtml;
             if (!albumHtml.isEmpty()) subLine += " • " + albumHtml;
             h.append("<p class=\"sub\">").append(subLine).append("</p>");
+
+            // Track picker: the song title did not arrive, so offer the likely tracks as one-tap links
+            if (resp.get("candidates") instanceof List<?> candidates) {
+                h.append("<p class=\"small-muted\">The song title didn't make it to the server (usually a # in the album name). Tap the track that's playing:</p>");
+                h.append("<div class=\"chips\">");
+                for (Object item : candidates) {
+                    if (!(item instanceof Map<?, ?> candidate)) continue;
+                    String trackNumber = safe(candidate.get("track_number"));
+                    h.append("<a class=\"chip chip-link\" href=\"").append(base).append("/api/lookup/card?songId=").append(safe(candidate.get("id"))).append("\">");
+                    if (!trackNumber.isEmpty()) h.append("<span class=\"val\">").append(trackNumber).append("</span> ");
+                    h.append(escapeHtml(safe(candidate.get("name"))))
+                     .append(" <span class=\"proj-val\">").append(safe(candidate.get("plays"))).append(" plays</span></a>");
+                }
+                h.append("</div>");
+            }
 
             // Stats & Dates section
             String sPlays = safe(resp.get("songPlays"));
@@ -781,6 +710,126 @@ public class NowPlayingLookupController {
         }
 
         return resp;
+    }
+
+    /**
+     * Resolves the song: strict artist/album/song match first (same rules as the iTunes badges),
+     * then a DB-wide strict key lookup, then a fuzzy artist + song match that ignores parentheses
+     * and featuring tokens (e.g. "Top Top (feat. C-Kan, Gera MX...)" stored without the paren text).
+     * Without a song title there is nothing to resolve, so this returns null instead of guessing.
+     */
+    private Integer findSongId(String artist, String album, String song, Map<String, Object> resp) {
+        if (song == null || song.isBlank()) {
+            resp.put("matches", List.of());
+            return null;
+        }
+        StringBuilder sql = new StringBuilder(
+            "SELECT s.id, s.name, a.name as artist_name, al.name as album_name, " +
+            "CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage WHERE song_id = s.id) THEN 1 ELSE 0 END as has_image " +
+            "FROM Song s JOIN Artist a ON s.artist_id = a.id LEFT JOIN Album al ON s.album_id = al.id WHERE 1=1 "
+        );
+        List<Object> params = new ArrayList<>();
+        if (artist != null && !artist.isBlank()) {
+            sql.append(" AND " + library.util.StringNormalizer.sqlNormalizeColumn("a.name") + " LIKE ?");
+            params.add("%" + library.util.StringNormalizer.normalizeForSearch(artist) + "%");
+        }
+        sql.append(" AND " + library.util.StringNormalizer.sqlNormalizeColumn("s.name") + " LIKE ?");
+        params.add("%" + library.util.StringNormalizer.normalizeForSearch(song) + "%");
+        sql.append(" ORDER BY a.name, s.name LIMIT 20");
+        List<Map<String, Object>> matches = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        resp.put("matches", matches);
+
+        String inputStrictArtist = artist != null ? normalizeForStrictMatch(artist) : null;
+        String inputStrictSong = normalizeForStrictMatch(song);
+        String inputStrictAlbum = album != null ? normalizeForStrictMatch(album) : null;
+        for (Map<String, Object> m : matches) {
+            String dbStrictName = normalizeForStrictMatch(safe(m.get("name")));
+            String dbStrictArtist = m.get("artist_name") != null ? normalizeForStrictMatch(m.get("artist_name").toString()) : null;
+            String dbStrictAlbum = m.get("album_name") != null ? normalizeForStrictMatch(m.get("album_name").toString()) : null;
+
+            boolean artistMatches = inputStrictArtist == null || inputStrictArtist.equals(dbStrictArtist);
+            boolean songMatches = inputStrictSong.equals(dbStrictName);
+            boolean albumMatches = inputStrictAlbum == null || inputStrictAlbum.equals(dbStrictAlbum);
+            if (artistMatches && songMatches && albumMatches && m.get("id") instanceof Number id) {
+                return id.intValue();
+            }
+        }
+
+        // DB-wide strict lookup that mirrors ItunesService.buildDatabaseLookupStrict()
+        try {
+            String sqlAll = "SELECT s.id as id, ar.name as artist_name, al.name as album_name, s.name as song_name " +
+                    "FROM Song s INNER JOIN Artist ar ON s.artist_id = ar.id LEFT JOIN Album al ON s.album_id = al.id";
+            Map<String, Integer> strictKeyToId = new HashMap<>();
+            jdbcTemplate.query(sqlAll, rs -> {
+                String key = normalizeForStrictMatch(rs.getString("artist_name")) + "||" + normalizeForStrictMatch(rs.getString("album_name")) + "||" + normalizeForStrictMatch(rs.getString("song_name"));
+                strictKeyToId.put(key, rs.getInt("id"));
+            });
+            Integer strictId = strictKeyToId.get(normalizeForStrictMatch(artist) + "||" + normalizeForStrictMatch(album) + "||" + inputStrictSong);
+            if (strictId != null) return strictId;
+        } catch (Exception ignored) {
+        }
+
+        String fuzzyInputSong = library.util.StringNormalizer.normalizeForSearch(song);
+        String fuzzyInputArtist = artist != null ? library.util.StringNormalizer.normalizeForSearch(artist) : null;
+        for (Map<String, Object> m : matches) {
+            String dbFuzzyName = library.util.StringNormalizer.normalizeForSearch(safe(m.get("name")));
+            String dbFuzzyArtist = m.get("artist_name") != null ? library.util.StringNormalizer.normalizeForSearch(m.get("artist_name").toString()) : null;
+            boolean artistMatchesFuzzy = fuzzyInputArtist == null || fuzzyInputArtist.equals(dbFuzzyArtist);
+            if (artistMatchesFuzzy && fuzzyInputSong.equals(dbFuzzyName) && m.get("id") instanceof Number id) {
+                return id.intValue();
+            }
+        }
+        return null;
+    }
+
+    private Integer existingSongId(int songId) {
+        List<Integer> ids = jdbcTemplate.queryForList("SELECT id FROM Song WHERE id = ?", Integer.class, songId);
+        return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    /**
+     * Finds the album whose name equals, or failing that starts with, the received name. Only a prefix
+     * arrives when a GET carries an unencoded '#' ("B.O.A.T.S. II #METIME" arrives as "B.O.A.T.S. II ").
+     */
+    private Map<String, Object> findAlbumByPrefix(Integer artistId, String album) {
+        String prefix = normalizeForStrictMatch(album);
+        if (prefix.isEmpty()) return null;
+        List<Map<String, Object>> albums = artistId != null
+                ? jdbcTemplate.queryForList("SELECT id, artist_id, name FROM Album WHERE artist_id = ? ORDER BY id", artistId)
+                : jdbcTemplate.queryForList("SELECT id, artist_id, name FROM Album ORDER BY id");
+        Map<String, Object> prefixMatch = null;
+        for (Map<String, Object> row : albums) {
+            String name = normalizeForStrictMatch(safe(row.get("name")));
+            if (name.equals(prefix)) return row;
+            if (prefixMatch == null && name.startsWith(prefix)) prefixMatch = row;
+        }
+        return prefixMatch;
+    }
+
+    /**
+     * Tracks to offer when the song could not be resolved: the album's tracklist when the album is known,
+     * otherwise the artist's most played songs. A received (possibly truncated) title narrows the list
+     * to titles starting with it.
+     */
+    private List<Map<String, Object>> findTrackCandidates(Integer artistId, Integer albumId, String song) {
+        if (albumId == null && artistId == null) return List.of();
+        String sql = "SELECT s.id, s.name, s.track_number, (SELECT COUNT(*) FROM Play p WHERE p.song_id = s.id) AS plays FROM Song s "
+                + (albumId != null
+                    ? "WHERE s.album_id = ? ORDER BY s.track_number IS NULL, s.track_number, s.name"
+                    : "WHERE s.artist_id = ? ORDER BY plays DESC, s.name");
+        String songPrefix = normalizeForStrictMatch(song);
+        List<Map<String, Object>> candidates = new ArrayList<>();
+        for (Map<String, Object> row : jdbcTemplate.queryForList(sql, albumId != null ? albumId : artistId)) {
+            if (!songPrefix.isEmpty() && !normalizeForStrictMatch(safe(row.get("name"))).startsWith(songPrefix)) continue;
+            candidates.add(row);
+            if (candidates.size() == MAX_TRACK_CANDIDATES) break;
+        }
+        return candidates;
+    }
+
+    private static String bodyText(Map<String, Object> body, String key) {
+        Object value = body.get(key);
+        return value != null ? value.toString() : null;
     }
 
     private void appendCombinedChipHTML(StringBuilder sb, String currentRank, String projectedRank, String name) {
