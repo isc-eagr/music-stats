@@ -6,6 +6,9 @@
     <title>Playground - Music Stats</title>
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <link rel="stylesheet" th:href="@{/css/playground.css}">
+    <link th:if="${view == 'graphs'}" rel="stylesheet" th:href="@{/css/playground-graphs.css}">
+    <link th:if="${view == 'graphs'}" rel="stylesheet" th:href="@{/css/playground-graph-filters.css}">
+    <link th:if="${view == 'graphs'}" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
 </head>
 <body>
@@ -14,6 +17,7 @@
     <header class="playground-header">
         <div>
             <h1>Playground</h1>
+            <p>Explore your listening habits, revisit a year, and discover patterns in your library.</p>
         </div>
     </header>
 
@@ -24,7 +28,14 @@
         <a role="tab" th:href="@{/playground(view='flashback',year=${selectedYear})}"
            th:classappend="${view == 'flashback'} ? 'active' : ''"
            aria-controls="flashback-panel" th:attr="aria-selected=${view == 'flashback'}">Flashback</a>
+        <a role="tab" th:href="@{/playground(view='graphs')}"
+           th:classappend="${view == 'graphs'} ? 'active' : ''"
+           aria-controls="graphs-panel" th:attr="aria-selected=${view == 'graphs'}">Library graphs</a>
     </nav>
+
+    <section id="graphs-panel" th:if="${view == 'graphs'}" class="playground-view" role="tabpanel" aria-label="Library graphs">
+        <th:block th:replace="~{fragments/graphs-view :: graphs-view}"></th:block>
+    </section>
 
     <section id="activity-panel" th:if="${view == 'activity'}" class="playground-view" role="tabpanel" aria-label="Year activity">
     <form action="/playground" method="get" class="playground-year">
@@ -378,8 +389,11 @@
         </section>
     </section>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
-<script src="/js/breakdown-history.js" defer></script>
+<script th:if="${view == 'activity'}" src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+<script th:if="${view == 'activity'}" src="/js/breakdown-history.js" defer></script>
+<script th:if="${view == 'graphs'}" src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
+<script th:if="${view == 'graphs'}" src="/js/playground-graphs.js" defer></script>
+<script th:if="${view == 'graphs'}" src="/js/playground-graph-filters.js" defer></script>
 <script>
     document.querySelectorAll('.heatmap-panel').forEach(panel => {
         const detail = panel.querySelector('.heatmap-detail');

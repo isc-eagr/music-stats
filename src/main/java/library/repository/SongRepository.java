@@ -22,6 +22,15 @@ public class SongRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public boolean existsByArtistAndName(Integer artistId, String name) {
+        if (artistId == null || name == null || name.isBlank()) {
+            return false;
+        }
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject("""
+                SELECT EXISTS(SELECT 1 FROM Song WHERE artist_id = ? AND name = ?)
+                """, Boolean.class, artistId, name));
+    }
+
     public List<SongStatsRow> findSongsWithStats(SongStatsQuery query) {
         String name = query.name();
         List<Integer> artistName = query.artistName();
@@ -2067,6 +2076,9 @@ public class SongRepository {
      * when filtering by artist, album, or song IDs.
      */
     private void buildplayEarlyFilter(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        if (filter.getMatchedCatalogIdsJson() != null) {
+            return; // The exact source catalog scope is applied by buildFilterClause.
+        }
         // Artist ID filter - filter plays to only songs by these artists
         // When includeGroups/includeFeatured is set, skip this early filter and let buildFilterClause handle it
         // (buildFilterClause will add the expanded artist filter with proper OR conditions)
@@ -2106,6 +2118,11 @@ public class SongRepository {
      * Delegates to the existing method for basic filters and adds new entity-aware filters.
      */
     private void buildFilterClause(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        if (filter.getMatchedCatalogIdsJson() != null) {
+            appendMatchedCatalogScope(sql, params, filter);
+            appendMatchedCatalogPlayWindow(sql, params, filter);
+            return;
+        }
         String catalogType = normalizeCatalogType(filter.getCatalogType());
         boolean includeGroups = filter.isIncludeGroups();
         boolean includeFeatured = filter.isIncludeFeatured();
@@ -2548,6 +2565,55 @@ public class SongRepository {
                     }
                 }
             }
+        }
+    }
+
+    private void appendMatchedCatalogScope(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        String ids = filter.getMatchedCatalogIdsJson();
+        String jsonIds = "SELECT CAST(value AS INTEGER) FROM json_each(?)";
+        switch (normalizeCatalogType(filter.getCatalogType())) {
+            case "artist" -> {
+                java.util.List<String> scopes = new java.util.ArrayList<>();
+                if (filter.isIncludeMain()) {
+                    scopes.add("ar.id IN (" + jsonIds + ")");
+                    params.add(ids);
+                }
+                if (filter.isIncludeGroups()) {
+                    scopes.add("ar.id IN (SELECT am.group_artist_id FROM ArtistMember am WHERE am.member_artist_id IN (" + jsonIds + "))");
+                    params.add(ids);
+                }
+                if (filter.isIncludeFeatured()) {
+                    scopes.add("s.id IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa WHERE sfa.artist_id IN (" + jsonIds + "))");
+                    params.add(ids);
+                }
+                sql.append(scopes.isEmpty() ? " AND 1=0 " : " AND (" + String.join(" OR ", scopes) + ")");
+            }
+            case "album" -> {
+                sql.append(" AND alb.id IN (").append(jsonIds).append(")");
+                params.add(ids);
+            }
+            default -> {
+                sql.append(" AND s.id IN (").append(jsonIds).append(")");
+                params.add(ids);
+            }
+        }
+    }
+
+    private void appendMatchedCatalogPlayWindow(StringBuilder sql, java.util.List<Object> params, ChartFilterDTO filter) {
+        java.util.List<String> accounts = filter.getAccounts();
+        if (accounts != null && !accounts.isEmpty()
+                && ("includes".equalsIgnoreCase(filter.getAccountMode()) || "excludes".equalsIgnoreCase(filter.getAccountMode()))) {
+            sql.append(" AND p.account ").append("excludes".equalsIgnoreCase(filter.getAccountMode()) ? "NOT IN (" : "IN (")
+                    .append(String.join(",", accounts.stream().map(account -> "?").toList())).append(")");
+            params.addAll(accounts);
+        }
+        if (filter.getListenedDateFrom() != null && !filter.getListenedDateFrom().isBlank()) {
+            sql.append(" AND DATE(p.play_date) >= DATE(?)");
+            params.add(filter.getListenedDateFrom());
+        }
+        if (filter.getListenedDateTo() != null && !filter.getListenedDateTo().isBlank()) {
+            sql.append(" AND DATE(p.play_date) <= DATE(?)");
+            params.add(filter.getListenedDateTo());
         }
     }
 

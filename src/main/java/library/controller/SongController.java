@@ -21,6 +21,7 @@ import library.service.PcService;
 import library.service.BillboardHot100Service;
 import library.service.DetailPlayHeatmapService;
 import library.util.DateFormatUtils;
+import library.util.GraphsNavigation;
 import library.util.ArtistFilterMode;
 import library.service.iTunesLibraryService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -125,6 +126,11 @@ public class SongController {
         });
     }
     
+    @GetMapping(params = "view=graphs")
+    public String graphs(HttpServletRequest request) {
+        return GraphsNavigation.redirectToPlayground(request, "songs");
+    }
+
     @GetMapping
     public String listSongs(
             @RequestParam(required = false) String q,
@@ -239,6 +245,7 @@ public class SongController {
             @RequestParam(required = false) Integer perpage,
             @RequestParam(defaultValue = "false") boolean includeExtendedStats,
             @RequestParam(defaultValue = "false") boolean lazyCard,
+            @RequestParam(defaultValue = "false") boolean filtersOnly,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -272,14 +279,15 @@ public class SongController {
         String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
         String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = lazyCard ? 1
+                : filtersOnly ? 1
                 : appConfigService.normalizePageSize(perpage, appConfigService.getSongsListPageSize());
         List<Integer> artistFilter = ArtistFilterMode.encode(artist, artistMode);
         
         // Pre-compute iTunes song IDs once for all 3 queries (getSongs, countSongs, countSongsByGender)
-        String itunesIdsJson = songService.getItunesSongIdsJson(inItunes);
+        String itunesIdsJson = filtersOnly ? null : songService.getItunesSongIdsJson(inItunes);
         
         // Get filtered and sorted songs
-        List<SongCardDTO> songs = songService.getSongs(
+        List<SongCardDTO> songs = filtersOnly ? List.of() : songService.getSongs(
                 q, artistFilter, featuredArtist, album, genre, genreMode,
                 subgenre, subgenreMode, language, languageMode, gender, genderMode,
                 ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
@@ -312,7 +320,7 @@ public class SongController {
         );
         
         // Get total count for pagination
-        long totalCount = lazyCard ? songs.size() : songService.countSongs(q, artistFilter, featuredArtist, album,
+        long totalCount = filtersOnly || lazyCard ? songs.size() : songService.countSongs(q, artistFilter, featuredArtist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
                 gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -342,7 +350,7 @@ public class SongController {
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = lazyCard ? new GenderCountDTO() : songService.countSongsByGender(q, artistFilter, featuredArtist, album,
+        GenderCountDTO genderCounts = filtersOnly || lazyCard ? new GenderCountDTO() : songService.countSongsByGender(q, artistFilter, featuredArtist, album,
                 genre, genreMode, subgenre, subgenreMode, language, languageMode,
                 gender, genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -537,7 +545,7 @@ public class SongController {
         model.addAttribute("countries", songService.getCountries());
         model.addAttribute("tags", tagService.getAllTags());
         
-        return "songs/list";
+        return filtersOnly ? "songs/list :: #filterForm" : "songs/list";
     }
 
     private boolean hasActiveFilters(HttpServletRequest request) {
@@ -1280,6 +1288,14 @@ public class SongController {
         return response;
     }
     
+    @GetMapping("/api/duplicate")
+    @ResponseBody
+    public ResponseEntity<Map<String, Boolean>> checkDuplicate(
+            @RequestParam Integer artistId, @RequestParam String name) {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(Map.of("exists", songService.songExists(artistId, name)));
+    }
+
     @PostMapping("/create")
     @ResponseBody
     public Map<String, Object> createSong(@RequestBody Song song) {

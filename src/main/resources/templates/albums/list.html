@@ -9,14 +9,10 @@
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/albums.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
-    <link rel="stylesheet" th:href="@{/css/graphs-view.css}">
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/list-utils.js}"></script>
-    <!-- Chart.js for Graphs view -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script th:src="@{/js/graphs.js}"></script>
 </head>
 <body>
@@ -30,10 +26,11 @@
                     <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Album views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
                         <button type="button" class="view-btn" id="viewBtn-table" onclick="switchView('table')">Table</button>
-                        <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
+                    <a th:href="@{/playground(view='graphs',source='albums')}" class="toolbar-btn toolbar-btn-soft"
+                       data-graphs-source="albums" onclick="return openPlaygroundGraphs(event)">Explore graphs</a>
                     <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Album</button>
                 </div>
@@ -1760,7 +1757,7 @@
                     </div>
 
                           <a th:if="${album.country != null and @countryCodeMapper.getCode(album.country) != null}"
-                              th:href="@{/albums(country=${album.country},countryMode='includes',view='graphs',tab='country')}"
+                              th:href="@{/playground(country=${album.country},countryMode='includes',view='graphs',source='albums',tab='country')}"
                        class="flag-overlay"
                        th:title="${album.country}">
                         <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(album.country)})}"
@@ -1889,33 +1886,33 @@
                         </div>
                         <div class="winning-chips modal-rank-chips" th:with="rankMap=${albumRankings.get(album.id)}">
                             <a th:if="${album.genderName != null and !#strings.isEmpty(album.genderName)}"
-                                        th:href="@{/albums(gender=${album.genderId},genderMode='includes',view='graphs',tab='general')}"
+                                        th:href="@{/playground(gender=${album.genderId},genderMode='includes',view='graphs',source='albums',tab='general')}"
                                class="winning-chip rank-chip gender"
                                th:classappend="${album.genderName.toLowerCase().contains('female')} ? 'female' : (${album.genderName.toLowerCase().contains('male')} ? 'male' : '')"
                                th:with="rank=${rankMap != null ? rankMap.get('gender') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.genderName}" title="Gender"></a>
                             <a th:if="${album.genreName != null and !#strings.isEmpty(album.genreName)}"
-                                        th:href="@{/albums(genre=${album.genreId},genreMode='includes',view='graphs',tab='genre')}"
+                                        th:href="@{/playground(genre=${album.genreId},genreMode='includes',view='graphs',source='albums',tab='genre')}"
                                class="winning-chip rank-chip genre"
                                th:with="rank=${rankMap != null ? rankMap.get('genre') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.genreName}" title="Genre"></a>
                             <a th:if="${album.subgenreName != null and !#strings.isEmpty(album.subgenreName)}"
-                                        th:href="@{/albums(subgenre=${album.subgenreId},subgenreMode='includes',view='graphs',tab='subgenre')}"
+                                        th:href="@{/playground(subgenre=${album.subgenreId},subgenreMode='includes',view='graphs',source='albums',tab='subgenre')}"
                                class="winning-chip rank-chip subgenre"
                                th:with="rank=${rankMap != null ? rankMap.get('subgenre') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.subgenreName}" title="Subgenre"></a>
                             <a th:if="${album.ethnicityName != null and !#strings.isEmpty(album.ethnicityName)}"
-                                        th:href="@{/albums(ethnicity=${album.ethnicityId},ethnicityMode='includes',view='graphs',tab='ethnicity')}"
+                                        th:href="@{/playground(ethnicity=${album.ethnicityId},ethnicityMode='includes',view='graphs',source='albums',tab='ethnicity')}"
                                class="winning-chip rank-chip ethnicity"
                                th:with="rank=${rankMap != null ? rankMap.get('ethnicity') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.ethnicityName}" title="Ethnicity"></a>
                             <a th:if="${album.country != null and !#strings.isEmpty(album.country)}"
-                                        th:href="@{/albums(country=${album.country},countryMode='includes',view='graphs',tab='country')}"
+                                        th:href="@{/playground(country=${album.country},countryMode='includes',view='graphs',source='albums',tab='country')}"
                                class="winning-chip rank-chip country"
                                th:with="rank=${rankMap != null ? rankMap.get('country') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.country}" title="Country"></a>
                             <a th:if="${album.languageName != null and !#strings.isEmpty(album.languageName)}"
-                                        th:href="@{/albums(language=${album.languageId},languageMode='includes',view='graphs',tab='language')}"
+                                        th:href="@{/playground(language=${album.languageId},languageMode='includes',view='graphs',source='albums',tab='language')}"
                                class="winning-chip rank-chip language"
                                th:with="rank=${rankMap != null ? rankMap.get('language') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.languageName}" title="Language"></a>
@@ -2144,10 +2141,6 @@
             <div id="tableViewEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All albums loaded</div>
         </div>
 
-        <!-- Graphs view container -->
-        <div id="graphsView" style="display:none;">
-            <th:block th:replace="~{fragments/graphs-view :: graphs-view('albums')}"></th:block>
-        </div>
     </div>
 
     <script>
@@ -3212,12 +3205,6 @@
 
             function updateLoadAllButton() {
                 if (!loadAllButton) return;
-                if (typeof currentView !== 'undefined' && currentView === 'graphs') {
-                    setLoadAllButtonVisibility(true);
-                    updateOverlayTitle();
-                    return;
-                }
-
                 if (isTableViewActive()) {
                     const progress = typeof window.getTableViewProgressState === 'function'
                         ? window.getTableViewProgressState()
@@ -3343,7 +3330,6 @@
             updateLoadAllButton();
         })();
     </script>
-    <script>window.graphsEntityType = 'albums';</script>
 </body>
 </html>
 

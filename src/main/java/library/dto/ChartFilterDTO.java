@@ -11,6 +11,8 @@ public class ChartFilterDTO {
     // Text search filters
     private String name;
     private String catalogType;
+    // Exact source-catalog matches. Null means no catalog constraint; [] matches nothing.
+    private String matchedCatalogIdsJson;
     private List<Integer> artistIds;
     private List<Integer> albumIds;
     private String albumName;
@@ -124,6 +126,7 @@ public class ChartFilterDTO {
     private String deathDateMode;
     
     // Include toggles for Top Artists aggregation
+    private boolean includeMain = true;
     private boolean includeGroups; // Include songs from artist's groups
     private boolean includeFeatured; // Include featured songs
     
@@ -167,6 +170,12 @@ public class ChartFilterDTO {
 
     public String getCatalogType() { return catalogType; }
     public ChartFilterDTO setCatalogType(String catalogType) { this.catalogType = catalogType; return this; }
+
+    public String getMatchedCatalogIdsJson() { return matchedCatalogIdsJson; }
+    public ChartFilterDTO setMatchedCatalogIdsJson(String matchedCatalogIdsJson) {
+        this.matchedCatalogIdsJson = matchedCatalogIdsJson;
+        return this;
+    }
     
     public List<Integer> getArtistIds() { return artistIds; }
     public ChartFilterDTO setArtistIds(List<Integer> artistIds) { this.artistIds = artistIds; return this; }
@@ -393,6 +402,9 @@ public class ChartFilterDTO {
     public String getDeathDateMode() { return deathDateMode; }
     public ChartFilterDTO setDeathDateMode(String deathDateMode) { this.deathDateMode = deathDateMode; return this; }
     
+    public boolean isIncludeMain() { return includeMain; }
+    public ChartFilterDTO setIncludeMain(boolean includeMain) { this.includeMain = includeMain; return this; }
+
     public boolean isIncludeGroups() { return includeGroups; }
     public ChartFilterDTO setIncludeGroups(boolean includeGroups) { this.includeGroups = includeGroups; return this; }
     

@@ -9,15 +9,13 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/songs.css}">
+    <link rel="stylesheet" th:href="@{/css/song-creation.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
-    <link rel="stylesheet" th:href="@{/css/graphs-view.css}">
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/list-utils.js}"></script>
-    <!-- Chart.js for Graphs view -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script th:src="@{/js/song-creation.js}"></script>
     <script th:src="@{/js/graphs.js}"></script>
 </head>
 <body>
@@ -31,10 +29,11 @@
                     <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Song views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
                         <button type="button" class="view-btn" id="viewBtn-table" onclick="switchView('table')">Table</button>
-                        <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
+                    <a th:href="@{/playground(view='graphs',source='songs')}" class="toolbar-btn toolbar-btn-soft"
+                       data-graphs-source="songs" onclick="return openPlaygroundGraphs(event)">Explore graphs</a>
                     <button type="button" class="btn-playlist toolbar-btn toolbar-btn-soft desktop-only" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
                     <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Song</button>
@@ -2252,10 +2251,6 @@
             <div id="tableViewEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All songs loaded</div>
         </div>
 
-        <!-- Graphs view container -->
-        <div id="graphsView" style="display:none;">
-            <th:block th:replace="~{fragments/graphs-view :: graphs-view('songs')}"></th:block>
-        </div>
     </div>
     
     <script>
@@ -2967,6 +2962,7 @@
         }
         
         function closeCreateModal() {
+            cancelSongCreationConfirmation('createSongModal');
             document.getElementById('createSongModal').style.display = 'none';
             document.getElementById('createSongForm').reset();
             document.getElementById('createAlbumId').innerHTML = '<option value="">Select Album (Optional)</option>';
@@ -3103,9 +3099,11 @@
             return '/api/deezer/save-images';
         }
 
-        function submitCreateSong(event) {
+        async function submitCreateSong(event) {
             event.preventDefault();
             const form = event.target;
+            const createBtn = form.querySelector('button[type="submit"]');
+            if (createBtn.disabled) return;
             const formData = new FormData(form);
             
             const data = {};
@@ -3127,6 +3125,18 @@
             });
             
             delete data.lengthFormatted;
+
+            createBtn.disabled = true;
+            try {
+                if (!await confirmSongCreation(data.artistId, data.name, 'createSongModal')) {
+                    createBtn.disabled = false;
+                    return;
+                }
+            } catch (error) {
+                createBtn.disabled = false;
+                showErrorToast('Unable to check for duplicate songs. Please try again.');
+                return;
+            }
             
             fetch('/songs/create', {
                 method: 'POST',
@@ -3160,7 +3170,8 @@
             .catch(error => {
                 console.error('Error creating song:', error);
                 showErrorToast('Error creating song');
-            });
+            })
+            .finally(() => { createBtn.disabled = false; });
         }
         
     </script>
@@ -3297,13 +3308,13 @@
                                     th:text="${entry.value}"></option>
                         </select>
                     </div>
+                    <th:block th:replace="~{fragments/song-creation-confirmation :: confirmation}"></th:block>
                 </div>
                 
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="openCreateSongExternalFetch()">External</button>
                     <button type="submit" class="btn-action">Create</button>
                     <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
-                </div>Cancel</button>
                 </div>
             </form>
         </div>
@@ -3745,12 +3756,6 @@
 
             function updateLoadAllButton() {
                 if (!loadAllButton) return;
-                if (typeof currentView !== 'undefined' && currentView === 'graphs') {
-                    setLoadAllButtonVisibility(true);
-                    updateOverlayTitle();
-                    return;
-                }
-
                 if (isTableViewActive()) {
                     const progress = typeof window.getTableViewProgressState === 'function'
                         ? window.getTableViewProgressState()
@@ -3877,6 +3882,5 @@
             updateLoadAllButton();
         })();
     </script>
-    <script>window.graphsEntityType = 'songs';</script>
 </body>
 </html>

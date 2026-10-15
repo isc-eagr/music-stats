@@ -12,6 +12,26 @@ function setMobileSortReadyState() {
     document.documentElement.classList.add('mobile-sort-init-ready');
 }
 
+function openPlaygroundGraphs(event) {
+    const link = event.currentTarget;
+    const source = link.dataset.graphsSource;
+    const url = new URL('/playground', window.location.origin);
+    url.search = window.location.search;
+    ['page', 'perpage', 'sortby', 'sortdir', 'sortby2', 'sortdir2', 'sortby3', 'sortdir3',
+        'randomSeed', 'lazyCard', 'includeExtendedStats'].forEach(name => url.searchParams.delete(name));
+    url.searchParams.set('view', 'graphs');
+    url.searchParams.set('source', source);
+    url.searchParams.set('tab', 'general');
+    link.href = url.toString();
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-graphs-source]').forEach(link => {
+        openPlaygroundGraphs({ currentTarget: link });
+    });
+});
+
 /**
  * Navigate to a specific page number.
  * Updates the 'page' URL parameter and reloads.

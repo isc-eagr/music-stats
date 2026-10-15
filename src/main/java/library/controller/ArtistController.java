@@ -20,6 +20,7 @@ import library.service.TagService;
 import library.service.TrlService;
 import library.service.DetailPlayHeatmapService;
 import library.util.DateFormatUtils;
+import library.util.GraphsNavigation;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -137,6 +138,11 @@ public class ArtistController {
         });
     }
     
+    @GetMapping(params = "view=graphs")
+    public String graphs(HttpServletRequest request) {
+        return GraphsNavigation.redirectToPlayground(request, "artists");
+    }
+
     @GetMapping
     public String listArtists(
             @RequestParam(required = false) String q,
@@ -206,6 +212,7 @@ public class ArtistController {
             @RequestParam(required = false) Integer perpage,
             @RequestParam(defaultValue = "false") boolean includeExtendedStats,
             @RequestParam(defaultValue = "false") boolean lazyCard,
+            @RequestParam(defaultValue = "false") boolean filtersOnly,
             Model model) {
         
         // Convert date formats from dd/mm/yyyy to yyyy-MM-dd for database queries
@@ -224,13 +231,14 @@ public class ArtistController {
         String deathDateFromConverted = DateFormatUtils.convertToIsoFormat(deathDateFrom);
         String deathDateToConverted = DateFormatUtils.convertToIsoFormat(deathDateTo);
         int effectivePerPage = lazyCard ? 1
+                : filtersOnly ? 1
                 : appConfigService.normalizePageSize(perpage, appConfigService.getArtistsListPageSize());
         
         // Pre-compute iTunes artist IDs once for all 3 queries
-        String itunesIdsJson = artistService.getItunesArtistIdsJson(inItunes);
+        String itunesIdsJson = filtersOnly ? null : artistService.getItunesArtistIdsJson(inItunes);
         
         // Get filtered and sorted artists
-        List<ArtistCardDTO> artists = artistService.getArtists(
+        List<ArtistCardDTO> artists = filtersOnly ? List.of() : artistService.getArtists(
                 q, gender, genderMode, ethnicity, ethnicityMode, genre, genreMode, 
                 subgenre, subgenreMode, language, languageMode, country, countryMode,
                 tag, tagMode,
@@ -251,7 +259,7 @@ public class ArtistController {
         );
         
         // Get total count for pagination
-        long totalCount = lazyCard ? artists.size() : artistService.countArtists(q, gender, genderMode, ethnicity,
+        long totalCount = filtersOnly || lazyCard ? artists.size() : artistService.countArtists(q, gender, genderMode, ethnicity,
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
                 languageMode, country, countryMode,
                 tag, tagMode,
@@ -270,7 +278,7 @@ public class ArtistController {
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = lazyCard ? new GenderCountDTO() : artistService.countArtistsByGender(q, gender, genderMode, ethnicity,
+        GenderCountDTO genderCounts = filtersOnly || lazyCard ? new GenderCountDTO() : artistService.countArtistsByGender(q, gender, genderMode, ethnicity,
                 ethnicityMode, genre, genreMode, subgenre, subgenreMode, language, 
                 languageMode, country, countryMode,
                 tag, tagMode,
@@ -405,7 +413,7 @@ public class ArtistController {
         model.addAttribute("themes", themeService.getAllThemes());
         model.addAttribute("activeTheme", themeService.getActiveTheme().orElse(null));
         
-        return "artists/list";
+        return filtersOnly ? "artists/list :: #filterForm" : "artists/list";
     }
 
     @GetMapping("/api")

@@ -1714,6 +1714,10 @@ public class SongService {
         jdbcTemplate.update("DELETE FROM Song WHERE id = ?", songId);
     }
     
+    public boolean songExists(Integer artistId, String name) {
+        return songRepository.existsByArtistAndName(artistId, name);
+    }
+
     // Create a new song
     public Song createSong(Song song) {
         String sql = """

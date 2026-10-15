@@ -1,0 +1,20 @@
+.song-duplicate-confirmation {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid #a67c32;
+    border-radius: 6px;
+    background: #2b2416;
+    color: #f0d49a;
+}
+
+.song-duplicate-confirmation p {
+    margin: 0 0 12px;
+    line-height: 1.5;
+}
+
+.song-duplicate-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}

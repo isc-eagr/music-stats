@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="confirmation" class="song-duplicate-confirmation" data-song-duplicate-confirmation
+         hidden tabindex="-1" role="group" aria-label="Confirm duplicate song">
+        <p role="status">A song with the exact same title by the same artist already exists. Do you still want to create this song?</p>
+        <div class="song-duplicate-actions">
+            <button type="button" class="btn btn-secondary" data-cancel-duplicate>Go back</button>
+            <button type="button" class="btn btn-action" data-confirm-duplicate>Create anyway</button>
+        </div>
+    </div>
+</body>
+</html>

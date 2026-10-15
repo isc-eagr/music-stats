@@ -20,6 +20,7 @@ import library.service.TagService;
 import library.service.TrlService;
 import library.service.DetailPlayHeatmapService;
 import library.util.DateFormatUtils;
+import library.util.GraphsNavigation;
 import library.util.ArtistFilterMode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
@@ -114,6 +115,11 @@ public class AlbumController {
         });
     }
     
+    @GetMapping(params = "view=graphs")
+    public String graphs(HttpServletRequest request) {
+        return GraphsNavigation.redirectToPlayground(request, "albums");
+    }
+
     @GetMapping
     public String listAlbums(
             @RequestParam(required = false) String q,
@@ -216,6 +222,7 @@ public class AlbumController {
             @RequestParam(required = false) Integer perpage,
             @RequestParam(defaultValue = "false") boolean includeExtendedStats,
             @RequestParam(defaultValue = "false") boolean lazyCard,
+            @RequestParam(defaultValue = "false") boolean filtersOnly,
             HttpServletRequest request,
             Model model) {
         
@@ -250,14 +257,15 @@ public class AlbumController {
         String yearlyChartDateFromConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateFrom);
         String yearlyChartDateToConverted = DateFormatUtils.convertToIsoFormat(yearlyChartDateTo);
         int effectivePerPage = lazyCard ? 1
+                : filtersOnly ? 1
                 : appConfigService.normalizePageSize(perpage, appConfigService.getAlbumsListPageSize());
         List<Integer> artistFilter = ArtistFilterMode.encode(artist, artistMode);
         
         // Pre-compute iTunes album IDs once for all 3 queries
-        String itunesIdsJson = albumService.getItunesAlbumIdsJson(inItunes);
+        String itunesIdsJson = filtersOnly ? null : albumService.getItunesAlbumIdsJson(inItunes);
         
         // Get filtered and sorted albums
-        List<AlbumCardDTO> albums = albumService.getAlbums(
+        List<AlbumCardDTO> albums = filtersOnly ? List.of() : albumService.getAlbums(
                 q, artistFilter, featuredArtist, genre, genreMode, subgenre, subgenreMode,
                 language, languageMode, gender, genderMode, ethnicity, ethnicityMode,
                 country, countryMode, tag, tagMode, account, accountMode,
@@ -285,7 +293,7 @@ public class AlbumController {
         );
         
         // Get total count for pagination
-        long totalCount = lazyCard ? albums.size() : albumService.countAlbums(q, artistFilter, featuredArtist, genre,
+        long totalCount = filtersOnly || lazyCard ? albums.size() : albumService.countAlbums(q, artistFilter, featuredArtist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
                 genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -309,7 +317,7 @@ public class AlbumController {
         int totalPages = (int) Math.ceil((double) totalCount / effectivePerPage);
         
         // Get gender counts for the filtered dataset
-        GenderCountDTO genderCounts = lazyCard ? new GenderCountDTO() : albumService.countAlbumsByGender(q, artistFilter, featuredArtist, genre,
+        GenderCountDTO genderCounts = filtersOnly || lazyCard ? new GenderCountDTO() : albumService.countAlbumsByGender(q, artistFilter, featuredArtist, genre,
                 genreMode, subgenre, subgenreMode, language, languageMode, gender, 
                 genderMode, ethnicity, ethnicityMode, country, countryMode, tag, tagMode, account, accountMode,
                 releaseDateConverted, releaseDateFromConverted, releaseDateToConverted, releaseDateMode,
@@ -491,7 +499,7 @@ public class AlbumController {
         model.addAttribute("countries", albumService.getCountries());
         model.addAttribute("tags", tagService.getAllTags());
         
-        return "albums/list";
+        return filtersOnly ? "albums/list :: #filterForm" : "albums/list";
     }
 
     @GetMapping("/api")

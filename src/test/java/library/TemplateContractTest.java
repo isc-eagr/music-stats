@@ -151,10 +151,12 @@ class TemplateContractTest {
             assertThat(doc.select(".gender-female-counter")).hasSize(1);
             assertThat(doc.select(".gender-other-counter")).hasSize(1);
 
-            assertThat(html).contains("fragments/graphs-view :: graphs-view('" + page.entityType() + "')");
             assertThat(html).contains("switchView('card')");
             assertThat(html).contains("switchView('table')");
-            assertThat(html).contains("switchView('graphs')");
+            assertThat(html).doesNotContain("switchView('graphs')", "fragments/graphs-view", "chartjs-plugin-datalabels");
+            assertThat(doc.select("#viewToggle .view-btn").eachText()).containsExactly("Cards", "Table");
+            assertThat(doc.select(".catalog-toolbar-actions [data-graphs-source='" + page.entityType() + "']"))
+                    .hasSize(1).extracting(Element::text).containsExactly("Explore graphs");
         }
     }
 
@@ -502,24 +504,25 @@ class TemplateContractTest {
     }
 
     @Test
-    void graphsFragmentKeepsEveryTabWiredToStatsAndChartContainers() throws IOException {
+    void playgroundGraphsKeepOneAccessibleExplorerWithProgressiveControls() throws IOException {
         Document doc = parse("fragments/graphs-view.html");
-        List<String> tabs = List.of("general", "genre", "subgenre", "ethnicity", "language", "country", "releaseYear", "listenYear");
-
-        assertThat(doc.select(".chart-sort-btn").eachAttr("data-metric"))
+        assertThat(doc.select("#graphs-explorer")).hasSize(1);
+        assertThat(doc.select("#graphs-metric option").eachAttr("value"))
                 .containsExactly("artists", "albums", "songs", "plays", "listeningTime");
-        assertThat(doc.select(".charts-tab-btn").eachAttr("data-tab")).containsExactlyElementsOf(tabs);
-
-        for (String tab : tabs) {
-            assertThat(doc.select("#tab-" + tab)).hasSize(1);
-            assertThat(doc.select("#" + tab + "CombinedChartContainer")).hasSize(1);
-            if (!"general".equals(tab)) {
-                assertThat(doc.select("#statsTablesSection-" + tab)).hasSize(1);
-                assertThat(doc.select("#statsTablesContent-" + tab)).hasSize(1);
-                assertThat(doc.select("#statsTablesRow-" + tab)).hasSize(1);
-                assertThat(doc.select("#globalSort-" + tab)).hasSize(1);
-            }
-        }
+        assertThat(doc.select(".graphs-breakdowns [data-breakdown]").eachAttr("data-breakdown"))
+                .containsExactly("general", "country", "ethnicity", "genre", "language", "listenYear", "releaseYear", "subgenre");
+        assertThat(doc.select("#graphs-scale option").eachAttr("value")).containsExactly("share", "relative");
+        assertThat(doc.select("#graphs-filter-source option").eachAttr("value")).containsExactly("artists", "albums", "songs");
+        assertThat(doc.select("#graphs-filter-editor[hidden]")).hasSize(1);
+        assertThat(doc.select("#graphs-status[role=status][aria-live=polite]")).hasSize(1);
+        assertThat(doc.select("#graphs-bars")).hasSize(1);
+        assertThat(doc.select("#graphs-data-table")).hasSize(1);
+        assertThat(doc.select("section.graphs-data-panel #graphs-data-table")).hasSize(1);
+        assertThat(doc.select("#graphs-table-details, #graphs-compare")).isEmpty();
+        assertThat(doc.select("#graphs-order option").eachAttr("value")).containsExactly("total", "male", "name", "year");
+        assertThat(doc.select("#graphs-direction option").eachAttr("value")).containsExactly("desc", "asc");
+        assertThat(doc.select("#graphs-search[type=search], #graphs-previous, #graphs-next")).hasSize(3);
+        assertThat(read("playground.html")).contains("fragments/graphs-view :: graphs-view");
     }
 
     @Test

@@ -6,6 +6,7 @@
 <body>
     <!-- Unmatched Plays Modal Styles -->
     <th:block th:fragment="modal-styles">
+        <link rel="stylesheet" th:href="@{/css/song-creation.css}">
         <style>
             /* Modal base styles */
             .unmatched-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
@@ -445,6 +446,7 @@
                             </div>
                         </div>
                     </div>
+                    <th:block th:replace="~{fragments/song-creation-confirmation :: confirmation}"></th:block>
                     <div class="wizard-nav">
                         <button type="button" class="btn btn-back" onclick="wizardPrevStep(3)">← Back</button>
                         <button type="button" class="btn btn-action" onclick="createAndAssignSong()" id="wizardCreateBtn">Create & Assign Plays</button>
@@ -499,7 +501,9 @@
     </div>
 
     <!-- JavaScript for unmatched plays modals -->
-    <script th:fragment="modal-scripts">
+    <th:block th:fragment="modal-scripts">
+    <script th:src="@{/js/song-creation.js}"></script>
+    <script>
         // State for wizard
         let wizardState = {
             playData: null,
@@ -648,6 +652,7 @@
         }
         
         function closeCreateWizard() {
+            cancelSongCreationConfirmation('createWizardModal');
             document.getElementById('createWizardModal').classList.remove('active');
             hideWizardLoading();
             resetCreateButtonState();
@@ -1014,6 +1019,7 @@
         }
         
         function wizardPrevStep(currentStep) {
+            cancelSongCreationConfirmation('createWizardModal');
             showWizardStep(currentStep - 1);
         }
 
@@ -1123,7 +1129,9 @@
             updateWizardAlbumReleaseDateDisplay();
         }
         
-        function createAndAssignSong() {
+        async function createAndAssignSong() {
+            const createBtn = document.getElementById('wizardCreateBtn');
+            if (createBtn.disabled) return;
             const songName = document.getElementById('wizardSongNameInput').value.trim();
             if (!songName) {
                 showWarningToast('Please enter a song name');
@@ -1204,9 +1212,18 @@
             };
             
             // Show loading state on the button
-            const createBtn = document.getElementById('wizardCreateBtn');
             const originalText = createBtn.textContent;
             createBtn.disabled = true;
+            try {
+                if (!await confirmSongCreation(payload.artistId, payload.songName, 'createWizardModal')) {
+                    createBtn.disabled = false;
+                    return;
+                }
+            } catch (error) {
+                createBtn.disabled = false;
+                showErrorToast('Unable to check for duplicate songs. Please try again.');
+                return;
+            }
             createBtn.textContent = 'Creating...';
             if (window.showPageBusyOverlay) {
                 window.showPageBusyOverlay('Refreshing unmatched plays', 'Creating the song and updating the table...');
@@ -1738,6 +1755,7 @@
             return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
         }
     </script>
+    </th:block>
 </body>
 </html>
 

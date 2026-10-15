@@ -11,15 +11,11 @@
     <link rel="stylesheet" th:href="@{/css/artists.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
-    <link rel="stylesheet" th:href="@{/css/graphs-view.css}">
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script th:src="@{/js/list-utils.js}"></script>
     <script th:src="@{/js/play-breakdown-tooltip.js}"></script>
-    <!-- Chart.js for Graphs view -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script th:src="@{/js/graphs.js}"></script>
 </head>
 <body>
@@ -33,7 +29,6 @@
                     <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Artist views">
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
                         <button type="button" class="view-btn" id="viewBtn-table" onclick="switchView('table')">Table</button>
-                        <button type="button" class="view-btn" id="viewBtn-graphs" onclick="switchView('graphs')">Graphs</button>
                     </div>
                     <div class="toggles-container artist-list-scope-toggles" aria-label="Included artist sources">
                         <div class="include-groups-toggle">
@@ -60,6 +55,8 @@
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
+                    <a th:href="@{/playground(view='graphs',source='artists')}" class="toolbar-btn toolbar-btn-soft"
+                       data-graphs-source="artists" onclick="return openPlaygroundGraphs(event)">Explore graphs</a>
                     <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Artist</button>
                 </div>
@@ -1313,7 +1310,7 @@
                         </div>
 
                                                         <a th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
-                                                            th:href="@{/artists(country=${artist.country},countryMode='includes',view='graphs',tab='country')}"
+                                                            th:href="@{/playground(country=${artist.country},countryMode='includes',view='graphs',source='artists',tab='country')}"
                               class="flag-overlay"
                               th:title="${artist.country}">
                                <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
@@ -1443,33 +1440,33 @@
                         </div>
                         <div class="winning-chips modal-rank-chips" th:with="rankMap=${artistRankings.get(artist.id)}">
                             <a th:if="${artist.genderName != null and !#strings.isEmpty(artist.genderName)}"
-                                        th:href="@{/artists(gender=${artist.genderId},genderMode='includes',view='graphs',tab='general')}"
+                                        th:href="@{/playground(gender=${artist.genderId},genderMode='includes',view='graphs',source='artists',tab='general')}"
                                class="winning-chip rank-chip gender"
                                th:classappend="${artist.genderName.toLowerCase().contains('female')} ? 'female' : (${artist.genderName.toLowerCase().contains('male')} ? 'male' : '')"
                                th:with="rank=${rankMap != null ? rankMap.get('gender') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.genderName}" title="Gender"></a>
                             <a th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName)}"
-                                        th:href="@{/artists(genre=${artist.genreId},genreMode='includes',view='graphs',tab='genre')}"
+                                        th:href="@{/playground(genre=${artist.genreId},genreMode='includes',view='graphs',source='artists',tab='genre')}"
                                class="winning-chip rank-chip genre"
                                th:with="rank=${rankMap != null ? rankMap.get('genre') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.genreName}" title="Genre"></a>
                             <a th:if="${artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)}"
-                                        th:href="@{/artists(subgenre=${artist.subgenreId},subgenreMode='includes',view='graphs',tab='subgenre')}"
+                                        th:href="@{/playground(subgenre=${artist.subgenreId},subgenreMode='includes',view='graphs',source='artists',tab='subgenre')}"
                                class="winning-chip rank-chip subgenre"
                                th:with="rank=${rankMap != null ? rankMap.get('subgenre') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.subgenreName}" title="Subgenre"></a>
                             <a th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName)}"
-                                        th:href="@{/artists(ethnicity=${artist.ethnicityId},ethnicityMode='includes',view='graphs',tab='ethnicity')}"
+                                        th:href="@{/playground(ethnicity=${artist.ethnicityId},ethnicityMode='includes',view='graphs',source='artists',tab='ethnicity')}"
                                class="winning-chip rank-chip ethnicity"
                                th:with="rank=${rankMap != null ? rankMap.get('ethnicity') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.ethnicityName}" title="Ethnicity"></a>
                             <a th:if="${artist.country != null and !#strings.isEmpty(artist.country)}"
-                                        th:href="@{/artists(country=${artist.country},countryMode='includes',view='graphs',tab='country')}"
+                                        th:href="@{/playground(country=${artist.country},countryMode='includes',view='graphs',source='artists',tab='country')}"
                                class="winning-chip rank-chip country"
                                th:with="rank=${rankMap != null ? rankMap.get('country') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.country}" title="Country"></a>
                             <a th:if="${artist.languageName != null and !#strings.isEmpty(artist.languageName)}"
-                                        th:href="@{/artists(language=${artist.languageId},languageMode='includes',view='graphs',tab='language')}"
+                                        th:href="@{/playground(language=${artist.languageId},languageMode='includes',view='graphs',source='artists',tab='language')}"
                                class="winning-chip rank-chip language"
                                th:with="rank=${rankMap != null ? rankMap.get('language') : null}"
                                th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.languageName}" title="Language"></a>
@@ -1691,10 +1688,6 @@
             <div id="tableViewEnd" hidden style="text-align:center;padding:28px 0;color:#555;font-size:0.8rem;letter-spacing:0.5px;">All artists loaded</div>
         </div>
 
-        <!-- Graphs view container -->
-        <div id="graphsView" style="display:none;">
-            <th:block th:replace="~{fragments/graphs-view :: graphs-view('artists')}"></th:block>
-        </div>
     </div>
     
     <script>
@@ -2729,12 +2722,6 @@
 
             function updateLoadAllButton() {
                 if (!loadAllButton) return;
-                if (typeof currentView !== 'undefined' && currentView === 'graphs') {
-                    setLoadAllButtonVisibility(true);
-                    updateOverlayTitle();
-                    return;
-                }
-
                 if (isTableViewActive()) {
                     const progress = typeof window.getTableViewProgressState === 'function'
                         ? window.getTableViewProgressState()
@@ -2863,6 +2850,5 @@
             updateLoadAllButton();
         })();
     </script>
-    <script>window.graphsEntityType = 'artists';</script>
 </body>
 </html>
