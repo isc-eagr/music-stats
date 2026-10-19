@@ -6,6 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AGENTS.md (imported above) holds the shared project rules and domain notes so Codex and Claude Code read one source of truth. Everything below is Claude Code specific. If they conflict, this file wins. `.claude/settings.json` enforces the git and script rules (blocks push/pull/checkout/commit, prompts before running the .bat scripts).
 
+## Response Style
+Follow the "Response Style" section in AGENTS.md on every response: concise, treat each request as blocking and urgent, report in UI/screen terms rather than code terms, and end with the Done / Affected / Pending / Decisions needed / Future ideas format (skip empty sections). Commits are the developer's alone, so never list them under Pending, Decisions needed, or Future ideas.
+
 ## Commands
 Run from the repo root. Java 25, Spring Boot 4.0.5, Maven wrapper (no linter or formatter is configured).
 
