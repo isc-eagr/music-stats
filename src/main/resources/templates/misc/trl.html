@@ -1720,7 +1720,7 @@
                 return;
             }
             var enc = encodeURIComponent(q.trim());
-            fetch('/songs/api/search?song=' + enc + '&artist=' + enc + '&limit=50')
+            fetch('/songs/api/search?song=' + enc + '&artist=' + enc + '&limit=0')
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     var container = document.getElementById('matchSearchResults');

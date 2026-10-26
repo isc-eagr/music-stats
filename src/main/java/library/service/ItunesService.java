@@ -807,10 +807,7 @@ public class ItunesService {
      * Only normalizes case and punctuation - no removal of parentheses, brackets, or featuring text.
      */
     String createStrictSongLookupKey(String artist, String album, String song) {
-        String a = normalizeForStrictMatch(artist);
-        String al = normalizeForStrictMatch(album);
-        String s = normalizeForStrictMatch(song);
-        return a + "||" + al + "||" + s;
+        return StringNormalizer.itunesSongLookupKey(artist, album, song);
     }
 
     /**
@@ -818,15 +815,7 @@ public class ItunesService {
      * Does NOT remove parentheses, brackets, or featuring text.
      */
     String normalizeForStrictMatch(String input) {
-        if (input == null || input.isBlank()) {
-            return "";
-        }
-        String result = StringNormalizer.stripAccents(input.toLowerCase().trim());
-        // Remove only punctuation characters, keeping parentheses, brackets, etc.
-        result = result.replaceAll("[\\\\.,'!?\"\\-_:;\\/&%]", "");
-        // Collapse whitespace
-        result = result.replaceAll("\\s+", " ").trim();
-        return result;
+        return StringNormalizer.normalizeForItunesMatch(input);
     }
 
     // ============ Methods to get cached sets for filtering ============

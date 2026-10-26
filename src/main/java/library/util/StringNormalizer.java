@@ -1,6 +1,7 @@
 package library.util;
 
 import java.text.Normalizer;
+import java.util.Locale;
 
 /**
  * Utility class for normalizing strings for accent-insensitive search.
@@ -10,6 +11,24 @@ public final class StringNormalizer {
     
     private StringNormalizer() {
         // Utility class - prevent instantiation
+    }
+
+    /**
+     * Shared iTunes identity rules: ignore case, accents and punctuation while
+     * preserving edition labels, parentheses, brackets and featuring text.
+     */
+    public static String normalizeForItunesMatch(String input) {
+        if (input == null || input.isBlank()) {
+            return "";
+        }
+        return stripAccents(input.toLowerCase(Locale.ROOT).trim())
+                .replaceAll("[\\\\.,'!?\"\\-_:;\\/&%]", "")
+                .replaceAll("\\s+", " ").trim();
+    }
+
+    public static String itunesSongLookupKey(String artist, String album, String song) {
+        return normalizeForItunesMatch(artist) + "||" + normalizeForItunesMatch(album)
+                + "||" + normalizeForItunesMatch(song);
     }
     
     /**

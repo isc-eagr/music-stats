@@ -1,5 +1,6 @@
 package library.service;
 
+import library.util.StringNormalizer;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.*;
 import javax.xml.parsers.DocumentBuilder;
@@ -29,12 +30,10 @@ public class iTunesLibraryService {
         }
 
         /**
-         * Create a lookup key for matching (lowercase, trimmed)
+         * Create a lookup key using the shared iTunes presence rules.
          */
         public String getLookupKey() {
-            return (name.toLowerCase().trim() + "||" + 
-                    artist.toLowerCase().trim() + "||" + 
-                    album.toLowerCase().trim());
+            return StringNormalizer.itunesSongLookupKey(artist, album, name);
         }
     }
 
@@ -184,23 +183,21 @@ public class iTunesLibraryService {
      * Returns the matched track or null if no match found.
      */
     public iTunesTrack findMatch(Map<String, iTunesTrack> library, String name, String artist, String album) {
-        String lookupKey = (name != null ? name.toLowerCase().trim() : "") + "||" +
-                          (artist != null ? artist.toLowerCase().trim() : "") + "||" +
-                          (album != null ? album.toLowerCase().trim() : "");
+        String lookupKey = StringNormalizer.itunesSongLookupKey(artist, album, name);
         iTunesTrack exactMatch = library.get(lookupKey);
         if (exactMatch != null) {
             return exactMatch;
         }
 
-        String searchName = name != null ? name.toLowerCase().trim() : "";
-        String searchArtist = artist != null ? artist.toLowerCase().trim() : "";
+        String searchName = StringNormalizer.normalizeForItunesMatch(name);
+        String searchArtist = StringNormalizer.normalizeForItunesMatch(artist);
         if (searchName.isEmpty() || searchArtist.isEmpty()) {
             return null;
         }
 
         for (iTunesTrack track : library.values()) {
-            if (track.name.toLowerCase().trim().equals(searchName)
-                    && track.artist.toLowerCase().trim().equals(searchArtist)) {
+            if (StringNormalizer.normalizeForItunesMatch(track.name).equals(searchName)
+                    && StringNormalizer.normalizeForItunesMatch(track.artist).equals(searchArtist)) {
                 return track;
             }
         }
@@ -254,6 +251,10 @@ public class iTunesLibraryService {
      * Returns iTunesTrackData with release date (YYYY-MM-DD) and length in seconds, or null if not found.
      */
     public iTunesTrackData findTrackData(String libraryPath, String songName, String artistName, String albumName) {
+        if (StringNormalizer.normalizeForItunesMatch(songName).isEmpty()
+                || StringNormalizer.normalizeForItunesMatch(artistName).isEmpty()) {
+            return null;
+        }
         try {
             File xmlFile = new File(libraryPath);
             if (!xmlFile.exists()) {
@@ -273,6 +274,9 @@ public class iTunesLibraryService {
                 java.util.regex.Pattern.DOTALL
             );
             java.util.regex.Matcher trackMatcher = trackPattern.matcher(xmlContent);
+            String searchKey = StringNormalizer.itunesSongLookupKey(artistName, albumName, songName);
+            String searchKeyNoAlbum = StringNormalizer.itunesSongLookupKey(artistName, "", songName);
+            iTunesTrackData partialMatch = null;
 
             while (trackMatcher.find()) {
                 String trackDict = trackMatcher.group(2);
@@ -285,21 +289,8 @@ public class iTunesLibraryService {
                     continue;
                 }
 
-                // Build lookup keys (normalized: lowercase, trimmed)
-                String trackKey = buildLookupKey(artist, album, name);
-                String searchKey = buildLookupKey(
-                    artistName != null ? artistName : "",
-                    albumName != null ? albumName : "",
-                    songName != null ? songName : ""
-                );
-
-                // Also try without album for matching
-                String trackKeyNoAlbum = buildLookupKey(artist, "", name);
-                String searchKeyNoAlbum = buildLookupKey(
-                    artistName != null ? artistName : "",
-                    "",
-                    songName != null ? songName : ""
-                );
+                String trackKey = StringNormalizer.itunesSongLookupKey(artist, album, name);
+                String trackKeyNoAlbum = StringNormalizer.itunesSongLookupKey(artist, "", name);
 
                 // Determine match type
                 String matchType = null;
@@ -309,7 +300,7 @@ public class iTunesLibraryService {
                     matchType = "partial";
                 }
 
-                if (matchType != null) {
+                if ("exact".equals(matchType) || ("partial".equals(matchType) && partialMatch == null)) {
                     // Found a match! Extract release date, length, and track number
                     String releaseDateRaw = extractDateValue(trackDict, "Release Date");
                     String yearRaw = extractIntegerValue(trackDict, "Year");
@@ -344,9 +335,14 @@ public class iTunesLibraryService {
                         }
                     }
 
-                    return new iTunesTrackData(name, releaseDate, lengthSeconds, trackNumber, matchType);
+                    iTunesTrackData data = new iTunesTrackData(name, releaseDate, lengthSeconds, trackNumber, matchType);
+                    if ("exact".equals(matchType)) {
+                        return data;
+                    }
+                    partialMatch = data;
                 }
             }
+            return partialMatch;
 
         } catch (Exception e) {
             System.err.println("Error finding track data in iTunes library: " + e.getMessage());
@@ -403,22 +399,7 @@ public class iTunesLibraryService {
      * Decode XML entities
      */
     private String decodeXmlEntities(String s) {
-        if (s == null) return null;
-        return s.replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&quot;", "\"")
-                .replace("&apos;", "'")
-                .replace("&#38;", "&");
+        return s == null ? null : org.jsoup.parser.Parser.unescapeEntities(s, true);
     }
 
-    /**
-     * Build a normalized lookup key
-     */
-    private String buildLookupKey(String artist, String album, String song) {
-        String a = artist == null ? "" : artist.toLowerCase().trim();
-        String b = album == null ? "" : album.toLowerCase().trim();
-        String s = song == null ? "" : song.toLowerCase().trim();
-        return a + "||" + b + "||" + s;
-    }
 }
