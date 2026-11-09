@@ -9,6 +9,7 @@
     <link th:if="${view == 'graphs'}" rel="stylesheet" th:href="@{/css/playground-graphs.css}">
     <link th:if="${view == 'graphs'}" rel="stylesheet" th:href="@{/css/playground-graph-filters.css}">
     <link th:if="${view == 'graphs'}" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link th:if="${view == 'male'}" rel="stylesheet" th:href="@{/css/playground-male-facts.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
 </head>
 <body>
@@ -31,10 +32,17 @@
         <a role="tab" th:href="@{/playground(view='graphs')}"
            th:classappend="${view == 'graphs'} ? 'active' : ''"
            aria-controls="graphs-panel" th:attr="aria-selected=${view == 'graphs'}">Library graphs</a>
+        <a role="tab" th:href="@{/playground(view='male')}"
+           th:classappend="${view == 'male'} ? 'active' : ''"
+           aria-controls="male-panel" th:attr="aria-selected=${view == 'male'}">Male fun facts</a>
     </nav>
 
     <section id="graphs-panel" th:if="${view == 'graphs'}" class="playground-view" role="tabpanel" aria-label="Library graphs">
         <th:block th:replace="~{fragments/graphs-view :: graphs-view}"></th:block>
+    </section>
+
+    <section id="male-panel" th:if="${view == 'male'}" class="playground-view" role="tabpanel" aria-label="Male fun facts">
+        <th:block th:replace="~{fragments/male-facts-view :: male-facts-view}"></th:block>
     </section>
 
     <section id="activity-panel" th:if="${view == 'activity'}" class="playground-view" role="tabpanel" aria-label="Year activity">

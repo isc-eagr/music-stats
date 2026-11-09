@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<div th:fragment="male-facts-view" class="male-facts" th:with="split=${maleFacts.split}, topArtists=${maleFacts.groups[0].lists[0]}">
+    <div class="male-facts-toolbar">
+        <h2 class="male-facts-heading" th:text="${selectedYear == null ? 'The men in your library' : 'The men of ' + selectedYear}">The men in your library</h2>
+        <form action="/playground" method="get" class="male-facts-period">
+            <input type="hidden" name="view" value="male">
+            <label for="male-facts-year">Period</label>
+            <select id="male-facts-year" name="year" onchange="this.form.submit()">
+                <option value="" th:selected="${selectedYear == null}">All time</option>
+                <option th:each="year : ${years}" th:value="${year}" th:text="${year}" th:selected="${year == selectedYear}"></option>
+            </select>
+        </form>
+    </div>
+
+    <section class="male-facts-hero" aria-label="Male share of plays">
+        <figure class="male-facts-ring-card">
+            <div class="male-facts-ring" role="img"
+                 th:style="${'--m: ' + split.male + '; --f: ' + split.female}"
+                 th:attr="aria-label=${#numbers.formatDecimal(split.male, 1, 1) + '% male, ' + #numbers.formatDecimal(split.female, 1, 1) + '% female, ' + #numbers.formatDecimal(split.other, 1, 1) + '% other or unknown'}">
+                <span><strong th:text="${#numbers.formatDecimal(split.male, 1, 1) + '%'}">76%</strong><small>of all plays</small></span>
+            </div>
+            <figcaption class="male-facts-legend">
+                <span class="male" th:text="${'Male ' + #numbers.formatDecimal(split.male, 1, 1) + '%'}"></span>
+                <span class="female" th:text="${'Female ' + #numbers.formatDecimal(split.female, 1, 1) + '%'}"></span>
+                <span class="other" th:text="${'Other ' + #numbers.formatDecimal(split.other, 1, 1) + '%'}"></span>
+            </figcaption>
+        </figure>
+        <div class="male-facts-stats">
+            <div th:each="stat : ${maleFacts.stats}" class="male-facts-stat">
+                <span th:text="${stat.label}">Male plays</span>
+                <strong th:text="${stat.value}">0</strong>
+                <small th:if="${stat.detail != null}" th:text="${stat.detail}"></small>
+            </div>
+            <div class="male-facts-stat male-facts-solo">
+                <span>Solo men vs male groups</span>
+                <div class="male-facts-split" aria-hidden="true"><span th:style="${'width: ' + split.solo + '%'}"></span></div>
+                <small><b th:text="${'Solo ' + #numbers.formatDecimal(split.solo, 1, 1) + '%'}"></b> · <span th:text="${split.soloPlays}"></span> plays</small>
+                <small><b th:text="${'Groups ' + #numbers.formatDecimal(100 - split.solo, 1, 1) + '%'}"></b> · <span th:text="${split.groupPlays}"></span> plays</small>
+            </div>
+        </div>
+    </section>
+
+    <section th:if="${!topArtists.rows.isEmpty()}" class="male-facts-podium" aria-labelledby="male-podium-heading">
+        <h2 id="male-podium-heading" class="sr-only">Top 3 male artists</h2>
+        <a th:each="row, rowStat : ${topArtists.rows}" th:if="${rowStat.index < 3}" th:href="${row.href}"
+           class="male-facts-podium-card" th:classappend="${'place-' + rowStat.count}">
+            <span class="male-facts-podium-image">
+                <img loading="lazy" decoding="async" th:src="${row.imageUrl}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="male-facts-initial" th:text="${#strings.isEmpty(row.name) ? '?' : #strings.substring(row.name, 0, 1)}">R</span>
+            </span>
+            <span class="male-facts-podium-rank" th:text="${'#' + rowStat.count}">#1</span>
+            <strong th:text="${row.name}">Artist</strong>
+            <span class="male-facts-podium-plays" th:text="${row.value + ' plays'}">0 plays</span>
+            <small th:text="${row.detail}"></small>
+        </a>
+    </section>
+
+    <section class="male-facts-panel" aria-labelledby="male-timeline-heading">
+        <header><h2 id="male-timeline-heading" th:text="${maleFacts.timelineTitle}">Male plays by year</h2>
+            <span class="male-facts-key"><span class="male">Male plays</span><span class="rest">Everyone else</span></span></header>
+        <ol class="male-facts-columns">
+            <li th:each="bar : ${maleFacts.timeline}"
+                th:title="${bar.label + ': ' + #numbers.formatInteger(bar.male, 1, 'COMMA') + ' male of ' + #numbers.formatInteger(bar.total, 1, 'COMMA') + ' plays (' + #numbers.formatDecimal(bar.share, 1, 1) + '%)'}">
+                <span class="male-facts-column-share" aria-hidden="true" th:text="${bar.total == 0 ? '' : #numbers.formatDecimal(bar.share, 1, 0)}"></span>
+                <span class="male-facts-column" aria-hidden="true">
+                    <span class="male-facts-column-total" th:style="${'height: ' + bar.height + '%'}"><span th:style="${'height: ' + bar.share + '%'}"></span></span>
+                </span>
+                <span class="male-facts-column-label" aria-hidden="true" th:text="${bar.label}"></span>
+                <span class="sr-only" th:text="${bar.label + ': ' + #numbers.formatInteger(bar.male, 1, 'COMMA') + ' male of ' + #numbers.formatInteger(bar.total, 1, 'COMMA') + ' plays'}"></span>
+            </li>
+        </ol>
+    </section>
+
+    <section class="male-facts-panel" aria-labelledby="male-heatmap-heading">
+        <header><h2 id="male-heatmap-heading">When you play men</h2>
+            <span class="male-facts-key heat"><span>Less male</span><i class="level-1"></i><i class="level-3"></i><i class="level-5"></i><span>More male</span></span></header>
+        <div class="male-facts-heatmap-scroll" tabindex="0" aria-label="Male share by weekday and hour; scroll horizontally if needed">
+            <div class="male-facts-heatmap">
+                <span></span>
+                <span th:each="hour : ${maleFacts.hours}" class="male-facts-heat-hour" th:text="${#strings.substring(hour.label, 0, 2)}"></span>
+                <span class="male-facts-heat-hour">Male</span>
+                <th:block th:each="row, rowStat : ${maleFacts.heatmap}">
+                    <span class="male-facts-heat-day" th:text="${row.label}">Mon</span>
+                    <span th:each="cell : ${row.cells}" class="male-facts-heat-cell" th:classappend="${'level-' + cell.level}" th:title="${cell.label}">
+                        <span class="sr-only" th:text="${cell.label}"></span>
+                    </span>
+                    <span class="male-facts-heat-total" th:text="${#numbers.formatDecimal(maleFacts.weekdays[rowStat.index].share, 1, 1) + '%'}"></span>
+                </th:block>
+                <span class="male-facts-heat-day">Male</span>
+                <span th:each="hour : ${maleFacts.hours}" class="male-facts-heat-total" th:text="${#numbers.formatDecimal(hour.share, 1, 0)}"
+                      th:title="${hour.label + ': ' + #numbers.formatDecimal(hour.share, 1, 1) + '% male of ' + #numbers.formatInteger(hour.total, 1, 'COMMA') + ' plays'}"></span>
+                <span></span>
+            </div>
+        </div>
+    </section>
+
+    <section th:if="${!maleFacts.monthsOfYear.isEmpty()}" class="male-facts-panel" aria-labelledby="male-months-heading">
+        <header><h2 id="male-months-heading">Male share by month of the year</h2>
+            <span class="male-facts-key heat"><span>Less male</span><i class="level-1"></i><i class="level-3"></i><i class="level-5"></i><span>More male</span></span></header>
+        <ol class="male-facts-months">
+            <li th:each="month : ${maleFacts.monthsOfYear}" th:classappend="${'level-' + month.level}"
+                th:title="${month.label + ': ' + #numbers.formatDecimal(month.share, 1, 1) + '% male of ' + month.plays + ' plays'}">
+                <span th:text="${#strings.substring(month.label, 0, 3)}">Jan</span>
+                <strong th:text="${#numbers.formatDecimal(month.share, 1, 1) + '%'}">76.0%</strong>
+                <small th:text="${month.plays + ' plays'}">0 plays</small>
+            </li>
+        </ol>
+    </section>
+
+    <section th:each="group, groupStat : ${maleFacts.groups}" class="male-facts-group" th:attr="aria-labelledby=${'male-group-' + groupStat.index}">
+        <h2 th:id="${'male-group-' + groupStat.index}" class="male-facts-heading" th:text="${group.title}">Most played</h2>
+    <div class="male-facts-grid">
+        <section th:each="list, listStat : ${group.lists}" class="male-facts-list" th:classappend="${'style-' + list.style}"
+                 th:attr="aria-labelledby=${'male-list-' + groupStat.index + '-' + listStat.index}">
+            <header>
+                <h3 th:id="${'male-list-' + groupStat.index + '-' + listStat.index}" th:text="${list.title}">Top male artists</h3>
+                <span th:text="${list.valueLabel}">Plays</span>
+            </header>
+            <div th:if="${list.axisStart != null and !list.rows.isEmpty()}" class="male-facts-axis" aria-hidden="true">
+                <span th:text="${list.axisStart}"></span><span th:text="${list.axisEnd}"></span>
+            </div>
+            <p th:if="${list.rows.isEmpty()}" class="male-facts-empty">Nothing to show for this period.</p>
+            <ol th:unless="${list.rows.isEmpty()}">
+                <th:block th:each="row, rowStat : ${list.rows}" th:if="${rowStat.index < 5}">
+                    <li th:replace="~{fragments/male-facts-view :: fact-row(${row}, ${rowStat.count}, ${list.style})}"></li>
+                </th:block>
+            </ol>
+            <details th:if="${list.rows.size() > 5}">
+                <summary th:text="${'Show ' + (list.rows.size() - 5) + ' more'}">Show more</summary>
+                <ol>
+                    <th:block th:each="row, rowStat : ${list.rows}" th:if="${rowStat.index >= 5}">
+                        <li th:replace="~{fragments/male-facts-view :: fact-row(${row}, ${rowStat.count}, ${list.style})}"></li>
+                    </th:block>
+                </ol>
+            </details>
+        </section>
+    </div>
+    </section>
+
+    <section class="male-facts-group" aria-labelledby="male-charts-heading">
+        <h2 id="male-charts-heading" class="male-facts-heading">Men on your weekly charts</h2>
+        <div class="male-facts-chart-stats">
+            <div th:each="stat : ${maleFacts.charts.stats}" class="male-facts-stat">
+                <span th:text="${stat.label}">Weeks with a male #1 song</span>
+                <strong th:text="${stat.value}">0</strong>
+                <small th:text="${stat.detail}"></small>
+            </div>
+        </div>
+        <div class="male-facts-grid">
+            <section th:each="list, listStat : ${maleFacts.charts.lists}" class="male-facts-list" th:attr="aria-labelledby=${'male-chart-list-' + listStat.index}">
+                <header>
+                    <h3 th:id="${'male-chart-list-' + listStat.index}" th:text="${list.title}">Most weeks at #1</h3>
+                    <span th:text="${list.valueLabel}">Weeks</span>
+                </header>
+                <p th:if="${list.rows.isEmpty()}" class="male-facts-empty">No weekly charts for this period.</p>
+                <ol th:unless="${list.rows.isEmpty()}">
+                    <th:block th:each="row, rowStat : ${list.rows}" th:if="${rowStat.index < 5}">
+                        <li th:replace="~{fragments/male-facts-view :: fact-row(${row}, ${rowStat.count}, ${list.style})}"></li>
+                    </th:block>
+                </ol>
+                <details th:if="${list.rows.size() > 5}">
+                    <summary th:text="${'Show ' + (list.rows.size() - 5) + ' more'}">Show more</summary>
+                    <ol>
+                        <th:block th:each="row, rowStat : ${list.rows}" th:if="${rowStat.index >= 5}">
+                            <li th:replace="~{fragments/male-facts-view :: fact-row(${row}, ${rowStat.count}, ${list.style})}"></li>
+                        </th:block>
+                    </ol>
+                </details>
+            </section>
+        </div>
+    </section>
+</div>
+
+<li th:fragment="fact-row(row, rank, style)" class="male-facts-row">
+    <span class="male-facts-rank" th:text="${style == 'milestones' ? '' : rank}">1</span>
+    <span class="male-facts-thumb" th:classappend="${row.href != null and #strings.startsWith(row.href, '/artists/') ? 'portrait' : ''}">
+        <img th:if="${row.imageUrl != null}" loading="lazy" decoding="async" th:src="${row.imageUrl}" alt=""
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <span class="male-facts-initial" th:style="${row.imageUrl == null ? 'display: flex' : ''}"
+              th:text="${#strings.isEmpty(row.name) ? '?' : #strings.substring(row.name, 0, 1)}">A</span>
+    </span>
+    <span class="male-facts-name">
+        <a th:if="${row.href != null}" th:href="${row.href}" th:text="${row.name}">Name</a>
+        <span th:unless="${row.href != null}" th:text="${row.name}">Name</span>
+        <small th:text="${row.detail}">Detail</small>
+    </span>
+    <strong th:text="${row.value}">0</strong>
+    <span th:if="${style != 'milestones'}" class="male-facts-row-bar" aria-hidden="true">
+        <span th:style="${'margin-left: ' + row.barStart + '%; width: ' + row.barWidth + '%'}"></span>
+    </span>
+</li>
+</body>
+</html>

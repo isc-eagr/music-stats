@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import library.dto.ChartFilterDTO;
 import library.service.CatalogChartService;
 import library.service.CatalogGraphFilterResolver;
+import library.service.MaleFunFactsService;
 import library.service.PlaygroundService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,13 +29,24 @@ public class PlaygroundController {
     private final PlaygroundService playgroundService;
     private final CatalogChartService catalogChartService;
     private final CatalogGraphFilterResolver catalogGraphFilterResolver;
+    private final MaleFunFactsService maleFunFactsService;
 
     @Autowired
     public PlaygroundController(PlaygroundService playgroundService, CatalogChartService catalogChartService,
-                                CatalogGraphFilterResolver catalogGraphFilterResolver) {
+                                CatalogGraphFilterResolver catalogGraphFilterResolver, MaleFunFactsService maleFunFactsService) {
         this.playgroundService = playgroundService;
         this.catalogChartService = catalogChartService;
         this.catalogGraphFilterResolver = catalogGraphFilterResolver;
+        this.maleFunFactsService = maleFunFactsService;
+    }
+
+    public PlaygroundController(PlaygroundService playgroundService, CatalogChartService catalogChartService,
+                                CatalogGraphFilterResolver catalogGraphFilterResolver) {
+        this(playgroundService, catalogChartService, catalogGraphFilterResolver, null);
+    }
+
+    public PlaygroundController(PlaygroundService playgroundService, MaleFunFactsService maleFunFactsService) {
+        this(playgroundService, null, null, maleFunFactsService);
     }
 
     public PlaygroundController(PlaygroundService playgroundService) {
@@ -52,7 +64,7 @@ public class PlaygroundController {
         if (year != null && (year < 1 || year > 9998)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Year must be between 1 and 9998");
         }
-        if (!List.of("activity", "flashback", "graphs").contains(view)) {
+        if (!List.of("activity", "flashback", "graphs", "male").contains(view)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown Playground tab");
         }
         model.addAttribute("view", view);
@@ -63,6 +75,13 @@ public class PlaygroundController {
             return "playground";
         }
         var years = new ArrayList<>(playgroundService.getYears());
+        if (view.equals("male")) {
+            // No year means all time for this tab.
+            model.addAttribute("years", years);
+            model.addAttribute("selectedYear", year);
+            model.addAttribute("maleFacts", maleFunFactsService.getFacts(year));
+            return "playground";
+        }
         int selectedYear = year == null ? years.getFirst() : year;
         if (!years.contains(selectedYear)) {
             years.add(selectedYear);

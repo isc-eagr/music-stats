@@ -787,6 +787,9 @@ public class SongController {
         
         // Check if song has its own image (not falling back to album)
         boolean hasImage = songService.hasSongOwnImage(id);
+        // Album cover shows by default; the song's own (single) cover is revealed on hover
+        boolean showAlbumCoverOverSong = hasImage && song.get().getAlbumId() != null
+                && albumService.hasAlbumImage(song.get().getAlbumId());
         
         // Get artist and album names
         String artistName = songService.getArtistName(song.get().getArtistId());
@@ -809,6 +812,7 @@ public class SongController {
         model.addAttribute("currentSection", "songs");
         model.addAttribute("song", song.get());
         model.addAttribute("hasImage", hasImage);
+        model.addAttribute("showAlbumCoverOverSong", showAlbumCoverOverSong);
         model.addAttribute("artistName", artistName);
         model.addAttribute("artistGender", artistGender);
         model.addAttribute("artistCountry", artistCountry);

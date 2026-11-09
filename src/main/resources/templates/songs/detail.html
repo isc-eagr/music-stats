@@ -303,6 +303,13 @@
                          class="item-image-large clickable-image"
                          onclick="openSongImageModal()"
                          style="cursor: pointer;">
+                    <img th:if="${showAlbumCoverOverSong}"
+                         th:src="@{'/albums/' + ${song.albumId} + '/image?thumbnail=true'}"
+                         th:alt="${albumName}"
+                         id="albumCoverDefault"
+                         class="item-image-large album-cover-default"
+                         onclick="openSongImageModal()"
+                         onerror="this.remove()">
                       <span th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
                           class="length-overlay"
                           th:text="${song.lengthFormatted}"></span>
@@ -2657,7 +2664,10 @@
             const albumImg = document.getElementById('albumImage');
             const placeholder = document.getElementById('noImagePlaceholder');
             const currentImageId = galleryImages[currentGalleryIndex];
-            
+            const albumCoverDefault = document.getElementById('albumCoverDefault');
+            // The album-over-single hover swap only applies to the default image
+            if (albumCoverDefault) albumCoverDefault.style.display = currentImageId === 0 ? '' : 'none';
+
             // If songImage doesn't exist but we need to show gallery images, create it dynamically
             if (!img && (currentImageId !== 0 || hasDefaultImage)) {
                 img = document.createElement('img');
@@ -3281,6 +3291,18 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
         
+        /* Album cover sits over the single cover and fades out on hover */
+        .album-cover-default {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            transition: opacity 0.25s ease;
+        }
+
+        .item-image-container:hover .album-cover-default {
+            opacity: 0;
+        }
+
         /* Hide length overlay on image hover so upload/remove buttons can appear */
         .item-image-container:hover .length-overlay {
             opacity: 0;

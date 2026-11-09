@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const EXPLORER_PARAMS = new Set(['view', 'tab', 'source', 'graphMetric', 'graphScale', 'graphOrder', 'graphDirection', 'tableSort', 'tableDirection', 'categoryQ', 'categoryPage', 'categorySize']);
+    const EXPLORER_PARAMS = new Set(['view', 'tab', 'source', 'graphMetric', 'graphScale', 'graphExpand', 'graphOrder', 'graphDirection', 'tableSort', 'tableDirection', 'categoryQ', 'categoryPage', 'categorySize']);
     const SAME_SOURCE_PARAMS = new Set(['includeGroups', 'includeFeatured', 'limit', 'limitEntity']);
     const CATALOG_PARAMS = new Set(['view', 'page', 'perpage', 'sortby', 'sortdir', 'sortby2', 'sortdir2', 'sortby3', 'sortdir3', 'filtersOnly', 'compareMeasures']);
     const NULL_MODES = new Set(['isnull', 'isnotnull', 'zero', 'nonzero']);

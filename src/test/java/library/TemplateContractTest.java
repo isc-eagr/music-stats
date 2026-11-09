@@ -421,6 +421,24 @@ class TemplateContractTest {
     }
 
     @Test
+    void songDetailShowsAlbumCoverOverSingleCoverAndRevealsSingleOnHover() throws IOException {
+        Document detail = parse("songs/detail.html");
+        Element albumCover = detail.getElementById("albumCoverDefault");
+        assertThat(albumCover).isNotNull();
+        assertThat(albumCover.attr("th:if")).isEqualTo("${showAlbumCoverOverSong}");
+        assertThat(albumCover.attr("th:src")).contains("/albums/").contains("song.albumId");
+
+        Element songImage = detail.getElementById("songImage");
+        assertThat(songImage).isNotNull();
+        assertThat(songImage.nextElementSibling()).isSameAs(albumCover);
+
+        String html = read("songs/detail.html");
+        assertThat(html)
+                .contains(".item-image-container:hover .album-cover-default")
+                .contains("albumCoverDefault.style.display = currentImageId === 0");
+    }
+
+    @Test
     void chartsNavigationUsesQuietSectionDividersInsteadOfLabels() throws IOException {
         Document navigation = parse("fragments/navigation.html");
         assertThat(navigation.select(".app-nav-dropdown-section-divider")).hasSize(6);
@@ -507,21 +525,15 @@ class TemplateContractTest {
     void playgroundGraphsKeepOneAccessibleExplorerWithProgressiveControls() throws IOException {
         Document doc = parse("fragments/graphs-view.html");
         assertThat(doc.select("#graphs-explorer")).hasSize(1);
-        assertThat(doc.select("#graphs-metric option").eachAttr("value"))
-                .containsExactly("artists", "albums", "songs", "plays", "listeningTime");
+        assertThat(doc.select("nav#graphs-summary")).hasSize(1);
         assertThat(doc.select(".graphs-breakdowns [data-breakdown]").eachAttr("data-breakdown"))
                 .containsExactly("general", "country", "ethnicity", "genre", "language", "listenYear", "releaseYear", "subgenre");
-        assertThat(doc.select("#graphs-scale option").eachAttr("value")).containsExactly("share", "relative");
         assertThat(doc.select("#graphs-filter-source option").eachAttr("value")).containsExactly("artists", "albums", "songs");
         assertThat(doc.select("#graphs-filter-editor[hidden]")).hasSize(1);
+        assertThat(doc.select("#graphs-item-limit, #graphs-limit-entity, #graphs-include-groups, #graphs-include-featured")).hasSize(4);
         assertThat(doc.select("#graphs-status[role=status][aria-live=polite]")).hasSize(1);
-        assertThat(doc.select("#graphs-bars")).hasSize(1);
-        assertThat(doc.select("#graphs-data-table")).hasSize(1);
         assertThat(doc.select("section.graphs-data-panel #graphs-data-table")).hasSize(1);
-        assertThat(doc.select("#graphs-table-details, #graphs-compare")).isEmpty();
-        assertThat(doc.select("#graphs-order option").eachAttr("value")).containsExactly("total", "male", "name", "year");
-        assertThat(doc.select("#graphs-direction option").eachAttr("value")).containsExactly("desc", "asc");
-        assertThat(doc.select("#graphs-search[type=search], #graphs-previous, #graphs-next")).hasSize(3);
+        assertThat(doc.select("#graphs-bars, #graphs-metric, #graphs-scale, #graphs-order, #graphs-direction, #graphs-search, #graphs-previous, #graphs-next, #graphs-page-size")).isEmpty();
         assertThat(read("playground.html")).contains("fragments/graphs-view :: graphs-view");
     }
 
