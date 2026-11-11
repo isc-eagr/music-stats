@@ -792,6 +792,12 @@
             if (!query) return;
             
             const container = document.getElementById('wizardArtistResults');
+            // A new search replaces the results, so drop any previously picked existing artist
+            if (!wizardState.isNewArtist) {
+                wizardState.selectedArtistId = null;
+                wizardState.selectedArtistName = null;
+                document.getElementById('wizardStep1Next').disabled = true;
+            }
             // Show loading state
             container.innerHTML = '<div class="wizard-inline-loading active">Searching for artists...</div>';
             
@@ -808,6 +814,14 @@
                             <div class="result-meta">${escapeHtml(a.genderName || '')} ${a.country ? '• ' + escapeHtml(a.country) : ''}</div>
                         </div>
                     `).join('');
+
+                    // Auto-select an exact (case-insensitive) name match; partial matches stay clickable
+                    const exact = data.find(a => (a.name || '').trim().toLowerCase() === query.toLowerCase());
+                    if (exact) {
+                        selectWizardArtist(exact.id, exact.name);
+                        const selectedEl = container.querySelector(`.search-result-item[data-id="${exact.id}"]`);
+                        if (selectedEl) selectedEl.scrollIntoView({ block: 'nearest' });
+                    }
                 })
                 .catch(err => {
                     console.error('Error searching artists:', err);

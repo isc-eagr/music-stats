@@ -309,32 +309,32 @@
                                     </td>
                                     <td>
                                         <div class="changed-value">
-                                            <span th:if="${song.artistChanged}" class="old-value" th:text="${song.oldArtist != null ? song.oldArtist : '(Unknown)'}">Old Artist</span>
-                                            <span class="new-value" th:classappend="${song.artistChanged} ? 'changed' : ''" th:text="${song.newArtist != null ? song.newArtist : '(Unknown)'}">New Artist</span>
+                                            <span th:if="${song.artistChanged}" class="old-value" th:text="${song.oldArtist != null ? song.showSpaces(song.oldArtist) : '(Unknown)'}">Old Artist</span>
+                                            <span class="new-value" th:classappend="${song.artistChanged} ? 'changed' : ''" th:text="${song.newArtist == null ? '(Unknown)' : (song.artistChanged ? song.showSpaces(song.newArtist) : song.newArtist)}">New Artist</span>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="changed-value">
-                                            <span th:if="${song.albumArtistChanged}" class="old-value" th:text="${song.oldAlbumArtist != null ? song.oldAlbumArtist : '(None)'}">Old Album Artist</span>
-                                            <span class="new-value" th:classappend="${song.albumArtistChanged} ? 'changed' : ''" th:text="${song.newAlbumArtist != null ? song.newAlbumArtist : '(None)'}">New Album Artist</span>
+                                            <span th:if="${song.albumArtistChanged}" class="old-value" th:text="${song.oldAlbumArtist != null ? song.showSpaces(song.oldAlbumArtist) : '(None)'}">Old Album Artist</span>
+                                            <span class="new-value" th:classappend="${song.albumArtistChanged} ? 'changed' : ''" th:text="${song.newAlbumArtist == null ? '(None)' : (song.albumArtistChanged ? song.showSpaces(song.newAlbumArtist) : song.newAlbumArtist)}">New Album Artist</span>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="changed-value">
-                                            <span th:if="${song.albumChanged}" class="old-value" th:text="${song.oldAlbum != null ? song.oldAlbum : '(No Album)'}">Old Album</span>
-                                            <span class="new-value" th:classappend="${song.albumChanged} ? 'changed' : ''" th:text="${song.newAlbum != null ? song.newAlbum : '(No Album)'}">New Album</span>
+                                            <span th:if="${song.albumChanged}" class="old-value" th:text="${song.oldAlbum != null ? song.showSpaces(song.oldAlbum) : '(No Album)'}">Old Album</span>
+                                            <span class="new-value" th:classappend="${song.albumChanged} ? 'changed' : ''" th:text="${song.newAlbum == null ? '(No Album)' : (song.albumChanged ? song.showSpaces(song.newAlbum) : song.newAlbum)}">New Album</span>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="changed-value">
-                                            <span th:if="${song.nameChanged}" class="old-value" th:text="${song.oldName}">Old Name</span>
-                                            <span class="new-value" th:classappend="${song.nameChanged} ? 'changed' : ''" th:text="${song.newName}">New Name</span>
+                                            <span th:if="${song.nameChanged}" class="old-value" th:text="${song.showSpaces(song.oldName)}">Old Name</span>
+                                            <span class="new-value" th:classappend="${song.nameChanged} ? 'changed' : ''" th:text="${song.nameChanged ? song.showSpaces(song.newName) : song.newName}">New Name</span>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="changed-value">
-                                            <span th:if="${song.genreChanged}" class="old-value" th:text="${song.oldGenre != null ? song.oldGenre : '(No Genre)'}">Old Genre</span>
-                                            <span class="new-value" th:classappend="${song.genreChanged} ? 'changed' : ''" th:text="${song.newGenre != null ? song.newGenre : '(No Genre)'}">New Genre</span>
+                                            <span th:if="${song.genreChanged}" class="old-value" th:text="${song.oldGenre != null ? song.showSpaces(song.oldGenre) : '(No Genre)'}">Old Genre</span>
+                                            <span class="new-value" th:classappend="${song.genreChanged} ? 'changed' : ''" th:text="${song.newGenre == null ? '(No Genre)' : (song.genreChanged ? song.showSpaces(song.newGenre) : song.newGenre)}">New Genre</span>
                                         </div>
                                     </td>
                                     <td style="text-align: center;">

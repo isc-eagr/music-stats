@@ -97,14 +97,14 @@ public class ItunesChangesService {
                 ));
             } else {
                 // Check if artist, albumArtist, album, name, length, or genre changed
-                boolean artistChanged = !nullSafeEquals(snapshot.getArtist(), current.getArtist());
-                boolean albumArtistChanged = !nullSafeEquals(snapshot.getAlbumArtist(), current.getAlbumArtist());
-                boolean albumChanged = !nullSafeEquals(snapshot.getAlbum(), current.getAlbum());
-                boolean nameChanged = !nullSafeEquals(snapshot.getName(), current.getName());
-                boolean lengthChanged = !lengthApproxEquals(snapshot.getTotalTime(), current.getTotalTime());
-                boolean genreChanged = !nullSafeEquals(snapshot.getGenre(), current.getGenre());
+                boolean anyChanged = ItunesChangedSongDTO.textChanged(snapshot.getArtist(), current.getArtist())
+                    || ItunesChangedSongDTO.textChanged(snapshot.getAlbumArtist(), current.getAlbumArtist())
+                    || ItunesChangedSongDTO.textChanged(snapshot.getAlbum(), current.getAlbum())
+                    || ItunesChangedSongDTO.textChanged(snapshot.getName(), current.getName())
+                    || ItunesChangedSongDTO.lengthChanged(snapshot.getTotalTime(), current.getTotalTime())
+                    || ItunesChangedSongDTO.textChanged(snapshot.getGenre(), current.getGenre());
 
-                if (artistChanged || albumArtistChanged || albumChanged || nameChanged || lengthChanged || genreChanged) {
+                if (anyChanged) {
                     // Something changed - check if new values are in database
                     String key = createSongLookupKey(current.getArtist(), current.getAlbum(), current.getName());
                     boolean found = dbSongKeys.contains(key);
@@ -234,43 +234,6 @@ public class ItunesChangesService {
     }
 
     // ============ Helper Methods ============
-
-    /**
-     * Compare two strings for exact equality, case-insensitive.
-     * This preserves punctuation, parentheses, and special characters.
-     * Only capitalization changes are ignored (e.g., "Dirty Harry" == "dirty harry").
-     * But these are considered different:
-     * - "Dirty Harry" vs "Dirty Harry (feat. Bootie Brown)"
-     * - "José" vs "Jose"
-     * - "Hello!" vs "Hello"
-     */
-    private boolean nullSafeEquals(String a, String b) {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
-        // Case-insensitive comparison but preserve all other characters
-        return a.equalsIgnoreCase(b);
-    }
-    
-    /**
-     * Compare two integers for exact equality.
-     * Used for comparing song lengths and other numeric fields.
-     */
-    private boolean nullSafeEquals(Integer a, Integer b) {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
-        return a.equals(b);
-    }
-
-    /**
-     * Compare two totalTime values (in milliseconds) with a 1-second tolerance.
-     * iTunes can produce minor rounding differences (e.g. 311072 vs 311000) between
-     * reads of the same file, which should not be treated as a real length change.
-     */
-    private boolean lengthApproxEquals(Integer a, Integer b) {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
-        return Math.abs(a - b) < 1000;
-    }
 
     private String createSongLookupKey(String artist, String album, String song) {
         return itunesService.createStrictSongLookupKey(artist, album, song);
