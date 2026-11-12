@@ -138,7 +138,8 @@ Prefer JdbcTemplate over JPQL for:
 
 ## Known data issues
 - 13/02/2005 is the robertlover initial Last.fm load: about 9,600 plays stacked into a few minutes, with no real listen dates. Playground > Male fun facts leaves that day out (`MaleFunFactsService.EXCLUDED_DAY`, including the weekly chart covering it). When that day's play dates are repaired, remove the exclusion so the day counts again.
-- Other days with many plays stacked in the same minute (01/01/2010, 12/02/2016, 26/09/2017, etc.) still have approximate dates pending a fix. Sept/Dec 2014 and Chris Brown on 05/04/2015 were already re-dated; undo logs are in `C:/Music Stats DB/`.
+- Other days with many plays stacked in the same minute (12/02/2016, 26/09/2017, etc.) still have approximate dates pending a fix. Sept/Dec 2014, Chris Brown on 05/04/2015 and the 01/01/2010 load were already re-dated; undo logs are in `C:/Music Stats DB/`.
+- The 774 plays of the 01/01/2010 load were spread over 27/11/2009 to 11/01/2010 on 11/11/2026. Those dates are estimates (release dates, before/after listening trend, album play-throughs, and the developer's memory of when albums arrived), not real listen dates.
 
 Additional rule:
 - Any addition to sort options must also be added to the extended stats in the list and detail pages, and implemented as a new hidden column on the corresponding section of the Graphs page (so the column can be toggled in the Graphs UI). Examples and locations: the list pages under `src/main/resources/templates/*/list.html`, the shared `fragments/catalog-list-table.html`, and the Graphs page (`charts/overview.html`, `fragments/graphs-view.html`, `static/js/graphs.js`, `static/css/graphs-view.css`).
