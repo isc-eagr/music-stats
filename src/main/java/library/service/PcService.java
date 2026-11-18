@@ -962,25 +962,33 @@ public class PcService {
         return jdbcTemplate.queryForList(sql, albumId);
     }
 
-    public List<Map<String, Object>> getChartedSongsByArtistId(int artistId) {
+    /**
+     * Charted songs of an artist detail page, following its Main / Groups / Featured toggles
+     * (see ChartAggregationUtils.artistSongScope). Rows carry owner_id, owner_name and featured_on.
+     */
+    public List<Map<String, Object>> getChartedSongsForArtistScope(List<Integer> ownerIds, Integer featuredArtistId) {
+        ChartAggregationUtils.ArtistSongScope scope = ChartAggregationUtils.artistSongScope("s", ownerIds, featuredArtistId);
+        if (scope == null) return List.of();
         String sql =
             "WITH stats AS ( " +
-            "    SELECT s.id AS song_id, s.name AS song_name, " +
+            "    SELECT s.id AS song_id, s.name AS song_name, s.artist_id AS owner_id, ar.name AS owner_name, " +
+            "           " + scope.featuredFlag() + " AS featured_on, " +
             "           MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
             "           MIN(ce.chart_date) AS debut_date, " +
             "           (SELECT MIN(ce2.chart_date) FROM vatos_cuntdown_entry ce2 WHERE ce2.song_id = s.id AND ce2.position = MIN(ce.position) AND ce2.is_close_call = 0) AS peak_date " +
             "    FROM vatos_cuntdown_entry ce " +
             "    JOIN song s ON ce.song_id = s.id " +
-            "    WHERE s.artist_id = ? AND ce.is_close_call = 0 " +
-            "    GROUP BY s.id, s.name " +
+            "    JOIN artist ar ON s.artist_id = ar.id " +
+            "    WHERE " + scope.where() + " AND ce.is_close_call = 0 " +
+            "    GROUP BY s.id, s.name, s.artist_id, ar.name " +
             ") " +
-            "SELECT song_id, song_name, actual_days AS days_on_countdown, peak_position, debut_date, peak_date, " +
+            "SELECT song_id, song_name, owner_id, owner_name, featured_on, actual_days AS days_on_countdown, peak_position, debut_date, peak_date, " +
             "    (SELECT COUNT(DISTINCT ce2.chart_date) FROM vatos_cuntdown_entry ce2 " +
             "     WHERE ce2.song_id = stats.song_id AND ce2.position = stats.peak_position AND ce2.is_close_call = 0 " +
             "    ) AS days_at_peak " +
             "FROM stats WHERE actual_days > 0 " +
             "ORDER BY peak_position ASC, days_at_peak DESC, song_name ASC";
-        return jdbcTemplate.queryForList(sql, artistId);
+        return jdbcTemplate.queryForList(sql, scope.params().toArray());
     }
 
     private String normalizeIdentityPart(Object value) {

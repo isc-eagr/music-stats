@@ -113,4 +113,41 @@ public final class ChartAggregationUtils {
     public static String safeLower(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
+
+    /**
+     * Song scope of an artist detail page with its Main / Groups / Featured toggles: songs owned by
+     * ownerIds (the artist and/or its groups) plus, when featuredArtistId is set, songs featuring that artist.
+     * featuredFlag is a SELECT expression (1 when the song is in scope only as a featured song) and where the
+     * condition; params lists the flag's parameters first, then the condition's. Null when the scope is empty.
+     */
+    public static ArtistSongScope artistSongScope(String songAlias, List<Integer> ownerIds, Integer featuredArtistId) {
+        List<Integer> owners = ownerIds == null ? List.of() : ownerIds;
+        if (owners.isEmpty() && featuredArtistId == null) {
+            return null;
+        }
+        String ownerIn = songAlias + ".artist_id IN (" + String.join(",", java.util.Collections.nCopies(owners.size(), "?")) + ")";
+        String featuredIn = songAlias + ".id IN (SELECT sfa.song_id FROM SongFeaturedArtist sfa WHERE sfa.artist_id = ?)";
+        List<Object> params = new ArrayList<>();
+        String flag;
+        String where;
+        if (owners.isEmpty()) {
+            flag = "1";
+            where = featuredIn;
+            params.add(featuredArtistId);
+        } else if (featuredArtistId == null) {
+            flag = "0";
+            where = ownerIn;
+            params.addAll(owners);
+        } else {
+            flag = "CASE WHEN " + ownerIn + " THEN 0 ELSE 1 END";
+            where = "(" + ownerIn + " OR " + featuredIn + ")";
+            params.addAll(owners);
+            params.addAll(owners);
+            params.add(featuredArtistId);
+        }
+        return new ArtistSongScope(flag, where, params);
+    }
+
+    public record ArtistSongScope(String featuredFlag, String where, List<Object> params) {
+    }
 }

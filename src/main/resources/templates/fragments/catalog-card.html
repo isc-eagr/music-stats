@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Shared pieces of the Artists / Albums / Songs list cards (styles in css/catalog-cards.css) -->
+
+<!-- Card styles; include after the page's other stylesheets (fonts come from global.css) -->
+<th:block th:fragment="card-styles">
+    <link rel="stylesheet" th:href="@{/css/catalog-cards.css}">
+    <link rel="stylesheet" th:href="@{/css/consistency.css}">
+    <script th:src="@{/js/consistency.js}" defer></script>
+</th:block>
+
+<!-- iTunes presence badge, rendered only when the presence is known -->
+<span th:fragment="itunes-badge(inItunes)"
+      th:if="${inItunes != null}"
+      class="itunes-badge"
+      th:classappend="${inItunes ? 'in-itunes' : 'not-in-itunes'}"
+      th:title="${inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"><svg th:if="${inItunes}" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><svg th:unless="${inItunes}" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></span>
+
+<!-- Organized / Not organized label for the card footer -->
+<span th:fragment="organized(isOrganized)"
+      class="gc-org"
+      th:classappend="${isOrganized ? '' : 'is-unorganized'}"
+      th:title="${isOrganized ? 'Organized' : 'Not Organized'}"><svg th:if="${isOrganized}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg><svg th:unless="${isOrganized}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg><span th:text="${isOrganized ? 'Organized' : 'Not organized'}">Organized</span></span>
+
+<!-- "More" link that opens the card detail modal -->
+<div th:fragment="more-toggle" class="card-expand-toggle" onclick="openCardModal(this)">
+    <span class="expand-label">More</span>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+</div>
+
+<!-- "plays" unit next to the total, with a gender-colored play icon -->
+<span th:fragment="plays-unit" class="gc-total-unit"><svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>plays</span>
+
+<!-- Two-part bar: solid gender color for the first value, muted shade for the second -->
+<div th:fragment="split-bar(first, second)" class="gc-bar" aria-hidden="true">
+    <span th:if="${first != null and first > 0}" class="gc-bar-primary" th:style="|flex: ${first} 1 0|"></span>
+    <span th:if="${second != null and second > 0}" class="gc-bar-legacy" th:style="|flex: ${second} 1 0|"></span>
+    <span th:if="${(first == null or first == 0) and (second == null or second == 0)}" class="gc-bar-empty"></span>
+</div>
+
+<!-- ================= More panel (card detail modal) pieces ================= -->
+
+<!-- One rank row under the photo: label, value and #rank, linking to the filtered view -->
+<a th:fragment="rank-row(label, value, rank, href)"
+   th:if="${value != null and !#strings.isEmpty(value)}"
+   class="mm-rank" th:href="${href}" th:title="${label}">
+    <span class="mm-rank-k" th:text="${label}">Genre</span>
+    <span class="mm-rank-v"><span th:text="${value}">Value</span><span th:if="${rank != null}" class="mm-rank-n" th:text="'#' + ${rank}">#1</span></span>
+</a>
+
+<!-- Labelled two-part split with its own bar, e.g. Solo vs With features.
+     width is the split's share (in %) of the widest bar in its stack, so stacked bars compare at one scale. -->
+<div th:fragment="split(firstLabel, first, secondLabel, second, width)" class="mm-split"
+     th:style="${width != null and width < 100} ? |width: ${width}%|">
+    <div class="mm-split-row">
+        <span><th:block th:text="${firstLabel}">First</th:block> <b th:text="${first != null ? first : 0}">0</b></span>
+        <span><th:block th:text="${secondLabel}">Second</th:block> <b th:text="${second != null ? second : 0}">0</b></span>
+    </div>
+    <div th:replace="~{fragments/catalog-card :: split-bar(${first}, ${second})}"></div>
+</div>
+
+<!-- First/last date timeline with the span in the middle and, when known, the song behind each end -->
+<div th:fragment="timeline(firstLabel, first, firstSong, lastLabel, last, lastSong, span)" class="mm-tl">
+    <span th:if="${span != null}" class="mm-tl-mid" th:text="${span}">1 year</span>
+    <span class="mm-tl-pt mm-tl-a"><th:block th:text="${firstLabel}">First</th:block><b th:text="${first != null ? first : 'N/A'}">N/A</b><span th:if="${firstSong != null}" class="mm-song" th:text="${firstSong}" th:title="${firstSong}">Song</span></span>
+    <span class="mm-tl-pt mm-tl-b"><th:block th:text="${lastLabel}">Last</th:block><b th:text="${last != null ? last : 'N/A'}">N/A</b><span th:if="${lastSong != null}" class="mm-song" th:text="${lastSong}" th:title="${lastSong}">Song</span></span>
+</div>
+
+<!-- One labelled date box (Dates grid on the album and song panels), with an optional song name under it -->
+<div th:fragment="date-box(label, value, song)" class="mm-date">
+    <span class="mm-l" th:text="${label}">Released</span>
+    <b th:text="${value != null ? value : 'N/A'}">N/A</b>
+    <span th:if="${song != null}" class="mm-song" th:text="${song}" th:title="${song}">Song</span>
+</div>
+
+<!-- Primary / Legacy legend with each side's share of the total -->
+<div th:fragment="share-legend(total, primary, legacy)" class="gc-legend mm-legend">
+    <span class="gc-legend-item" title="Primary plays"><i class="gc-sw gc-sw-primary"></i>Primary
+        <b th:text="${#numbers.formatInteger(primary != null ? primary : 0, 1, 'COMMA')}">0</b><em th:if="${total != null and total > 0}" th:text="${#numbers.formatDecimal((primary != null ? primary : 0) * 100.0 / total, 1, 0)} + '%'">0%</em></span>
+    <span th:if="${legacy != null and legacy > 0}" class="gc-legend-item" title="Legacy plays"><i class="gc-sw gc-sw-legacy"></i>Legacy
+        <b th:text="${#numbers.formatInteger(legacy, 1, 'COMMA')}">0</b><em th:if="${total != null and total > 0}" th:text="${#numbers.formatDecimal(legacy * 100.0 / total, 1, 0)} + '%'">0%</em></span>
+</div>
+
+<!-- Footer: image count and organized -->
+<div th:fragment="modal-foot(images, isOrganized)" class="mm-foot">
+    <span class="mm-foot-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg><b th:text="${images != null ? images : 0}">0</b> <th:block th:text="${images == 1 ? 'image' : 'images'}">images</th:block></span>
+    <span th:replace="~{fragments/catalog-card :: organized(${isOrganized})}"></span>
+</div>
+
+</body>
+</html>

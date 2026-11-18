@@ -304,12 +304,12 @@ public class NowPlayingLookupController {
                     // Demographic/genre projected ranks using adjusted play_count in CTE
                     try {
                         String projAllSql = "WITH song_play_counts AS (" +
-                                " SELECT s.id, ar.gender_id, COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) as effective_genre_id, " +
+                                " SELECT s.id, COALESCE(s.override_gender_id, ar.gender_id) as gender_id, COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) as effective_genre_id, " +
                                 " COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) as effective_subgenre_id, " +
                                 " ar.ethnicity_id, COALESCE(s.override_language_id, COALESCE(alb.override_language_id, ar.language_id)) as effective_language_id, " +
                                 " ar.country, COALESCE(COUNT(p.id), 0) + CASE WHEN s.id = ? THEN 1 ELSE 0 END as play_count, MIN(p.play_date) as first_play " +
                                 " FROM Song s INNER JOIN Artist ar ON s.artist_id = ar.id LEFT JOIN Album alb ON s.album_id = alb.id LEFT JOIN Play p ON p.song_id = s.id " +
-                                " GROUP BY s.id, ar.gender_id, effective_genre_id, effective_subgenre_id, ar.ethnicity_id, effective_language_id, ar.country" +
+                                " GROUP BY s.id, gender_id, effective_genre_id, effective_subgenre_id, ar.ethnicity_id, effective_language_id, ar.country" +
                                 "), ranked_songs AS (" +
                                 " SELECT id, gender_id, effective_genre_id, effective_subgenre_id, ethnicity_id, effective_language_id, country, play_count, first_play, " +
                                 " CASE WHEN gender_id IS NOT NULL THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC, first_play ASC) END as gender_rank, " +

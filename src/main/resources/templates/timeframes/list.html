@@ -8,74 +8,208 @@
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
+    <th:block th:replace="~{fragments/catalog-row :: row-styles}"></th:block>
     <script th:src="@{/js/list-utils.js}"></script>
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
-        /* Chart status badges - pill style */
-        .chart-generate-btn-container {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            z-index: 10;
+        /* Row footer, one line: winners, number ones, then legend + chart status on the right edge.
+           Every chip shares one neutral outline; color only marks gender and the chip's category. */
+        .tf-foot {
+            gap: 6px;
         }
-        .chart-status-badge {
+        .tf-tops,
+        .tf-foot-end {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+        .tf-tops {
+            margin-left: 6px;
+            padding-left: 12px;
+            border-left: 1px solid var(--gc-hair);
+        }
+        .tf-foot-end {
+            margin-left: auto;
+            gap: 12px;
+        }
+        .tf-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 340px;
+            height: 22px;
+            padding: 0 9px;
+            border-radius: 999px;
+            border: 1px solid var(--gc-hair);
+            color: #f2f2f4;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        a.tf-chip:hover {
+            border-color: var(--gc-tint-border);
+            color: var(--gc-t);
+        }
+        .tf-gender.male {
+            background: rgba(59, 130, 246, 0.14);
+            border-color: rgba(96, 165, 250, 0.4);
+            color: #bae6fd;
+        }
+        .tf-gender.female {
+            background: rgba(244, 114, 182, 0.14);
+            border-color: rgba(249, 168, 212, 0.4);
+            color: #fce7f3;
+        }
+        .tf-gender > span:first-child {
+            font-weight: 600;
+        }
+        .tf-gender-days::before {
+            content: '\00B7';
+            margin-right: 5px;
+            opacity: 0.6;
+        }
+        .tf-cat::before,
+        .tf-top::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            background: #71717a;
+        }
+        .tf-cat.genre::before { background: #a78bfa; }
+        .tf-cat.ethnicity::before { background: #facc15; }
+        .tf-cat.language::before { background: #2dd4bf; }
+        .tf-cat.country::before { background: #d59455; }
+        /* Number one chips read: icon(s), gender dot, name */
+        .tf-top::before { order: 1; }
+        .tf-top .tf-top-n { order: 2; }
+        .tf-top.male::before { background: #60a5fa; }
+        .tf-top.female::before { background: #f472b6; }
+        .tf-top-n {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 600;
+        }
+        .tf-tops-k {
+            margin-right: 2px;
+            font-family: var(--gc-num);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gc-lbl);
+        }
+        /* Icons: headphones = most played, trophy = chart #1 */
+        .tf-ic {
+            display: inline-block;
+            flex-shrink: 0;
+            width: 12px;
+            height: 12px;
+            background: currentColor;
+            -webkit-mask: var(--tf-ic) center / contain no-repeat;
+            mask: var(--tf-ic) center / contain no-repeat;
+        }
+        .tf-ic-plays {
+            color: #8b8b95;
+            --tf-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'/%3E%3Cpath d='M15 15a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2z'/%3E%3Cpath d='M4 15v-3a8 8 0 0 1 16 0v3'/%3E%3C/svg%3E");
+        }
+        .tf-ic-chart {
+            color: #facc15;
+            --tf-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 21h8'/%3E%3Cpath d='M12 17v4'/%3E%3Cpath d='M7 4h10'/%3E%3Cpath d='M17 4v8a5 5 0 0 1-10 0V4'/%3E%3Cpath d='M5 9a2 2 0 1 1 0-4h2'/%3E%3Cpath d='M19 9a2 2 0 1 0 0-4h-2'/%3E%3C/svg%3E");
+        }
+        /* Chart #1 different from the most played: one chip, one outline, two segments split by a hairline.
+           Both names share the text color; the gold trophy marks the chart #1 half (the footer legend explains it). */
+        .tf-pair {
+            display: inline-flex;
+            align-items: stretch;
+            min-width: 0;
+            height: 22px;
+            border: 1px solid var(--gc-hair);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .tf-pair:hover {
+            border-color: var(--gc-tint-border);
+        }
+        .tf-pair > .tf-chip {
+            height: auto;
+            min-width: 0;
+            border: 0;
+            border-radius: 0;
+        }
+        .tf-pair > .tf-chip + .tf-chip {
+            border-left: 1px solid var(--gc-hair);
+        }
+        .tf-pair > a.tf-chip:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .tf-legend {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            text-decoration: none;
-            transition: all 0.2s ease;
+            font-size: 10.5px;
+            color: var(--gc-muted);
+            white-space: nowrap;
         }
-        .chart-status-badge:hover {
-            transform: scale(1.05);
+        .tf-legend .tf-ic-chart {
+            margin-left: 6px;
+        }
+        /* Chart status: same outline as the other chips, colored dot for the state */
+        .chart-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 22px;
+            padding: 0 10px;
+            border-radius: 999px;
+            border: 1px solid var(--gc-hair);
+            color: #a1a1aa;
+            font-size: 11px;
+            font-weight: 600;
             text-decoration: none;
+            white-space: nowrap;
+        }
+        .chart-status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: currentColor;
+        }
+        a.chart-status-badge:hover {
+            text-decoration: none;
+            filter: brightness(1.2);
         }
         .chart-status-badge.finalized {
-            background: #1e4a1e;
+            border-color: rgba(34, 197, 94, 0.4);
             color: #4ade80;
         }
         .chart-status-badge.draft {
-            background: #4a4a1e;
+            border-color: rgba(250, 204, 21, 0.4);
             color: #facc15;
         }
         .chart-status-badge.not-started {
-            background: #4a1e1e;
+            border-color: rgba(248, 113, 113, 0.4);
             color: #f87171;
         }
-        .chart-status-badge.pending {
-            background: #2a2a2a;
-            color: #888;
-        }
-        .chart-status-badge.pending:hover {
-            transform: none;
-        }
         .chart-status-badge.zero-plays {
-            background: #1a1a1a;
-            color: #555;
+            color: #52525b;
             cursor: default;
         }
-        .chart-status-badge.zero-plays:hover {
-            transform: none;
+        @media (max-width: 768px) {
+            .tf-legend {
+                display: none;
+            }
+            .tf-tops {
+                margin-left: 0;
+                padding-left: 0;
+                border-left: 0;
+            }
         }
 
-        .timeframe-card {
-            position: relative;
-        }
-        .card-index {
-            position: absolute;
-            bottom: 6px;
-            right: 8px;
-            font-size: 0.7rem;
-            color: #555;
-            line-height: 1;
-            pointer-events: none;
-        }
         @keyframes metallicShine {
             0% {
                 background-position: -200% center;
@@ -117,52 +251,6 @@
                         0 0 60px 15px rgba(59, 130, 246, 0.4),
                         inset 0 0 20px rgba(59, 130, 246, 0.15);
             border-color: rgba(130, 180, 255, 1);
-        }
-        .number-one-info {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #2a2a2a;
-        }
-        .male-days-stat {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 8px;
-            padding: 6px 10px;
-            background: rgba(59, 130, 246, 0.12);
-            border: 1px solid rgba(59, 130, 246, 0.28);
-            border-radius: 6px;
-            font-size: 0.85rem;
-        }
-        .male-days-value {
-            font-weight: 700;
-            color: #3b82f6;
-        }
-        .number-one-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            color: #ccc;
-            margin-bottom: 3px;
-            padding: 3px 6px;
-            border-radius: 4px;
-            margin-left: -6px;
-        }
-        .number-one-item.gender-male {
-            background: rgba(59, 130, 246, 0.6);
-        }
-        .number-one-item.gender-female {
-            background: rgba(236, 72, 153, 0.6);
-        }
-        .number-one-item .label {
-            color: #888;
-            min-width: 20px;
-        }
-        .number-one-item .name {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
         /* Infinite scroll loading overlay */
         .inf-load-overlay { display: none; position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 2000; }
@@ -318,7 +406,7 @@
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
-                    <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllInfiniteResults && window.loadAllInfiniteResults()">Load all</button>
+                    <button id="loadAllResultsButton" type="button" class="toolbar-btn" hidden onclick="window.loadAllInfiniteResults && window.loadAllInfiniteResults()">Load all</button>
                 </div>
             </div>
 
@@ -329,7 +417,8 @@
                            onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
                     <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
                 </div>
-                    <button type="button" class="filter-toggle toolbar-btn toolbar-btn-muted" onclick="toggleFilters()">Filters</button>
+                    <button type="button" class="filter-toggle toolbar-btn" onclick="toggleFilters()">Filters</button>
+                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
 
                 <div class="toolbar-sort-panel">
@@ -359,9 +448,7 @@
                         </button>
                     </div>
                     
-                    </div>
-                        <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
-                        </div>
+                    </div>                        </div>
                 </div>
                 
                 <div class="catalog-toolbar-control-actions">
@@ -989,136 +1076,37 @@
         
         <div id="cardView">
         <!-- Timeframe cards grid -->
-        <div class="catalog-grid" id="tfGrid"
+        <div class="lb-list" id="tfGrid"
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="tf, iterStat : ${timeframes}" 
-                 class="catalog-card timeframe-card"
-                 th:classappend="${tf.perfectMale == true ? 'perfect-male' : ''} + ' ' + (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('male') and !tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-male' : (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('female')} ? 'winning-female' : ''))"
-                 th:data-date-from="${tf.listenedDateFrom}"
-                 th:data-date-to="${tf.listenedDateTo}"
-                 th:data-period-label="${tf.periodDisplayName}"
-                 th:data-period-key="${tf.periodKey}"
-                 onclick="handleTimeframeCardClick(this)">
+                 class="lb-row gc lb-static timeframe-card"
+                 th:classappend="${tf.perfectMale == true ? 'perfect-male' : ''} + ' ' + (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('male') and !tf.winningGenderName.toLowerCase().contains('female')} ? 'gender-male' : (${tf.winningGenderName != null and tf.winningGenderName.toLowerCase().contains('female')} ? 'gender-female' : ''))"
+                 th:with="metricTarget='_blank'">
                 
-                <!-- Chart status indicator (only for weeks) -->
-                <div th:if="${periodType == 'weeks'}" class="chart-generate-btn-container">
-                    <!-- Finalized chart -->
-                    <a th:if="${tf.hasChart == true}"
-                       th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge finalized"
-                       title="View chart for this week"
-                       onclick="event.stopPropagation();">
-                        ✓ Chart
-                    </a>
-                    <!-- Pending (week in progress) - show Preview link -->
-                    <a th:if="${tf.hasChart != true and tf.weekComplete != true and tf.playCount > 0}"
-                       th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey}, preview=true)}"
-                       target="_blank"
-                       class="chart-status-badge pending"
-                       title="View live preview of this week's chart"
-                       onclick="event.stopPropagation();">
-                        👁️ Preview
-                    </a>
-                    <!-- Not started (week complete but no chart) - only show if there are plays -->
-                    <a th:if="${tf.hasChart != true and tf.weekComplete == true and tf.playCount > 0}"
-                       th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge not-started"
-                       th:data-period-key="${tf.periodKey}"
-                       onclick="event.stopPropagation(); generateChartFromBadge(event, this);"
-                       title="Generate chart for this week">
-                        No Chart
-                    </a>
-                    <!-- Zero plays indicator -->
-                    <span th:if="${tf.playCount == 0}"
-                          class="chart-status-badge zero-plays"
-                          title="No plays this week">
-                        No Plays
-                    </span>
-                </div>
-                
-                <!-- Chart status indicator (only for seasons) -->
-                <div th:if="${periodType == 'seasons'}" class="chart-generate-btn-container">
-                    <!-- Finalized -->
-                    <a th:if="${tf.seasonalChartFinalized == true}"
-                       th:href="@{/charts/seasonal/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge finalized"
-                       title="View finalized seasonal chart"
-                       onclick="event.stopPropagation();">
-                        ✓ Finalized
-                    </a>
-                    <!-- Draft -->
-                    <a th:if="${tf.hasSeasonalChart == true and tf.seasonalChartFinalized != true}"
-                       th:href="@{/charts/seasonal/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge draft"
-                       title="View draft seasonal chart"
-                       onclick="event.stopPropagation();">
-                        Draft
-                    </a>
-                    <!-- Not started -->
-                    <a th:if="${tf.hasSeasonalChart != true}"
-                       th:href="@{/charts/seasonal/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge not-started"
-                       title="Create seasonal chart"
-                       onclick="event.stopPropagation();">
-                        Not Started
-                    </a>
-                </div>
-                
-                <!-- Chart status indicator (only for years) -->
-                <div th:if="${periodType == 'years'}" class="chart-generate-btn-container">
-                    <!-- Finalized -->
-                    <a th:if="${tf.yearlyChartFinalized == true}"
-                       th:href="@{/charts/yearly/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge finalized"
-                       title="View finalized yearly chart"
-                       onclick="event.stopPropagation();">
-                        ✓ Finalized
-                    </a>
-                    <!-- Draft -->
-                    <a th:if="${tf.hasYearlyChart == true and tf.yearlyChartFinalized != true}"
-                       th:href="@{/charts/yearly/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge draft"
-                       title="View draft yearly chart"
-                       onclick="event.stopPropagation();">
-                        Draft
-                    </a>
-                    <!-- Not started -->
-                    <a th:if="${tf.hasYearlyChart != true}"
-                       th:href="@{/charts/yearly/{pk}(pk=${tf.periodKey})}"
-                       target="_blank"
-                       class="chart-status-badge not-started"
-                       title="Create yearly chart"
-                       onclick="event.stopPropagation();">
-                        Not Started
-                    </a>
-                </div>
-                
-                <div class="catalog-info timeframe-info">
-                    <div class="card-index" th:text="${startIndex + iterStat.index}"></div>
-                    <h3 class="catalog-name timeframe-name">
-                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Winter')}">❄️ </span>
-                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Spring')}">🌸 </span>
-                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Summer')}">☀️ </span>
-                        <span th:if="${periodType == 'seasons' and #strings.contains(tf.periodDisplayName, 'Fall')}">🍂 </span>
-                        <span th:text="${tf.periodDisplayName}">Period Name</span>
-                    </h3>
-                    
-                    <!-- Winning attributes chips -->
-                    <div class="winning-chips">
-                        <span class="winning-chip gender" th:if="${tf.winningGenderName != null}" th:text="${tf.winningGenderName}" title="Winning Gender"
-                              th:classappend="${tf.winningGenderName != null && tf.winningGenderName.contains('Female')} ? 'female' : 'male'"></span>
-                        <span class="winning-chip genre" th:if="${tf.winningGenreName != null}" th:text="${tf.winningGenreName}" title="Winning Genre"></span>
-                        <span class="winning-chip ethnicity" th:if="${tf.winningEthnicityName != null}" th:text="${tf.winningEthnicityName}" title="Winning Ethnicity"></span>
-                        <span class="winning-chip language" th:if="${tf.winningLanguageName != null}" th:text="${tf.winningLanguageName}" title="Winning Language"></span>
-                        <span class="winning-chip country" th:if="${tf.winningCountry != null}" th:text="${tf.winningCountry}" title="Winning Country"></span>
+                <span class="lb-rank card-index" th:text="${startIndex + iterStat.index}">1</span>
+                <div class="lb-name">
+                    <div class="lb-title">
+                        <h3 class="lb-h" th:text="${tf.periodDisplayName}" th:title="${tf.periodDisplayName}">Period Name</h3>
                     </div>
+                </div>
+                <div th:replace="~{fragments/catalog-row :: mix(${tf}, ${sortBy}, @{/artists(listenedDateFrom=${tf.listenedDateFrom}, listenedDateTo=${tf.listenedDateTo}, periodLabel=${tf.periodDisplayName}, view='table')}, @{/albums(listenedDateFrom=${tf.listenedDateFrom}, listenedDateTo=${tf.listenedDateTo}, periodLabel=${tf.periodDisplayName}, view='table')}, @{/songs(listenedDateFrom=${tf.listenedDateFrom}, listenedDateTo=${tf.listenedDateTo}, periodLabel=${tf.periodDisplayName}, view='table')})}"></div>
+                <div class="lb-foot tf-foot">
+                    <!-- One line: winners, number ones, then the legend and chart status at the right edge -->
+                    <span th:if="${tf.winningGenderName != null}" class="tf-chip tf-gender"
+                          th:classappend="${tf.winningGenderName.contains('Female')} ? 'female' : 'male'"
+                          th:title="${tf.totalDays != null and tf.totalDays > 0 and tf.playCount > 0 and periodType != 'days'} ? ${'Winning gender. Days where male plays were dominant: ' + tf.maleDays + ' of ' + tf.totalDays} : 'Winning gender'">
+                        <span th:text="${tf.winningGenderName}">Male</span>
+                        <span th:if="${periodType != 'days' and tf.playCount > 0 and tf.totalDays != null and tf.totalDays > 0}" class="tf-gender-days"
+                              th:text="${#numbers.formatDecimal(tf.maleDays * 100.0 / tf.totalDays, 1, 2) + (tf.winningGenderName.contains('Female') ? '% male days' : '% of days')}">90% of days</span>
+                    </span>
+                    <span th:if="${tf.winningGenderName == null and periodType != 'days' and tf.playCount > 0 and tf.totalDays != null and tf.totalDays > 0}"
+                          class="tf-chip tf-gender male"
+                          th:title="${'Days where male plays were dominant: ' + tf.maleDays + ' of ' + tf.totalDays}"
+                          th:text="${#numbers.formatDecimal(tf.maleDays * 100.0 / tf.totalDays, 1, 2) + '% male days'}">90% male days</span>
+                    <span th:if="${tf.winningGenreName != null}" class="tf-chip tf-cat genre" title="Winning genre" th:text="${tf.winningGenreName}">Genre</span>
+                    <span th:if="${tf.winningEthnicityName != null}" class="tf-chip tf-cat ethnicity" title="Winning ethnicity" th:text="${tf.winningEthnicityName}">Ethnicity</span>
+                    <span th:if="${tf.winningLanguageName != null}" class="tf-chip tf-cat language" title="Winning language" th:text="${tf.winningLanguageName}">Language</span>
+                    <span th:if="${tf.winningCountry != null}" class="tf-chip tf-cat country" title="Winning country" th:text="${tf.winningCountry}">Country</span>
 
                     <!-- Sort metric display (only for non-visible metrics) -->
                     <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'random' and sortBy != 'plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs'}">
@@ -1131,192 +1119,82 @@
                             <th:block th:case="'maledays'">Male Days:</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
-                            <th:block th:case="'maleartistpct'" th:text="${tf.artistCount > 0 ? #numbers.formatDecimal(tf.maleArtistCount * 100.0 / tf.artistCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'malealbumpct'" th:text="${tf.albumCount > 0 ? #numbers.formatDecimal(tf.maleAlbumCount * 100.0 / tf.albumCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'malesongpct'" th:text="${tf.songCount > 0 ? #numbers.formatDecimal(tf.maleSongCount * 100.0 / tf.songCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'maleplaypct'" th:text="${tf.playCount > 0 ? #numbers.formatDecimal(tf.malePlayCount * 100.0 / tf.playCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'maletimepct'" th:text="${tf.timeListened > 0 ? #numbers.formatDecimal(tf.maleTimeListened * 100.0 / tf.timeListened, 1, 1) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maleartistpct'" th:text="${tf.artistCount > 0 ? #numbers.formatDecimal(tf.maleArtistCount * 100.0 / tf.artistCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malealbumpct'" th:text="${tf.albumCount > 0 ? #numbers.formatDecimal(tf.maleAlbumCount * 100.0 / tf.albumCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malesongpct'" th:text="${tf.songCount > 0 ? #numbers.formatDecimal(tf.maleSongCount * 100.0 / tf.songCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maleplaypct'" th:text="${tf.playCount > 0 ? #numbers.formatDecimal(tf.malePlayCount * 100.0 / tf.playCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maletimepct'" th:text="${tf.timeListened > 0 ? #numbers.formatDecimal(tf.maleTimeListened * 100.0 / tf.timeListened, 1, 2) + '%' : 'N/A'}"></th:block>
                             <th:block th:case="'maledays'" th:text="${tf.totalDays != null ? tf.maleDays + '/' + tf.totalDays + ' days' : 'N/A'}"></th:block>
                         </span>
                     </div>
-                    
-                    <div class="catalog-stats">
-                        <div class="stat" th:classappend="${sortBy == 'artists' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎤</span>
-                            <span class="stat-value" th:text="${tf.artistCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">💿</span>
-                            <span class="stat-value" th:text="${tf.albumCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎵</span>
-                            <span class="stat-value" th:text="${tf.songCount}">0</span>
-                        </div>
-                    </div>
-                    <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat" th:classappend="${sortBy == 'plays' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" style="font-size: 1.08em;" th:text="${tf.playCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🕒</span>
-                            <span class="stat-value" th:text="${tf.timeListenedFormatted}">0m</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Gender breakdown bars -->
-                    <div class="gender-bars-container">
-                        <div class="gender-bar-row" th:if="${tf.maleArtistCount > 0 or tf.femaleArtistCount > 0 or tf.otherArtistCount > 0}">
-                            <span class="gender-bar-icon" title="Artists">🎤</span>
-                            <div class="gender-bar" th:with="total=${tf.maleArtistCount + tf.femaleArtistCount + tf.otherArtistCount}, malePct=${total > 0 ? (tf.maleArtistCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${tf.maleArtistCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tf.femaleArtistCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${tf.femaleArtistCount} + ' (' + ${#numbers.formatDecimal((tf.femaleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${tf.otherArtistCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${tf.otherArtistCount} + ' (' + ${#numbers.formatDecimal((tf.otherArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${tf.maleAlbumCount > 0 or tf.femaleAlbumCount > 0 or tf.otherAlbumCount > 0}">
-                            <span class="gender-bar-icon" title="Albums">💿</span>
-                            <div class="gender-bar" th:with="total=${tf.maleAlbumCount + tf.femaleAlbumCount + tf.otherAlbumCount}, malePct=${total > 0 ? (tf.maleAlbumCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${tf.maleAlbumCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tf.femaleAlbumCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${tf.femaleAlbumCount} + ' (' + ${#numbers.formatDecimal((tf.femaleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${tf.otherAlbumCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${tf.otherAlbumCount} + ' (' + ${#numbers.formatDecimal((tf.otherAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${tf.maleCount > 0 or tf.femaleCount > 0 or tf.otherCount > 0}">
-                            <span class="gender-bar-icon" title="Songs">🎵</span>
-                            <div class="gender-bar" th:with="total=${tf.maleCount + tf.femaleCount + tf.otherCount}, malePct=${total > 0 ? (tf.maleCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${tf.maleCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tf.femaleCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${tf.femaleCount} + ' (' + ${#numbers.formatDecimal((tf.femaleCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${tf.otherCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${tf.otherCount} + ' (' + ${#numbers.formatDecimal((tf.otherCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${tf.malePlayCount > 0 or tf.femalePlayCount > 0 or tf.otherPlayCount > 0}">
-                            <span class="gender-bar-icon total-plays" title="Plays">⏵</span>
-                            <div class="gender-bar" th:with="total=${tf.malePlayCount + tf.femalePlayCount + tf.otherPlayCount}, malePct=${total > 0 ? (tf.malePlayCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${tf.malePlayCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tf.femalePlayCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${tf.femalePlayCount} + ' (' + ${#numbers.formatDecimal((tf.femalePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${tf.otherPlayCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${tf.otherPlayCount} + ' (' + ${#numbers.formatDecimal((tf.otherPlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${tf.maleTimeListened > 0 or tf.femaleTimeListened > 0 or tf.otherTimeListened > 0}">
-                            <span class="gender-bar-icon" title="Listening Time">🕒</span>
-                            <div class="gender-bar" th:with="total=${tf.maleTimeListened + tf.femaleTimeListened + tf.otherTimeListened}, malePct=${total > 0 ? (tf.maleTimeListened * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tf.femaleTimeListened} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${#numbers.formatDecimal((tf.femaleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${tf.otherTimeListened} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${#numbers.formatDecimal((tf.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Male Days indicator (for all period types except days) -->
-                    <div th:if="${periodType != 'days' and tf.playCount > 0 and tf.totalDays != null}" class="male-days-stat">
-                        <span class="male-days-value"
-                              th:text="${tf.maleDays + '/' + tf.totalDays + ' days (' + (tf.totalDays > 0 ? #numbers.formatDecimal(tf.maleDays * 100.0 / tf.totalDays, 1, 0) : 0) + '%)'}"
-                              th:title="'Days where male plays were dominant: ' + ${tf.maleDays} + ' of ' + ${tf.totalDays}">0/0 days (0%)</span>
-                    </div>
-                    
-                    <!-- Top artist/album/song by plays -->
-                    <!-- For weeks: show artist (link to detail), album & song with trophy icons (link to chart) -->
-                    <!-- For days, months, decades: show all with regular icons linking to detail pages -->
-                    <!-- For seasons, years: show all with regular icons linking to detail pages (chart section shown separately below) -->
-                    <div th:if="${(tf.topArtistName != null or tf.topAlbumName != null or tf.topSongName != null) and (periodType == 'days' or periodType == 'weeks' or periodType == 'months' or periodType == 'seasons' or periodType == 'years' or periodType == 'decades')}"
-                         class="number-one-info">
-                        <a th:if="${tf.topArtistName != null}" 
-                           th:class="${'number-one-item' + (tf.topArtistGenderId == 2 ? ' gender-male' : (tf.topArtistGenderId == 1 ? ' gender-female' : ''))}" 
-                           th:href="@{'/artists/' + ${tf.topArtistId}}" onclick="event.stopPropagation();">
-                            <span class="label">🎤</span>
-                            <span class="name" th:text="${tf.topArtistName}" th:title="${tf.topArtistName}">Artist Name</span>
-                        </a>
-                        <!-- For weeks: album links to chart with trophy icon -->
-                        <a th:if="${tf.topAlbumName != null and periodType == 'weeks' and tf.hasChart == true}" 
-                           th:class="${'number-one-item' + (tf.topAlbumGenderId == 2 ? ' gender-male' : (tf.topAlbumGenderId == 1 ? ' gender-female' : ''))}" 
-                           th:href="@{'/charts/weekly/' + ${tf.periodKey}}" onclick="event.stopPropagation();" target="_blank">
-                            <span class="label">🏆</span>
-                            <span class="name" th:text="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}" th:title="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">Artist - Album</span>
-                        </a>
-                        <!-- For weeks without chart or non-weeks: album links to detail -->
-                        <a th:if="${tf.topAlbumName != null and (periodType != 'weeks' or tf.hasChart != true)}" 
-                           th:class="${'number-one-item' + (tf.topAlbumGenderId == 2 ? ' gender-male' : (tf.topAlbumGenderId == 1 ? ' gender-female' : ''))}" 
-                           th:href="@{'/albums/' + ${tf.topAlbumId}}" onclick="event.stopPropagation();">
-                            <span class="label">💿</span>
-                            <span class="name" th:text="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}" th:title="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">Artist - Album</span>
-                        </a>
-                        <!-- For weeks: song links to chart with trophy icon -->
-                        <a th:if="${tf.topSongName != null and periodType == 'weeks' and tf.hasChart == true}" 
-                           th:class="${'number-one-item' + (tf.topSongGenderId == 2 ? ' gender-male' : (tf.topSongGenderId == 1 ? ' gender-female' : ''))}" 
-                           th:href="@{'/charts/weekly/' + ${tf.periodKey}}" onclick="event.stopPropagation();" target="_blank">
-                            <span class="label">🏆</span>
-                            <span class="name" th:text="${tf.topSongArtistName + ' - ' + tf.topSongName}" th:title="${tf.topSongArtistName + ' - ' + tf.topSongName}">Artist - Song</span>
-                        </a>
-                        <!-- For weeks without chart or non-weeks: song links to detail -->
-                        <a th:if="${tf.topSongName != null and (periodType != 'weeks' or tf.hasChart != true)}" 
-                           th:class="${'number-one-item' + (tf.topSongGenderId == 2 ? ' gender-male' : (tf.topSongGenderId == 1 ? ' gender-female' : ''))}" 
-                           th:href="@{'/songs/' + ${tf.topSongId}}" onclick="event.stopPropagation();">
-                            <span class="label">🎵</span>
-                            <span class="name" th:text="${tf.topSongArtistName + ' - ' + tf.topSongName}" th:title="${tf.topSongArtistName + ' - ' + tf.topSongName}">Artist - Song</span>
-                        </a>
-                    </div>
+                    <!-- Number ones. Headphones = most played, trophy = chart #1 (only when the period has a chart) -->
+                    <span th:if="${tf.topArtistName != null or tf.topAlbumName != null or tf.topSongName != null or tf.numberOneAlbumId != null or tf.numberOneSongId != null}"
+                         class="tf-tops">
+                        <span class="tf-tops-k">#1</span>
+                        <a th:if="${tf.topArtistName != null}" class="tf-chip tf-top" th:classappend="${tf.topArtistGenderId == 2} ? 'male' : (${tf.topArtistGenderId == 1} ? 'female' : '')"
+                           th:href="@{'/artists/' + ${tf.topArtistId}}" th:title="${'Most played artist: ' + tf.topArtistName}">
+                            <span class="tf-ic tf-ic-plays" aria-hidden="true"></span><span class="tf-top-n" th:text="${tf.topArtistName}">Artist</span></a>
 
-                    <!-- #1 Album and Song from charts (for seasons, years - show after plays section, linking to chart) -->
-                    <!-- Note: weeks don't need this section since their plays-based section already links to chart -->
-                    <div th:if="${(periodType == 'seasons' and tf.seasonalChartFinalized == true) or (periodType == 'years' and tf.yearlyChartFinalized == true)}" 
-                         class="number-one-info" style="border-top-style: dashed;">
-                        <a th:if="${tf.numberOneAlbumName != null}" 
-                           th:class="${'number-one-item' + (tf.numberOneAlbumGenderId == 2 ? ' gender-male' : (tf.numberOneAlbumGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="${periodType == 'seasons' ? '/charts/seasonal/' + tf.periodKey : '/charts/yearly/' + tf.periodKey}"
-                           onclick="event.stopPropagation();" target="_blank" title="View chart">
-                            <span class="label">🏆</span>
-                            <span class="name" th:text="${tf.numberOneAlbumName}" th:title="${'Chart #1: ' + tf.numberOneAlbumName}">Album Name</span>
-                        </a>
-                        <a th:if="${tf.numberOneSongName != null}" 
-                           th:class="${'number-one-item' + (tf.numberOneSongGenderId == 2 ? ' gender-male' : (tf.numberOneSongGenderId == 1 ? ' gender-female' : ''))}" 
-                           th:href="${periodType == 'seasons' ? '/charts/seasonal/' + tf.periodKey : '/charts/yearly/' + tf.periodKey}"
-                           onclick="event.stopPropagation();" target="_blank" title="View chart">
-                            <span class="label">🏆</span>
-                            <span class="name" th:text="${tf.numberOneSongName}" th:title="${'Chart #1: ' + tf.numberOneSongName}">Song Name</span>
-                        </a>
-                    </div>
+                        <!-- Album: one chip when the chart #1 is the most played, a joined pair when they differ -->
+                        <a th:if="${tf.topAlbumName != null and !tf.chartAlbumDifferentFromTop}" class="tf-chip tf-top" th:classappend="${tf.topAlbumGenderId == 2} ? 'male' : (${tf.topAlbumGenderId == 1} ? 'female' : '')"
+                           th:href="@{'/albums/' + ${tf.topAlbumId}}"
+                           th:title="${(tf.chartAlbumSameAsTop ? 'Most played and chart #1 album: ' : 'Most played album: ') + tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">
+                            <span class="tf-ic tf-ic-plays" aria-hidden="true"></span><span th:if="${tf.chartAlbumSameAsTop}" class="tf-ic tf-ic-chart" aria-hidden="true"></span><span class="tf-top-n" th:text="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">Artist - Album</span></a>
+                        <span th:if="${tf.chartAlbumDifferentFromTop}" class="tf-pair">
+                            <a th:if="${tf.topAlbumName != null}" class="tf-chip tf-top" th:classappend="${tf.topAlbumGenderId == 2} ? 'male' : (${tf.topAlbumGenderId == 1} ? 'female' : '')"
+                               th:href="@{'/albums/' + ${tf.topAlbumId}}" th:title="${'Most played album: ' + tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">
+                                <span class="tf-ic tf-ic-plays" aria-hidden="true"></span><span class="tf-top-n" th:text="${tf.topAlbumArtistName + ' - ' + tf.topAlbumName}">Artist - Album</span></a>
+                            <a class="tf-chip tf-top tf-chart" th:classappend="${tf.numberOneAlbumGenderId == 2} ? 'male' : (${tf.numberOneAlbumGenderId == 1} ? 'female' : '')"
+                               th:href="@{'/albums/' + ${tf.numberOneAlbumId}}" th:title="${'Chart #1 album: ' + tf.numberOneAlbumName}">
+                                <span class="tf-ic tf-ic-chart" aria-hidden="true"></span><span class="tf-top-n" th:text="${tf.numberOneAlbumName}">Artist - Album</span></a>
+                    </span>
+
+                        <!-- Song: same rules as the album -->
+                        <a th:if="${tf.topSongName != null and !tf.chartSongDifferentFromTop}" class="tf-chip tf-top" th:classappend="${tf.topSongGenderId == 2} ? 'male' : (${tf.topSongGenderId == 1} ? 'female' : '')"
+                           th:href="@{'/songs/' + ${tf.topSongId}}"
+                           th:title="${(tf.chartSongSameAsTop ? 'Most played and chart #1 song: ' : 'Most played song: ') + tf.topSongArtistName + ' - ' + tf.topSongName}">
+                            <span class="tf-ic tf-ic-plays" aria-hidden="true"></span><span th:if="${tf.chartSongSameAsTop}" class="tf-ic tf-ic-chart" aria-hidden="true"></span><span class="tf-top-n" th:text="${tf.topSongArtistName + ' - ' + tf.topSongName}">Artist - Song</span></a>
+                        <span th:if="${tf.chartSongDifferentFromTop}" class="tf-pair">
+                            <a th:if="${tf.topSongName != null}" class="tf-chip tf-top" th:classappend="${tf.topSongGenderId == 2} ? 'male' : (${tf.topSongGenderId == 1} ? 'female' : '')"
+                               th:href="@{'/songs/' + ${tf.topSongId}}" th:title="${'Most played song: ' + tf.topSongArtistName + ' - ' + tf.topSongName}">
+                                <span class="tf-ic tf-ic-plays" aria-hidden="true"></span><span class="tf-top-n" th:text="${tf.topSongArtistName + ' - ' + tf.topSongName}">Artist - Song</span></a>
+                            <a class="tf-chip tf-top tf-chart" th:classappend="${tf.numberOneSongGenderId == 2} ? 'male' : (${tf.numberOneSongGenderId == 1} ? 'female' : '')"
+                               th:href="@{'/songs/' + ${tf.numberOneSongId}}" th:title="${'Chart #1 song: ' + tf.numberOneSongName}">
+                                <span class="tf-ic tf-ic-chart" aria-hidden="true"></span><span class="tf-top-n" th:text="${tf.numberOneSongName}">Artist - Song</span></a>
+                    </span>
+
+                    </span>
+
+                    <span class="tf-foot-end">
+                        <span th:if="${tf.numberOneAlbumId != null or tf.numberOneSongId != null}" class="tf-legend">
+                            <span class="tf-ic tf-ic-plays" aria-hidden="true"></span>Most played
+                            <span class="tf-ic tf-ic-chart" aria-hidden="true"></span>Chart #1
+                        </span>
+
+                        <th:block th:if="${periodType == 'weeks'}">
+                            <a th:if="${tf.hasChart == true}" th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}" target="_blank"
+                               class="chart-status-badge finalized" title="View chart for this week">Chart</a>
+                            <a th:if="${tf.hasChart != true and tf.weekComplete != true and tf.playCount > 0}"
+                               th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey}, preview=true)}" target="_blank"
+                               class="chart-status-badge pending" title="View live preview of this week's chart">Preview</a>
+                            <a th:if="${tf.hasChart != true and tf.weekComplete == true and tf.playCount > 0}"
+                               th:href="@{/charts/weekly/{pk}(pk=${tf.periodKey})}" target="_blank"
+                               class="chart-status-badge not-started" th:data-period-key="${tf.periodKey}"
+                               onclick="event.stopPropagation(); generateChartFromBadge(event, this);" title="Generate chart for this week">No chart</a>
+                            <span th:if="${tf.playCount == 0}" class="chart-status-badge zero-plays" title="No plays this week">No plays</span>
+                        </th:block>
+                        <th:block th:if="${periodType == 'seasons' or periodType == 'years'}"
+                                  th:with="chartUrl=${periodType == 'seasons' ? '/charts/seasonal/' : '/charts/yearly/'},
+                                           chartFinal=${periodType == 'seasons' ? tf.seasonalChartFinalized : tf.yearlyChartFinalized},
+                                           chartAny=${periodType == 'seasons' ? tf.hasSeasonalChart : tf.hasYearlyChart}">
+                            <a th:if="${chartFinal == true}" th:href="@{${chartUrl + tf.periodKey}}" target="_blank"
+                               class="chart-status-badge finalized" title="View finalized chart">Chart final</a>
+                            <a th:if="${chartAny == true and chartFinal != true}" th:href="@{${chartUrl + tf.periodKey}}" target="_blank"
+                               class="chart-status-badge draft" title="View draft chart">Chart draft</a>
+                            <a th:if="${chartAny != true}" th:href="@{${chartUrl + tf.periodKey}}" target="_blank"
+                               class="chart-status-badge not-started" title="Create chart">No chart</a>
+                        </th:block>
+                    </span>
                 </div>
             </div>
 
@@ -1381,11 +1259,11 @@
                             <td class="numeric-cell" th:text="${tf.songCount}">0</td>
                             <td class="numeric-cell" th:text="${tf.playCount}">0</td>
                             <td class="numeric-cell" th:text="${tf.timeListenedFormatted}">0m</td>
-                            <td class="numeric-cell" th:text="${tf.maleArtistPercentage != null ? #numbers.formatDecimal(tf.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
-                            <td class="numeric-cell" th:text="${tf.maleAlbumPercentage != null ? #numbers.formatDecimal(tf.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>
-                            <td class="numeric-cell" th:text="${tf.maleSongPercentage != null ? #numbers.formatDecimal(tf.maleSongPercentage, 1, 1) + '%' : '-'}">-</td>
-                            <td class="numeric-cell" th:text="${tf.malePlayPercentage != null ? #numbers.formatDecimal(tf.malePlayPercentage, 1, 1) + '%' : '-'}">-</td>
-                            <td class="numeric-cell" th:text="${tf.maleTimePercentage != null ? #numbers.formatDecimal(tf.maleTimePercentage, 1, 1) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.maleArtistPercentage != null ? #numbers.formatDecimal(tf.maleArtistPercentage, 1, 2) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.maleAlbumPercentage != null ? #numbers.formatDecimal(tf.maleAlbumPercentage, 1, 2) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.maleSongPercentage != null ? #numbers.formatDecimal(tf.maleSongPercentage, 1, 2) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.malePlayPercentage != null ? #numbers.formatDecimal(tf.malePlayPercentage, 1, 2) + '%' : '-'}">-</td>
+                            <td class="numeric-cell" th:text="${tf.maleTimePercentage != null ? #numbers.formatDecimal(tf.maleTimePercentage, 1, 2) + '%' : '-'}">-</td>
                             <td th:if="${periodType != 'days'}" class="numeric-cell" th:text="${tf.totalDays != null ? tf.maleDays + '/' + tf.totalDays : '-'}">-</td>
                             <td>
                                 <span th:if="${tf.winningGenderName != null}"
@@ -1425,11 +1303,11 @@
         const periodType = /*[[${periodType}]]*/ 'days';
         /*]]>*/
         
-        // Handler for timeframe card clicks - navigates to the songs list with date range in a new tab
-        function handleTimeframeCardClick(card) {
-            const dateFrom = card.getAttribute('data-date-from');
-            const dateTo = card.getAttribute('data-date-to');
-            const periodLabel = card.getAttribute('data-period-label');
+        // Table row clicks open the songs list for that date range in a new tab
+        function handleTimeframeRowClick(row) {
+            const dateFrom = row.getAttribute('data-date-from');
+            const dateTo = row.getAttribute('data-date-to');
+            const periodLabel = row.getAttribute('data-period-label');
             const params = new URLSearchParams({
                 listenedDateFrom: dateFrom,
                 listenedDateTo: dateTo,
@@ -1437,10 +1315,6 @@
                 view: 'table'
             });
             window.open('/songs?' + params.toString(), '_blank');
-        }
-
-        function handleTimeframeRowClick(row) {
-            handleTimeframeCardClick(row);
         }
 
         function switchTimeframeView(viewName) {
@@ -1487,7 +1361,7 @@
             const periodKey = badge.getAttribute('data-period-key');
             if (!periodKey) return;
             
-            badge.innerHTML = '⏳';
+            badge.textContent = 'Generating';
             badge.classList.remove('not-started');
             badge.classList.add('pending');
             
@@ -1503,7 +1377,7 @@
                     // Change to finalized badge
                     badge.classList.remove('pending');
                     badge.classList.add('finalized');
-                    badge.innerHTML = '✓';
+                    badge.textContent = 'Chart';
                     badge.title = 'View chart for this week';
                     badge.onclick = function(e) { e.stopPropagation(); };
                 } else {
@@ -1511,13 +1385,13 @@
                     showErrorToast('Failed to generate chart: ' + error);
                     badge.classList.remove('pending');
                     badge.classList.add('not-started');
-                    badge.innerHTML = '✗';
+                    badge.textContent = 'Failed';
                 }
             } catch (error) {
                 showErrorToast('Error generating chart: ' + error.message);
                 badge.classList.remove('pending');
                 badge.classList.add('not-started');
-                badge.innerHTML = '✗';
+                badge.textContent = 'Failed';
             }
         }
         
@@ -1949,7 +1823,7 @@
                     if (!resp.ok) throw new Error('Network error');
                     const html = await resp.text();
                     const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const newCards = doc.querySelectorAll('#tfGrid .catalog-card');
+                    const newCards = doc.querySelectorAll('#tfGrid .lb-row');
                     addedCount = newCards.length;
                     newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
                     updateCounterText(addedCount);

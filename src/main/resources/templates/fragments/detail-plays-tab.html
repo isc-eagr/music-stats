@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<!--
+  Plays tab shared by the artist, album and song detail pages.
+  tab: DetailPlaysService.PlaysTab; kind: 'artist' | 'album' | 'song';
+  genderLabel: 'Male' / 'Female' / '' for the per-year gender rank column; rankMovesUrl: JSON endpoint.
+  The page's own Full history section follows this fragment with id="dpFullHistory".
+-->
+<div th:fragment="tab(tab, kind, genderLabel, rankMovesUrl)" class="dp" th:attr="data-rank-moves-url=${rankMovesUrl},data-kind=${kind}">
+
+    <!-- Plays over time: per month, running total, or one year's calendar -->
+    <section class="ad-card ad-section dp-card" data-dp-chart>
+        <div class="ad-sec-head">
+            <h2>Plays over time
+                <span class="ad-count" data-dp-head-count th:text="${#numbers.formatInteger(tab.total, 1, 'COMMA')}">0</span>
+            </h2>
+            <div class="ad-view-toggle" role="group" aria-label="Plays over time view">
+                <button type="button" class="is-active" data-dp-mode="monthly" aria-pressed="true">Per month</button>
+                <button type="button" data-dp-mode="cumulative" aria-pressed="false">Running total</button>
+                <button type="button" data-dp-mode="calendar" aria-pressed="false">Calendar</button>
+            </div>
+        </div>
+        <th:block th:if="${tab.total == 0}">
+            <p class="dp-empty">No plays yet</p>
+        </th:block>
+        <th:block th:unless="${tab.total == 0}">
+            <div data-dp-line>
+                <div class="dp-legend">
+                    <span><i class="dp-lg-line"></i><span data-dp-line-label>Plays per month</span></span>
+                    <span data-dp-legend-release><i class="dp-lg-pin"></i>Release</span>
+                    <span data-dp-legend-milestone><i class="dp-lg-ms"></i>Milestone</span>
+                    <span data-dp-legend-peak><i class="dp-lg-peak"></i>Peak month</span>
+                    <span class="dp-legend-hint">Hover for the month</span>
+                </div>
+                <div class="dp-plot" data-dp-plot></div>
+                <div class="dp-axis" data-dp-axis></div>
+            </div>
+            <div data-dp-cal hidden>
+                <div class="dp-cal-head"><span class="dp-head-note">Every day of the year</span><div data-dp-cal-years></div></div>
+                <div class="dp-cal-scroll" tabindex="0" aria-label="Daily plays calendar; scroll sideways on small screens">
+                    <div class="dp-cal" data-dp-cal-grid></div>
+                </div>
+                <div class="dp-cal-foot">
+                    <div class="ad-tags" data-dp-cal-facts></div>
+                    <span class="dp-scale">Fewer<i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i>More<i class="lv-rel"></i>Release</span>
+                </div>
+            </div>
+        </th:block>
+    </section>
+
+    <!-- Plays by year: always all time -->
+    <section class="ad-card ad-section dp-card" th:if="${!tab.years.isEmpty()}">
+        <div class="ad-sec-head">
+            <h2>Plays by year <span class="dp-scope">All time</span></h2>
+            <span class="dp-head-note">Strip = Jan to Dec, brighter = more · gold = best month</span>
+        </div>
+        <div class="dp-ledger-scroll">
+            <div class="dp-ledger" th:classappend="${kind == 'song'} ? 'is-song' : ''">
+                <div class="dp-lr dp-lr-head">
+                    <span></span><span>Year</span><span>Plays</span><span class="is-r">Share</span>
+                    <span th:text="${#strings.isEmpty(genderLabel) ? 'Gender' : genderLabel} + ' rk'">Male rk</span>
+                    <span>Overall</span><span>Jan → Dec</span>
+                    <span th:if="${kind != 'song'}">Top song</span>
+                    <span class="is-r">vs prev</span>
+                </div>
+                <th:block th:each="y, st : ${tab.years}">
+                    <div class="dp-lr" th:attr="data-dp-year=${y.year}">
+                        <button type="button" class="dp-ex" th:attr="aria-expanded=false,aria-label='Show ' + ${y.year} + ' details'" data-dp-year-toggle>
+                            <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+                        <span class="dp-yy ad-num" th:text="${y.year}">2026</span>
+                        <span class="dp-pc">
+                            <b class="ad-num" th:text="${#numbers.formatInteger(y.plays, 1, 'COMMA')}">0</b>
+                            <span class="dp-mb" th:title="'Primary ' + ${#numbers.formatInteger(y.primary, 1, 'COMMA')} + ' · Legacy ' + ${#numbers.formatInteger(y.legacy, 1, 'COMMA')}">
+                                <span th:style="|width: ${y.barPct}%|"><i th:style="|flex: ${y.primary} 1 0|"></i><i class="is-legacy" th:if="${y.legacy > 0}" th:style="|flex: ${y.legacy} 1 0|"></i></span>
+                            </span>
+                        </span>
+                        <span class="is-r ad-num dp-dim" th:text="${y.share} + '%'">0%</span>
+                        <span><span th:if="${y.genderRank != null}" class="ad-rank"
+                                    th:classappend="${y.genderRank == 1} ? 'is-gold' : (${y.genderRank > 50} ? 'is-far' : '')"
+                                    th:text="'#' + ${#numbers.formatInteger(y.genderRank, 1, 'COMMA')}">#1</span><span th:if="${y.genderRank == null}" class="dp-dim">-</span></span>
+                        <span><span th:if="${y.overallRank != null}" class="ad-rank"
+                                    th:classappend="${y.overallRank == 1} ? 'is-gold' : (${y.overallRank > 100} ? 'is-far' : '')"
+                                    th:text="'#' + ${#numbers.formatInteger(y.overallRank, 1, 'COMMA')}">#1</span><span th:if="${y.overallRank == null}" class="dp-dim">-</span></span>
+                        <span class="dp-strip">
+                            <i th:each="m, ms : ${y.months}" th:classappend="${m > 0 and m == y.bestMonthPlays} ? 'is-best' : ''"
+                               th:style="|--a: ${y.shades[ms.index]}|"
+                               th:title="${#dates.monthNameShort(#dates.create(2000, ms.count, 1))} + ' ' + ${y.year} + ': ' + ${#numbers.formatInteger(m, 1, 'COMMA')} + ' plays'"></i>
+                        </span>
+                        <span th:if="${kind != 'song'}" class="dp-ts">
+                            <th:block th:if="${!y.topSongs.isEmpty()}">
+                                <a th:href="@{/songs/{id}(id=${y.topSongs[0].id})}" th:text="${y.topSongs[0].name}">Song</a>
+                                <small th:text="${#numbers.formatInteger(y.topSongs[0].plays, 1, 'COMMA')} + ' plays'">0 plays</small>
+                            </th:block>
+                            <span th:if="${y.topSongs.isEmpty()}" class="dp-dim">-</span>
+                        </span>
+                        <span class="is-r dp-chg ad-num"
+                              th:classappend="${y.change == null or y.partial} ? 'is-nil' : (${y.change >= 0} ? 'is-up' : 'is-down')"
+                              th:text="${y.partial} ? 'so far' : (${y.change == null} ? (${st.last} ? 'first' : '-') : (${y.change > 0} ? '+' : '') + ${y.change} + '%')">+0%</span>
+                    </div>
+                    <div class="dp-panel" th:attr="data-dp-panel=${y.year}" hidden>
+                        <div>
+                            <p class="ad-cap" th:text="${y.year} + ' month by month'">Month by month</p>
+                            <div class="dp-mbars">
+                                <div th:each="m, ms : ${y.months}">
+                                    <b class="ad-num" th:text="${m > 0} ? ${#numbers.formatInteger(m, 1, 'COMMA')} : ''"></b>
+                                    <i th:classappend="${m > 0 and m == y.bestMonthPlays} ? 'is-best' : ''" th:style="|height: ${y.heights[ms.index]}px|"></i>
+                                    <span th:text="${#strings.substring(#dates.monthNameShort(#dates.create(2000, ms.count, 1)), 0, 1)}">J</span>
+                                </div>
+                            </div>
+                            <div class="ad-tags dp-panel-facts">
+                                <span class="ad-fact is-gold" th:if="${y.bestMonth > 0}">Best month <b class="ad-num" th:text="${#dates.monthNameShort(#dates.create(2000, y.bestMonth, 1))} + ' · ' + ${#numbers.formatInteger(y.bestMonthPlays, 1, 'COMMA')}">May</b></span>
+                                <span class="ad-fact">Active months <b class="ad-num" th:text="${y.activeMonths}">0</b></span>
+                                <span class="ad-fact" th:if="${y.legacy > 0}">Legacy <b class="ad-num" th:text="${#numbers.formatInteger(y.legacy, 1, 'COMMA')}">0</b></span>
+                            </div>
+                        </div>
+                        <div th:if="${kind != 'song' and !y.topSongs.isEmpty()}">
+                            <p class="ad-cap" th:text="'Top songs in ' + ${y.year}">Top songs</p>
+                            <a th:each="s, ss : ${y.topSongs}" class="dp-hl" th:href="@{/songs/{id}(id=${s.id})}">
+                                <span class="dp-ix ad-num" th:text="${ss.count}">1</span>
+                                <span class="dp-hl-n" th:text="${s.name}">Song</span>
+                                <span class="dp-bx"><span><i th:style="|width: ${s.plays * 100 / y.topSongs[0].plays}%|"></i></span><b class="ad-num" th:text="${#numbers.formatInteger(s.plays, 1, 'COMMA')}">0</b></span>
+                            </a>
+                        </div>
+                    </div>
+                </th:block>
+                <div class="dp-lr dp-lr-total">
+                    <span></span><span class="dp-total-k">Total</span>
+                    <span class="dp-pc"><b class="ad-num" th:text="${#numbers.formatInteger(tab.total, 1, 'COMMA')}">0</b>
+                        <small th:if="${tab.legacy > 0}" th:text="'Primary ' + ${#numbers.formatInteger(tab.primary, 1, 'COMMA')} + ' · Legacy ' + ${#numbers.formatInteger(tab.legacy, 1, 'COMMA')}"></small></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- When you listen: one scope switch (all time or a year) drives the four panels -->
+    <section class="ad-card ad-section dp-card" th:if="${tab.total > 0}" data-dp-rhythm>
+        <div class="ad-sec-head">
+            <h2>When you listen <span class="dp-head-note" data-dp-rh-summary></span></h2>
+            <div data-dp-rh-scopes></div>
+        </div>
+        <div class="dp-rgrid">
+            <div>
+                <p class="ad-cap">Hour of day</p>
+                <div class="dp-hours" data-dp-hours></div>
+                <div class="dp-hax"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
+                <p class="dp-note" data-dp-hours-note></p>
+            </div>
+            <div>
+                <p class="ad-cap">Day of week</p>
+                <div class="dp-mbars dp-moy dp-wk" data-dp-week></div>
+                <p class="dp-note" data-dp-week-note></p>
+            </div>
+            <div>
+                <p class="ad-cap" data-dp-months-title>Month of year</p>
+                <div class="dp-mbars dp-moy" data-dp-months></div>
+            </div>
+            <div>
+                <p class="ad-cap">Biggest days</p>
+                <div data-dp-top-days></div>
+            </div>
+        </div>
+        <p class="dp-foot-note" data-dp-excluded hidden></p>
+    </section>
+
+    <!-- Always all time -->
+    <div class="dp-pair">
+        <section class="ad-card ad-section dp-card dp-moves" data-dp-moves>
+            <div class="ad-sec-head">
+                <h2>Rank moves <span class="ad-rank" data-dp-moves-rank hidden></span></h2>
+                <span class="dp-scope">All time</span>
+            </div>
+            <p class="dp-sub" data-dp-moves-summary>Loading…</p>
+            <div class="dp-list" data-dp-moves-list></div>
+            <div class="dp-more" data-dp-moves-more hidden><button type="button" class="ad-btn ad-btn--pill">Show older moves</button></div>
+        </section>
+        <section class="ad-card ad-section dp-card">
+            <div class="ad-sec-head">
+                <h2>Latest plays <span class="dp-scope">All time</span></h2>
+                <button type="button" class="ad-btn" data-dp-history-toggle aria-controls="dpFullHistory" aria-expanded="false">Full history
+                    <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+            </div>
+            <div class="dp-list">
+                <div th:each="p, ps : ${tab.latest}" class="dp-lp">
+                    <span class="ad-num dp-lp-d" th:classappend="${!ps.first and tab.latest[ps.index - 1].date == p.date} ? 'is-same' : ''" th:text="${p.date}">01/01/2026</span>
+                    <span class="ad-num dp-lp-t" th:text="${p.time}">00:00</span>
+                    <span class="dp-lp-nm">
+                        <!-- Album cover first, then the song's own cover (no album, or an album without art) -->
+                        <span class="dp-cov"><img loading="lazy" decoding="async" alt=""
+                                                   th:src="${p.albumId != null} ? @{'/albums/' + ${p.albumId} + '/image?thumbnail=true'} : @{'/songs/' + ${p.songId} + '/image?thumbnail=true'}"
+                                                   th:attr="data-fallback=${p.albumId != null} ? @{'/songs/' + ${p.songId} + '/image?thumbnail=true'} : null"
+                                                   onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; delete this.dataset.fallback; } else { this.remove(); }"></span>
+                        <span class="dp-lp-tx">
+                            <a th:href="@{/songs/{id}(id=${p.songId})}" th:text="${p.songName}">Song</a>
+                            <small><em th:if="${p.sourceLabel != null}" th:text="${p.sourceLabel} + ' · '"></em><th:block th:text="${p.albumName != null} ? ${p.albumName} : 'No album'"></th:block></small>
+                        </span>
+                    </span>
+                </div>
+                <p th:if="${tab.latest.isEmpty()}" class="dp-sub">No plays recorded</p>
+            </div>
+        </section>
+    </div>
+
+    <script th:inline="javascript">
+        window.detailPlaysData = /*[[${tab.chart}]]*/ {};
+    </script>
+</div>
+</body>
+</html>

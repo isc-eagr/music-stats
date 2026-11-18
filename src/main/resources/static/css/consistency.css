@@ -1,0 +1,209 @@
+/* Consistency ledger (fragments/consistency.html). Gender colors come from the detail page (--ad-*)
+   or the list card (--gc-*) it sits in. */
+.cons {
+    --cons-c: var(--ad-c, var(--gc-c, #a1a1aa));
+    --cons-t: var(--ad-t, var(--gc-t, #d4d4d8));
+    --cons-lbl: var(--ad-lbl, var(--gc-lbl, rgba(212, 212, 216, 0.62)));
+    --cons-mut: var(--ad-mut, var(--gc-muted, rgba(212, 212, 216, 0.72)));
+    --cons-hair: var(--ad-hair, var(--gc-hair, rgba(161, 161, 170, 0.15)));
+    --cons-tint: var(--ad-tint, var(--gc-tint, rgba(161, 161, 170, 0.1)));
+    --cons-num-font: var(--ad-num, var(--gc-num, 'Space Grotesk', Inter, system-ui, sans-serif));
+    margin-top: 18px;
+    padding: 16px 20px 6px;
+    border: 1px solid var(--cons-hair);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.cons-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.cons-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #f2f2f4;
+}
+
+.cons-sub {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--cons-mut);
+}
+
+.cons-badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--cons-hair);
+    background: var(--cons-tint);
+    color: var(--cons-t);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.cons-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.cons-table thead th {
+    padding: 0 0 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+    color: var(--cons-lbl);
+    border-bottom: 1px solid var(--cons-hair);
+}
+
+.cons-table tbody th,
+.cons-table td {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--cons-hair);
+    vertical-align: middle;
+}
+
+.cons-table tbody tr:last-child th,
+.cons-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.cons-table tbody th {
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    color: #f2f2f4;
+}
+
+.cons-table .cons-num {
+    text-align: right;
+    padding-left: 20px;
+    white-space: nowrap;
+}
+
+.cons-count {
+    font-size: 14px;
+    color: var(--cons-mut);
+}
+
+.cons-count b {
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.cons-bar {
+    display: block;
+    width: 150px;
+    max-width: 100%;
+    height: 4px;
+    margin: 6px 0 0 auto;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.cons-bar > span {
+    display: block;
+    height: 100%;
+    min-width: 3px;
+    max-width: 100%;
+    border-radius: 2px;
+    background: var(--cons-c);
+}
+
+.cons-share,
+.cons-rank {
+    font-family: var(--cons-num-font);
+    font-size: 16px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.cons-rank {
+    font-weight: 700;
+}
+
+.cons-rank.is-top {
+    color: var(--cons-t);
+}
+
+.cons-grank {
+    font-size: 14px;
+    color: var(--cons-mut);
+}
+
+/* List card More panel: no subtitle, no gender rank, tighter rows */
+.cons-compact {
+    margin-top: 14px;
+    padding: 12px 14px 4px;
+    border-radius: 12px;
+}
+
+.mm-cap + .cons-compact {
+    margin-top: 0;
+}
+
+.cons-compact .cons-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cons-lbl);
+}
+
+.cons-compact .cons-badge {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+
+.cons-compact .cons-table tbody th,
+.cons-compact .cons-table td {
+    padding: 8px 0;
+}
+
+.cons-compact .cons-table tbody th,
+.cons-compact .cons-count {
+    font-size: 12.5px;
+}
+
+.cons-compact .cons-table .cons-num {
+    padding-left: 12px;
+}
+
+.cons-compact .cons-share {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--cons-mut);
+}
+
+.cons-compact .cons-rank {
+    font-size: 14px;
+}
+
+.cons-compact .cons-bar {
+    width: 100%;
+    height: 3px;
+    margin-top: 5px;
+}
+
+@media (max-width: 600px) {
+    .cons {
+        padding: 12px 12px 4px;
+    }
+
+    .cons-table .cons-num {
+        padding-left: 10px;
+    }
+
+    .cons-bar {
+        width: 100%;
+    }
+}

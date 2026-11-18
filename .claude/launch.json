@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "music-stats-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "C:\\Code\\music-stats\\music-stats-dev.bat"],
+      "port": 8081,
+      "autoPort": false
+    }
+  ]
+}

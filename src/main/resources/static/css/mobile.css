@@ -365,8 +365,7 @@
     .plays-tab-content,
     .chart-history-content,
     .detail-content-section,
-    .detail-content-card,
-    .ch-section {
+    .detail-content-card {
         min-width: 0 !important;
         max-width: 100vw !important;
     }
@@ -975,11 +974,6 @@
         display: none;
     }
 
-    /* Chart containers - better sizing */
-    .chart-container canvas {
-        max-height: 250px !important;
-    }
-
     /* Chart scroll container - fade indicator */
     .chart-scroll-container {
         position: relative;
@@ -1045,18 +1039,13 @@
 
 /* Disable hover lift/shadow effects on touch devices */
 @media (hover: none) {
-    .catalog-card:hover {
-        transform: none !important;
-        box-shadow: none !important;
-    }
-
-    .catalog-image:hover img {
+    .lb-row:hover {
         transform: none !important;
     }
 
     /* Meaningful active states for touch feedback */
-    .catalog-card:active {
-        transform: scale(0.98) !important;
+    .lb-row:active {
+        transform: scale(0.99) !important;
         transition: transform 0.1s !important;
     }
 
@@ -1125,25 +1114,6 @@
 }
 
 /* =============================================
-   10. SECONDARY CATALOG CARDS - 2-COL GRID
-   ============================================= */
-
-@media (min-width: 481px) and (max-width: 768px) {
-    /* Secondary catalogs can be 2 columns - they have simpler cards */
-    .catalog-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
-    }
-}
-
-@media (max-width: 480px) {
-    .catalog-grid {
-        grid-template-columns: 1fr !important;
-        gap: 10px !important;
-    }
-}
-
-/* =============================================
    11. DETAIL PAGE LAYOUT GRID ENFORCEMENT
    ============================================= */
 @media (max-width: 900px) {
@@ -1170,40 +1140,5 @@
         max-width: 100% !important;
         gap: 20px !important;
         align-items: stretch !important; /* Force children to stretch */
-    }
-}
-
-/* =============================================
-   12. FEATURED ARTIST HORIZONTAL MOBILE CARD
-   ============================================= */
-@media (max-width: 900px) {
-    .featured-artist-grid {
-        display: grid !important;
-        grid-template-columns: 1fr !important;
-        gap: 12px !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-    }
-    .featured-artist-card {
-        display: flex !important;
-        flex-direction: row !important;
-        width: 100% !important;
-        height: 75px !important; /* height adjusted for 2:3 ratio based on 50px width */
-        box-sizing: border-box !important;
-    }
-    .featured-artist-card .featured-artist-image {
-        width: 50px !important;
-        height: 75px !important;
-        aspect-ratio: 2/3 !important;
-        flex-shrink: 0;
-    }
-    .featured-artist-card .featured-artist-name {
-        display: flex;
-        align-items: center;
-        padding-left: 12px;
-        font-size: 14px;
-        flex-grow: 1;
-        justify-content: flex-start;
-        text-align: left;
     }
 }

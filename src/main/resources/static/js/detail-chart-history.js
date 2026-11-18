@@ -1,890 +1,529 @@
+/* Detail pages Chart History tab (fragments/detail-chart-history.html):
+   chart tiles switch sections, Songs / Albums switches, run bars loaded lazily from each
+   card's run endpoint (expand a card for the numbered run), and the Seasonal + Yearly calendar. */
 (function () {
+    'use strict';
+
+    var MAX_PARALLEL = 4;
     var runCache = new Map();
+    var queue = [];
+    var running = 0;
+    var observer = null;
 
-    var runTableConfig = {
-        weekly: {
-            noTrack: { expand: 0, cover: 1, title: 2, span: 3, peak: 4, atPeak: 5, release: 6, debut: 7, peakDate: 8 },
-            track: { expand: 0, cover: 1, track: 2, title: 3, span: 4, peak: 5, atPeak: 6, release: 7, debut: 8, peakDate: 9 }
-        },
-        recap: {
-            noTrack: { expand: 0, cover: 1, title: 2, span: 3, peak: 4, atPeak: 5, debut: 6, peakDate: 7 },
-            track: { expand: 0, cover: 1, track: 2, title: 3, span: 4, peak: 5, atPeak: 6, debut: 7, peakDate: 8 }
+    function init() {
+        document.querySelectorAll('.chh').forEach(function (root) {
+            bindTiles(root);
+            bindSwitches(root);
+            bindCalendar(root);
+            restoreState(root);
+            bindRuns(root);
+        });
+    }
+
+    // State kept in the URL (detail-state.js) so a reload or an Include toggle comes back here:
+    // chart = tile key, chartView = songs / albums, chartPeriod = calendar cell id
+    function record(name, value, defaultValue) {
+        if (window.DetailState) {
+            window.DetailState.setParam(name, value, defaultValue);
         }
-    };
+    }
 
-    function initDetailChartHistory() {
-        enhanceRunSections();
-        enhancePeriodSections();
+    function restoreState(root) {
+        if (!window.DetailState) {
+            return;
+        }
+        var chart = window.DetailState.getParam('chart');
+        var tile = chart ? root.querySelector('.chh-tile[data-chh-key="' + cssEscape(chart) + '"]') : null;
+        if (tile) {
+            activateTile(root, tile);
+        }
+        var period = window.DetailState.getParam('chartPeriod');
+        var cell = period ? root.querySelector('[data-chh-cell="' + cssEscape(period) + '"]') : null;
+        var view = window.DetailState.getParam('chartView');
+        var section = visibleSection(root);
+        if (cell && section && section.contains(cell)) {
+            view = cell.closest('[data-chh-view]').dataset.chhView;
+        }
+        if (view && section) {
+            var btn = section.querySelector('[data-chh-view-btn="' + cssEscape(view) + '"]');
+            if (btn) {
+                activateView(section, btn);
+            }
+        }
+        if (cell) {
+            selectCell(cell.closest('.chh-cal'), cell);
+        }
+    }
+
+    function visibleSection(root) {
+        var sections = root.querySelectorAll('[data-chh-section]');
+        for (var i = 0; i < sections.length; i++) {
+            if (!sections[i].hidden) return sections[i];
+        }
+        return null;
+    }
+
+    function cssEscape(value) {
+        return window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initDetailChartHistory);
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        initDetailChartHistory();
+        init();
     }
 
-    function enhanceRunSections() {
-        var sectionModes = {
-            'ch-weekly-section': 'weekly',
-            'ch-bb-section': 'bb',
-            'ch-pc-section': 'pc',
-            'ch-trl-section': 'trl'
-        };
-
-        Object.keys(sectionModes).forEach(function (sectionId) {
-            var section = document.getElementById(sectionId);
-            if (!section) {
-                return;
-            }
-
-            var mode = sectionModes[sectionId];
-            section.querySelectorAll('.table-wrapper > table').forEach(function (table) {
-                if (table.dataset.detailChartHistoryEnhanced === '1') {
-                    return;
-                }
-                enhanceRunTable(table, mode);
+    // ── Tiles: show the section the tile targets ──
+    function bindTiles(root) {
+        var tiles = root.querySelectorAll('.chh-tile');
+        var firstKey = tiles.length ? tiles[0].dataset.chhKey : null;
+        tiles.forEach(function (tile) {
+            tile.addEventListener('click', function () {
+                activateTile(root, tile);
+                record('chart', tile.dataset.chhKey, firstKey);
+                record('chartView', null);
             });
         });
     }
 
-    function enhancePeriodSections() {
-        ['ch-seasonal-section', 'ch-yearly-section'].forEach(function (sectionId) {
-            var section = document.getElementById(sectionId);
-            if (!section) {
-                return;
-            }
+    function activateTile(root, tile) {
+        root.querySelectorAll('.chh-tile').forEach(function (t) {
+            var on = t === tile;
+            t.classList.toggle('is-active', on);
+            t.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        var target = tile.dataset.chhTarget;
+        root.querySelectorAll('[data-chh-section]').forEach(function (section) {
+            section.hidden = section.dataset.chhSection !== target;
+        });
+    }
 
-            section.querySelectorAll('.table-wrapper > table').forEach(function (table) {
-                if (table.dataset.detailChartHistoryEnhanced === '1') {
-                    return;
-                }
-                enhancePeriodTable(table);
+    // ── Songs / Albums switch inside a section ──
+    function bindSwitches(root) {
+        root.querySelectorAll('.chh-switch').forEach(function (group) {
+            var section = group.closest('[data-chh-section]');
+            group.querySelectorAll('[data-chh-view-btn]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    activateView(section, btn);
+                    record('chartView', btn.dataset.chhViewBtn);
+                });
             });
         });
     }
 
-    function enhanceRunTable(table, mode) {
-        table.dataset.detailChartHistoryEnhanced = '1';
-
-        var headerTexts = getHeaderTexts(table);
-        var hasTrack = headerTexts.indexOf('#') !== -1;
-        var groupKey = mode === 'weekly' ? 'weekly' : 'recap';
-        var config = runTableConfig[groupKey][hasTrack ? 'track' : 'noTrack'];
-        var isWeekly = mode === 'weekly';
-
-        var wrapper = table.closest('.table-wrapper');
-        if (wrapper) {
-            wrapper.classList.add(isWeekly ? 'charts-table-wrapper' : 'recap-table-wrap');
+    function activateView(section, btn) {
+        var view = btn.dataset.chhViewBtn;
+        section.querySelectorAll('[data-chh-view-btn]').forEach(function (b) {
+            var on = b === btn;
+            b.classList.toggle('is-active', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        section.querySelectorAll('[data-chh-view]').forEach(function (panel) {
+            panel.hidden = panel.dataset.chhView !== view;
+        });
+        var sub = section.querySelector('.chh-title-sub');
+        var text = sub && sub.getAttribute('data-chh-sub-' + view);
+        if (text) {
+            sub.textContent = text;
         }
-        table.classList.add(isWeekly ? 'charts-table' : 'recap-table', 'mobile-compact-table');
+    }
 
-        var headRow = table.tHead && table.tHead.rows && table.tHead.rows.length ? table.tHead.rows[0] : null;
-        if (headRow) {
-            insertMobileHeaderCell(headRow);
-            styleRunHeaders(headRow, config);
-        }
-
-        var tbody = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
-        if (!tbody) {
-            return;
-        }
-
-        Array.from(tbody.rows).forEach(function (row) {
-            if (isHelperRow(row)) {
-                return;
-            }
-
-            var info = extractRunRowInfo(row, config, mode);
-            row._detailChartHistory = info;
-            styleRunRow(row, config, mode, info);
+    // ── Calendar: a cell shows its period's entries ──
+    function bindCalendar(root) {
+        root.querySelectorAll('.chh-cal').forEach(function (grid) {
+            grid.querySelectorAll('[data-chh-cell]').forEach(function (cell) {
+                cell.addEventListener('click', function () {
+                    selectCell(grid, cell);
+                    record('chartPeriod', cell.dataset.chhCell);
+                });
+            });
         });
     }
 
-    function enhancePeriodTable(table) {
-        table.dataset.detailChartHistoryEnhanced = '1';
+    function selectCell(grid, cell) {
+        var id = cell.dataset.chhCell;
+        grid.querySelectorAll('[data-chh-cell]').forEach(function (c) {
+            var on = c === cell;
+            c.classList.toggle('is-selected', on);
+            c.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        grid.querySelectorAll('[data-chh-period]').forEach(function (panel) {
+            panel.hidden = panel.dataset.chhPeriod !== id;
+        });
+    }
 
-        var wrapper = table.closest('.table-wrapper');
-        var headRow = table.tHead && table.tHead.rows && table.tHead.rows.length ? table.tHead.rows[0] : null;
-        var tbody = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
-        if (!headRow || !tbody) {
+    // ── Run bars ──
+    function bindRuns(root) {
+        var cards = root.querySelectorAll('.chh-hit[data-run-url]');
+        if (!cards.length) {
             return;
         }
-
-        var hasTitle = headRow.cells.length > 2;
-        if (wrapper) {
-            wrapper.classList.add(
-                'seasonal-table-container',
-                'detail-period-history-wrapper',
-                hasTitle ? 'detail-period-history-wrapper--list' : 'detail-period-history-wrapper--single'
-            );
-        }
-        table.classList.add('seasonal-table', 'detail-period-history-table');
-
-        var order = hasTitle ? [2, 0, 1] : [1, 0];
-        reorderCells(headRow, order);
-        Array.from(tbody.rows).forEach(function (row) {
-            reorderCells(row, order);
-        });
-
-        table.classList.add(hasTitle ? 'detail-period-history-table--list' : 'detail-period-history-table--single');
-
-        if (hasTitle) {
-            headRow.cells[0].classList.add('st-pos');
-            headRow.cells[1].classList.add('st-title');
-            headRow.cells[2].classList.add('st-period');
+        if ('IntersectionObserver' in window) {
+            if (!observer) {
+                observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            observer.unobserve(entry.target);
+                            loadBars(entry.target);
+                        }
+                    });
+                }, { rootMargin: '200px 0px' });
+            }
+            cards.forEach(function (card) { observer.observe(card); });
         } else {
-            headRow.cells[0].classList.add('st-pos');
-            headRow.cells[1].classList.add('st-period');
+            cards.forEach(loadBars);
         }
-
-        Array.from(tbody.rows).forEach(function (row) {
-            if (row.cells.length < 2) {
-                return;
-            }
-
-            var posCell = row.cells[0];
-            posCell.classList.add('st-pos');
-            stripHashFromCell(posCell);
-
-            if (hasTitle) {
-                row.cells[1].classList.add('st-title');
-                decoratePeriodCell(row.cells[2]);
-            } else {
-                decoratePeriodCell(row.cells[1]);
+        cards.forEach(function (card) {
+            var button = card.querySelector('.chh-run');
+            if (button) {
+                button.addEventListener('click', function () { openRunModal(root, card); });
             }
         });
     }
 
-    function insertMobileHeaderCell(headRow) {
-        if (headRow.querySelector('.mobile-expand-col')) {
+    function loadBars(card) {
+        if (card.dataset.runState) {
             return;
         }
-        var firstCell = headRow.cells[0];
-        if (!firstCell) {
-            return;
+        card.dataset.runState = 'loading';
+        var bars = card.querySelector('.chh-run-bars');
+        if (bars) {
+            bars.classList.add('is-loading');
         }
-        var mobileHeadCell = document.createElement('th');
-        mobileHeadCell.className = 'mobile-expand-col show-mobile-only';
-        mobileHeadCell.setAttribute('data-no-sort', '');
-        headRow.insertBefore(mobileHeadCell, firstCell);
-    }
-
-    function styleRunHeaders(headRow, config) {
-        var headers = Array.from(headRow.cells);
-        headers[0].classList.add('mobile-expand-col', 'show-mobile-only');
-
-        addClasses(headers[config.expand + 1], 'col-expand', 'hide-mobile');
-        addClasses(headers[config.cover + 1], 'cover-col');
-        headers[config.cover + 1].textContent = '';
-        addClasses(headers[config.title + 1], 'col-title', 'mobile-name-col');
-        addClasses(headers[config.span + 1], 'col-span');
-        addClasses(headers[config.peak + 1], 'col-peak');
-        addClasses(headers[config.atPeak + 1], 'col-at-peak', 'hide-mobile');
-
-        if (typeof config.track === 'number') {
-            addClasses(headers[config.track + 1], 'hide-mobile');
-        }
-        if (typeof config.release === 'number') {
-            addClasses(headers[config.release + 1], 'hide-mobile');
-        }
-        addClasses(headers[config.debut + 1], 'hide-mobile');
-        addClasses(headers[config.peakDate + 1], 'hide-mobile');
-    }
-
-    function styleRunRow(row, config, mode, info) {
-        var cells = Array.from(row.cells);
-        var expandCell = cells[config.expand];
-        if (!expandCell) {
-            return;
-        }
-
-        row.classList.add('detail-chart-history-row');
-        if (!row.classList.contains('gender-male') && !row.classList.contains('gender-female') && !row.classList.contains('gender-other')) {
-            row.classList.add(info.toneClass);
-        }
-
-        var mobileCell = document.createElement('td');
-        mobileCell.className = 'mobile-expand-col show-mobile-only';
-        var mobileButton = createButton('mobile-row-expand-btn');
-        mobileButton.setAttribute('aria-label', 'Show chart details');
-        mobileButton.onclick = function () {
-            toggleMobileDetails(row, mobileButton);
-        };
-        mobileCell.appendChild(mobileButton);
-        row.insertBefore(mobileCell, expandCell);
-
-        addClasses(expandCell, 'col-expand', 'hide-mobile');
-        var desktopButton = ensureButton(expandCell, mode === 'weekly' ? 'expand-btn' : 'recap-expand-btn');
-        desktopButton.setAttribute('aria-label', 'Show chart details');
-        desktopButton.onclick = function () {
-            toggleDesktopDetails(row, desktopButton);
-        };
-
-        addClasses(cells[config.cover], 'cover-col');
-        addClasses(cells[config.title], 'col-title', 'mobile-name-col');
-        addClasses(cells[config.span], 'col-span');
-        addClasses(cells[config.peak], 'col-peak');
-        addClasses(cells[config.atPeak], 'col-at-peak', 'hide-mobile');
-
-        if (typeof config.track === 'number') {
-            addClasses(cells[config.track], 'hide-mobile');
-        }
-        if (typeof config.release === 'number') {
-            addClasses(cells[config.release], 'hide-mobile');
-        }
-        addClasses(cells[config.debut], 'hide-mobile');
-        addClasses(cells[config.peakDate], 'hide-mobile');
-
-        stylePeakCell(cells[config.peak]);
-        styleAtPeakCell(cells[config.atPeak]);
-
-        if (!info.hasMobileToggle) {
-            mobileCell.innerHTML = '';
-        }
-
-        if (!info.hasDesktopToggle) {
-            expandCell.innerHTML = '';
-        }
-    }
-
-    function extractRunRowInfo(row, config, mode) {
-        var cells = Array.from(row.cells);
-        var fields = [];
-        var trackText = typeof config.track === 'number' ? readCellText(cells[config.track]) : '';
-
-        if (trackText && trackText !== '-') {
-            fields.push({ label: 'Track', text: trackText, html: escapeHtml(trackText) });
-        }
-
-        fields.push(createAtPeakField(mode, cells[config.atPeak]));
-
-        if (mode === 'weekly' && typeof config.release === 'number') {
-            fields.push(createCellField('Release', cells[config.release]));
-        }
-
-        fields.push(createCellField('Debut', cells[config.debut]));
-        fields.push(createCellField('Peak Date', cells[config.peakDate]));
-
-        fields = fields.filter(Boolean);
-
-        return {
-            mode: mode,
-            runUrl: row.dataset.runUrl || '',
-            toneClass: getToneClass(row),
-            fields: fields,
-            hasDesktopToggle: !!row.dataset.runUrl,
-            hasMobileToggle: fields.length > 0 || !!row.dataset.runUrl,
-            runData: null,
-            runError: null,
-            runPromise: null
-        };
-    }
-
-    function createAtPeakField(mode, cell) {
-        if (!cell) {
-            return null;
-        }
-        var label = mode === 'weekly' || mode === 'bb' ? 'Weeks @ Peak' : 'Days @ Peak';
-        var value = formatAtPeakText(readCellText(cell));
-        return {
-            label: label,
-            text: value,
-            html: escapeHtml(value)
-        };
-    }
-
-    function createCellField(label, cell) {
-        if (!cell) {
-            return null;
-        }
-        var text = readCellText(cell) || '-';
-        return {
-            label: label,
-            text: text,
-            html: (cell.innerHTML || '').trim() || escapeHtml(text)
-        };
-    }
-
-    function toggleDesktopDetails(row, button) {
-        var info = row._detailChartHistory;
-        if (!info || !info.hasDesktopToggle) {
-            return;
-        }
-
-        var detailRow = ensureDesktopDetailRow(row, info.mode);
-        var isVisible = detailRow.classList.contains('visible');
-        detailRow.classList.toggle('visible', !isVisible);
-        setExpandedState(button, !isVisible);
-
-        if (isVisible) {
-            return;
-        }
-
-        renderDesktopDetailRow(detailRow, info);
-        if (!info.runUrl || info.runData || info.runError || info.runPromise) {
-            return;
-        }
-
-        ensureRunData(info)
-            .then(function () {
-                refreshVisibleDetails(row);
-            })
-            .catch(function () {
-                refreshVisibleDetails(row);
-            });
-    }
-
-    function toggleMobileDetails(row, button) {
-        var info = row._detailChartHistory;
-        if (!info || !info.hasMobileToggle) {
-            return;
-        }
-
-        var detailRow = ensureMobileDetailRow(row);
-        var isVisible = detailRow.classList.contains('visible');
-        detailRow.classList.toggle('visible', !isVisible);
-        setExpandedState(button, !isVisible);
-
-        if (isVisible) {
-            return;
-        }
-
-        renderMobileDetailRow(detailRow, info);
-        if (!info.runUrl || info.runData || info.runError || info.runPromise) {
-            return;
-        }
-
-        ensureRunData(info)
-            .then(function () {
-                refreshVisibleDetails(row);
-            })
-            .catch(function () {
-                refreshVisibleDetails(row);
-            });
-    }
-
-    function ensureDesktopDetailRow(row, mode) {
-        var existing = getDesktopDetailRow(row, mode);
-        if (existing) {
-            return existing;
-        }
-
-        var detailRow = document.createElement('tr');
-        detailRow.className = mode === 'weekly' ? 'chart-run-row' : 'recap-detail-row';
-
-        var detailCell = document.createElement('td');
-        detailCell.className = mode === 'weekly' ? 'chart-run-cell' : 'recap-detail-cell';
-        detailCell.colSpan = row.cells.length;
-        detailRow.appendChild(detailCell);
-
-        var insertAfter = getMobileDetailRow(row) || row;
-        insertAfter.insertAdjacentElement('afterend', detailRow);
-        return detailRow;
-    }
-
-    function getDesktopDetailRow(row, mode) {
-        var next = row.nextElementSibling;
-        if (next && next.classList.contains('mobile-table-detail-row')) {
-            next = next.nextElementSibling;
-        }
-        if (next && next.classList.contains(mode === 'weekly' ? 'chart-run-row' : 'recap-detail-row')) {
-            return next;
-        }
-        return null;
-    }
-
-    function ensureMobileDetailRow(row) {
-        var existing = getMobileDetailRow(row);
-        if (existing) {
-            if (existing.cells[0]) {
-                existing.cells[0].colSpan = getVisibleCellCount(row);
+        fetchRun(card.dataset.runUrl).then(function (data) {
+            card.dataset.runState = 'loaded';
+            if (bars) {
+                bars.classList.remove('is-loading');
+                renderBars(bars, segments(trimRun(data)), scaleOf(card, data), card.dataset.unit, false);
             }
-            return existing;
-        }
-
-        var detailRow = document.createElement('tr');
-        detailRow.className = 'mobile-table-detail-row';
-
-        var detailCell = document.createElement('td');
-        detailCell.className = 'mobile-table-detail-cell';
-        detailCell.colSpan = getVisibleCellCount(row);
-        detailRow.appendChild(detailCell);
-
-        var desktopRow = getDesktopDetailRow(row, row._detailChartHistory ? row._detailChartHistory.mode : 'weekly');
-        if (desktopRow) {
-            row.parentNode.insertBefore(detailRow, desktopRow);
-        } else {
-            row.insertAdjacentElement('afterend', detailRow);
-        }
-        return detailRow;
-    }
-
-    function getMobileDetailRow(row) {
-        var next = row.nextElementSibling;
-        if (next && next.classList.contains('mobile-table-detail-row')) {
-            return next;
-        }
-        return null;
-    }
-
-    function getVisibleCellCount(row) {
-        var visibleCells = Array.from(row.cells).filter(function (cell) {
-            return window.getComputedStyle(cell).display !== 'none';
-        }).length;
-        return visibleCells || row.cells.length;
-    }
-
-    function renderDesktopDetailRow(detailRow, info) {
-        var detailCell = detailRow.cells[0];
-        if (!detailCell) {
-            return;
-        }
-        detailCell.innerHTML = buildDesktopDetailHtml(info);
-    }
-
-    function renderMobileDetailRow(detailRow, info) {
-        var detailCell = detailRow.cells[0];
-        if (!detailCell) {
-            return;
-        }
-        detailCell.innerHTML = buildMobileDetailHtml(info);
-    }
-
-    function buildDesktopDetailHtml(info) {
-        var toneClass = getDetailToneClass(info.mode);
-        if (info.mode === 'weekly') {
-            var weeklyParts = [];
-            if (info.runError) {
-                weeklyParts.push('<div class="chart-run-error">Failed to load chart run.</div>');
-            } else if (info.runData) {
-                weeklyParts.push(renderWeeklyRun(info.runData, info.toneClass));
-            } else if (info.runUrl) {
-                weeklyParts.push('<div class="chart-run-wrap"><div class="chart-run-label">Chart-run</div><div class="chart-run-loading">Loading chart run...</div></div>');
+        }).catch(function () {
+            card.dataset.runState = 'error';
+            if (bars) {
+                bars.classList.remove('is-loading');
             }
-            return '<div class="' + toneClass + ' chart-run-content">' + weeklyParts.join('') + '</div>';
-        }
-
-        var recapParts = [];
-        if (info.runError) {
-            recapParts.push('<div class="recap-run-error">Failed to load chart run.</div>');
-        } else if (info.runData) {
-            recapParts.push(renderRecapRun(info.runData, info.toneClass, info.mode));
-        } else if (info.runUrl) {
-            recapParts.push('<div class="recap-run-loading">Loading chart run...</div>');
-        }
-        return '<div class="' + toneClass + ' recap-detail-content">' + recapParts.join('') + '</div>';
-    }
-
-    function buildMobileDetailHtml(info) {
-        var mobileFields = info.fields.filter(function (field) {
-            return field.label !== 'Debut' && field.label !== 'Peak Date';
         });
-        var toneClass = getDetailToneClass(info.mode);
+    }
 
-        var fieldsHtml = mobileFields.map(function (field) {
-            return '<div class="mobile-table-detail-item">'
-                + '<span class="mobile-table-detail-label">' + escapeHtml(field.label) + '</span>'
-                + '<span class="mobile-table-detail-value">' + field.html + '</span>'
-                + '</div>';
-        }).join('');
-
-        var runHtml = '';
-        if (info.runError) {
-            runHtml = info.mode === 'weekly'
-                ? '<div class="chart-run-error">Failed to load chart run.</div>'
-                : '<div class="recap-run-error">Failed to load chart run.</div>';
-        } else if (info.runData) {
-            runHtml = info.mode === 'weekly'
-                ? renderWeeklyRun(info.runData, info.toneClass)
-                : renderRecapRun(info.runData, info.toneClass, info.mode);
-        } else if (info.runUrl) {
-            runHtml = info.mode === 'weekly'
-                ? '<div class="chart-run-loading">Loading chart run...</div>'
-                : '<div class="recap-run-loading">Loading chart run...</div>';
+    function fetchRun(url) {
+        if (runCache.has(url)) {
+            return runCache.get(url);
         }
-
-        return '<div class="' + toneClass + '">' 
-            + '<div class="mobile-table-detail-grid">' + fieldsHtml + '</div>'
-            + (runHtml ? '<div style="margin-top:12px;">' + runHtml + '</div>' : '')
-            + '</div>';
+        var promise = new Promise(function (resolve, reject) {
+            queue.push({ url: url, resolve: resolve, reject: reject });
+            pump();
+        });
+        runCache.set(url, promise);
+        promise.catch(function () { runCache.delete(url); });
+        return promise;
     }
 
-    function renderWeeklyRun(data, toneClass) {
-        var boxesHtml = renderRunBoxes(data && data.weeks ? data.weeks : [], 'weekly', toneClass, 'chart-run-box');
-        return '<div class="chart-run-stats">'
-            + renderStatCard('Top 1', data && data.weeksAtTop1, toneClass)
-            + renderStatCard('Top 5', data && data.weeksAtTop5, toneClass)
-            + renderStatCard('Top 10', data && data.weeksAtTop10, toneClass)
-            + renderStatCard('Top 20', data && data.weeksAtTop20, toneClass)
-            + '</div>'
-            + '<div class="chart-run-wrap">'
-            + '<div class="chart-run-label">Chart-run</div>'
-            + '<div class="chart-run-boxes">' + boxesHtml + '</div>'
-            + '</div>';
-    }
-
-    function renderRecapRun(data, toneClass, mode) {
-        var boxesHtml = renderRunBoxes(data && data.weeks ? data.weeks : [], mode, toneClass, 'recap-run-box');
-        return '<div class="recap-run-stats">'
-            + renderRecapStatCard('Top 1', data && data.weeksAtTop1, toneClass)
-            + renderRecapStatCard('Top 5', data && data.weeksAtTop5, toneClass)
-            + renderRecapStatCard('Top 10', data && data.weeksAtTop10, toneClass)
-            + '</div>'
-            + '<div class="recap-run-label">Chart-run</div>'
-            + '<div class="recap-run-boxes">' + boxesHtml + '</div>';
-    }
-
-    function getDetailToneClass(mode) {
-        return 'detail-chart-tone detail-chart-tone-' + mode;
-    }
-
-    function renderStatCard(label, value, toneClass) {
-        return '<div class="chart-run-stat ' + escapeHtml(toneClass || '') + '">'
-            + '<div class="chart-run-stat-label">' + escapeHtml(label) + '</div>'
-            + '<div class="chart-run-stat-value">' + escapeHtml(formatStatValue(value)) + '</div>'
-            + '</div>';
-    }
-
-    function renderRecapStatCard(label, value, toneClass) {
-        return '<div class="recap-run-stat ' + escapeHtml(toneClass || '') + '">'
-            + '<div class="recap-run-stat-label">' + escapeHtml(label) + '</div>'
-            + '<div class="recap-run-stat-value">' + escapeHtml(formatStatValue(value)) + '</div>'
-            + '</div>';
-    }
-
-    function renderRunBoxes(weeks, mode, toneClass, boxClass) {
-        var consolidated = consolidateAbsentEntries(weeks || []);
-        return consolidated.map(function (entry) {
-            if (!entry.onChart) {
-                return '<span class="' + boxClass + ' absent" title="' + escapeHtml(String(entry.count)) + ' off chart">' + escapeHtml(String(entry.count)) + 'x</span>';
-            }
-
-            var classes = [boxClass, toneClass];
-            if (Number(entry.position) === 1) {
-                classes.push('peak-one');
-            }
-
-            var href = buildRunHref(mode, entry.periodKey);
-            var title = escapeHtml(entry.dateRange || entry.periodKey || '');
-            var label = escapeHtml(String(entry.display != null ? entry.display : entry.position));
-            if (!href) {
-                return '<span class="' + classes.join(' ') + '" title="' + title + '">' + label + '</span>';
-            }
-            return '<a href="' + href + '" class="' + classes.join(' ') + '" title="' + title + '">' + label + '</a>';
-        }).join('');
-    }
-
-    function consolidateAbsentEntries(weeks) {
-        var trimmed = trimAbsentEntries(weeks || []);
-        var result = [];
-        var index = 0;
-
-        while (index < trimmed.length) {
-            if (trimmed[index].onChart) {
-                result.push(trimmed[index]);
-                index++;
-                continue;
-            }
-
-            var count = 0;
-            while (index < trimmed.length && !trimmed[index].onChart) {
-                count++;
-                index++;
-            }
-            result.push({ onChart: false, count: count });
+    function pump() {
+        while (running < MAX_PARALLEL && queue.length) {
+            var job = queue.shift();
+            running++;
+            fetch(job.url)
+                .then(function (r) {
+                    if (!r.ok) {
+                        throw new Error('HTTP ' + r.status);
+                    }
+                    return r.json();
+                })
+                .then(job.resolve, job.reject)
+                .finally(function () {
+                    running--;
+                    pump();
+                });
         }
-
-        return result;
     }
 
-    function trimAbsentEntries(weeks) {
+    /* Weeks from the first to the last charted period (gaps kept, so a re-entry shows as a dip). */
+    function trimRun(data) {
+        var weeks = (data && data.weeks) || [];
         var start = 0;
-        while (start < weeks.length && !weeks[start].onChart) {
-            start++;
-        }
-
         var end = weeks.length - 1;
-        while (end >= start && !weeks[end].onChart) {
-            end--;
-        }
-
+        while (start <= end && !weeks[start].onChart) start++;
+        while (end >= start && !weeks[end].onChart) end--;
         return start > end ? [] : weeks.slice(start, end + 1);
     }
 
-    function buildRunHref(mode, periodKey) {
-        if (!periodKey) {
-            return null;
-        }
-        if (mode === 'weekly') {
-            return '/charts/weekly/' + encodeURIComponent(periodKey);
-        }
-        if (mode === 'bb') {
-            return '/misc/billboard-hot-100/recaps?date=' + encodeURIComponent(periodKey);
-        }
-        if (mode === 'pc') {
-            return '/misc/vatos-cuntdown/recaps?date=' + encodeURIComponent(periodKey);
-        }
-        if (mode === 'trl') {
-            return '/misc/trl/recaps?date=' + encodeURIComponent(periodKey);
-        }
-        return null;
+    function scaleOf(card, data) {
+        var scale = parseInt(card.dataset.scale, 10) || 20;
+        ((data && data.weeks) || []).forEach(function (w) {
+            if (w.onChart && w.position > scale) {
+                scale = w.position;
+            }
+        });
+        return scale;
     }
 
-    function ensureRunData(info) {
-        if (!info.runUrl) {
-            return Promise.resolve(null);
-        }
-        if (info.runData) {
-            return Promise.resolve(info.runData);
-        }
-        if (info.runError) {
-            return Promise.reject(info.runError);
-        }
-        if (info.runPromise) {
-            return info.runPromise;
-        }
+    function band(position) {
+        if (position <= 1) return 'one';
+        if (position <= 5) return 'top5';
+        if (position <= 10) return 'top10';
+        return 'rest';
+    }
 
-        if (runCache.has(info.runUrl)) {
-            info.runPromise = runCache.get(info.runUrl)
-                .then(function (data) {
-                    info.runData = data;
-                    return data;
-                })
-                .catch(function (error) {
-                    info.runError = error;
-                    throw error;
-                })
-                .finally(function () {
-                    info.runPromise = null;
-                });
-            return info.runPromise;
-        }
+    function weekLabel(w) {
+        return w.dateRange || w.periodKey || '';
+    }
 
-        var fetchPromise = fetch(info.runUrl)
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error('Failed to load chart run');
+    // ── Gaps: an absence of GAP_MIN or more periods collapses into one break marker ──
+    var GAP_MIN = 3;
+
+    function charted(w) {
+        return w.onChart && w.position != null;
+    }
+
+    /* [{week}] for a charted period, [{off}] for a short absence, [{gap: [periods]}] for a long one. */
+    function segments(weeks) {
+        var out = [];
+        var i = 0;
+        while (i < weeks.length) {
+            if (charted(weeks[i])) {
+                out.push({ week: weeks[i] });
+                i++;
+                continue;
+            }
+            var start = i;
+            while (i < weeks.length && !charted(weeks[i])) i++;
+            var off = weeks.slice(start, i);
+            if (off.length >= GAP_MIN) {
+                out.push({ gap: off });
+            } else {
+                off.forEach(function (w) { out.push({ off: w }); });
+            }
+        }
+        return out;
+    }
+
+    function plural(n, one, many) {
+        return n + ' ' + (n === 1 ? one : many);
+    }
+
+    function gapLength(n, unit) {
+        return unit === 'days' ? plural(n, 'day', 'days') : plural(n, 'week', 'weeks');
+    }
+
+    /* Compact gap label in the chart's own unit, never converted: 80w on weekly charts, 45d on daily ones. */
+    function gapShort(n, unit) {
+        return n + (unit === 'days' ? 'd' : 'w');
+    }
+
+    function gapTitle(off, unit) {
+        return 'Off the chart for ' + gapLength(off.length, unit) + ' (' + weekLabel(off[0]) + ' to ' + weekLabel(off[off.length - 1]) + ')';
+    }
+
+    function barHeight(position, scale) {
+        return Math.max(8, Math.round((scale + 1 - position) / scale * 100)) + '%';
+    }
+
+    function renderBars(container, segs, scale, unit, large) {
+        container.textContent = '';
+        var chartedCount = segs.filter(function (s) { return s.week; }).length;
+        container.classList.toggle('is-dense', !large && chartedCount > 70);
+        segs.forEach(function (s) {
+            var el = document.createElement('span');
+            if (s.week) {
+                el.className = 'chh-bar chh-band-' + band(s.week.position);
+                el.style.height = barHeight(s.week.position, scale);
+                el.title = weekLabel(s.week) + ': #' + s.week.position;
+            } else if (s.off) {
+                el.className = 'chh-bar is-off';
+                el.title = weekLabel(s.off) + ': off the chart';
+            } else {
+                el.className = 'chh-gap';
+                el.title = gapTitle(s.gap, unit);
+                if (large) {
+                    var label = document.createElement('span');
+                    label.className = 'chh-gap-label';
+                    label.textContent = gapShort(s.gap.length, unit);
+                    el.appendChild(label);
                 }
-                return response.json();
-            })
-            .then(function (data) {
-                info.runData = data;
-                return data;
-            })
-            .catch(function (error) {
-                runCache.delete(info.runUrl);
-                info.runError = error;
-                throw error;
-            });
-
-        runCache.set(info.runUrl, fetchPromise);
-        info.runPromise = fetchPromise.finally(function () {
-            info.runPromise = null;
-        });
-        return info.runPromise;
-    }
-
-    function refreshVisibleDetails(row) {
-        var info = row._detailChartHistory;
-        if (!info) {
-            return;
-        }
-
-        var mobileRow = getMobileDetailRow(row);
-        if (mobileRow && mobileRow.classList.contains('visible')) {
-            renderMobileDetailRow(mobileRow, info);
-        }
-
-        var desktopRow = getDesktopDetailRow(row, info.mode);
-        if (desktopRow && desktopRow.classList.contains('visible')) {
-            renderDesktopDetailRow(desktopRow, info);
-        }
-    }
-
-    function stylePeakCell(cell) {
-        if (!cell) {
-            return;
-        }
-
-        var peakText = stripLeadingHash(readCellText(cell));
-        var peakSpan = cell.querySelector('span');
-        if (!peakSpan) {
-            peakSpan = document.createElement('span');
-            peakSpan.textContent = peakText || '-';
-        } else {
-            peakSpan.textContent = peakText || '-';
-        }
-
-        peakSpan.classList.add('peak-position');
-
-        var wrapper = cell.querySelector('.peak-cell');
-        if (!wrapper) {
-            wrapper = document.createElement('div');
-            wrapper.className = 'peak-cell';
-            cell.innerHTML = '';
-            wrapper.appendChild(peakSpan);
-            cell.appendChild(wrapper);
-        } else if (peakSpan.parentElement !== wrapper) {
-            wrapper.innerHTML = '';
-            wrapper.appendChild(peakSpan);
-        }
-    }
-
-    function styleAtPeakCell(cell) {
-        if (!cell) {
-            return;
-        }
-        var span = cell.querySelector('span');
-        var text = formatAtPeakText(readCellText(cell));
-        if (span) {
-            span.classList.remove('peak-number-one');
-            span.textContent = text;
-        } else {
-            cell.textContent = text;
-        }
-        cell.style.textAlign = 'center';
-    }
-
-    function decoratePeriodCell(cell) {
-        if (!cell) {
-            return;
-        }
-
-        cell.classList.add('st-period');
-        var link = cell.querySelector('a');
-        if (link) {
-            link.classList.add('chart-history-period-pill');
-        } else if (!cell.querySelector('.chart-history-period-pill')) {
-            var value = readCellText(cell) || '-';
-            cell.innerHTML = '<span class="chart-history-period-pill">' + escapeHtml(value) + '</span>';
-        }
-    }
-
-    function reorderCells(row, order) {
-        var cells = Array.from(row.cells);
-        if (cells.length !== order.length) {
-            return;
-        }
-        order.forEach(function (index) {
-            row.appendChild(cells[index]);
+            }
+            container.appendChild(el);
         });
     }
 
-    function ensureButton(cell, className) {
-        var button = cell.querySelector('button');
-        if (!button) {
-            cell.textContent = '';
-            button = document.createElement('button');
-            cell.appendChild(button);
+    /* Numbered boxes linking to each chart; absences become one box (Nx, or 34w / 1.5y when long). */
+    function renderBoxes(container, segs, periodHref, unit) {
+        container.textContent = '';
+        var i = 0;
+        while (i < segs.length) {
+            var s = segs[i];
+            if (s.week) {
+                var box;
+                if (periodHref && s.week.periodKey) {
+                    box = document.createElement('a');
+                    box.href = periodHref.replace('{key}', encodeURIComponent(s.week.periodKey));
+                } else {
+                    box = document.createElement('span');
+                }
+                box.className = 'chh-box chh-band-' + band(s.week.position);
+                box.textContent = s.week.position;
+                box.title = weekLabel(s.week) + ': #' + s.week.position;
+                container.appendChild(box);
+                i++;
+                continue;
+            }
+            var off = [];
+            while (i < segs.length && !segs[i].week) {
+                off = off.concat(segs[i].gap || [segs[i].off]);
+                i++;
+            }
+            var gap = document.createElement('span');
+            gap.className = 'chh-box is-off';
+            gap.textContent = off.length >= GAP_MIN ? gapShort(off.length, unit) : off.length + 'x';
+            gap.title = gapTitle(off, unit);
+            container.appendChild(gap);
         }
-        button.type = 'button';
-        button.className = className;
-        button.textContent = '+';
-        button.removeAttribute('onclick');
-        button.setAttribute('aria-expanded', 'false');
-        return button;
     }
 
-    function createButton(className) {
-        var button = document.createElement('button');
-        button.type = 'button';
-        button.className = className;
-        button.textContent = '+';
-        button.setAttribute('aria-expanded', 'false');
-        return button;
+    // ── Run modal ──
+
+    function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = text;
+        return node;
     }
 
-    function setExpandedState(button, expanded) {
-        button.classList.toggle('expanded', expanded);
-        button.textContent = expanded ? '-' : '+';
-        button.setAttribute('aria-expanded', String(expanded));
-    }
-
-    function getHeaderTexts(table) {
-        var headRow = table.tHead && table.tHead.rows && table.tHead.rows.length ? table.tHead.rows[0] : null;
-        if (!headRow) {
-            return [];
+    function ensureDialog(root) {
+        if (root.chhDialog) {
+            return root.chhDialog;
         }
-        return Array.from(headRow.cells).map(function (cell) {
-            return readCellText(cell);
+        var dialog = el('dialog', 'chh-modal');
+        dialog.setAttribute('aria-labelledby', 'chhModalTitle');
+        var inner = el('div', 'chh-modal-inner');
+        var close = el('button', 'chh-modal-close');
+        close.type = 'button';
+        close.setAttribute('aria-label', 'Close');
+        close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+        close.addEventListener('click', function () { dialog.close(); });
+        inner.appendChild(close);
+        inner.appendChild(el('div', 'chh-modal-head'));
+        inner.appendChild(el('div', 'chh-modal-body'));
+        dialog.appendChild(inner);
+        // A click on the backdrop lands on the dialog itself
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) dialog.close();
         });
+        root.appendChild(dialog);
+        root.chhDialog = dialog;
+        return dialog;
     }
 
-    function getToneClass(row) {
-        if (row.classList.contains('gender-female') || row.dataset.gender === '1') {
-            return 'gender-female';
-        }
-        if (row.classList.contains('gender-male') || row.dataset.gender === '2') {
-            return 'gender-male';
-        }
-        if (document.body.classList.contains('gender-female')) {
-            return 'gender-female';
-        }
-        if (document.body.classList.contains('gender-male')) {
-            return 'gender-male';
-        }
-        return 'gender-other';
-    }
+    function openRunModal(root, card) {
+        var dialog = ensureDialog(root);
+        var head = dialog.querySelector('.chh-modal-head');
+        var body = dialog.querySelector('.chh-modal-body');
+        head.textContent = '';
+        var cardHead = card.querySelector('.chh-hit-head').cloneNode(true);
+        var name = cardHead.querySelector('.chh-hit-name');
+        if (name) name.id = 'chhModalTitle';
+        head.appendChild(cardHead);
+        body.textContent = '';
+        body.appendChild(el('p', 'chh-run-note', 'Loading run...'));
+        if (!dialog.open) dialog.showModal();
 
-    function formatAtPeakText(text) {
-        var cleaned = stripLeadingHash(String(text || '').trim());
-        if (!cleaned || cleaned === '-') {
-            return '-';
-        }
-        return cleaned.charAt(0).toLowerCase() === 'x' ? cleaned : 'x' + cleaned;
-    }
-
-    function stripHashFromCell(cell) {
-        if (!cell) {
-            return;
-        }
-        var span = cell.querySelector('span');
-        var cleaned = stripLeadingHash(readCellText(cell));
-        if (span) {
-            span.textContent = cleaned;
-        } else {
-            cell.textContent = cleaned;
-        }
-    }
-
-    function stripLeadingHash(value) {
-        return String(value || '').replace(/^#\s*/, '').trim() || '-';
-    }
-
-    function readCellText(cell) {
-        if (!cell) {
-            return '';
-        }
-        return String(cell.textContent || '').replace(/\s+/g, ' ').trim();
-    }
-
-    function formatStatValue(value) {
-        return value == null ? '0' : String(value);
-    }
-
-    function addClasses(node) {
-        if (!node) {
-            return;
-        }
-        Array.prototype.slice.call(arguments, 1).forEach(function (className) {
-            if (className) {
-                node.classList.add(className);
+        var url = card.dataset.runUrl;
+        dialog.dataset.runUrl = url;
+        fetchRun(url).then(function (data) {
+            if (dialog.dataset.runUrl === url) {
+                renderModalBody(body, card, trimRun(data), scaleOf(card, data));
+            }
+        }).catch(function () {
+            if (dialog.dataset.runUrl === url) {
+                body.textContent = '';
+                body.appendChild(el('p', 'chh-run-note', 'Could not load the run.'));
             }
         });
     }
 
-    function isHelperRow(row) {
-        return row.classList.contains('chart-run-row')
-            || row.classList.contains('recap-detail-row')
-            || row.classList.contains('mobile-table-detail-row');
-    }
+    function renderModalBody(body, card, weeks, scale) {
+        var unit = card.dataset.unit === 'days' ? 'days' : 'weeks';
+        var unitOne = unit === 'days' ? 'day' : 'week';
+        body.textContent = '';
+        var chartedWeeks = weeks.filter(charted);
+        if (!chartedWeeks.length) {
+            body.appendChild(el('p', 'chh-run-note', 'No chart entries.'));
+            return;
+        }
 
-    function escapeHtml(value) {
-        return String(value == null ? '' : value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        // Stats from the run itself
+        var peak = Math.min.apply(null, chartedWeeks.map(function (w) { return w.position; }));
+        var count = function (max) { return chartedWeeks.filter(function (w) { return w.position <= max; }).length; };
+        var runs = 0, longest = 0, current = 0;
+        weeks.forEach(function (w) {
+            if (charted(w)) {
+                if (current === 0) runs++;
+                current++;
+                longest = Math.max(longest, current);
+            } else {
+                current = 0;
+            }
+        });
+        var stats = el('div', 'chh-modal-stats');
+        [
+            ['Peak', '#' + peak, peak === 1],
+            [unit + ' on chart', chartedWeeks.length],
+            [unit + ' at peak', chartedWeeks.filter(function (w) { return w.position === peak; }).length],
+            [unit + ' at #1', count(1), count(1) > 0],
+            ['Top 5', count(5)],
+            ['Top 10', count(10)],
+            ['Chart runs', runs],
+            ['Longest run', plural(longest, unitOne, unit)]
+        ].forEach(function (s) {
+            var stat = el('div', 'chh-stat');
+            stat.appendChild(el('span', 'chh-stat-label', s[0]));
+            stat.appendChild(el('span', 'chh-stat-value chh-num' + (s[2] ? ' is-one' : ''), String(s[1])));
+            stats.appendChild(stat);
+        });
+        body.appendChild(stats);
+
+        // Large run chart
+        var chartHead = el('div', 'chh-modal-chart-head');
+        chartHead.appendChild(el('span', 'chh-eyebrow', 'Chart run'));
+        chartHead.appendChild(el('span', 'chh-modal-range', weekLabel(weeks[0]) + '  to  ' + weekLabel(weeks[weeks.length - 1])));
+        body.appendChild(chartHead);
+
+        var chart = el('div', 'chh-modal-chart');
+        var mid = Math.max(2, Math.round(scale / 2));
+        [[1, 'top'], [mid, 'mid'], [scale, 'bottom']].forEach(function (a) {
+            chart.appendChild(el('span', 'chh-axis chh-axis-' + a[1], '#' + a[0]));
+            chart.appendChild(el('span', 'chh-guide chh-guide-' + a[1]));
+        });
+        var bars = el('div', 'chh-run-bars is-large');
+        renderBars(bars, segments(weeks), scale, card.dataset.unit, true);
+        chart.appendChild(bars);
+        body.appendChild(chart);
+
+        var legend = el('div', 'chh-legend');
+        [['one', '#1'], ['top5', '#2 to #5'], ['top10', '#6 to #10'], ['rest', '#11 and below']].forEach(function (l) {
+            var item = el('span');
+            item.appendChild(el('i', 'chh-band-' + l[0]));
+            item.appendChild(document.createTextNode(l[1]));
+            legend.appendChild(item);
+        });
+        var gapItem = el('span');
+        gapItem.appendChild(el('i', 'chh-legend-gap'));
+        gapItem.appendChild(document.createTextNode('Off the chart ' + GAP_MIN + '+ ' + unit));
+        legend.appendChild(gapItem);
+        body.appendChild(legend);
+
+        // Numbered run, each box links to its chart
+        var boxesHead = el('div', 'chh-modal-chart-head');
+        boxesHead.appendChild(el('span', 'chh-eyebrow', unit === 'days' ? 'Day by day' : 'Week by week'));
+        body.appendChild(boxesHead);
+        var boxes = el('div', 'chh-run-boxes');
+        renderBoxes(boxes, segments(weeks), card.dataset.periodHref, card.dataset.unit);
+        body.appendChild(boxes);
+
+        // Debut / first peak links from the card
+        var dates = card.querySelector('.chh-hit-dates');
+        if (dates && dates.children.length) {
+            var foot = el('div', 'chh-modal-foot');
+            Array.prototype.forEach.call(dates.children, function (d) { foot.appendChild(d.cloneNode(true)); });
+            body.appendChild(foot);
+        }
     }
 })();

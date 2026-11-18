@@ -178,7 +178,7 @@ final class TestDatabaseSupport implements AutoCloseable {
                     song_id INTEGER
                 )
                 """,
-                "CREATE TABLE billboard_hot100_debut (id INTEGER PRIMARY KEY, song_id INTEGER NOT NULL, chart_date TEXT, peak_position INTEGER, weeks_on_chart INTEGER, weeks_at_peak INTEGER)",
+                "CREATE TABLE billboard_hot100_debut (id INTEGER PRIMARY KEY, song_id INTEGER NOT NULL, debut_week TEXT, peak_position INTEGER, weeks_on_chart INTEGER, weeks_at_peak INTEGER)",
                 "CREATE INDEX idx_play_cover_plays ON Play(song_id, account, play_date)",
                 "CREATE INDEX idx_song_artist_album ON Song(artist_id, album_id)",
                 "CREATE INDEX idx_song_album ON Song(album_id)",
@@ -309,7 +309,7 @@ final class TestDatabaseSupport implements AutoCloseable {
                     (4, 3, '2024-03-02', 1, 1)
                 """);
         jdbcTemplate.update("""
-                INSERT INTO billboard_hot100_debut (id, song_id, chart_date, peak_position, weeks_on_chart, weeks_at_peak)
+                INSERT INTO billboard_hot100_debut (id, song_id, debut_week, peak_position, weeks_on_chart, weeks_at_peak)
                 VALUES
                     (1, 1, '2024-01-01', 5, 10, 2),
                     (2, 3, '2024-03-01', 1, 20, 3)

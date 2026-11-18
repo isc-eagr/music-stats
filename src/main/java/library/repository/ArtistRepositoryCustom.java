@@ -12,4 +12,6 @@ public interface ArtistRepositoryCustom {
     Long countArtistsWithFilters(ArtistStatsQuery query);
 
     Map<Integer, Long> countArtistsByGenderWithFilters(ArtistStatsQuery query);
+
+    library.dto.ListenedSongs findFirstAndLastListenedSongs(int artistId, boolean includeMain, boolean includeGroups, boolean includeFeatured);
 }

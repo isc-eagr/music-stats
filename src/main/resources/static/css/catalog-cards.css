@@ -1,0 +1,1064 @@
+/* ==========================================================================
+   Catalog list cards (Artists, Albums, Songs list pages)
+   Gender-themed "stat columns" card: photo with a soft gradual melt that holds
+   the title, big total plays with a gendered primary/legacy split bar, a row
+   of label-over-value columns, and a footer with organized and More. The list
+   position sits as a small pill at the right end of the plays row.
+   Male = blue, Female = pink, anything else = gray.
+   ========================================================================== */
+
+.gc {
+    --gc-c: #a1a1aa;
+    --gc-soft: rgba(161, 161, 170, 0.3);
+    --gc-t: #d4d4d8;
+    --gc-border: rgba(161, 161, 170, 0.3);
+    --gc-glow: rgba(161, 161, 170, 0.1);
+    --gc-bg: #18181a;
+    --gc-bg2: #121214;
+    --gc-rgb: 24, 24, 26;
+    --gc-hair: rgba(161, 161, 170, 0.15);
+    --gc-lbl: rgba(212, 212, 216, 0.5);
+    --gc-muted: rgba(212, 212, 216, 0.55);
+    --gc-tint: rgba(161, 161, 170, 0.1);
+    --gc-tint-border: rgba(161, 161, 170, 0.4);
+    --gc-fade-h: 30%;
+    --gc-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+}
+
+.gc.gender-male {
+    --gc-c: #60a5fa;
+    --gc-soft: rgba(96, 165, 250, 0.32);
+    --gc-t: #93c5fd;
+    --gc-border: rgba(96, 165, 250, 0.34);
+    --gc-glow: rgba(96, 165, 250, 0.16);
+    --gc-bg: #131922;
+    --gc-bg2: #0f131a;
+    --gc-rgb: 19, 25, 34;
+    --gc-hair: rgba(96, 165, 250, 0.16);
+    --gc-lbl: rgba(147, 197, 253, 0.6);
+    --gc-muted: rgba(147, 197, 253, 0.62);
+    --gc-tint: rgba(96, 165, 250, 0.12);
+    --gc-tint-border: rgba(96, 165, 250, 0.45);
+}
+
+.gc.gender-female {
+    --gc-c: #f472b6;
+    --gc-soft: rgba(244, 114, 182, 0.32);
+    --gc-t: #f9a8d4;
+    --gc-border: rgba(244, 114, 182, 0.34);
+    --gc-glow: rgba(244, 114, 182, 0.16);
+    --gc-bg: #1c141a;
+    --gc-bg2: #150f13;
+    --gc-rgb: 28, 20, 26;
+    --gc-hair: rgba(244, 114, 182, 0.16);
+    --gc-lbl: rgba(249, 168, 212, 0.6);
+    --gc-muted: rgba(249, 168, 212, 0.62);
+    --gc-tint: rgba(244, 114, 182, 0.12);
+    --gc-tint-border: rgba(244, 114, 182, 0.45);
+}
+
+/* Square covers carry an extra title line, so their melt is taller */
+.gc.album-card { --gc-fade-h: 48%; }
+.gc.song-card { --gc-fade-h: 56%; }
+
+/* ── Card shell (overrides the old 4px gender left border) ── */
+.gc.artist-card,
+.gc.album-card,
+.gc.song-card {
+    border: 1px solid var(--gc-border);
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--gc-bg) 0%, var(--gc-bg2) 100%);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+.gc.artist-card:hover,
+.gc.album-card:hover,
+.gc.song-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--gc-border);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.55), 0 8px 26px var(--gc-glow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ── Photo ── */
+.gc .gc-media {
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+    background-color: var(--gc-bg);
+}
+
+.gc .gc-media .no-image {
+    background: linear-gradient(140deg, var(--gc-bg) 0%, var(--gc-hair) 100%);
+    color: var(--gc-lbl);
+    font-family: var(--gc-num);
+    font-weight: 700;
+    font-size: 50px;
+}
+
+.gc .gc-media .no-image svg {
+    width: 44px;
+    height: 44px;
+}
+
+/* Hover anywhere on the photo (including the title) swaps album art for the song art */
+.gc .gc-media:hover .hover-image-container .album-image-default { opacity: 0; }
+.gc .gc-media:hover .hover-image-container .song-image-hover { opacity: 1; }
+
+.gc-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--gc-fade-h);
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+        rgba(var(--gc-rgb), 0) 0%,
+        rgba(var(--gc-rgb), 0.03) 18%,
+        rgba(var(--gc-rgb), 0.1) 32%,
+        rgba(var(--gc-rgb), 0.22) 45%,
+        rgba(var(--gc-rgb), 0.38) 57%,
+        rgba(var(--gc-rgb), 0.56) 68%,
+        rgba(var(--gc-rgb), 0.73) 78%,
+        rgba(var(--gc-rgb), 0.87) 87%,
+        rgba(var(--gc-rgb), 0.96) 94%,
+        rgb(var(--gc-rgb)) 100%);
+}
+
+.gc .flag-overlay {
+    top: 8px;
+    left: 8px;
+    width: 24px;
+    height: 17px;
+    border-radius: 5px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 4px 10px rgba(0, 0, 0, 0.45);
+    z-index: 4;
+}
+
+.gc-corner {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 4;
+}
+
+.gc .gc-corner .length-overlay,
+.gc .gc-corner .death-overlay {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    width: auto;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: rgba(10, 11, 13, 0.6);
+    backdrop-filter: blur(8px);
+    box-shadow: none;
+    color: #f2f2f4;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.gc .gc-corner .death-overlay {
+    width: 20px;
+    padding: 0;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 12px;
+}
+
+/* ── Title on the melt ── */
+.gc-title {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 6px;
+    z-index: 4;
+    min-width: 0;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+}
+
+.gc-title a {
+    pointer-events: auto;
+}
+
+.gc-title .gc-name-link:hover {
+    color: var(--gc-t);
+}
+
+.gc-title .gc-sub:hover,
+.gc-title .gc-sub2:hover {
+    color: var(--gc-c);
+}
+
+.gc-name-link {
+    display: block;
+    color: #f2f2f4;
+    min-width: 0;
+}
+
+.gc-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    color: inherit;
+}
+
+.gc-name-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gc-title .itunes-badge {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    flex-shrink: 0;
+    border-radius: 9px;
+    text-shadow: none;
+}
+
+.gc-title .itunes-badge.in-itunes {
+    background: rgba(34, 197, 94, 0.22);
+    color: #4ade80;
+}
+
+.gc-title .itunes-badge.not-in-itunes {
+    background: rgba(239, 68, 68, 0.22);
+    color: #f87171;
+}
+
+.gc-single {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--gc-t);
+    cursor: help;
+}
+
+.gc-sub,
+.gc-sub2 {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gc-sub {
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gc-t);
+}
+
+.gc-sub2 {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--gc-muted);
+}
+
+/* ── Body ── */
+.gc .gc-body {
+    padding: 8px 0 0 0;
+    gap: 0;
+}
+
+.gc .sort-metric {
+    justify-content: space-between;
+    align-items: center;
+    gap: 2px 8px;
+    min-height: 0;
+    margin: 0 14px 4px 14px;
+    padding: 6px 10px;
+    border-radius: 9px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.gc .sort-metric-label {
+    padding: 0;
+    color: #86efac;
+    font-weight: 500;
+}
+
+.gc .sort-metric-value {
+    margin-left: auto;
+    text-align: right;
+    color: #4ade80;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.gc-plays {
+    padding: 6px 14px 12px 14px;
+}
+
+.gc-total {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.gc-total-num {
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    color: #f2f2f4;
+}
+
+.gc-total-num.play-breakdown-tooltip-trigger,
+.gc-total-num .linked-song-tooltip-trigger {
+    text-underline-offset: 6px;
+}
+
+.gc .play-breakdown-tooltip-trigger:focus-visible {
+    box-shadow: 0 0 0 2px var(--gc-tint-border);
+}
+
+.gc-total-unit {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--gc-muted);
+}
+
+.gc-total-unit svg {
+    fill: var(--gc-c);
+}
+
+.gc-bar {
+    display: flex;
+    gap: 3px;
+    height: 8px;
+    margin-top: 10px;
+}
+
+.gc-bar > span {
+    min-width: 0;
+    border-radius: 4px;
+}
+
+.gc-bar-primary { background: var(--gc-c); }
+.gc-bar-legacy { background: var(--gc-soft); }
+.gc-bar-empty { flex: 1 1 0; background: var(--gc-hair); }
+
+.gc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 6px;
+    margin-top: 7px;
+    font-size: 11px;
+    color: var(--gc-muted);
+}
+
+.gc-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.gc-legend b {
+    color: #f2f2f4;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.gc-sw {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.gc-sw-primary { background: var(--gc-c); }
+.gc-sw-legacy { background: var(--gc-soft); }
+
+/* ── Stat columns ── */
+.gc-cells {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+}
+
+.gc-cell {
+    padding: 9px 4px 10px 4px;
+    text-align: center;
+    border-top: 1px solid var(--gc-hair);
+}
+
+.gc-cell + .gc-cell {
+    border-left: 1px solid var(--gc-hair);
+}
+
+.gc-cell-l {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gc-lbl);
+}
+
+.gc-cell-v {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f2f2f4;
+    white-space: nowrap;
+}
+
+.gc-cell.gc-hl {
+    background: rgba(34, 197, 94, 0.12);
+    box-shadow: inset 0 -2px 0 #22c55e;
+}
+
+.gc-cell.gc-hl .gc-cell-l,
+.gc-cell.gc-hl .gc-cell-v {
+    color: #4ade80;
+}
+
+/* ── Footer ── */
+.gc-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    padding: 8px 14px;
+    border-top: 1px solid var(--gc-hair);
+    font-size: 11px;
+    color: var(--gc-muted);
+}
+
+/* List position, a small pill at the right end of the plays row */
+.gc .gc-total .card-index {
+    position: static;
+    align-self: center;
+    margin-left: auto;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: var(--gc-hair);
+    color: var(--gc-t);
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1;
+    pointer-events: auto;
+    cursor: default;
+}
+
+.gc-org {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: help;
+}
+
+.gc-org.is-unorganized {
+    color: #fbbf24;
+}
+
+.gc .gc-foot .card-expand-toggle {
+    margin: 0 0 0 auto;
+    padding: 0;
+    gap: 3px;
+    border: 0;
+    color: var(--gc-t);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.gc .gc-foot .card-expand-toggle:hover {
+    color: var(--gc-c);
+}
+
+/* ==========================================================================
+   More panel (card detail modal). The modal shows a clone of the card laid out
+   as a grid: photo (with its melt and title) and ranks on the left, the
+   .mm-main stats on the right. The card-face stats are hidden there.
+   ========================================================================== */
+
+.card-detail-modal-content:has(.gc) {
+    max-width: 920px;
+    border-radius: 18px;
+    background: transparent;
+}
+
+.card-detail-modal-body .gc {
+    --gc-fade-h: 28%;
+}
+
+.card-detail-modal-body .gc.album-card,
+.card-detail-modal-body .gc.song-card {
+    --gc-fade-h: 42%;
+}
+
+.card-detail-modal-body .gc.artist-card,
+.card-detail-modal-body .gc.album-card,
+.card-detail-modal-body .gc.song-card,
+.card-detail-modal-body .gc.artist-card:hover,
+.card-detail-modal-body .gc.album-card:hover,
+.card-detail-modal-body .gc.song-card:hover {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "photo main" "ranks main";
+    align-items: start;
+    width: 100%;
+    min-height: 100%;
+    border: 1px solid var(--gc-border);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--gc-bg) 0%, var(--gc-bg2) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 10px 40px var(--gc-tint);
+    transform: none;
+}
+
+.card-detail-modal-body .gc .gc-media {
+    grid-area: photo;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border-radius: 0;
+}
+
+.card-detail-modal-body .gc .gc-body,
+.card-detail-modal-body .gc .card-modal-text-stats {
+    display: contents;
+}
+
+.card-detail-modal-body .gc-plays,
+.card-detail-modal-body .gc-cells,
+.card-detail-modal-body .gc-foot {
+    display: none !important;
+}
+
+.card-detail-modal-body .gc-title {
+    left: 18px;
+    right: 18px;
+    bottom: 12px;
+}
+
+.card-detail-modal-body .gc-name {
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.card-detail-modal-body .gc-name-text {
+    white-space: normal;
+}
+
+.card-detail-modal-body .gc-title .itunes-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+}
+
+.card-detail-modal-body .gc-sub { margin-top: 4px; font-size: 13px; }
+.card-detail-modal-body .gc-sub2 { font-size: 12.5px; }
+
+/* Section caption with a hairline running to the right */
+.mm-cap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gc-lbl);
+}
+
+.mm-cap::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gc-hair);
+}
+
+/* ── Ranks under the photo ── */
+.mm-ranks {
+    grid-area: ranks;
+    padding: 14px 18px 18px 18px;
+}
+
+.mm-rank {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid var(--gc-hair);
+    font-size: 12px;
+    color: #f2f2f4;
+}
+
+.mm-cap + .mm-rank {
+    border-top: 0;
+}
+
+.mm-rank-k {
+    color: var(--gc-muted);
+}
+
+.mm-rank-v {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    font-weight: 600;
+    text-align: right;
+}
+
+.mm-rank:hover .mm-rank-v {
+    color: var(--gc-t);
+}
+
+.mm-rank-n {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--gc-tint);
+    color: var(--gc-t);
+    font-family: var(--gc-num);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* ── Stats column ── */
+.mm-main {
+    grid-area: main;
+    align-self: stretch;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 22px 26px 20px 26px;
+    border-left: 1px solid var(--gc-hair);
+}
+
+.mm-hero {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.mm-big {
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    color: #f2f2f4;
+}
+
+.mm-hero .gc-total-unit {
+    font-size: 12px;
+}
+
+.mm-main .gc-bar {
+    height: 10px;
+    margin-top: 12px;
+}
+
+.mm-main .gc-bar > span {
+    border-radius: 5px;
+}
+
+.mm-legend {
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.mm-legend em {
+    margin-left: 2px;
+    font-style: normal;
+    color: var(--gc-lbl);
+}
+
+.mm-tiles {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    margin-top: 14px;
+    border: 1px solid var(--gc-hair);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.mm-cap + .mm-tiles {
+    margin-top: 0;
+}
+
+.mm-tile {
+    padding: 10px 8px 11px 8px;
+    text-align: center;
+}
+
+.mm-tile + .mm-tile {
+    border-left: 1px solid var(--gc-hair);
+}
+
+.mm-l {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gc-lbl);
+}
+
+.mm-v {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 17px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.mm-s {
+    display: block;
+    margin-top: 1px;
+    font-size: 10.5px;
+    color: var(--gc-muted);
+}
+
+.mm-total {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    color: var(--gc-muted);
+}
+
+.mm-total b {
+    color: #f2f2f4;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* Split bars stacked one per row; narrower ones are scaled to the widest */
+.mm-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.mm-total + .mm-stack {
+    margin-top: 0;
+}
+
+.mm-stack + .mm-facts {
+    margin-top: 14px;
+}
+
+/* Song name under a date: one line, ellipsis, full title on hover */
+.mm-song {
+    display: block;
+    max-width: 100%;
+    margin-top: 2px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--gc-t);
+}
+
+.mm-dates {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.mm-date {
+    min-width: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--gc-hair);
+    border-radius: 12px;
+    background: var(--gc-tint);
+}
+
+.mm-date b {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.mm-split-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+    font-size: 11.5px;
+    color: var(--gc-muted);
+}
+
+.mm-split-row b,
+.mm-fact b {
+    color: #f2f2f4;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.mm-main .mm-split .gc-bar {
+    height: 6px;
+    margin-top: 0;
+}
+
+.mm-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mm-fact {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--gc-hair);
+    background: var(--gc-tint);
+    font-size: 11.5px;
+    color: var(--gc-muted);
+}
+
+.mm-fact b {
+    font-size: 13px;
+}
+
+/* First / last timeline: line on top, dates under each end, span in the middle */
+.mm-tl {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-top: 16px;
+}
+
+.mm-tl::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: 5px;
+    height: 2px;
+    border-radius: 1px;
+    background: linear-gradient(90deg, var(--gc-soft), var(--gc-c));
+}
+
+.mm-tl-pt {
+    position: relative;
+    max-width: 44%;
+    min-width: 0;
+    font-size: 11px;
+    color: var(--gc-muted);
+}
+
+.mm-tl-pt::before {
+    content: '';
+    position: absolute;
+    top: -16px;
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    background: var(--gc-bg);
+    box-shadow: inset 0 0 0 3px var(--gc-c);
+}
+
+.mm-tl-a::before { left: 0; }
+
+.mm-tl-b {
+    text-align: right;
+}
+
+.mm-tl-b::before {
+    right: 0;
+    background: var(--gc-c);
+}
+
+.mm-tl-pt b {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+/* Span pill sits on the line so long spans ("21 years, 8 months, 26 days") never hit the end labels */
+.mm-tl-mid {
+    position: absolute;
+    left: 50%;
+    top: -3px;
+    transform: translateX(-50%);
+    max-width: calc(100% - 40px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 9px;
+    line-height: 16px;
+    border: 1px solid var(--gc-hair);
+    border-radius: 999px;
+    background: var(--gc-bg);
+    font-family: var(--gc-num);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gc-t);
+}
+
+.mm-peaks {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 10px;
+}
+
+.mm-peak {
+    padding: 10px 12px;
+    border: 1px solid var(--gc-hair);
+    border-radius: 12px;
+    background: var(--gc-tint);
+}
+
+.mm-peak-v {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--gc-muted);
+}
+
+.mm-peak-v b {
+    font-family: var(--gc-num);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--gc-t);
+}
+
+.mm-foot {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gc-hair);
+    font-size: 11.5px;
+    color: var(--gc-muted);
+}
+
+.mm-foot-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.mm-foot b {
+    color: #f2f2f4;
+    font-weight: 600;
+}
+
+/* ── Phones: keep the vertical card, two per row ── */
+@media (max-width: 768px) {
+    .artist-grid,
+    .album-grid,
+    .song-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .gc {
+        cursor: pointer;
+    }
+
+    .gc.mobile-expanded {
+        grid-column: 1 / -1;
+    }
+
+    /* Tapped card: the More panel content shows inline, so the card-face stats step aside */
+    .gc.mobile-expanded .gc-plays,
+    .gc.mobile-expanded .gc-cells,
+    .gc.mobile-expanded .sort-metric {
+        display: none;
+    }
+
+    .gc.mobile-expanded .card-modal-text-stats {
+        gap: 18px;
+        padding: 0 0 12px 0;
+    }
+
+    .gc .mm-ranks {
+        padding: 0 14px;
+    }
+
+    .gc .mm-main {
+        padding: 0 14px;
+        border-left: 0;
+        gap: 18px;
+    }
+
+    .gc .mm-big { font-size: 34px; }
+
+    .gc-name { font-size: 14px; }
+    .gc-total-num { font-size: 24px; }
+    .gc-cell-v { font-size: 12.5px; }
+    .gc-legend { font-size: 10px; }
+
+    /* Narrow cards: stat columns wrap two per row */
+    .gc-cells {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .gc-cell:nth-child(odd) {
+        border-left: 0;
+    }
+
+    .gc-cell:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+}

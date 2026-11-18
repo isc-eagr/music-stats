@@ -64,6 +64,7 @@ const listViewSortParamMap = {
         weeksListened: 'weeks_listened',
         monthsListened: 'months_listened',
         yearsListened: 'years_listened',
+        consistency: 'consistency',
         age: 'age',
         albumCount: 'albums',
         avgLength: 'avg_length',
@@ -98,6 +99,7 @@ const listViewSortParamMap = {
         weeksListened: 'weeks_listened',
         monthsListened: 'months_listened',
         yearsListened: 'years_listened',
+        consistency: 'consistency',
         firstFullListen: 'first_full_listen',
         lastFullListen: 'last_full_listen',
         fullAlbumPlays: 'full_album_plays',
@@ -138,6 +140,7 @@ const listViewSortParamMap = {
         weeksListened: 'weeks_listened',
         monthsListened: 'months_listened',
         yearsListened: 'years_listened',
+        consistency: 'consistency',
         trackNumber: 'track_number',
         ageAtRelease: 'age_at_release',
         featuredArtistCount: 'featured_artist_count',
@@ -187,6 +190,7 @@ const topColumnConfig = {
         { key: 'weeksListened', label: 'Weeks Listened', defaultVisible: false, align: 'right' },
         { key: 'monthsListened', label: 'Months Listened', defaultVisible: false, align: 'right' },
         { key: 'yearsListened', label: 'Years Listened', defaultVisible: false, align: 'right' },
+        { key: 'consistency', label: 'Consistency', defaultVisible: false, align: 'right' },
         { key: 'age', label: 'Age', defaultVisible: false, align: 'right' },
         { key: 'albumCount', label: 'Album Count', defaultVisible: false, align: 'right' },
         { key: 'avgLength', label: 'Avg Length', defaultVisible: false, align: 'right' },
@@ -219,6 +223,7 @@ const topColumnConfig = {
         { key: 'weeksListened', label: 'Weeks Listened', defaultVisible: false, align: 'right' },
         { key: 'monthsListened', label: 'Months Listened', defaultVisible: false, align: 'right' },
         { key: 'yearsListened', label: 'Years Listened', defaultVisible: false, align: 'right' },
+        { key: 'consistency', label: 'Consistency', defaultVisible: false, align: 'right' },
         { key: 'firstFullListen', label: 'First Full Listen', defaultVisible: false, align: 'left' },
         { key: 'lastFullListen', label: 'Last Full Listen', defaultVisible: false, align: 'left' },
         { key: 'fullAlbumPlays', label: 'Full Album Plays', defaultVisible: false, align: 'right' },
@@ -257,6 +262,7 @@ const topColumnConfig = {
         { key: 'weeksListened', label: 'Weeks Listened', defaultVisible: false, align: 'right' },
         { key: 'monthsListened', label: 'Months Listened', defaultVisible: false, align: 'right' },
         { key: 'yearsListened', label: 'Years Listened', defaultVisible: false, align: 'right' },
+        { key: 'consistency', label: 'Consistency', defaultVisible: false, align: 'right' },
         { key: 'trackNumber', label: 'Track #', defaultVisible: false, align: 'right' },
         { key: 'ageAtRelease', label: 'Age at Release', defaultVisible: false, align: 'right' },
         { key: 'featuredArtistCount', label: 'Featured Artist Count', defaultVisible: false, align: 'right' },
@@ -288,19 +294,137 @@ let topColumnVisibility = {
 const lazyTablePageRequests = new Map();
 const albumFullListenColumns = new Set(['firstFullListen', 'lastFullListen', 'fullAlbumPlays']);
 
-/**
- * Get inline row style for gender-based coloring
- * Female (genderId 1) = pink, Male (genderId 2) = blue
- */
-function getGenderRowStyle(genderId) {
-    if (genderId === 1) {
-        // Female = pink
-        return 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);';
-    } else if (genderId === 2) {
-        // Male = blue
-        return 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);';
+// ============================================================
+// CELL DETAILS (styles in css/catalog-table.css)
+// ============================================================
+
+// Largest play count among the loaded rows, so the thin bar under Total Plays compares rows.
+const ctPlayScale = { artists: 0, albums: 0, songs: 0 };
+
+/** Row class for the gender cues (cover ring, tinted artist / album links, bar color). Male = 2, female = 1. */
+function ctGenderClass(genderId) {
+    return genderId === 2 ? 'ct-male' : genderId === 1 ? 'ct-female' : '';
+}
+
+function ctRankClass(rank) {
+    return rank >= 1 && rank <= 3 ? ' ct-medal-' + rank : '';
+}
+
+/** Parses dd/MM/yyyy, yyyy-MM-dd and the "dd MMM yyyy" display format. */
+function ctParseDate(value) {
+    if (value == null || value === '' || value === '-') return null;
+    const text = String(value).trim();
+    let match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (match) return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    const time = parseDisplayDate(text);
+    return time ? new Date(time) : null;
+}
+
+function ctDaysAgo(date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = new Date(date.getTime());
+    day.setHours(0, 0, 0, 0);
+    return Math.round((today - day) / 86400000);
+}
+
+function ctAgoText(days) {
+    if (days < 0) return 'Upcoming';
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return days + ' days ago';
+    if (days < 30) {
+        const weeks = Math.floor(days / 7);
+        return weeks + (weeks === 1 ? ' week ago' : ' weeks ago');
     }
-    return '';
+    if (days < 365) {
+        const months = Math.max(1, Math.floor(days / 30.44));
+        return months + (months === 1 ? ' month ago' : ' months ago');
+    }
+    const years = Math.floor(days / 365.25);
+    return years + (years === 1 ? ' year ago' : ' years ago');
+}
+
+/** Date with how long ago it was underneath (first listened, release date, ...). */
+function ctDateAgoCell(value) {
+    const date = ctParseDate(value);
+    if (!date) return value ? escapeHtml(String(value)) : '-';
+    return `${escapeHtml(String(value))}<span class="ct-muted">${ctAgoText(ctDaysAgo(date))}</span>`;
+}
+
+/** Recency dot: green within 1 year, amber 1-3 years, red 3-5 years, grey after that. */
+function ctRecencyCell(value) {
+    const date = ctParseDate(value);
+    if (!date) return value ? escapeHtml(String(value)) : '-';
+    const days = ctDaysAgo(date);
+    const years = days / 365.25;
+    const dotClass = years <= 1 ? ' fresh' : years <= 3 ? ' aging' : years <= 5 ? ' stale' : '';
+    return `<span class="ct-rec"><span class="ct-dot${dotClass}" aria-hidden="true"></span>${ctAgoText(days)}</span><span class="ct-muted">${escapeHtml(String(value))}</span>`;
+}
+
+function ctItunesBadge(inItunes) {
+    if (inItunes == null) return '';
+    return inItunes
+        ? '<span class="ct-it yes" title="In iTunes Library"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></span>'
+        : '<span class="ct-it no" title="Not in iTunes Library"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></span>';
+}
+
+function ctRefreshPlayScale(type) {
+    const max = (topTabData[type] || []).reduce((best, item) => Math.max(best, Number(item.plays) || 0), 0);
+    const changed = max !== ctPlayScale[type];
+    ctPlayScale[type] = max;
+    return changed;
+}
+
+/** Total plays with a thin bar scaled to the most played loaded row. */
+function ctPlaysCell(type, plays, innerHtml) {
+    const max = ctPlayScale[type] || 0;
+    const width = max > 0 ? Math.max(2, Math.round((Number(plays) || 0) * 100 / max)) : 0;
+    return `<span class="ct-plays">${innerHtml}</span><div class="ct-bar" style="width:${width}%;" aria-hidden="true"></div>`;
+}
+
+/** Share of the total under Primary / Legacy plays. */
+function ctShareLine(part, total) {
+    const value = Number(part) || 0;
+    const whole = Number(total) || 0;
+    if (whole <= 0) return '';
+    return `<span class="ct-muted">${value > 0 ? Math.round(value * 100 / whole) + '%' : 'none'}</span>`;
+}
+
+function ctZeroClass(value) {
+    return (Number(value) || 0) === 0 ? ' class="ct-dim"' : '';
+}
+
+/** Time listened with an "about N days" hint once it passes a day. */
+function ctTimeCell(formatted, seconds) {
+    const total = Number(seconds) || 0;
+    const hint = total >= 86400 ? `<span class="ct-muted">&#8776; ${(total / 86400).toFixed(1)} days</span>` : '';
+    return (formatted || '-') + hint;
+}
+
+const ctStarSvg = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z"/></svg>';
+
+/**
+ * Chart peak chip: #1 gold with a star, #2 silver, #3 bronze, lower peaks in the chart's own color.
+ * Billboard keeps its cyan and only gets a gold edge at #1.
+ */
+function ctPeakChip(value, family, atPeak, unit) {
+    if (value == null || value === '' || value === '-') return '<span class="ct-dim">-</span>';
+    const peak = parseInt(String(value).replace('#', ''), 10);
+    if (!Number.isFinite(peak)) return escapeHtml(String(value));
+    const medal = family === 'billboard'
+        ? (peak === 1 ? ' p1' : '')
+        : (peak <= 3 ? ' p' + peak : '');
+    const count = Number(atPeak) || 0;
+    const tail = count > 0 ? ` <em>&#215;${count} ${count === 1 ? unit : unit + 's'}</em>` : '';
+    return `<span class="ct-pk ${family}${medal}">${peak === 1 ? ctStarSvg : ''}#${peak}${tail}</span>`;
+}
+
+function ctChip(value, kind) {
+    if (!value) return '<span class="ct-dim">-</span>';
+    return `<span class="ct-chip ${kind}" title="${escapeHtml(String(value))}">${escapeHtml(String(value))}</span>`;
 }
 
 /**
@@ -313,14 +437,24 @@ function initColumnToggles() {
         if (!container) return;
         
         const config = topColumnConfig[type];
+        // Lists opened from a timeframe after the legacy account stopped start without Primary / Legacy
+        // (Total says it all); they stay available in Show/Hide Columns.
+        const legacyHidden = document.getElementById('tableView')?.dataset.legacyHidden === 'true';
         // Preserve any user-selected visibility state across table reloads/sorts.
         const existingVisibility = topColumnVisibility[type] || {};
         topColumnVisibility[type] = {};
         config.forEach(col => {
             topColumnVisibility[type][col.key] = Object.prototype.hasOwnProperty.call(existingVisibility, col.key)
                 ? existingVisibility[col.key]
-                : col.defaultVisible;
+                : col.defaultVisible && !(legacyHidden && (col.key === 'primaryPlays' || col.key === 'legacyPlays'));
         });
+        if (legacyHidden) {
+            const tableId = type === 'artists' ? 'topArtistsTable' : type === 'albums' ? 'topAlbumsTable' : 'topSongsTable';
+            ['primaryPlays', 'legacyPlays'].forEach(key => {
+                const th = document.querySelector(`#${tableId} thead th[data-col="${key}"]`);
+                if (th) th.style.display = topColumnVisibility[type][key] ? '' : 'none';
+            });
+        }
         
         // Sort checkboxes alphabetically by label
         const sortedConfig = [...config].sort((a, b) => a.label.localeCompare(b.label));
@@ -427,6 +561,7 @@ function setColumnVisibility(type, colKey, visible) {
         const td = row.children[colIndex];
         if (td) td.style.display = visible ? '' : 'none';
     });
+    finishCatalogTableRender(type);
 }
 
 function hasVisibleLazyColumns(type) {
@@ -604,43 +739,44 @@ function buildArtistRow(artist, rank) {
         ? window.buildPlayBreakdownTooltip((value || 0).toLocaleString(), items, title)
         : (value || 0).toLocaleString();
     return `
-        <tr style="${getGenderRowStyle(artist.genderId)}">
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col artist-cover">
+        <tr class="${ctGenderClass(artist.genderId)}" data-id="${artist.id}">
+            <td class="rank-col ct-pin ct-pin-rank${ctRankClass(rank)}">${rank}</td>
+            <td class="cover-col artist-cover ct-pin ct-pin-cover">
                 <div style="cursor:pointer;">
                     <img src="/artists/${artist.id}/image" alt="" class="clickable-image" onclick="openArtistImageModalFromGraphs(${artist.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:40px;height:60px;object-fit:cover;border-radius:4px;">
                     <div style="display:none;width:40px;height:60px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">&#127908;</div>
                 </div>
             </td>
-            <td><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a></td>
+            <td class="ct-name ct-pin ct-pin-name"><a href="/artists/${artist.id}">${escapeHtml(artist.name || '-')}</a>${ctItunesBadge(artist.inItunes)}</td>
             <td style="text-align:right;display:${vis('random')};">${cellVal(artist.__randomSortValue)}</td>
-            <td style="text-align:right;display:${vis('plays')};"${(artist.plays || 0) >= 1000 ? ' class="high-plays"' : ''}>${withBreakdown(artist.plays, breakdownItems(artist.mainPlayCount, artist.groupPlayCount, artist.featuredPlayCount), 'Total plays by source:')}</td>
-            <td style="text-align:right;display:${vis('primaryPlays')};">${withBreakdown(artist.primaryPlays, breakdownItems(artist.mainVatitoPlayCount, artist.groupVatitoPlayCount, artist.featuredVatitoPlayCount), 'Primary plays by source:')}</td>
-            <td style="text-align:right;display:${vis('legacyPlays')};">${withBreakdown(artist.legacyPlays, breakdownItems(artist.mainRobertloverPlayCount, artist.groupRobertloverPlayCount, artist.featuredRobertloverPlayCount), 'Legacy plays by source:')}</td>
-            <td style="text-align:right;display:${vis('timeListened')};">${artist.timeListenedFormatted || '-'}</td>
-            <td style="display:${vis('firstListened')};">${artist.firstListened || '-'}</td>
-            <td style="display:${vis('lastListened')};">${artist.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('plays')};">${ctPlaysCell('artists', artist.plays, withBreakdown(artist.plays, breakdownItems(artist.mainPlayCount, artist.groupPlayCount, artist.featuredPlayCount), 'Total plays by source:'))}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${withBreakdown(artist.primaryPlays, breakdownItems(artist.mainVatitoPlayCount, artist.groupVatitoPlayCount, artist.featuredVatitoPlayCount), 'Primary plays by source:')}${ctShareLine(artist.primaryPlays, artist.plays)}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};"${ctZeroClass(artist.legacyPlays)}>${withBreakdown(artist.legacyPlays, breakdownItems(artist.mainRobertloverPlayCount, artist.groupRobertloverPlayCount, artist.featuredRobertloverPlayCount), 'Legacy plays by source:')}${ctShareLine(artist.legacyPlays, artist.plays)}</td>
+            <td style="text-align:right;display:${vis('timeListened')};">${ctTimeCell(artist.timeListenedFormatted, artist.timeListened)}</td>
+            <td style="display:${vis('firstListened')};">${ctDateAgoCell(artist.firstListened)}</td>
+            <td style="display:${vis('lastListened')};">${ctRecencyCell(artist.lastListened)}</td>
             <td style="text-align:right;display:${vis('daysListened')};">${cellVal(artist.daysListened)}</td>
             <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(artist.weeksListened)}</td>
             <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(artist.monthsListened)}</td>
             <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(artist.yearsListened)}</td>
+            <td style="text-align:right;display:${vis('consistency')};">${cellVal(artist.consistencyLabel)}</td>
             <td style="text-align:right;display:${vis('age')};">${cellVal(artist.age)}</td>
             <td style="text-align:right;display:${vis('albumCount')};">${cellVal(artist.albumCount)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${artist.avgLengthFormatted || '-'}</td>
             <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(artist.avgPlays)}</td>
             <td style="text-align:right;display:${vis('avgPlaysAlbum')};">${cellVal(artist.avgPlaysAlbum)}</td>
             <td style="display:${vis('birthDate')};">${artist.birthDate || '-'}</td>
-            <td style="display:${vis('deathDate')};">${artist.deathDate || '-'}</td>
+            <td style="display:${vis('deathDate')};">${ctDateAgoCell(artist.deathDate)}</td>
             <td style="text-align:right;display:${vis('songCount')};">${cellVal(artist.songCount)}</td>
             <td style="text-align:right;display:${vis('featuredOnCount')};">${cellVal(artist.featuredOnCount)}</td>
             <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(artist.featuredArtistCount)}</td>
             <td style="text-align:right;display:${vis('soloSongCount')};">${cellVal(artist.soloSongCount)}</td>
             <td style="text-align:right;display:${vis('songsWithFeatCount')};">${cellVal(artist.songsWithFeatCount)}</td>
-            <td style="display:${vis('genre')};">${artist.genre || '-'}</td>
-            <td style="display:${vis('subgenre')};">${artist.subgenre || '-'}</td>
-            <td style="display:${vis('ethnicity')};">${artist.ethnicity || '-'}</td>
-            <td style="display:${vis('country')};">${artist.country || '-'}</td>
-            <td style="display:${vis('language')};">${artist.language || '-'}</td>
+            <td style="display:${vis('genre')};">${ctChip(artist.genre, 'genre')}</td>
+            <td style="display:${vis('subgenre')};">${ctChip(artist.subgenre, 'subgenre')}</td>
+            <td style="display:${vis('ethnicity')};">${ctChip(artist.ethnicity, 'ethnicity')}</td>
+            <td style="display:${vis('country')};">${ctChip(artist.country, 'country')}</td>
+            <td style="display:${vis('language')};">${ctChip(artist.language, 'language')}</td>
         </tr>`;
 }
 
@@ -664,6 +800,7 @@ function renderTopArtistsTable() {
     }
     
     const rowsToRender = data.slice(0, topInfiniteScrollState.artists.displayedRows);
+    ctRefreshPlayScale('artists');
     
     tbody.innerHTML = rowsToRender.map((artist, index) => buildArtistRow(artist, index + 1)).join('');
     if (typeof window.initializePlayBreakdownTooltips === 'function') {
@@ -671,6 +808,7 @@ function renderTopArtistsTable() {
     }
 
     updateSortIndicators('topArtistsTable', topSortState.artists);
+    finishCatalogTableRender('artists');
 }
 
 /**
@@ -682,49 +820,50 @@ function renderTopArtistsTable() {
 function buildAlbumRow(album, rank) {
     const vis = (col) => getColDisplay('albums', col);
     return `
-        <tr style="${getGenderRowStyle(album.genderId)}">
-            <td class="rank-col">${rank}</td>
-            <td class="cover-col">
+        <tr class="${ctGenderClass(album.genderId)}" data-id="${album.id}">
+            <td class="rank-col ct-pin ct-pin-rank${ctRankClass(rank)}">${rank}</td>
+            <td class="cover-col ct-pin ct-pin-cover">
                 <div style="cursor:pointer;">
                     <img src="/albums/${album.id}/image" alt="" class="clickable-image" onclick="openAlbumImageModalFromGraphs(${album.id})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
                     <div style="display:none;width:50px;height:50px;background:#2a2a2a;border-radius:4px;align-items:center;justify-content:center;color:#666;font-size:14px;">&#128191;</div>
                 </div>
             </td>
-            <td><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
-            <td><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a></td>
+            <td class="ct-name ct-pin ct-pin-name"><a href="/albums/${album.id}">${escapeHtml(album.name || '-')}</a>${ctItunesBadge(album.inItunes)}</td>
+            <td class="ct-sub"><a href="/artists/${album.artistId}">${escapeHtml(album.artistName || '-')}</a></td>
             <td style="text-align:right;display:${vis('random')};">${cellVal(album.__randomSortValue)}</td>
-            <td style="text-align:right;display:${vis('plays')};"${(album.plays || 0) >= 500 ? ' class="high-plays"' : ''}>${(album.plays || 0).toLocaleString()}</td>
-            <td style="text-align:right;display:${vis('primaryPlays')};">${(album.primaryPlays || 0).toLocaleString()}</td>
-            <td style="text-align:right;display:${vis('legacyPlays')};">${(album.legacyPlays || 0).toLocaleString()}</td>
+            <td style="text-align:right;display:${vis('plays')};">${ctPlaysCell('albums', album.plays, (album.plays || 0).toLocaleString())}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${(album.primaryPlays || 0).toLocaleString()}${ctShareLine(album.primaryPlays, album.plays)}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};"${ctZeroClass(album.legacyPlays)}>${(album.legacyPlays || 0).toLocaleString()}${ctShareLine(album.legacyPlays, album.plays)}</td>
             <td style="text-align:right;display:${vis('length')};">${album.lengthFormatted || '-'}</td>
-            <td style="text-align:right;display:${vis('timeListened')};">${album.timeListenedFormatted || '-'}</td>
-            <td style="display:${vis('releaseDate')};">${album.releaseDate || '-'}</td>
-            <td style="display:${vis('firstListened')};">${album.firstListened || '-'}</td>
-            <td style="display:${vis('lastListened')};">${album.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('timeListened')};">${ctTimeCell(album.timeListenedFormatted, album.timeListened)}</td>
+            <td style="display:${vis('releaseDate')};">${ctDateAgoCell(album.releaseDate)}</td>
+            <td style="display:${vis('firstListened')};">${ctDateAgoCell(album.firstListened)}</td>
+            <td style="display:${vis('lastListened')};">${ctRecencyCell(album.lastListened)}</td>
             <td style="text-align:right;display:${vis('daysListened')};">${cellVal(album.daysListened)}</td>
             <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(album.weeksListened)}</td>
             <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(album.monthsListened)}</td>
             <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(album.yearsListened)}</td>
+            <td style="text-align:right;display:${vis('consistency')};">${cellVal(album.consistencyLabel)}</td>
             <td style="display:${vis('firstFullListen')};">${album.fullListenEligible ? (album.firstFullListen || '-') : 'Not an album'}</td>
-            <td style="display:${vis('lastFullListen')};">${album.fullListenEligible ? (album.lastFullListen || '-') : 'Not an album'}</td>
+            <td style="display:${vis('lastFullListen')};">${album.fullListenEligible ? ctRecencyCell(album.lastFullListen) : 'Not an album'}</td>
             <td style="text-align:right;display:${vis('fullAlbumPlays')};">${album.fullListenEligible ? cellVal(album.fullAlbumPlays) : 'Not an album'}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(album.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('avgLength')};">${album.avgLengthFormatted || '-'}</td>
             <td style="text-align:right;display:${vis('avgPlays')};">${cellVal(album.avgPlays)}</td>
-            <td style="text-align:right;display:${vis('seasonalChartPeak')};">${cellVal(album.seasonalChartPeak)}</td>
+            <td style="text-align:right;display:${vis('seasonalChartPeak')};">${ctPeakChip(album.seasonalChartPeak, 'seasonal')}</td>
             <td style="text-align:right;display:${vis('songCount')};">${cellVal(album.songCount)}</td>
             <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(album.featuredArtistCount)}</td>
             <td style="text-align:right;display:${vis('soloSongCount')};">${cellVal(album.soloSongCount)}</td>
             <td style="text-align:right;display:${vis('songsWithFeatCount')};">${cellVal(album.songsWithFeatCount)}</td>
-            <td style="text-align:right;display:${vis('weeklyChartPeak')};">${cellVal(album.weeklyChartPeak)}</td>
+            <td style="text-align:right;display:${vis('weeklyChartPeak')};">${ctPeakChip(album.weeklyChartPeak, 'weekly', album.weeklyChartPeakWeeks, 'wk')}</td>
             <td style="text-align:right;display:${vis('weeklyChartWeeks')};">${cellVal(album.weeklyChartWeeks)}</td>
             <td style="text-align:right;display:${vis('weeklyChartPeakWeeks')};">${cellVal(album.weeklyChartPeakWeeks)}</td>
-            <td style="text-align:right;display:${vis('yearlyChartPeak')};">${cellVal(album.yearlyChartPeak)}</td>
-            <td style="display:${vis('genre')};">${album.genre || '-'}</td>
-            <td style="display:${vis('subgenre')};">${album.subgenre || '-'}</td>
-            <td style="display:${vis('ethnicity')};">${album.ethnicity || '-'}</td>
-            <td style="display:${vis('country')};">${album.country || '-'}</td>
-            <td style="display:${vis('language')};">${album.language || '-'}</td>
+            <td style="text-align:right;display:${vis('yearlyChartPeak')};">${ctPeakChip(album.yearlyChartPeak, 'yearly')}</td>
+            <td style="display:${vis('genre')};">${ctChip(album.genre, 'genre')}</td>
+            <td style="display:${vis('subgenre')};">${ctChip(album.subgenre, 'subgenre')}</td>
+            <td style="display:${vis('ethnicity')};">${ctChip(album.ethnicity, 'ethnicity')}</td>
+            <td style="display:${vis('country')};">${ctChip(album.country, 'country')}</td>
+            <td style="display:${vis('language')};">${ctChip(album.language, 'language')}</td>
         </tr>`;
 }
 
@@ -745,10 +884,12 @@ function renderTopAlbumsTable() {
     }
     
     const rowsToRender = data.slice(0, topInfiniteScrollState.albums.displayedRows);
+    ctRefreshPlayScale('albums');
     
     tbody.innerHTML = rowsToRender.map((album, index) => buildAlbumRow(album, index + 1)).join('');
 
     updateSortIndicators('topAlbumsTable', topSortState.albums);
+    finishCatalogTableRender('albums');
 }
 
 /**
@@ -804,49 +945,52 @@ function buildSongRow(song, rank) {
            </label>`
         : rank;
     if (isSelected) rowClasses.push('song-row-selected');
+    const genderClass = ctGenderClass(song.genderId);
+    if (genderClass) rowClasses.push(genderClass);
     const finalRowClassAttr = rowClasses.length > 0 ? ` class="${rowClasses.join(' ')}"` : '';
     return `
-        <tr${finalRowClassAttr} style="${getGenderRowStyle(song.genderId)}">
-            <td class="rank-col">${selectionCellHtml}</td>
-            <td class="cover-col">${coverHtml}</td>
-            <td><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
-            <td>${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
-            <td><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? ' <span class="single-indicator" title="Single">&#128313;</span>' : ''}${songLabel}</td>
+        <tr${finalRowClassAttr} data-id="${song.id}">
+            <td class="rank-col ct-pin ct-pin-rank${ctRankClass(rank)}">${selectionCellHtml}</td>
+            <td class="cover-col ct-pin ct-pin-cover">${coverHtml}</td>
+            <td class="ct-name ct-pin ct-pin-name"><a href="/songs/${song.id}">${escapeHtml(song.name || '-')}</a>${song.isSingle ? '<span class="ct-single" title="Single">Single</span>' : ''}${ctItunesBadge(song.inItunes)}${songLabel}</td>
+            <td class="ct-sub"><a href="/artists/${song.artistId}">${escapeHtml(song.artistName || '-')}</a></td>
+            <td class="ct-sub">${song.albumId ? `<a href="/albums/${song.albumId}">${escapeHtml(song.albumName)}</a>` : '-'}</td>
             <td style="text-align:right;display:${vis('random')};">${cellVal(song.__randomSortValue)}</td>
-            <td style="text-align:right;display:${vis('plays')};"${(song.plays || 0) >= 100 ? ' class="high-plays"' : ''}>${buildLinkedSongTooltip((song.plays || 0).toLocaleString(), song.totalPlayBreakdownItems, 'Combined song versions (Total Plays):')}</td>
-            <td style="text-align:right;display:${vis('primaryPlays')};">${buildLinkedSongTooltip((song.primaryPlays || 0).toLocaleString(), song.primaryPlayBreakdownItems, 'Combined song versions (Primary Plays):')}</td>
-            <td style="text-align:right;display:${vis('legacyPlays')};">${buildLinkedSongTooltip((song.legacyPlays || 0).toLocaleString(), song.legacyPlayBreakdownItems, 'Combined song versions (Legacy Plays):')}</td>
+            <td style="text-align:right;display:${vis('plays')};">${ctPlaysCell('songs', song.plays, buildLinkedSongTooltip((song.plays || 0).toLocaleString(), song.totalPlayBreakdownItems, 'Combined song versions (Total Plays):'))}</td>
+            <td style="text-align:right;display:${vis('primaryPlays')};">${buildLinkedSongTooltip((song.primaryPlays || 0).toLocaleString(), song.primaryPlayBreakdownItems, 'Combined song versions (Primary Plays):')}${ctShareLine(song.primaryPlays, song.plays)}</td>
+            <td style="text-align:right;display:${vis('legacyPlays')};"${ctZeroClass(song.legacyPlays)}>${buildLinkedSongTooltip((song.legacyPlays || 0).toLocaleString(), song.legacyPlayBreakdownItems, 'Combined song versions (Legacy Plays):')}${ctShareLine(song.legacyPlays, song.plays)}</td>
             <td style="text-align:right;display:${vis('length')};">${song.lengthFormatted || '-'}</td>
-            <td style="text-align:right;display:${vis('timeListened')};">${song.timeListenedFormatted || '-'}</td>
-            <td style="display:${vis('releaseDate')};">${song.releaseDate || '-'}</td>
-            <td style="display:${vis('firstListened')};">${song.firstListened || '-'}</td>
-            <td style="display:${vis('lastListened')};">${song.lastListened || '-'}</td>
+            <td style="text-align:right;display:${vis('timeListened')};">${ctTimeCell(song.timeListenedFormatted, song.timeListened)}</td>
+            <td style="display:${vis('releaseDate')};">${ctDateAgoCell(song.releaseDate)}</td>
+            <td style="display:${vis('firstListened')};">${ctDateAgoCell(song.firstListened)}</td>
+            <td style="display:${vis('lastListened')};">${ctRecencyCell(song.lastListened)}</td>
             <td style="text-align:right;display:${vis('daysListened')};">${cellVal(song.daysListened)}</td>
             <td style="text-align:right;display:${vis('weeksListened')};">${cellVal(song.weeksListened)}</td>
             <td style="text-align:right;display:${vis('monthsListened')};">${cellVal(song.monthsListened)}</td>
             <td style="text-align:right;display:${vis('yearsListened')};">${cellVal(song.yearsListened)}</td>
+            <td style="text-align:right;display:${vis('consistency')};">${cellVal(song.consistencyLabel)}</td>
             <td style="text-align:right;display:${vis('trackNumber')};">${cellVal(song.trackNumber)}</td>
             <td style="text-align:right;display:${vis('ageAtRelease')};">${cellVal(song.ageAtRelease)}</td>
             <td style="text-align:right;display:${vis('featuredArtistCount')};">${cellVal(song.featuredArtistCount)}</td>
-            <td style="text-align:right;display:${vis('seasonalChartPeak')};">${cellVal(song.seasonalChartPeak)}</td>
-            <td style="text-align:right;display:${vis('weeklyChartPeak')};">${cellVal(song.weeklyChartPeak)}</td>
+            <td style="text-align:right;display:${vis('seasonalChartPeak')};">${ctPeakChip(song.seasonalChartPeak, 'seasonal')}</td>
+            <td style="text-align:right;display:${vis('weeklyChartPeak')};">${ctPeakChip(song.weeklyChartPeak, 'weekly', song.weeklyChartPeakWeeks, 'wk')}</td>
             <td style="text-align:right;display:${vis('weeklyChartWeeks')};">${cellVal(song.weeklyChartWeeks)}</td>
             <td style="text-align:right;display:${vis('weeklyChartPeakWeeks')};">${cellVal(song.weeklyChartPeakWeeks)}</td>
-            <td style="text-align:right;display:${vis('trlPeak')};">${cellVal(song.trlPeak)}</td>
+            <td style="text-align:right;display:${vis('trlPeak')};">${ctPeakChip(song.trlPeak, 'trl', song.trlDaysAtPeak, 'day')}</td>
             <td style="text-align:right;display:${vis('trlDays')};">${cellVal(song.trlDays)}</td>
             <td style="text-align:right;display:${vis('trlDaysAtPeak')};">${cellVal(song.trlDaysAtPeak)}</td>
-            <td style="text-align:right;display:${vis('vatosCuntdownPeak')};">${cellVal(song.vatosCuntdownPeak)}</td>
+            <td style="text-align:right;display:${vis('vatosCuntdownPeak')};">${ctPeakChip(song.vatosCuntdownPeak, 'vatos', song.vatosCuntdownDaysAtPeak, 'day')}</td>
             <td style="text-align:right;display:${vis('vatosCuntdownDays')};">${cellVal(song.vatosCuntdownDays)}</td>
             <td style="text-align:right;display:${vis('vatosCuntdownDaysAtPeak')};">${cellVal(song.vatosCuntdownDaysAtPeak)}</td>
-            <td style="text-align:right;display:${vis('billboardPeak')};">${cellVal(song.billboardPeak)}</td>
+            <td style="text-align:right;display:${vis('billboardPeak')};">${ctPeakChip(song.billboardPeak, 'billboard', song.billboardWeeksAtPeak, 'wk')}</td>
             <td style="text-align:right;display:${vis('billboardWeeks')};">${cellVal(song.billboardWeeks)}</td>
             <td style="text-align:right;display:${vis('billboardWeeksAtPeak')};">${cellVal(song.billboardWeeksAtPeak)}</td>
-            <td style="text-align:right;display:${vis('yearlyChartPeak')};">${cellVal(song.yearlyChartPeak)}</td>
-            <td style="display:${vis('genre')};">${song.genre || '-'}</td>
-            <td style="display:${vis('subgenre')};">${song.subgenre || '-'}</td>
-            <td style="display:${vis('ethnicity')};">${song.ethnicity || '-'}</td>
-            <td style="display:${vis('country')};">${song.country || '-'}</td>
-            <td style="display:${vis('language')};">${song.language || '-'}</td>
+            <td style="text-align:right;display:${vis('yearlyChartPeak')};">${ctPeakChip(song.yearlyChartPeak, 'yearly')}</td>
+            <td style="display:${vis('genre')};">${ctChip(song.genre, 'genre')}</td>
+            <td style="display:${vis('subgenre')};">${ctChip(song.subgenre, 'subgenre')}</td>
+            <td style="display:${vis('ethnicity')};">${ctChip(song.ethnicity, 'ethnicity')}</td>
+            <td style="display:${vis('country')};">${ctChip(song.country, 'country')}</td>
+            <td style="display:${vis('language')};">${ctChip(song.language, 'language')}</td>
         </tr>`;
 }
 
@@ -870,6 +1014,7 @@ function renderTopSongsTable() {
     }
     
     const rowsToRender = data.slice(0, topInfiniteScrollState.songs.displayedRows);
+    ctRefreshPlayScale('songs');
     
     tbody.innerHTML = rowsToRender.map((song, index) => buildSongRow(song, index + 1)).join('');
     if (typeof window.initializeLinkedSongTooltips === 'function') {
@@ -896,6 +1041,7 @@ function renderTopSongsTable() {
     });
     
     updateSortIndicators('topSongsTable', topSortState.songs);
+    finishCatalogTableRender('songs');
 }
 
 /**
@@ -903,7 +1049,7 @@ function renderTopSongsTable() {
  */
 const numericSortColumns = new Set([
     'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
-    'trackNumber', 'daysListened', 'weeksListened', 'monthsListened', 'yearsListened',
+    'trackNumber', 'daysListened', 'weeksListened', 'monthsListened', 'yearsListened', 'consistency',
     'age', 'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'billboardPeak', 'billboardWeeks', 'billboardWeeksAtPeak', 'seasonalChartPeak',
@@ -970,7 +1116,7 @@ function parseDisplayDate(dateStr) {
 const descDefaultColumns = new Set([
     'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'length',
     'albumCount', 'songCount', 'avgPlays', 'avgPlaysAlbum', 'avgLength', 'age',
-    'daysListened', 'weeksListened', 'monthsListened', 'yearsListened',
+    'daysListened', 'weeksListened', 'monthsListened', 'yearsListened', 'consistency',
     'featuredOnCount', 'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount',
     'ageAtRelease', 'billboardWeeks', 'trlDays', 'vatosCuntdownDays', 'weeklyChartWeeks'
 ]);
@@ -1101,99 +1247,547 @@ function getRenderedTopData(type, data, sortState) {
     return getSortedTopData(type, data, sortState);
 }
 
-/**
- * Updates sort indicators on table headers
- */
-function updateSortIndicators(tableId, sortState) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-    const sorts = Array.isArray(sortState) ? sortState : [sortState];
-    
-    table.querySelectorAll('th').forEach(th => {
-        th.classList.remove('sorted-asc', 'sorted-desc');
-        const badge = th.querySelector('.sort-priority-badge');
-        if (badge) {
-            badge.remove();
-        }
-    });
-    
-    sorts.forEach((sort, index) => {
-        const sortedTh = table.querySelector(`th[data-sort="${sort.column}"]`);
-        if (!sortedTh) return;
+// ============================================================
+// HEADERS: sort badges, "+N" next sort level, column menu
+// ============================================================
 
-        sortedTh.classList.add(sort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+// Filters panel section that matches a column, used by "Filter this column".
+const ctFilterTitles = {
+    plays: 'Play Count', primaryPlays: 'Play Count', legacyPlays: 'Play Count',
+    length: 'Length', trackNumber: 'Track Number',
+    releaseDate: 'Release Date', firstListened: 'First Listened Date', lastListened: 'Last Listened Date',
+    firstFullListen: 'First Full Listen Date', lastFullListen: 'Last Full Listen Date', fullAlbumPlays: 'Full Album Plays',
+    age: 'Age', ageAtRelease: 'Age at Release', birthDate: 'Birth Date', deathDate: 'Death Date',
+    albumCount: 'Album Count', songCount: 'Song Count',
+    artistName: 'Artist', albumName: 'Album',
+    weeklyChartPeak: 'Weekly Chart', weeklyChartWeeks: 'Weekly Chart', weeklyChartPeakWeeks: 'Weekly Chart',
+    seasonalChartPeak: 'Seasonal Chart', yearlyChartPeak: 'Yearly Chart',
+    trlPeak: 'TRL', trlDays: 'TRL', trlDaysAtPeak: 'TRL',
+    vatosCuntdownPeak: "Vato's Cuntdown", vatosCuntdownDays: "Vato's Cuntdown", vatosCuntdownDaysAtPeak: "Vato's Cuntdown",
+    billboardPeak: 'Billboard', billboardWeeks: 'Billboard', billboardWeeksAtPeak: 'Billboard',
+    genre: 'Genre', subgenre: 'Subgenre', ethnicity: 'Ethnicity', country: 'Country', language: 'Language'
+};
 
-        const badge = document.createElement('span');
-        badge.className = 'sort-priority-badge';
-        badge.textContent = String(index + 1);
-        badge.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;border-radius:999px;background:#222;color:#fff;font-size:10px;line-height:1;padding:0 4px;vertical-align:middle;';
-        sortedTh.appendChild(badge);
-        sortedTh.title = `${index === 0 ? 'Primary' : index === 1 ? 'Secondary' : 'Tertiary'} sort: ${sort.direction.toUpperCase()}. Shift+click to add another sort level.`;
+const ctChevronSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const ctMenuIcons = {
+    desc: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+    asc: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+    then: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M4 12h7M4 18h4M17 8v12M14 17l3 3 3-3"/></svg>',
+    remove: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+    filter: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>',
+    hide: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A10 10 0 0 1 12 5c5 0 9 5 10 7a13 13 0 0 1-3 3.6M6.1 6.1C3.9 7.6 2.5 10 2 12c1 2 5 7 10 7a9.6 9.6 0 0 0 4-.9"/></svg>'
+};
+
+let ctOpenMenu = null;
+
+function ctTableId(type) {
+    return type === 'artists' ? 'topArtistsTable' : type === 'albums' ? 'topAlbumsTable' : 'topSongsTable';
+}
+
+function ctRenderTable(type) {
+    if (type === 'artists') renderTopArtistsTable();
+    else if (type === 'albums') renderTopAlbumsTable();
+    else renderTopSongsTable();
+}
+
+function ctDefaultDirection(column) {
+    return descDefaultColumns.has(column) ? 'desc' : 'asc';
+}
+
+function ctSortWords(column) {
+    if (dateSortColumns.has(column)) return { desc: 'newest first', asc: 'oldest first' };
+    if (numericSortColumns.has(column) || column === 'random') return { desc: 'high to low', asc: 'low to high' };
+    return { desc: 'Z to A', asc: 'A to Z' };
+}
+
+/** Wraps each sortable header label with its sort badge, "+N" button and menu button (once). */
+function decorateCatalogTableHeaders(table) {
+    table.querySelectorAll('thead th[data-sort]').forEach(th => {
+        if (th.dataset.ctDecorated === 'true') return;
+        const label = th.textContent.trim();
+        th.dataset.ctLabel = label;
+        th.innerHTML = `<span class="ct-h"><span class="ct-label">${escapeHtml(label)}</span>`
+            + '<span class="ct-sort-badge" hidden></span>'
+            + '<button type="button" class="ct-add"></button>'
+            + `<button type="button" class="ct-menu-btn" aria-label="${escapeHtml(label)} column menu" aria-haspopup="menu" aria-expanded="false">${ctChevronSvg}</button></span>`;
+        th.dataset.ctDecorated = 'true';
     });
 }
 
 /**
- * Sets up click handlers for table header sorting
+ * Updates sort indicators on table headers: lime "1 ↓" badge on sorted columns and the "+N" badge
+ * that adds an unsorted column as the next level.
  */
-function setupTopTableSorting() {
-    function rerenderOrReload(stateKey, renderFn) {
-        if (currentView === 'table' && stateKey === getCurrentEntityType()) {
-            reloadListViewData(stateKey);
+function updateSortIndicators(tableId, sortState) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const sorts = normalizeTopSortState(sortState);
+
+    table.querySelectorAll('thead th[data-sort]').forEach(th => {
+        const label = th.dataset.ctLabel || th.textContent.trim();
+        const index = sorts.findIndex(sort => sort.column === th.dataset.sort);
+        th.classList.remove('sorted-asc', 'sorted-desc', 'ct-sorted');
+
+        const badge = th.querySelector('.ct-sort-badge');
+        if (badge) {
+            badge.hidden = index < 0;
+            if (index >= 0) {
+                badge.className = 'ct-sort-badge ct-level-' + (index + 1);
+                badge.textContent = (index + 1) + ' ' + (sorts[index].direction === 'asc' ? '↑' : '↓');
+            }
+        }
+
+        const add = th.querySelector('.ct-add');
+        if (add) {
+            const available = index < 0 && sorts.length < 3;
+            add.classList.toggle('ct-available', available);
+            add.textContent = '+ ' + (sorts.length + 1);
+            add.title = 'Then by ' + label + ' (sort level ' + (sorts.length + 1) + ')';
+            add.setAttribute('aria-label', add.title);
+        }
+
+        if (index >= 0) {
+            th.classList.add('ct-sorted', sorts[index].direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            th.title = `Sort level ${index + 1}: ${label}, ${sorts[index].direction === 'asc' ? 'ascending' : 'descending'}. Click to sort only by this column.`;
+        } else {
+            th.title = 'Click to sort only by ' + label;
+        }
+    });
+}
+
+/** Header click: sort only by this column (a second click on the first sort level flips it). */
+function sortCatalogTableOnly(type, column, direction) {
+    const current = normalizeTopSortState(topSortState[type]);
+    let dir = direction;
+    if (!dir) {
+        dir = current[0] && current[0].column === column
+            ? (current[0].direction === 'asc' ? 'desc' : 'asc')
+            : ctDefaultDirection(column);
+    }
+    applyCatalogTableSorts(type, [{ column, direction: dir }]);
+}
+
+function addCatalogSortLevel(type, column) {
+    const current = normalizeTopSortState(topSortState[type]);
+    if (current.length >= 3 || current.some(sort => sort.column === column)) return;
+    applyCatalogTableSorts(type, [...current, { column, direction: ctDefaultDirection(column) }]);
+}
+
+function removeCatalogSortLevel(type, column) {
+    const remaining = normalizeTopSortState(topSortState[type]).filter(sort => sort.column !== column);
+    if (remaining.length === 0) return;
+    applyCatalogTableSorts(type, remaining);
+}
+
+function flipCatalogSortLevel(type, column) {
+    applyCatalogTableSorts(type, normalizeTopSortState(topSortState[type]).map(sort => sort.column === column
+        ? { column, direction: sort.direction === 'asc' ? 'desc' : 'asc' }
+        : sort));
+}
+
+function applyCatalogTableSorts(type, sorts) {
+    topSortState[type] = normalizeTopSortState(sorts);
+    syncToolbarSortControls(type);
+    if (currentView === 'table' && type === getCurrentEntityType()) {
+        reloadListViewData(type);
+        return;
+    }
+    ctRenderTable(type);
+}
+
+/** Keeps the toolbar Sort pills and the URL in step with sorts picked from the table headers. */
+function syncToolbarSortControls(type) {
+    if (type !== getCurrentEntityType()) return;
+    const sorts = normalizeTopSortState(topSortState[type]);
+    const url = new URL(window.location.href);
+    applyListViewSortParams(url.searchParams, type);
+    if (typeof syncRandomSeedParam === 'function') syncRandomSeedParam(url);
+    window.history.replaceState({}, '', url.toString());
+
+    [1, 2, 3].forEach(level => {
+        const sort = sorts[level - 1];
+        const select = document.getElementById(level === 1 ? 'sortBySelect' : 'sortBySelect' + level);
+        if (select) {
+            const value = sort ? getListViewSortParam(sort.column, type) : '';
+            select.value = value;
+            select.dataset.selectedSort = value;
+        }
+        if (typeof updateSortButton === 'function') updateSortButton(level, sort ? sort.direction : 'asc');
+    });
+    if (typeof initializeMobileSortPanels === 'function') initializeMobileSortPanels();
+}
+
+function ctFindFilterItem(column) {
+    const title = ctFilterTitles[column];
+    if (!title) return null;
+    const wanted = title.toLowerCase();
+    return Array.from(document.querySelectorAll('#filterPanel .filter-item')).find(item => {
+        const titleEl = item.querySelector('.filter-item-title');
+        if (!titleEl) return false;
+        const copy = titleEl.cloneNode(true);
+        copy.querySelectorAll('.filter-item-chevron').forEach(el => el.remove());
+        return copy.textContent.replace(/\s+/g, ' ').trim().toLowerCase() === wanted;
+    }) || null;
+}
+
+/** Opens the Filters panel at the section for this column. */
+function openCatalogColumnFilter(filterItem) {
+    const panel = document.getElementById('filterPanel');
+    if (panel && panel.style.display !== 'block' && typeof window.toggleFilters === 'function') {
+        window.toggleFilters();
+    }
+    window.setTimeout(() => {
+        if (typeof expandFilterItem === 'function') expandFilterItem(filterItem);
+        filterItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const field = filterItem.querySelector('.filter-item-content input:not([type=hidden]), .filter-item-content select, .filter-item-content button');
+        if (field) field.focus({ preventScroll: true });
+    }, 0);
+}
+
+function hideCatalogColumn(type, column) {
+    const singular = type === 'artists' ? 'artist' : type === 'albums' ? 'album' : 'song';
+    const checkbox = document.querySelector(`#${singular}ColumnToggles input[data-col="${column}"]`);
+    if (checkbox) checkbox.checked = false;
+    setColumnVisibility(type, column, false);
+}
+
+function closeCatalogColumnMenu() {
+    if (!ctOpenMenu) return;
+    ctOpenMenu.menu.remove();
+    ctOpenMenu.button?.setAttribute('aria-expanded', 'false');
+    ctOpenMenu = null;
+}
+
+function openCatalogColumnMenu(type, th) {
+    if (ctOpenMenu && ctOpenMenu.th === th) {
+        closeCatalogColumnMenu();
+        return;
+    }
+    closeCatalogColumnMenu();
+
+    const column = th.dataset.sort;
+    const label = th.dataset.ctLabel || column;
+    const sorts = normalizeTopSortState(topSortState[type]);
+    const index = sorts.findIndex(sort => sort.column === column);
+    const words = ctSortWords(column);
+    const firstDir = ctDefaultDirection(column);
+    const secondDir = firstDir === 'desc' ? 'asc' : 'desc';
+    const items = [
+        { icon: ctMenuIcons[firstDir], text: 'Sort only by this, ' + words[firstDir], run: () => sortCatalogTableOnly(type, column, firstDir) },
+        { icon: ctMenuIcons[secondDir], text: 'Sort only by this, ' + words[secondDir], run: () => sortCatalogTableOnly(type, column, secondDir) }
+    ];
+    if (index < 0 && sorts.length < 3) {
+        items.push({ icon: ctMenuIcons.then, text: 'Then by this', key: 'level ' + (sorts.length + 1), run: () => addCatalogSortLevel(type, column) });
+    }
+    if (index > 0) {
+        items.push({ icon: ctMenuIcons[sorts[index].direction === 'asc' ? 'desc' : 'asc'], text: 'Flip this sort level', key: 'level ' + (index + 1), run: () => flipCatalogSortLevel(type, column) });
+    }
+    if (index >= 0 && sorts.length > 1) {
+        items.push({ icon: ctMenuIcons.remove, text: 'Remove from sort', key: 'level ' + (index + 1), run: () => removeCatalogSortLevel(type, column) });
+    }
+    const filterItem = ctFindFilterItem(column);
+    const hideable = topColumnConfig[type].some(col => col.key === column);
+    if (filterItem || hideable) items.push('sep');
+    if (filterItem) items.push({ icon: ctMenuIcons.filter, text: 'Filter this column', run: () => openCatalogColumnFilter(filterItem) });
+    if (hideable) items.push({ icon: ctMenuIcons.hide, text: 'Hide column', run: () => hideCatalogColumn(type, column) });
+
+    const menu = document.createElement('div');
+    menu.className = 'ct-menu';
+    menu.setAttribute('role', 'menu');
+    menu.setAttribute('aria-label', label + ' column');
+    items.forEach(item => {
+        if (item === 'sep') {
+            const sep = document.createElement('div');
+            sep.className = 'ct-menu-sep';
+            menu.appendChild(sep);
             return;
         }
-        renderFn();
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ct-menu-item';
+        button.setAttribute('role', 'menuitem');
+        button.innerHTML = item.icon + `<span>${escapeHtml(item.text)}</span>` + (item.key ? `<span class="ct-menu-k">${escapeHtml(item.key)}</span>` : '');
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            closeCatalogColumnMenu();
+            item.run();
+        });
+        menu.appendChild(button);
+    });
+
+    document.body.appendChild(menu);
+    const rect = th.getBoundingClientRect();
+    const left = Math.min(Math.max(8, rect.left), window.innerWidth - menu.offsetWidth - 8);
+    menu.style.left = (left + window.scrollX) + 'px';
+    menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+
+    const button = th.querySelector('.ct-menu-btn');
+    button?.setAttribute('aria-expanded', 'true');
+    ctOpenMenu = { menu, th, button };
+    menu.querySelector('.ct-menu-item')?.focus();
+}
+
+document.addEventListener('click', event => {
+    if (ctOpenMenu && !ctOpenMenu.menu.contains(event.target) && !ctOpenMenu.th.contains(event.target)) {
+        closeCatalogColumnMenu();
     }
+});
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeCatalogColumnMenu();
+});
+window.addEventListener('resize', () => {
+    closeCatalogColumnMenu();
+    ['artists', 'albums', 'songs'].forEach(type => updatePinnedOffsets(type));
+});
 
-    function bindTableSort(tableId, stateKey, renderFn) {
-        document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
-            th.title = 'Click to sort by this column. Shift+click to add a secondary or tertiary sort.';
-            th.onclick = (event) => {
+/**
+ * Sets up header sorting. Click = sort only by this column, "+N" = add it as the next sort level,
+ * arrow = column menu.
+ */
+function setupTopTableSorting() {
+    ['artists', 'albums', 'songs'].forEach(type => {
+        const table = document.getElementById(ctTableId(type));
+        if (!table) return;
+        decorateCatalogTableHeaders(table);
+        table.querySelectorAll('thead th[data-sort]').forEach(th => {
+            th.onclick = event => {
                 const column = th.dataset.sort;
-                const currentSorts = Array.isArray(topSortState[stateKey]) ? [...topSortState[stateKey]] : [topSortState[stateKey]];
-                const existingIndex = currentSorts.findIndex(sort => sort.column === column);
-
-                if (event.shiftKey) {
-                    if (existingIndex >= 0) {
-                        currentSorts[existingIndex] = {
-                            column,
-                            direction: currentSorts[existingIndex].direction === 'asc' ? 'desc' : 'asc'
-                        };
-                    } else if (currentSorts.length < 3) {
-                        currentSorts.push({
-                            column,
-                            direction: descDefaultColumns.has(column) ? 'desc' : 'asc'
-                        });
-                    } else {
-                        currentSorts[2] = {
-                            column,
-                            direction: descDefaultColumns.has(column) ? 'desc' : 'asc'
-                        };
-                    }
-                } else {
-                    const currentPrimary = currentSorts[0];
-                    if (currentPrimary && currentPrimary.column === column) {
-                        topSortState[stateKey] = [{
-                            column,
-                            direction: currentPrimary.direction === 'asc' ? 'desc' : 'asc'
-                        }];
-                    } else {
-                        topSortState[stateKey] = [{
-                            column,
-                            direction: descDefaultColumns.has(column) ? 'desc' : 'asc'
-                        }];
-                    }
-                    rerenderOrReload(stateKey, renderFn);
+                if (event.target.closest('.ct-menu-btn')) {
+                    event.stopPropagation();
+                    openCatalogColumnMenu(type, th);
                     return;
                 }
-
-                topSortState[stateKey] = currentSorts;
-                rerenderOrReload(stateKey, renderFn);
+                if (event.target.closest('.ct-add')) {
+                    event.stopPropagation();
+                    addCatalogSortLevel(type, column);
+                    return;
+                }
+                sortCatalogTableOnly(type, column);
             };
         });
+        const container = table.closest('.top-table-container');
+        if (container && !container.dataset.ctMenuScrollBound) {
+            container.dataset.ctMenuScrollBound = 'true';
+            container.addEventListener('scroll', closeCatalogColumnMenu, { passive: true });
+        }
+        updateSortIndicators(ctTableId(type), topSortState[type]);
+    });
+}
+
+// ============================================================
+// PINNED COLUMNS AND TOTALS ROW
+// ============================================================
+
+/** Measures the rank and cover columns so the pinned name column sits right after them. */
+function updatePinnedOffsets(type) {
+    const table = document.getElementById(ctTableId(type));
+    if (!table) return;
+    const rank = table.querySelector('thead th.ct-pin-rank');
+    const cover = table.querySelector('thead th.ct-pin-cover');
+    if (!rank || !cover || rank.offsetWidth === 0) return;
+    table.style.setProperty('--ct-cover-left', rank.offsetWidth + 'px');
+    table.style.setProperty('--ct-name-left', (rank.offsetWidth + cover.offsetWidth) + 'px');
+}
+
+let ctTotalsMode = (() => {
+    try {
+        return localStorage.getItem('catalogTableTotalsMode') || 'sum';
+    } catch (error) {
+        return 'sum';
     }
-    bindTableSort('topArtistsTable', 'artists', renderTopArtistsTable);
-    bindTableSort('topAlbumsTable', 'albums', renderTopAlbumsTable);
-    bindTableSort('topSongsTable', 'songs', renderTopSongsTable);
+})();
+
+function setCatalogTotalsMode(mode) {
+    ctTotalsMode = ['sum', 'avg', 'median', 'off'].includes(mode) ? mode : 'sum';
+    try {
+        localStorage.setItem('catalogTableTotalsMode', ctTotalsMode);
+    } catch (error) {
+        // Storage can be blocked; the choice then lasts until reload.
+    }
+    renderCatalogTotals(getCurrentEntityType());
+}
+
+function syncTotalsModeButtons() {
+    document.querySelectorAll('#ctTotalsMode button').forEach(button => {
+        const active = button.dataset.mode === ctTotalsMode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+}
+
+// Columns added up in Sum mode (the play and time columns also show the male / female split).
+const ctSumColumns = new Set([
+    'plays', 'primaryPlays', 'legacyPlays', 'timeListened', 'albumCount', 'songCount', 'featuredOnCount',
+    'featuredArtistCount', 'soloSongCount', 'songsWithFeatCount', 'fullAlbumPlays', 'daysListened',
+    'weeksListened', 'monthsListened', 'yearsListened', 'weeklyChartWeeks', 'weeklyChartPeakWeeks',
+    'trlDays', 'trlDaysAtPeak', 'vatosCuntdownDays', 'vatosCuntdownDaysAtPeak', 'billboardWeeks', 'billboardWeeksAtPeak'
+]);
+const ctSplitColumns = new Set(['plays', 'primaryPlays', 'legacyPlays', 'timeListened']);
+// Columns where a sum means nothing, so Sum mode shows their average instead.
+const ctAverageColumns = new Set(['length', 'avgLength', 'avgPlays', 'avgPlaysAlbum', 'age', 'ageAtRelease']);
+const ctPeakColumns = new Set(['weeklyChartPeak', 'seasonalChartPeak', 'yearlyChartPeak', 'trlPeak', 'vatosCuntdownPeak', 'billboardPeak']);
+const ctSecondsColumns = new Set(['timeListened', 'length', 'avgLength']);
+const ctLatestDateColumns = new Set(['lastListened', 'lastFullListen']);
+
+function ctColumnValue(item, column) {
+    if (column === 'length') return item.lengthSeconds ?? item.albumLength;
+    if (column === 'consistency') return item.consistencyShare;
+    return item[column];
+}
+
+/** Same shape as TimeFormatUtils.formatTime ("2d 5h", "3h 45m", "20m"), or m:ss for lengths. */
+function ctFormatSeconds(seconds, asClock) {
+    const total = Math.round(Number(seconds) || 0);
+    if (asClock) return formatAlbumLength(total) || '0:00';
+    if (total <= 0) return '0m';
+    const days = Math.floor(total / 86400);
+    const hours = Math.floor((total % 86400) / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    if (days > 0) return days + 'd ' + hours + 'h';
+    if (hours > 0) return hours + 'h ' + minutes + 'm';
+    return minutes + 'm';
+}
+
+function ctMedian(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function ctFormatNumber(value, decimals) {
+    return Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+}
+
+function ctFormatDate(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}/${date.getFullYear()}`;
+}
+
+function ctAggregateCell(column, items) {
+    if (dateSortColumns.has(column)) {
+        const dates = items.map(item => ctParseDate(item[column])).filter(Boolean).map(date => date.getTime());
+        if (dates.length === 0) return '';
+        const latest = ctLatestDateColumns.has(column);
+        return `${ctFormatDate(new Date(latest ? Math.max(...dates) : Math.min(...dates)))}<span class="ct-muted">${latest ? 'latest' : 'earliest'}</span>`;
+    }
+
+    const values = items.map(item => ctColumnValue(item, column))
+        .filter(value => value != null && value !== '' && Number.isFinite(Number(value)))
+        .map(Number);
+    if (values.length === 0) return '';
+
+    if (ctPeakColumns.has(column)) {
+        if (ctTotalsMode === 'sum') {
+            const ones = values.filter(value => value === 1).length;
+            return `${ones.toLocaleString()} at #1<span class="ct-muted">${values.length.toLocaleString()} charted</span>`;
+        }
+        const peak = ctTotalsMode === 'avg' ? values.reduce((a, b) => a + b, 0) / values.length : ctMedian(values);
+        return '#' + ctFormatNumber(peak, 1);
+    }
+
+    let mode = ctTotalsMode;
+    if (mode === 'sum' && !ctSumColumns.has(column)) {
+        if (!ctAverageColumns.has(column)) return '';
+        mode = 'avg';
+    }
+    const total = values.reduce((a, b) => a + b, 0);
+    const result = mode === 'sum' ? total : mode === 'avg' ? total / values.length : ctMedian(values);
+    let text = ctSecondsColumns.has(column)
+        ? ctFormatSeconds(result, column === 'length' || column === 'avgLength')
+        : ctFormatNumber(result, mode === 'sum' ? 0 : 1);
+    if (column === 'consistency') text += '% of years';
+    if (mode !== ctTotalsMode) text += '<span class="ct-muted">average</span>';
+
+    if (mode === 'sum' && ctSplitColumns.has(column) && total > 0) {
+        let male = 0;
+        let female = 0;
+        items.forEach(item => {
+            const value = Number(ctColumnValue(item, column)) || 0;
+            if (item.genderId === 2) male += value;
+            else if (item.genderId === 1) female += value;
+        });
+        text += `<span class="ct-split"><span class="m">${(male * 100 / total).toFixed(1)}%</span> &#183; <span class="f">${(female * 100 / total).toFixed(1)}%</span></span>`;
+    }
+    return text;
+}
+
+/** Totals row under the table, computed from the rows loaded so far. */
+function renderCatalogTotals(type) {
+    syncTotalsModeButtons();
+    const table = document.getElementById(ctTableId(type));
+    if (!table) return;
+    const items = topTabData[type] || [];
+    let tfoot = table.querySelector('tfoot');
+    if (ctTotalsMode === 'off' || items.length === 0) {
+        if (tfoot) tfoot.remove();
+        return;
+    }
+    if (!tfoot) {
+        tfoot = document.createElement('tfoot');
+        table.appendChild(tfoot);
+    }
+
+    const totalCount = listViewState.totalCount || items.length;
+    const modeWord = ctTotalsMode === 'sum' ? 'Sum' : ctTotalsMode === 'avg' ? 'Average' : 'Median';
+    const scope = items.length >= totalCount
+        ? `of all ${totalCount.toLocaleString()}`
+        : `of ${items.length.toLocaleString()} loaded<span class="ct-muted">${totalCount.toLocaleString()} match. Load all for full totals.</span>`;
+
+    const cells = Array.from(table.querySelectorAll('thead tr:last-child th')).map(th => {
+        const pinClasses = Array.from(th.classList).filter(cls => cls.startsWith('ct-pin')).join(' ');
+        const style = (th.style.textAlign ? `text-align:${th.style.textAlign};` : '') + (th.style.display === 'none' ? 'display:none;' : '');
+        let content = '';
+        if (th.classList.contains('ct-pin-name')) {
+            content = `<span class="ct-total-label">${modeWord} ${scope}</span>`;
+        } else if (th.dataset.col && th.dataset.col !== 'random') {
+            content = ctAggregateCell(th.dataset.col, items);
+        }
+        return `<td class="${pinClasses}" style="${style}">${content}</td>`;
+    });
+    tfoot.innerHTML = `<tr>${cells.join('')}</tr>`;
+}
+
+/** Shared tail of every render / append: totals row and pinned column offsets. */
+function finishCatalogTableRender(type) {
+    renderCatalogTotals(type);
+    updatePinnedOffsets(type);
+    revealHighlightedRow(type);
+}
+
+/*
+ * Detail pages link their rank rows here with ?highlight=<id> (e.g. a song's Genre rank opens the
+ * Songs table filtered to that genre). Once the item's row is rendered it scrolls into view and
+ * glows; until then more pages load, up to a cap, since the item can sit past the first page.
+ */
+const HIGHLIGHT_MAX_ROWS = 3000;
+let pendingHighlightId = new URLSearchParams(window.location.search).get('highlight');
+
+function revealHighlightedRow(type) {
+    if (!pendingHighlightId || type !== getCurrentEntityType()) return;
+    const row = document.querySelector(`tr[data-id="${CSS.escape(pendingHighlightId)}"]`);
+    if (row) {
+        pendingHighlightId = null;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('highlight');
+        history.replaceState(history.state, '', url);
+        requestAnimationFrame(() => {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.classList.remove('ct-row-glow');
+            void row.offsetWidth;
+            row.classList.add('ct-row-glow');
+        });
+        return;
+    }
+    // Not rendered yet: load the next page once the current one has settled
+    setTimeout(() => {
+        if (!pendingHighlightId || listViewState.loading || listViewState.allLoaded) return;
+        if (getListViewLoadedCount() >= HIGHLIGHT_MAX_ROWS) {
+            pendingHighlightId = null;
+            return;
+        }
+        fetchListPage(listViewState.page);
+    }, 0);
 }
 
 /**
@@ -1252,12 +1846,17 @@ function openSongImageModalFromGraphs(songId) {
 function appendTopArtistsRows(data, startRank) {
     const tbody = document.querySelector('#topArtistsTable tbody');
     if (!tbody) return;
+    if (ctRefreshPlayScale('artists')) {
+        renderTopArtistsTable();
+        return;
+    }
     data.forEach((artist, index) => {
         tbody.insertAdjacentHTML('beforeend', buildArtistRow(artist, startRank + index + 1));
     });
     if (typeof window.initializePlayBreakdownTooltips === 'function') {
         window.initializePlayBreakdownTooltips(tbody);
     }
+    finishCatalogTableRender('artists');
 }
 
 /**
@@ -1266,9 +1865,14 @@ function appendTopArtistsRows(data, startRank) {
 function appendTopAlbumsRows(data, startRank) {
     const tbody = document.querySelector('#topAlbumsTable tbody');
     if (!tbody) return;
+    if (ctRefreshPlayScale('albums')) {
+        renderTopAlbumsTable();
+        return;
+    }
     data.forEach((album, index) => {
         tbody.insertAdjacentHTML('beforeend', buildAlbumRow(album, startRank + index + 1));
     });
+    finishCatalogTableRender('albums');
 }
 
 /**
@@ -1277,6 +1881,10 @@ function appendTopAlbumsRows(data, startRank) {
 function appendTopSongsRows(data, startRank) {
     const tbody = document.querySelector('#topSongsTable tbody');
     if (!tbody) return;
+    if (ctRefreshPlayScale('songs')) {
+        renderTopSongsTable();
+        return;
+    }
     data.forEach((song, index) => {
         tbody.insertAdjacentHTML('beforeend', buildSongRow(song, startRank + index + 1));
     });
@@ -1304,6 +1912,7 @@ function appendTopSongsRows(data, startRank) {
             });
         }
     });
+    finishCatalogTableRender('songs');
 }
 
 // Restore the catalog layout from the URL.
@@ -1471,7 +2080,10 @@ function reloadListViewData(entityType = getCurrentEntityType()) {
     topInfiniteScrollState[entityType] = { displayedRows: 999999, batchSize: 50 };
 
     const tbody = getListViewTableBody(entityType);
-    if (tbody) tbody.innerHTML = '';
+    if (tbody) {
+        tbody.innerHTML = '';
+        tbody.parentElement.querySelector('tfoot')?.remove();
+    }
 
     const podium = document.getElementById(entityType + 'Podium');
     if (podium) podium.innerHTML = '';
@@ -1727,6 +2339,7 @@ function getListFilterParams() {
     params.delete('sortdir3');
     params.delete('view');
     params.delete('tab');
+    params.delete('highlight');
     return params;
 }
 
@@ -1773,8 +2386,28 @@ function normalizeListItem(item, entityType) {
         item.ethnicity = item.ethnicityName;
         item.lengthFormatted = item.lengthFormatted || formatSongLength(item.lengthSeconds);
     }
+    applyConsistency(item);
 
     return item;
+}
+
+/**
+ * Consistency column: years with plays out of the years since the first play. The sort value is years first,
+ * then the later first year (higher share), matching the server's Consistency sort; plays break the rest.
+ */
+function applyConsistency(item) {
+    const years = Number(item.yearsListened) || 0;
+    const firstYear = parseInt(String(item.firstListenedDate || '').trim().split(/[-\/ ]/).pop(), 10);
+    if (!firstYear || years <= 0) {
+        item.consistency = years * 10000;
+        item.consistencyShare = null;
+        item.consistencyLabel = null;
+        return;
+    }
+    const total = Math.max(1, new Date().getFullYear() - firstYear + 1);
+    item.consistency = years * 10000 + firstYear;
+    item.consistencyShare = Math.min(100, years * 100 / total);
+    item.consistencyLabel = `${years} / ${total} (${Math.round(item.consistencyShare)}%)`;
 }
 
 /**

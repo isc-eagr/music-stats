@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<!--
+  Associations tabs of the detail pages (DetailAssociationsService):
+    artist(tab)  Artist Associations tab
+    album(tab)   album Featured Artists tab
+    song(tab)    song Featured Artists tab
+  Gender drives the colors everywhere: is-m blue, is-f pink, is-o gray.
+-->
+
+<!-- 2:3 artist photo with initials underneath (they show when the photo is missing); size = height in px -->
+
+<span th:fragment="avatar(ref, size)" class="as-av" th:classappend="'is-' + ${ref.gender}" th:style="|--s: ${size}px|">
+    <span th:text="${ref.initials()}">AB</span>
+    <img loading="lazy" decoding="async" alt="" th:src="@{/artists/{id}/image(id=${ref.id},thumbnail=true)}" onerror="this.remove()">
+</span>
+
+<!-- ═══════════════ Artist Associations ═══════════════ -->
+<div th:fragment="artist(tab)" class="as">
+
+    <section class="ad-card ad-section as-card" id="assocGlance">
+        <div class="ad-sec-head">
+            <h2>Associations at a glance</h2>
+        </div>
+        <div class="as-body">
+            <p th:if="${tab.partners.isEmpty()}" class="as-empty">No collaborations yet</p>
+            <th:block th:unless="${tab.partners.isEmpty()}">
+                <div class="ad-tiles" style="--cols: 2">
+                    <!-- Each tile: the number, a bar to read it at a glance, and the breakdown under it -->
+                    <div class="ad-tile as-tile" title="Songs with at least one other credited artist">
+                        <span>Songs together</span>
+                        <b th:text="${#numbers.formatInteger(tab.songsTogether, 1, 'COMMA')}">0</b>
+                        <span class="as-tile-bar"><i th:style="|width: ${tab.songsTogetherPct()}%|"></i></span>
+                        <small><em th:text="${#numbers.formatDecimal(tab.songsTogetherPct(), 1, 1)} + '%'">0%</em> of
+                            <em th:text="${#numbers.formatInteger(tab.creditedSongs, 1, 'COMMA')}">0</em> songs</small>
+                    </div>
+                    <div class="ad-tile as-tile" title="Plays of the songs together">
+                        <span>Shared plays</span>
+                        <b th:text="${#numbers.formatInteger(tab.sharedPlays, 1, 'COMMA')}">0</b>
+                        <span class="as-tile-bar"><i th:style="|width: ${tab.sharedPct()}%|"></i></span>
+                        <small><em th:text="${#numbers.formatDecimal(tab.sharedPct(), 1, 1)} + '%'">0%</em> of
+                            <em th:text="${#numbers.formatInteger(tab.creditedPlays, 1, 'COMMA')}">0</em> plays</small>
+                    </div>
+                </div>
+                <div class="as-splits">
+                    <!-- Collaborators by gender: how many artists, and how much of the shared plays they bring -->
+                    <div id="assocCollaborators">
+                        <p class="ad-cap" title="Bar = shared plays by gender · a song with two partners counts for both">Collaborators
+                            <span class="ad-count" th:text="${tab.partners.size()}">0</span></p>
+                        <div class="as-split"><i th:each="s : ${tab.byGender}" th:class="'is-' + ${s.key}" th:style="|flex: ${s.plays} 1 0|" th:title="${s.label}"></i></div>
+                        <div class="as-split-legend">
+                            <div th:each="s : ${tab.byGender}">
+                                <span><i class="as-dot" th:classappend="'is-' + ${s.key}"></i><th:block th:text="${s.label}">Male</th:block></span>
+                                <b class="ad-num" th:text="${s.artists} + (${s.artists == 1} ? ' artist' : ' artists')">0 artists</b>
+                                <em th:text="${#numbers.formatInteger(s.plays, 1, 'COMMA')} + ' plays · ' + ${#numbers.formatDecimal(s.pct, 1, 1)} + '%'">0 plays</em>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="ad-cap" th:title="'Guests are featured on ' + ${tab.self.name} + '\'s songs · hosts feature ' + ${tab.self.name} + ' · co-guests share someone else\'s song · via group = credited with one of ' + ${tab.self.name} + '\'s groups · bandmates share a group'">Shared plays by link</p>
+                        <div class="as-split"><i th:each="s : ${tab.byLink}" th:class="'is-link-' + ${s.key}" th:style="|flex: ${s.plays} 1 0|" th:title="${s.label}"></i></div>
+                        <div class="as-split-legend">
+                            <div th:each="s : ${tab.byLink}">
+                                <span><i class="as-dot" th:classappend="'is-link-' + ${s.key}"></i><th:block th:text="${s.label}">Guests</th:block></span>
+                                <b class="ad-num" th:text="${#numbers.formatInteger(s.plays, 1, 'COMMA')} + ' plays'">0 plays</b>
+                                <em th:text="${s.artists} + (${s.artists == 1} ? ' artist · ' : ' artists · ') + ${#numbers.formatDecimal(s.pct, 1, 1)} + '%'">0 artists</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+    </section>
+
+    <!-- Family tree: each group on top, every member under it (this artist highlighted, no plays dimmed) -->
+    <section class="ad-card ad-section as-card" th:if="${!tab.families.isEmpty()}" id="assocFamily">
+        <div class="ad-sec-head">
+            <h2>Groups &amp; members <span class="ad-count" th:text="${tab.families.size()}">0</span></h2>
+        </div>
+        <div class="as-body as-family">
+            <div th:each="f : ${tab.families}" class="as-tree">
+                <a class="as-grp" th:href="@{/artists/{id}(id=${f.group.id})}" th:classappend="${f.self} ? 'is-self' : ''">
+                    <span th:replace="~{fragments/detail-associations :: avatar(${f.group}, 66)}"></span>
+                    <span class="as-grp-tx">
+                        <b th:text="${f.group.name}">Group</b>
+                        <span class="as-chips">
+                            <span class="as-chip" th:classappend="'is-' + ${f.group.gender}" th:text="${f.group.genderLabel}">Mixed</span>
+                            <span class="as-chip is-group" th:text="${f.self} ? 'This group' : 'Is part of'">Is part of</span>
+                        </span>
+                    </span>
+                    <span class="as-grp-n">
+                        <b class="ad-num" th:text="${f.plays > 0} ? ${#numbers.formatInteger(f.plays, 1, 'COMMA')} : '-'">0</b>
+                        <small th:text="${f.songs} + (${f.songs == 1} ? ' song' : ' songs')">0 songs</small>
+                    </span>
+                </a>
+                <div class="as-stem" aria-hidden="true"></div>
+                <div class="as-mem-scroll">
+                    <div class="as-mem" th:classappend="${f.members.size() == 1} ? 'is-one' : ''">
+                        <a th:each="m : ${f.members}" class="as-mc" th:href="@{/artists/{id}(id=${m.artist.id})}"
+                           th:classappend="(${m.self} ? 'is-self ' : '') + (${m.plays == 0} ? 'is-dim' : '')">
+                            <span th:replace="~{fragments/detail-associations :: avatar(${m.artist}, 60)}"></span>
+                            <b th:text="${m.artist.name}">Name</b>
+                            <span class="ad-num as-mc-n" th:text="${m.plays > 0} ? ${#numbers.formatInteger(m.plays, 1, 'COMMA')} + ' plays' : 'No plays'">0 plays</span>
+                            <small th:text="${m.songs} + (${m.songs == 1} ? ' song' : ' songs')">0 songs</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Collaborators: the map on top and every partner in the table under it; a row and its bubble light up together -->
+    <section th:unless="${tab.partners.isEmpty()}" class="ad-card ad-section as-card" id="assocPartners">
+        <div class="ad-sec-head">
+            <h2>Collaborators <span class="ad-count" th:text="${tab.partners.size()}">0</span></h2>
+        </div>
+        <div class="as-body" id="assocMap">
+            <svg class="as-map" viewBox="0 0 600 680" role="img" th:attr="aria-label=${tab.self.name} + ' and their top collaborators'">
+                <defs>
+                    <radialGradient id="asGm" cx="30%" cy="25%" r="80%"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1e3a8a"/></radialGradient>
+                    <radialGradient id="asGf" cx="30%" cy="25%" r="80%"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#831843"/></radialGradient>
+                    <radialGradient id="asGo" cx="30%" cy="25%" r="80%"><stop offset="0" stop-color="#71717a"/><stop offset="1" stop-color="#27272a"/></radialGradient>
+                    <clipPath id="asClipMe"><circle cx="300" cy="330" r="48"/></clipPath>
+                    <clipPath th:each="n : ${tab.map}" th:id="'asClip' + ${n.rank}"><circle th:attr="cx=${n.x},cy=${n.y},r=${n.d / 2.0}"/></clipPath>
+                </defs>
+                <g th:each="ring : ${tab.rings}">
+                    <circle class="as-ring" cx="300" cy="330" th:attr="r=${ring.r}"/>
+                    <text class="as-ring-l" x="300" text-anchor="middle" th:attr="y=${330 + ring.r + 4}" th:text="${ring.label}">#1-5</text>
+                </g>
+                <line th:each="n : ${tab.map}" class="as-edge" th:classappend="'is-' + ${n.partner.artist.gender}"
+                      x1="300" y1="330" th:attr="x2=${n.x},y2=${n.y},stroke-width=${n.edge},data-artist-id=${n.partner.artist.id}"/>
+                <a th:each="n : ${tab.map}" class="as-node" th:href="'#assocRow' + ${n.partner.artist.id}" th:attr="data-artist-id=${n.partner.artist.id}">
+                    <title th:text="'#' + ${n.rank} + ' ' + ${n.partner.artist.name} + ' · ' + ${#numbers.formatInteger(n.partner.plays, 1, 'COMMA')} + ' shared plays · ' + ${n.partner.songList}">Name</title>
+                    <circle th:attr="cx=${n.x},cy=${n.y},r=${n.d / 2.0},fill=|url(#asG${n.partner.artist.gender})|"/>
+                    <text class="as-ini" text-anchor="middle" dominant-baseline="central"
+                          th:attr="x=${n.x},y=${n.y},font-size=${n.d / 3}" th:text="${n.partner.artist.initials()}">AB</text>
+                    <image preserveAspectRatio="xMidYMid slice" onerror="this.remove()"
+                           th:attr="href=@{/artists/{id}/image(id=${n.partner.artist.id},thumbnail=true)},x=${n.x - n.d / 2.0},y=${n.y - n.d / 2.0},width=${n.d},height=${n.d},clip-path=|url(#asClip${n.rank})|"/>
+                    <circle class="as-node-ring" th:classappend="'is-' + ${n.partner.artist.gender}" th:attr="cx=${n.x},cy=${n.y},r=${n.d / 2.0}"/>
+                    <text class="as-lbl" text-anchor="middle" th:attr="x=${n.x},y=${n.labelY}" th:text="${n.label}">Name</text>
+                    <text class="as-lbl-n" text-anchor="middle" th:attr="x=${n.x},y=${n.labelY + 13}" th:text="${#numbers.formatInteger(n.partner.plays, 1, 'COMMA')}">0</text>
+                </a>
+                <g class="as-me" th:classappend="'is-' + ${tab.self.gender}">
+                    <circle cx="300" cy="330" r="48" th:attr="fill=|url(#asG${tab.self.gender})|"/>
+                    <text class="as-ini" x="300" y="330" text-anchor="middle" dominant-baseline="central" font-size="26"
+                          th:text="${tab.self.initials()}">AB</text>
+                    <image onerror="this.remove()" x="252" y="282" width="96" height="96" preserveAspectRatio="xMidYMid slice" clip-path="url(#asClipMe)"
+                           th:attr="href=@{/artists/{id}/image(id=${tab.self.id},thumbnail=true)}"/>
+                    <circle class="as-me-ring" cx="300" cy="330" r="48"/>
+                </g>
+            </svg>
+            <div class="as-legend" title="Bubble size = shared plays · line weight = songs together">
+                <span><i class="as-dot is-m"></i>Male</span><span><i class="as-dot is-f"></i>Female</span><span><i class="as-dot is-o"></i>Other</span>
+                <span class="as-sep"></span>
+                <span><i class="as-dot is-link-guest"></i>Guest</span><span><i class="as-dot is-link-host"></i>Host</span><span><i class="as-dot is-link-co"></i>Co-guest</span><span><i class="as-dot is-link-group"></i>Via group</span><span><i class="as-dot is-link-band"></i>Bandmate</span>
+            </div>
+        </div>
+        <div class="ad-table-wrap">
+            <table class="ad-table as-table">
+                <thead><tr>
+                    <th class="ad-col-i"><span class="ad-th-btn">#</span></th>
+                    <th class="as-col-name"><button type="button" class="ad-th-btn" data-sort-key="name" data-sort-type="text">Collaborator</button></th>
+                    <th class="as-col-link" th:title="'Guest = featured on ' + ${tab.self.name} + '\'s songs · Host = ' + ${tab.self.name} + ' is featured on theirs · Co-guest = both featured on someone else\'s · Via group = credited with one of ' + ${tab.self.name} + '\'s groups · Bandmate = in the same group (its songs)'">
+                        <button type="button" class="ad-th-btn" data-sort-key="link" data-sort-type="text">Link</button></th>
+                    <th class="is-num as-col-s"><button type="button" class="ad-th-btn" data-sort-key="songs" data-sort-type="number">Songs</button></th>
+                    <!-- One plays column: total + primary / legacy bar; each of the three still sorts -->
+                    <th class="as-col-sh">
+                        <span class="as-th-multi">
+                            <button type="button" class="ad-th-btn" data-sort-key="plays" data-sort-type="number">Shared</button>
+                            <th:block th:if="${showLegacy != false}">
+                                <button type="button" class="ad-th-btn" data-sort-key="primary" data-sort-type="number">Primary</button>
+                                <button type="button" class="ad-th-btn" data-sort-key="legacy" data-sort-type="number">Legacy</button>
+                            </th:block>
+                        </span>
+                    </th>
+                    <th class="as-col-top hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="top" data-sort-type="text">Top song together</button></th>
+                </tr></thead>
+                <tbody data-sort-container>
+                    <tr th:each="p : ${tab.partners}" data-sort-item th:id="'assocRow' + ${p.artist.id}"
+                        th:attr="data-artist-id=${p.artist.id},data-name=${p.artist.name},data-link=${p.mainLink()},data-songs=${p.songs},data-plays=${p.plays},
+                                 data-primary=${p.primary},data-legacy=${p.legacy},data-top=${p.topSongName}">
+                        <td class="ad-td-i"><span class="ad-rank" data-sort-index>1</span></td>
+                        <td class="ad-td-name">
+                            <div class="ad-name">
+                                <span th:replace="~{fragments/detail-associations :: avatar(${p.artist}, 36)}"></span>
+                                <span class="ad-name-tx">
+                                    <a th:href="@{/artists/{id}(id=${p.artist.id})}" th:text="${p.artist.name}" th:title="${p.songList}">Name</a>
+                                    <small th:text="${p.artist.genderLabel} + (${p.artist.genre != null} ? ' · ' + ${p.artist.genre} : '')">Male</small>
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <!-- Songs together by type: the bar shows the mix, the chips give each type's count -->
+                            <span class="as-link-cell" th:title="${p.typeTip()}">
+                                <span class="as-types" aria-hidden="true">
+                                    <i th:each="l : ${p.links}" th:class="'is-link-' + ${l.key}" th:style="|flex: ${l.songs} 1 0|"></i>
+                                </span>
+                                <span class="as-link-chips">
+                                    <span th:each="l : ${p.links}" class="as-link" th:classappend="'is-link-' + ${l.key}"><i class="as-dot" th:classappend="'is-link-' + ${l.key}"></i><th:block th:text="${l.label}">Guest</th:block> <b class="ad-num" th:text="${l.songs}">1</b></span>
+                                </span>
+                            </span>
+                        </td>
+                        <td class="is-num ad-td-n" th:text="${p.songs}">1</td>
+                        <td>
+                            <span class="as-pl" th:with="max=${tab.maxPlays()}">
+                                <span class="as-pl-top">
+                                    <b class="ad-num" th:classappend="${p.plays >= 1000} ? 'ad-gold' : ''" th:text="${#numbers.formatInteger(p.plays, 1, 'COMMA')}">0</b>
+                                    <small th:if="${showLegacy != false}"><i class="as-dot is-primary"></i><th:block th:text="${#numbers.formatInteger(p.primary, 1, 'COMMA')}">0</th:block>
+                                        <i class="as-dot is-legacy"></i><th:block th:text="${#numbers.formatInteger(p.legacy, 1, 'COMMA')}">0</th:block></small>
+                                </span>
+                                <span class="as-pl-bar" aria-hidden="true">
+                                    <i th:style="|width: ${max == 0 ? 0 : (showLegacy != false ? p.primary : p.plays) * 100.0 / max}%|"></i>
+                                    <i th:if="${showLegacy != false and p.legacy > 0}" class="is-legacy" th:style="|width: ${max == 0 ? 0 : p.legacy * 100.0 / max}%|"></i>
+                                </span>
+                            </span>
+                        </td>
+                        <td class="hide-mobile">
+                            <a th:if="${p.topSongId != null}" class="as-top" th:href="@{/songs/{id}(id=${p.topSongId})}" th:text="${p.topSongName}" th:title="${p.topSongName}">Song</a>
+                            <small th:if="${p.topSongId != null}" class="as-top-n" th:text="${#numbers.formatInteger(p.topSongPlays, 1, 'COMMA')}">0</small>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<!-- ═══════════════ Album: Featured Artists ═══════════════ -->
+<div th:fragment="album(tab)" class="as">
+    <section class="ad-card ad-section as-card" id="assocTracks">
+        <div class="ad-sec-head">
+            <h2>Where the guests land <span class="ad-count" th:text="${tab.guests.size()} + (${tab.guests.size() == 1} ? ' guest' : ' guests')">0 guests</span></h2>
+            <span class="as-note" th:text="${tab.tracks.size()} + ' tracks · ' + ${tab.guestTracks} + ' with guests · bar = track plays, colored by the guest'">0 tracks</span>
+        </div>
+        <div class="as-body">
+            <p th:if="${tab.tracks.isEmpty()}" class="as-empty">No songs on this album</p>
+            <th:block th:unless="${tab.tracks.isEmpty()}">
+                <div class="as-strip-scroll">
+                    <div class="as-strip" th:classappend="${tab.tracks.size() > 24} ? 'is-dense' : ''" th:style="|--n: ${tab.tracks.size()}|">
+                        <a th:each="t : ${tab.tracks}" class="as-tk" th:href="@{/songs/{id}(id=${t.songId})}" th:title="${t.tip()}">
+                            <th:block th:if="${t.hasGuests()}"><span th:replace="~{fragments/detail-associations :: avatar(${t.guests[0]}, 24)}"></span></th:block>
+                            <span class="as-tk-v ad-num" th:text="${#numbers.formatInteger(t.plays, 1, 'COMMA')}">0</span>
+                            <i class="as-tk-bar" th:classappend="${t.hasGuests()} ? 'is-' + ${t.gender} : ''" th:style="|height: ${t.barPx}px|"></i>
+                            <span class="as-tk-no ad-num" th:classappend="${t.hasGuests()} ? 'is-ft' : ''" th:text="${t.no}">1</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="as-album-foot">
+                    <div>
+                        <p class="ad-cap">Album plays: with guests vs solo</p>
+                        <div class="as-split"><i class="is-self" th:style="|flex: ${tab.guestPlays} 1 0|"></i><i class="is-rest" th:style="|flex: ${tab.soloPlays()} 1 0|"></i></div>
+                        <div class="as-legend">
+                            <span><i class="as-dot is-self"></i>With guests <b class="ad-num" th:text="${#numbers.formatInteger(tab.guestPlays, 1, 'COMMA')}">0</b>
+                                <th:block th:text="${#numbers.formatDecimal(tab.guestPct(), 1, 1)} + '%'"></th:block></span>
+                            <span><i class="as-dot is-rest"></i>Solo <b class="ad-num" th:text="${#numbers.formatInteger(tab.soloPlays(), 1, 'COMMA')}">0</b>
+                                <th:block th:text="${#numbers.formatDecimal(100 - tab.guestPct(), 1, 1)} + '%'"></th:block></span>
+                        </div>
+                    </div>
+                    <div class="ad-tile as-tile">
+                        <span>Tracks with guests</span>
+                        <b th:text="${tab.guestTracks} + ' / ' + ${tab.tracks.size()}">0 / 0</b>
+                        <span class="as-tile-bar"><i th:style="|width: ${tab.guestTrackPct()}%|"></i></span>
+                        <small><em th:text="${#numbers.formatDecimal(tab.guestTrackPct(), 1, 0)} + '%'">0%</em> of the tracklist</small>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+    </section>
+
+    <section class="ad-card ad-section as-card" id="assocGuests">
+        <div class="ad-sec-head">
+            <h2>Featured artists <span class="ad-count" th:text="${tab.guests.size()}">0</span></h2>
+            <span class="as-note">Click a column to sort · Track artist = main artist of a song on this album</span>
+        </div>
+        <p th:if="${tab.guests.isEmpty()}" class="as-empty as-body">No featured artists on this album</p>
+        <div th:unless="${tab.guests.isEmpty()}" class="ad-table-wrap">
+            <table class="ad-table as-table is-wide">
+                <thead><tr>
+                    <th class="ad-col-i"><span class="ad-th-btn">#</span></th>
+                    <th class="as-col-name"><button type="button" class="ad-th-btn" data-sort-key="name" data-sort-type="text">Artist</button></th>
+                    <th class="as-col-g"><button type="button" class="ad-th-btn" data-sort-key="gender" data-sort-type="text">Gender</button></th>
+                    <th class="as-col-role hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="role" data-sort-type="text">Role</button></th>
+                    <th class="as-col-top"><button type="button" class="ad-th-btn" data-sort-key="track" data-sort-type="text">Tracks</button></th>
+                    <th class="is-num as-col-s hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="no" data-sort-type="number">No.</button></th>
+                    <th class="is-num as-col-plays"><button type="button" class="ad-th-btn" data-sort-key="plays" data-sort-type="number">Plays</button></th>
+                    <th th:if="${showLegacy != false}" class="is-num as-col-n hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="primary" data-sort-type="number">Primary</button></th>
+                    <th th:if="${showLegacy != false}" class="is-num as-col-n hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="legacy" data-sort-type="number">Legacy</button></th>
+                    <th class="is-num as-col-n hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="share" data-sort-type="number">Album share</button></th>
+                    <th class="is-num as-col-n hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="theirs" data-sort-type="number">Their plays</button></th>
+                    <th class="is-num as-col-n hide-mobile"><button type="button" class="ad-th-btn" data-sort-key="via" data-sort-type="number">Via album</button></th>
+                </tr></thead>
+                <tbody data-sort-container>
+                    <tr th:each="g : ${tab.guests}" data-sort-item
+                        th:attr="data-name=${g.artist.name},data-gender=${g.artist.genderLabel},data-role=${g.role},data-track=${g.trackNames},
+                                 data-no=${g.trackNos.split(',')[0]},data-plays=${g.plays},data-primary=${g.primary},data-legacy=${g.legacy},
+                                 data-share=${g.albumPct},data-theirs=${g.theirPlays},data-via=${g.viaPct}">
+                        <td class="ad-td-i"><span class="ad-rank" data-sort-index>1</span></td>
+                        <td class="ad-td-name">
+                            <div class="ad-name">
+                                <span th:replace="~{fragments/detail-associations :: avatar(${g.artist}, 32)}"></span>
+                                <span class="ad-name-tx">
+                                    <a th:href="@{/artists/{id}(id=${g.artist.id})}" th:text="${g.artist.name}">Name</a>
+                                    <small th:text="${g.artist.genre != null ? g.artist.genre : '-'}">Genre</small>
+                                </span>
+                            </div>
+                        </td>
+                        <td><span class="as-chip" th:classappend="'is-' + ${g.artist.gender}" th:text="${g.artist.genderLabel}">Male</span></td>
+                        <td class="hide-mobile"><span class="as-link" th:text="${g.role}">Featured</span></td>
+                        <td><a class="as-top" th:href="@{/songs/{id}(id=${g.firstSongId})}" th:text="${g.trackNames}" th:title="${g.trackNames}">Track</a></td>
+                        <td class="is-num ad-td-d hide-mobile" th:text="${g.trackNos}">1</td>
+                        <td class="is-num">
+                            <span class="ad-pc">
+                                <b th:text="${#numbers.formatInteger(g.plays, 1, 'COMMA')}">0</b>
+                                <span class="ad-mb" aria-hidden="true"><span th:attr="data-bar-value=${g.plays}"><i th:style="|flex: ${g.primary} 1 0|"></i><i class="is-legacy" th:style="|flex: ${g.legacy} 1 0|"></i></span></span>
+                            </span>
+                        </td>
+                        <td th:if="${showLegacy != false}" class="is-num ad-td-n hide-mobile" th:text="${#numbers.formatInteger(g.primary, 1, 'COMMA')}">0</td>
+                        <td th:if="${showLegacy != false}" class="is-num ad-td-n hide-mobile" th:text="${#numbers.formatInteger(g.legacy, 1, 'COMMA')}">0</td>
+                        <td class="is-num ad-td-n hide-mobile" th:text="${#numbers.formatDecimal(g.albumPct, 1, 1)} + '%'">0%</td>
+                        <td class="is-num ad-td-n hide-mobile" th:text="${#numbers.formatInteger(g.theirPlays, 1, 'COMMA')}">0</td>
+                        <td class="is-num ad-td-n hide-mobile" th:text="${#numbers.formatDecimal(g.viaPct, 1, 1)} + '%'">0%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<!-- ═══════════════ Song: Featured Artists ═══════════════ -->
+<div th:fragment="song(tab)" class="as">
+    <section class="ad-card ad-section as-card" id="assocCredits">
+        <div class="ad-sec-head">
+            <h2>Credits <span class="ad-count" th:text="${tab.credits.size()}">0</span></h2>
+        </div>
+        <div class="as-body">
+            <p th:if="${!tab.hasFeatures()}" class="as-empty">No featured artists on this song</p>
+            <div class="as-credits">
+                <a th:each="c : ${tab.credits}" class="as-credit" th:classappend="'is-' + ${c.artist.gender}" th:href="@{/artists/{id}(id=${c.artist.id})}">
+                    <span th:replace="~{fragments/detail-associations :: avatar(${c.artist}, 72)}"></span>
+                    <span class="as-credit-tx">
+                        <b class="as-credit-name" th:text="${c.artist.name}">Name</b>
+                        <span class="as-chips">
+                            <span class="as-chip" th:classappend="${c.main} ? 'is-gold' : 'is-plain'" th:text="${c.main} ? 'Main artist' : 'Featured'">Featured</span>
+                            <span class="as-chip" th:classappend="'is-' + ${c.artist.gender}" th:text="${c.artist.genderLabel}">Male</span>
+                        </span>
+                        <span class="as-credit-stats">
+                            <span><b class="ad-num" th:text="${#numbers.formatInteger(c.theirPlays, 1, 'COMMA')}">0</b> plays</span>
+                            <span><b class="ad-num" th:text="${#numbers.formatInteger(c.theirSongs, 1, 'COMMA')}">0</b> <th:block th:text="${c.theirSongs == 1} ? 'song' : 'songs'">songs</th:block></span>
+                            <span th:if="${c.overallRank != null}"><b class="ad-num" th:text="'#' + ${#numbers.formatInteger(c.overallRank, 1, 'COMMA')}">#1</b> overall</span>
+                        </span>
+                    </span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="ad-card ad-section as-card" th:if="${!tab.pairs.isEmpty()}" id="assocPairs">
+        <div class="ad-sec-head">
+            <h2>Pairs on this song <span class="ad-count" th:text="${tab.pairs.size()}">0</span></h2>
+            <span class="as-note">Every pair credited here, across the whole library (this song included)</span>
+        </div>
+        <div class="as-body as-pairs">
+            <div>
+                <p class="ad-cap">Songs together · shared plays</p>
+                <div th:each="p : ${tab.pairs}" class="as-pair">
+                    <span class="as-duo"><span th:replace="~{fragments/detail-associations :: avatar(${p.a}, 30)}"></span><span th:replace="~{fragments/detail-associations :: avatar(${p.b}, 30)}"></span></span>
+                    <span class="as-pair-tx">
+                        <b th:text="${p.a.name} + ' × ' + ${p.b.name}">A × B</b>
+                        <span class="as-rl-bar"><i class="is-self" th:style="|width: ${tab.maxPairPlays() == 0 ? 0 : p.plays * 100.0 / tab.maxPairPlays()}%|"></i></span>
+                    </span>
+                    <span class="as-pair-n"><b class="ad-num" th:text="${p.songs}">1</b><small th:text="${p.songs == 1} ? 'song' : 'songs'">song</small></span>
+                    <span class="as-pair-n"><b class="ad-num" th:text="${#numbers.formatInteger(p.plays, 1, 'COMMA')}">0</b><small>plays</small></span>
+                </div>
+            </div>
+            <div>
+                <p class="ad-cap">Also together</p>
+                <th:block th:each="p : ${tab.pairs}" th:if="${!p.others.isEmpty()}">
+                    <p class="as-also-h" th:text="${p.a.name} + ' × ' + ${p.b.name}">A × B</p>
+                    <a th:each="s : ${p.others}" class="as-also" th:href="@{/songs/{id}(id=${s.id})}">
+                        <span th:text="${s.name}">Song</span>
+                        <span class="as-rl-bar"><i class="is-self" th:style="|width: ${p.others[0].plays == 0 ? 0 : s.plays * 100.0 / p.others[0].plays}%|"></i></span>
+                        <b class="ad-num" th:text="${#numbers.formatInteger(s.plays, 1, 'COMMA')}">0</b>
+                    </a>
+                </th:block>
+                <p th:unless="${tab.hasOtherSongs()}" class="as-note">No other songs together across the library</p>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

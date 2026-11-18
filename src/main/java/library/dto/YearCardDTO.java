@@ -104,6 +104,11 @@ public class YearCardDTO {
         this.robertloverPlayCount = robertloverPlayCount;
     }
 
+    /** False for listen or release years after the legacy account stopped, when the year has no legacy plays. */
+    public boolean isShowLegacy() {
+        return library.util.LegacyPlays.worthShowing(robertloverPlayCount, year);
+    }
+
     public Long getTimeListened() {
         return timeListened;
     }

@@ -21,7 +21,7 @@ class CatalogSortRegressionTest {
         List<String> sortOptions = List.of(
                 "age", "avg_length", "avg_plays", "avg_plays_album", "birth_date", "death_date",
                 "songs", "featured", "albums", "plays", "time", "first_listened", "last_listened",
-                "days_listened", "weeks_listened", "months_listened", "years_listened", "image_count",
+                "days_listened", "weeks_listened", "months_listened", "years_listened", "consistency", "image_count",
                 "country", "ethnicity", "featured_artist_count", "genre", "language", "legacy_plays",
                 "primary_plays", "random", "solo_songs", "songs_with_features", "subgenre", "itunes_presence", "name");
 
@@ -44,7 +44,7 @@ class CatalogSortRegressionTest {
                 "genre", "language", "legacy_plays", "primary_plays", "release_date", "solo_songs",
                 "song_count", "songs_with_features", "subgenre", "album_length", "plays", "time",
                 "first_listened", "last_listened", "days_listened", "weeks_listened", "months_listened",
-                "years_listened", "age_at_release", "birth_date", "death_date", "image_count",
+                "years_listened", "consistency", "age_at_release", "birth_date", "death_date", "image_count",
                 "seasonal_chart_peak", "weekly_chart_peak", "weekly_chart_weeks", "weekly_chart_peak_weeks",
                 "yearly_chart_peak", "first_full_listen", "last_full_listen", "full_album_plays",
                 "itunes_presence", "random", "name");
@@ -67,7 +67,7 @@ class CatalogSortRegressionTest {
                 "artist", "album", "country", "ethnicity", "featured_artist_count", "release_date",
                 "genre", "language", "legacy_plays", "length", "plays", "primary_plays", "track_number",
                 "subgenre", "time", "first_listened", "last_listened", "days_listened", "weeks_listened",
-                "months_listened", "years_listened", "age_at_release", "birth_date", "billboard_peak",
+                "months_listened", "years_listened", "consistency", "age_at_release", "birth_date", "billboard_peak",
                 "billboard_weeks", "billboard_weeks_at_peak", "death_date", "image_count",
                 "seasonal_chart_peak", "trl_days", "trl_days_at_peak", "trl_peak", "weekly_chart_peak",
                 "weekly_chart_weeks", "weekly_chart_peak_weeks", "vatos_cuntdown_days",
@@ -117,6 +117,29 @@ class CatalogSortRegressionTest {
                     "sortBy3", "name", "sortDirection3", "asc")))
                     .containsExactly("Unknown Silence", "No Me Queda Mas", "Titi Me Pregunto", "Standalone Jam",
                             "Ojitos Lindos", "Bidi Bidi Bom Bom", "Old Hit", "Quiet Track");
+        }
+    }
+
+    @Test
+    void consistencySortRanksYearsThenLaterFirstYearThenPlays() {
+        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
+            // Quiet Track: 2023 and 2024; Old Hit: 2024 and 2025 (same 2 years, later start = higher share)
+            db.jdbcTemplate.update("""
+                    INSERT INTO Play (id, artist, album, song, play_date, song_id, account)
+                    VALUES (200, 'The Static Hearts', 'Silent Record', 'Quiet Track', '2023-06-01 10:00:00', 6, 'vatito'),
+                           (201, 'The Static Hearts', 'Silent Record', 'Quiet Track', '2024-06-02 10:00:00', 6, 'vatito'),
+                           (202, 'Legacy Legend', 'Legacy Collection', 'Old Hit', '2025-01-01 10:00:00', 8, 'vatito')
+                    """);
+
+            // One-year songs all start in 2024, so plays decide among them
+            assertThat(songNames(db, mapOf("sortBy", "consistency", "sortDirection", "desc", "includeExpensiveStats", true)))
+                    .startsWith("Old Hit", "Quiet Track", "Titi Me Pregunto", "Bidi Bidi Bom Bom", "Standalone Jam", "No Me Queda Mas");
+            assertThat(albumNames(db, mapOf("sortBy", "consistency", "sortDir", "desc")))
+                    .startsWith("Legacy Collection", "Silent Record", "Un Verano Sin Ti", "Amor Prohibido");
+            assertThat(artistNames(db, mapOf("sortBy", "consistency", "sortDir", "desc")))
+                    .startsWith("Legacy Legend", "The Static Hearts", "Selena", "Bad Bunny");
+            assertThat(artistNames(db, mapOf("sortBy", "consistency", "sortDir", "asc")))
+                    .endsWith("Selena", "The Static Hearts", "Legacy Legend");
         }
     }
 

@@ -8,9 +8,12 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <th:block th:replace="~{fragments/share-history :: styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/songs.css}">
     <link rel="stylesheet" th:href="@{/css/song-creation.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
+    <link rel="stylesheet" th:href="@{/css/catalog-table.css}">
+    <th:block th:replace="~{fragments/catalog-card :: card-styles}"></th:block>
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -32,10 +35,10 @@
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
-                    <a th:href="@{/playground(view='graphs',source='songs')}" class="toolbar-btn toolbar-btn-soft"
+                    <a th:href="@{/playground(view='graphs',source='songs')}" class="toolbar-btn"
                        data-graphs-source="songs" onclick="return openPlaygroundGraphs(event)">Explore graphs</a>
-                    <button type="button" class="btn-playlist toolbar-btn toolbar-btn-soft desktop-only" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
-                    <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
+                    <button type="button" class="btn-playlist toolbar-btn desktop-only" onclick="openSongsPlaylistGenerator()">Generate Playlist</button>
+                    <button id="loadAllResultsButton" type="button" class="toolbar-btn" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Song</button>
                 </div>
             </div>
@@ -47,7 +50,8 @@
                            onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
                     <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
                 </div>
-                    <button type="button" class="filter-toggle toolbar-btn toolbar-btn-muted" onclick="toggleFilters()">Filters</button>
+                    <button type="button" class="filter-toggle toolbar-btn" onclick="toggleFilters()">Filters</button>
+                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
 
                 <div class="toolbar-sort-panel">
@@ -63,6 +67,7 @@
                             <option value="billboard_weeks" th:selected="${sortBy == 'billboard_weeks'}">Billboard Total Weeks</option>
                             <option value="billboard_weeks_at_peak" th:selected="${sortBy == 'billboard_weeks_at_peak'}">Billboard Weeks @ Peak</option>
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
+                            <option value="consistency" th:selected="${sortBy == 'consistency'}">Consistency</option>
                             <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
                             <option value="days_listened" th:selected="${sortBy == 'days_listened'}">Days Listened</option>
@@ -73,12 +78,12 @@
                             <option value="image_count" th:selected="${sortBy == 'image_count'}">Image Count</option>
                             <option value="language" th:selected="${sortBy == 'language'}">Language</option>
                             <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
-                            <option value="legacy_plays" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
+                            <option value="legacy_plays" th:if="${showLegacy != false or sortBy == 'legacy_plays'}" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
                             <option value="length" th:selected="${sortBy == 'length'}">Length</option>
                             <option value="months_listened" th:selected="${sortBy == 'months_listened'}">Months Listened</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Total Plays</option>
-                            <option value="primary_plays" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
+                            <option value="primary_plays" th:if="${showLegacy != false or sortBy == 'primary_plays'}" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
                             <option value="random" th:selected="${sortBy == 'random'}">Random</option>
                             <option value="release_date" th:selected="${sortBy == 'release_date'}">Release Date</option>
                             <option value="seasonal_chart_peak" th:selected="${sortBy == 'seasonal_chart_peak'}">Seasonal Chart Peak</option>
@@ -124,15 +129,13 @@
                             <span th:if="${sortDir3 != 'desc'}">↑</span>
                         </button>
                     </div>
-                        </div>
-                        <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
-                        <div class="bulk-tag-panel" id="songBulkTagPanel">
+                        </div>                        <div class="bulk-tag-panel" id="songBulkTagPanel">
                             <div class="bulk-tag-title">Bulk Tags</div>
                             <div class="bulk-tag-actions">
-                                <button type="button" class="toolbar-btn toolbar-btn-soft" onclick="openBulkTagModal()" id="bulkTagOpenButton" disabled>
+                                <button type="button" class="toolbar-btn" onclick="openBulkTagModal()" id="bulkTagOpenButton" disabled>
                                     Tag Selected
                                 </button>
-                                <button type="button" class="toolbar-btn toolbar-btn-muted" onclick="clearSongBulkSelection()" id="bulkTagClearButton" disabled>
+                                <button type="button" class="toolbar-btn" onclick="clearSongBulkSelection()" id="bulkTagClearButton" disabled>
                                     Clear
                                 </button>
                                 <span class="bulk-tag-count" id="bulkTagSelectionCount">0 selected</span>
@@ -1822,6 +1825,8 @@
         </div> <!-- Close pagination-and-counters-wrapper -->
         
         <!-- Pagination info -->
+        <section th:replace="~{fragments/share-history :: panel('songs', 'plays,time', 'data-song-id', 'data-id')}"></section>
+
         <div class="pagination-info">
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
@@ -1831,10 +1836,10 @@
         <div class="song-grid" id="songGrid"
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="song, iterStat : ${songs}" 
-                 class="song-card"
+                 class="song-card gc"
                  th:attr="data-song-id=${song.id}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}"
                  th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
-                <div class="song-image item-image-container" style="cursor: pointer;">
+                <div class="song-image item-image-container gc-media" style="cursor: pointer;">
                     <!-- Case 1: Song has image AND album has image - show album by default, song on hover -->
                     <div th:if="${song.hasImage and song.albumHasImage}" class="hover-image-container">
                         <img th:src="@{'/albums/' + ${song.albumId} + '/image?thumbnail=true'}"
@@ -1845,18 +1850,15 @@
                              th:alt="${song.name}"
                              th:onclick="|openSongImageModalFromList(${song.id})|"
                              class="song-image-hover clickable-image">
-                        <span th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
-                              class="length-overlay"
-                              th:text="${song.lengthFormatted}"></span>
                     </div>
-                    
+
                     <!-- Case 2: Song has image but album doesn't - just show song image -->
                     <img th:if="${song.hasImage and !song.albumHasImage}"
                          th:src="@{'/songs/' + ${song.id} + '/image?thumbnail=true'}"
                          th:alt="${song.name}"
                          th:onclick="|openSongImageModalFromList(${song.id})|"
                          class="clickable-image">
-                    
+
                     <!-- Case 3: Song doesn't have image but album does - show album image -->
                     <img th:if="${!song.hasImage and song.albumId != null}"
                          th:src="@{'/albums/' + ${song.albumId} + '/image?thumbnail=true'}"
@@ -1864,111 +1866,71 @@
                          th:onclick="|openAlbumImageModalFromSongList(${song.albumId})|"
                          class="inherited-image clickable-image"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div th:if="${!song.hasImage and song.albumId == null}" class="no-image">
-                        <span>🎵</span>
+                    <div th:if="${!song.hasImage}" class="no-image" th:style="${song.albumId != null} ? 'display: none;' : null">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                     </div>
-                    <div th:if="${!song.hasImage and song.albumId != null}" class="no-image" style="display: none;">
-                        <span>🎵</span>
-                    </div>
+                    <div class="gc-fade"></div>
 
-                          <a th:if="${song.country != null and @countryCodeMapper.getCode(song.country) != null}"
-                              th:href="@{/songs(country=${song.country},countryMode='includes')}"
+                    <a th:if="${song.country != null and @countryCodeMapper.getCode(song.country) != null}"
+                       th:href="@{/songs(country=${song.country},countryMode='includes')}"
                        class="flag-overlay"
                        th:title="${song.country}">
                         <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(song.country)})}"
-                            th:alt="${song.country}" />
+                             th:alt="${song.country}" />
                     </a>
-                    
-                    <span th:if="${(song.hasImage and !song.albumHasImage) or (!song.hasImage and (song.albumId != null or song.albumId == null))} and ${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}"
-                          class="length-overlay"
-                          th:text="${song.lengthFormatted}"></span>
+
+                    <div class="gc-corner" th:if="${song.lengthFormatted != null and !#strings.isEmpty(song.lengthFormatted)}">
+                        <span class="length-overlay" th:text="${song.lengthFormatted}"></span>
+                    </div>
+
+                    <div class="gc-title">
+                        <a class="gc-name-link" th:href="@{'/songs/' + ${song.id}}">
+                            <h3 class="gc-name">
+                                <span th:replace="~{fragments/catalog-card :: itunes-badge(${song.inItunes})}"></span>
+                                <span class="gc-name-text" th:text="${song.name}" th:title="${song.name}">Song Name</span>
+                                <span th:if="${song.isSingle}" class="gc-single" title="Single"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l10 10-10 10L2 12z"/></svg></span>
+                            </h3>
+                        </a>
+                        <a th:if="${song.artistName != null}" class="gc-sub" th:href="@{'/artists/' + ${song.artistId}}" th:text="${song.artistName}" th:title="${song.artistName}"></a>
+                        <th:block th:if="${song.albumName != null and !#strings.isEmpty(song.albumName)}">
+                            <a th:if="${song.albumId != null}" class="gc-sub2" th:href="@{'/albums/' + ${song.albumId}}" th:text="${song.albumName}" th:title="${song.albumName}"></a>
+                            <span th:if="${song.albumId == null}" class="gc-sub2" th:text="${song.albumName}" th:title="${song.albumName}"></span>
+                        </th:block>
+                    </div>
                 </div>
-                
-                <div class="song-info">
-                    <div class="card-index" th:text="${startIndex + iterStat.index}"></div>
-                    <a th:href="@{'/songs/' + ${song.id}}">
-                        <h3 class="song-name">
-                            <span th:if="${song.inItunes != null}" 
-                                  th:classappend="${song.inItunes ? 'in-itunes' : 'not-in-itunes'}"
-                                  class="itunes-badge"
-                                  th:title="${song.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                  th:text="${song.inItunes ? '✓' : '✗'}"></span><span th:text="${song.name}" th:title="${song.name}">Song Name</span>
-                            <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
-                        </h3>
-                    </a>
-                    
-                    <div class="song-artist" th:if="${song.artistName != null}">
-                        <a th:href="@{'/artists/' + ${song.artistId}}" th:text="${song.artistName}" class="artist-link"></a>
-                    </div>
 
-                    <div class="song-album" th:if="${song.albumName != null and !#strings.isEmpty(song.albumName)}">
-                        <a th:if="${song.albumId != null}"
-                           th:href="@{'/albums/' + ${song.albumId}}"
-                           th:text="${song.albumName}"
-                           th:title="${song.albumName}"
-                           class="metadata-link"></a>
-                        <span th:if="${song.albumId == null}" th:text="${song.albumName}" th:title="${song.albumName}"></span>
-                    </div>
-
-                    <div class="card-summary-stats song-summary-stats">
-                        <div class="song-stats song-stats-plays">
-                            <div class="stat" title="Total plays">
-                                <span class="stat-icon total-plays">⏵</span>
-                                <span th:if="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Total Plays):">
-                                    <span class="stat-value" th:text="${song.playCount}">0</span>
-                                    <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.totalPlayBreakdownItems}" th:text="${tooltipItem}"></span>
-                                </span>
-                                <span th:unless="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" class="stat-value" th:text="${song.playCount}">0</span>
-                            </div>
-                            <div class="stat" title="Primary plays">
-                                <span class="stat-icon primary-plays">⏵</span>
-                                <span th:if="${song.primaryPlayBreakdownItems != null and !song.primaryPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Primary Plays):">
-                                    <span class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
-                                    <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.primaryPlayBreakdownItems}" th:text="${tooltipItem}"></span>
-                                </span>
-                                <span th:unless="${song.primaryPlayBreakdownItems != null and !song.primaryPlayBreakdownItems.isEmpty()}" class="stat-value" th:text="${song.vatitoPlayCount}">0</span>
-                            </div>
-                            <div class="stat" title="Legacy plays">
-                                <span class="stat-icon legacy-plays">⏵</span>
-                                <span th:if="${song.legacyPlayBreakdownItems != null and !song.legacyPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Legacy Plays):">
-                                    <span class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
-                                    <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.legacyPlayBreakdownItems}" th:text="${tooltipItem}"></span>
-                                </span>
-                                <span th:unless="${song.legacyPlayBreakdownItems != null and !song.legacyPlayBreakdownItems.isEmpty()}" class="stat-value" th:text="${song.robertloverPlayCount}">0</span>
-                            </div>
-                        </div>
-                    </div>
-                    
+                <div class="song-info gc-body">
                     <!-- Sort metric display (only for non-visible metrics) -->
                     <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'artist' and sortBy != 'album' and sortBy != 'time'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
-                            <th:block th:case="'billboard_peak'">Billboard Peak:</th:block>
-                            <th:block th:case="'billboard_weeks'">Billboard Weeks:</th:block>
-                            <th:block th:case="'billboard_weeks_at_peak'">Billboard @ Peak:</th:block>
-                            <th:block th:case="'length'">Length:</th:block>
-                            <th:block th:case="'release_date'">Released:</th:block>
-                            <th:block th:case="'first_listened'">First Listened:</th:block>
-                            <th:block th:case="'last_listened'">Last Listened:</th:block>
-                            <th:block th:case="'track_number'">Track #:</th:block>
-                            <th:block th:case="'trl_days'">TRL Days:</th:block>
-                            <th:block th:case="'trl_days_at_peak'">TRL @ Peak:</th:block>
-                            <th:block th:case="'trl_peak'">TRL Peak:</th:block>
-                            <th:block th:case="'vatos_cuntdown_days'">Vato's Days:</th:block>
-                            <th:block th:case="'vatos_cuntdown_days_at_peak'">Vato's @ Peak:</th:block>
-                            <th:block th:case="'vatos_cuntdown_peak'">Vato's Peak:</th:block>
-                            <th:block th:case="'age_at_release'">Age at Release:</th:block>
-                            <th:block th:case="'birth_date'">Born:</th:block>
-                            <th:block th:case="'days_listened'">Days Listened:</th:block>
-                            <th:block th:case="'death_date'">Died:</th:block>
-                            <th:block th:case="'image_count'">Images:</th:block>
-                            <th:block th:case="'months_listened'">Months Listened:</th:block>
-                            <th:block th:case="'seasonal_chart_peak'">Seasonal Peak:</th:block>
-                            <th:block th:case="'weeks_listened'">Weeks Listened:</th:block>
-                            <th:block th:case="'weekly_chart_peak'">Weekly Peak:</th:block>
-                            <th:block th:case="'weekly_chart_peak_weeks'">Weekly @ Peak:</th:block>
-                            <th:block th:case="'weekly_chart_weeks'">Weekly Weeks:</th:block>
-                            <th:block th:case="'years_listened'">Years Listened:</th:block>
-                            <th:block th:case="'yearly_chart_peak'">Yearly Peak:</th:block>
+                            <th:block th:case="'billboard_peak'">Billboard Peak</th:block>
+                            <th:block th:case="'billboard_weeks'">Billboard Weeks</th:block>
+                            <th:block th:case="'billboard_weeks_at_peak'">Billboard @ Peak</th:block>
+                            <th:block th:case="'length'">Length</th:block>
+                            <th:block th:case="'release_date'">Released</th:block>
+                            <th:block th:case="'first_listened'">First Listened</th:block>
+                            <th:block th:case="'last_listened'">Last Listened</th:block>
+                            <th:block th:case="'track_number'">Track #</th:block>
+                            <th:block th:case="'trl_days'">TRL Days</th:block>
+                            <th:block th:case="'trl_days_at_peak'">TRL @ Peak</th:block>
+                            <th:block th:case="'trl_peak'">TRL Peak</th:block>
+                            <th:block th:case="'vatos_cuntdown_days'">Vato's Days</th:block>
+                            <th:block th:case="'vatos_cuntdown_days_at_peak'">Vato's @ Peak</th:block>
+                            <th:block th:case="'vatos_cuntdown_peak'">Vato's Peak</th:block>
+                            <th:block th:case="'age_at_release'">Age at Release</th:block>
+                            <th:block th:case="'birth_date'">Born</th:block>
+                            <th:block th:case="'days_listened'">Days Listened</th:block>
+                            <th:block th:case="'death_date'">Died</th:block>
+                            <th:block th:case="'image_count'">Images</th:block>
+                            <th:block th:case="'months_listened'">Months Listened</th:block>
+                            <th:block th:case="'seasonal_chart_peak'">Seasonal Peak</th:block>
+                            <th:block th:case="'weeks_listened'">Weeks Listened</th:block>
+                            <th:block th:case="'weekly_chart_peak'">Weekly Peak</th:block>
+                            <th:block th:case="'weekly_chart_peak_weeks'">Weekly @ Peak</th:block>
+                            <th:block th:case="'weekly_chart_weeks'">Weekly Weeks</th:block>
+                            <th:block th:case="'years_listened'">Years Listened</th:block>
+                            <th:block th:case="'consistency'">Consistency</th:block>
+                            <th:block th:case="'yearly_chart_peak'">Yearly Peak</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
                             <th:block th:case="'billboard_peak'" th:text="${song.billboardPeak != null ? '#' + song.billboardPeak : 'N/A'}"></th:block>
@@ -1997,185 +1959,119 @@
                             <th:block th:case="'weekly_chart_peak_weeks'" th:text="${song.weeklyChartPeakWeeks != null ? song.weeklyChartPeakWeeks + (song.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks') : 'N/A'}"></th:block>
                             <th:block th:case="'weekly_chart_weeks'" th:text="${song.weeklyChartWeeks}"></th:block>
                             <th:block th:case="'years_listened'" th:text="${song.yearsListened + (song.yearsListened == 1 ? ' year' : ' years')}"></th:block>
+                            <th:block th:case="'consistency'" th:text="${song.consistencyPeriods().get(3).summary()}"></th:block>
                             <th:block th:case="'yearly_chart_peak'" th:text="${song.yearlyChartPeak != null ? '#' + song.yearlyChartPeak + ' for ' + song.yearlyChartPeakYears + (song.yearlyChartPeakYears == 1 ? ' year' : ' years') + (song.yearlyChartPeakPeriod != null ? ' (' + song.yearlyChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
                         </span>
                     </div>
                     
-                    <div class="song-stats song-stats-row2">
-                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🕒</span>
-                            <span class="stat-value" th:text="${song.timeListenedFormatted}">0m</span>
+                    <div class="gc-plays">
+                        <div class="gc-total">
+                            <span class="gc-total-num" title="Total plays">
+                                <span th:if="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Total Plays):">
+                                    <span th:text="${#numbers.formatInteger(song.playCount, 1, 'COMMA')}">0</span>
+                                    <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.totalPlayBreakdownItems}" th:text="${tooltipItem}"></span>
+                                </span>
+                                <th:block th:unless="${song.totalPlayBreakdownItems != null and !song.totalPlayBreakdownItems.isEmpty()}" th:text="${#numbers.formatInteger(song.playCount, 1, 'COMMA')}">0</th:block>
+                            </span>
+                            <span th:replace="~{fragments/catalog-card :: plays-unit}"></span>
+                            <span class="card-index" title="Position in this list" th:text="'#' + ${startIndex + iterStat.index}">#1</span>
                         </div>
-                        <div class="stat" th:title="${song.organized != null and song.organized ? 'Organized' : 'Not Organized'}">
-                            <span class="stat-icon" th:text="${song.organized != null and song.organized ? '📦' : '📬'}">📬</span>
+                        <div th:replace="~{fragments/catalog-card :: split-bar(${song.vatitoPlayCount}, ${song.robertloverPlayCount})}"></div>
+                        <div class="gc-legend" th:if="${showLegacy != false}">
+                            <span class="gc-legend-item" title="Primary plays"><i class="gc-sw gc-sw-primary"></i>Primary
+                                <b>
+                                    <span th:if="${song.primaryPlayBreakdownItems != null and !song.primaryPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Primary Plays):">
+                                        <span th:text="${#numbers.formatInteger(song.vatitoPlayCount, 1, 'COMMA')}">0</span>
+                                        <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.primaryPlayBreakdownItems}" th:text="${tooltipItem}"></span>
+                                    </span>
+                                    <th:block th:unless="${song.primaryPlayBreakdownItems != null and !song.primaryPlayBreakdownItems.isEmpty()}" th:text="${#numbers.formatInteger(song.vatitoPlayCount, 1, 'COMMA')}">0</th:block>
+                                </b>
+                            </span>
+                            <span th:if="${song.robertloverPlayCount != null and song.robertloverPlayCount > 0}" class="gc-legend-item" title="Legacy plays"><i class="gc-sw gc-sw-legacy"></i>Legacy
+                                <b>
+                                    <span th:if="${song.legacyPlayBreakdownItems != null and !song.legacyPlayBreakdownItems.isEmpty()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Legacy Plays):">
+                                        <span th:text="${#numbers.formatInteger(song.robertloverPlayCount, 1, 'COMMA')}">0</span>
+                                        <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${song.legacyPlayBreakdownItems}" th:text="${tooltipItem}"></span>
+                                    </span>
+                                    <th:block th:unless="${song.legacyPlayBreakdownItems != null and !song.legacyPlayBreakdownItems.isEmpty()}" th:text="${#numbers.formatInteger(song.robertloverPlayCount, 1, 'COMMA')}">0</th:block>
+                                </b>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="gc-cells">
+                        <div class="gc-cell" title="Time listened" th:classappend="${sortBy == 'time' ? 'gc-hl' : ''}">
+                            <span class="gc-cell-l">Listened</span><span class="gc-cell-v" th:text="${song.timeListenedFormatted}">0m</span>
                         </div>
                     </div>
 
-                    <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
+                    <!-- More panel content (hidden in the list; laid out by the card detail modal, lazy-hydrated on open) -->
                     <div class="card-modal-text-stats">
-                        <!-- Header for modal (Name & Chips) - hidden on mobile -->
-                        <div class="modal-header">
-                            <h3 class="modal-title">
-                                <span th:if="${song.inItunes != null}" 
-                                      th:classappend="${song.inItunes ? 'in-itunes' : 'not-in-itunes'}"
-                                      class="itunes-badge"
-                                      th:title="${song.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                      th:text="${song.inItunes ? '✓' : '✗'}"></span><span th:text="${song.name}">Song Name</span>
-                                <span th:if="${song.isSingle}" class="single-indicator" title="Single">🔹</span>
-                            </h3>
-                        </div>
-                        <div class="winning-chips modal-rank-chips" th:with="rankMap=${songRankings.get(song.id)}">
-                            <a th:if="${song.genderName != null and !#strings.isEmpty(song.genderName)}"
-                                        th:href="@{/songs(gender=${song.genderId},genderMode='includes')}"
-                               class="winning-chip rank-chip gender"
-                               th:classappend="${song.genderName.toLowerCase().contains('female')} ? 'female' : (${song.genderName.toLowerCase().contains('male')} ? 'male' : '')"
-                               th:with="rank=${rankMap != null ? rankMap.get('gender') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${song.genderName}" title="Gender"></a>
-                            <a th:if="${song.genreName != null and !#strings.isEmpty(song.genreName)}"
-                                        th:href="@{/songs(genre=${song.genreId},genreMode='includes')}"
-                               class="winning-chip rank-chip genre"
-                               th:with="rank=${rankMap != null ? rankMap.get('genre') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${song.genreName}" title="Genre"></a>
-                            <a th:if="${song.subgenreName != null and !#strings.isEmpty(song.subgenreName)}"
-                                        th:href="@{/songs(subgenre=${song.subgenreId},subgenreMode='includes')}"
-                               class="winning-chip rank-chip subgenre"
-                               th:with="rank=${rankMap != null ? rankMap.get('subgenre') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${song.subgenreName}" title="Subgenre"></a>
-                            <a th:if="${song.ethnicityName != null and !#strings.isEmpty(song.ethnicityName)}"
-                                        th:href="@{/songs(ethnicity=${song.ethnicityId},ethnicityMode='includes')}"
-                               class="winning-chip rank-chip ethnicity"
-                               th:with="rank=${rankMap != null ? rankMap.get('ethnicity') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${song.ethnicityName}" title="Ethnicity"></a>
-                            <a th:if="${song.country != null and !#strings.isEmpty(song.country)}"
-                                        th:href="@{/songs(country=${song.country},countryMode='includes')}"
-                               class="winning-chip rank-chip country"
-                               th:with="rank=${rankMap != null ? rankMap.get('country') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${song.country}" title="Country"></a>
-                            <a th:if="${song.languageName != null and !#strings.isEmpty(song.languageName)}"
-                                        th:href="@{/songs(language=${song.languageId},languageMode='includes')}"
-                               class="winning-chip rank-chip language"
-                               th:with="rank=${rankMap != null ? rankMap.get('language') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${song.languageName}" title="Language"></a>
+                        <div class="mm-ranks" th:with="rankMap=${songRankings.get(song.id)}">
+                            <p class="mm-cap">Ranks</p>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Gender', ${song.genderName}, ${rankMap != null ? rankMap.get('gender') : null}, @{/songs(gender=${song.genderId},genderMode='includes')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Genre', ${song.genreName}, ${rankMap != null ? rankMap.get('genre') : null}, @{/songs(genre=${song.genreId},genreMode='includes')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Subgenre', ${song.subgenreName}, ${rankMap != null ? rankMap.get('subgenre') : null}, @{/songs(subgenre=${song.subgenreId},subgenreMode='includes')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Ethnicity', ${song.ethnicityName}, ${rankMap != null ? rankMap.get('ethnicity') : null}, @{/songs(ethnicity=${song.ethnicityId},ethnicityMode='includes')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Country', ${song.country}, ${rankMap != null ? rankMap.get('country') : null}, @{/songs(country=${song.country},countryMode='includes')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Language', ${song.languageName}, ${rankMap != null ? rankMap.get('language') : null}, @{/songs(language=${song.languageId},languageMode='includes')})}"></a>
                         </div>
 
-                        <!-- Section 1: Plays -->
-                        <div class="modal-section section-plays">
-                            <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Plays</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Play Count</span>
-                                <span class="modal-stat-value" th:text="${song.playCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Primary Plays</span>
-                                <span class="modal-stat-value" th:text="${song.vatitoPlayCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Legacy Plays</span>
-                                <span class="modal-stat-value" th:text="${song.robertloverPlayCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Time Listened</span>
-                                <span class="modal-stat-value" th:text="${song.timeListenedFormatted}">0m</span>
-                            </div>
+                        <div class="mm-main">
+                            <section class="mm-sec mm-sec-plays">
+                                <p class="mm-cap">Plays</p>
+                                <div class="mm-hero">
+                                    <span class="mm-big" th:text="${#numbers.formatInteger(song.playCount, 1, 'COMMA')}">0</span>
+                                    <span th:replace="~{fragments/catalog-card :: plays-unit}"></span>
+                                </div>
+                                <div th:replace="~{fragments/catalog-card :: split-bar(${song.vatitoPlayCount}, ${song.robertloverPlayCount})}"></div>
+                                <th:block th:if="${showLegacy != false}"><div th:replace="~{fragments/catalog-card :: share-legend(${song.playCount}, ${song.vatitoPlayCount}, ${song.robertloverPlayCount})}"></div></th:block>
+                                <div class="mm-tiles">
+                                    <div class="mm-tile"><span class="mm-l">Listened</span><span class="mm-v" th:text="${song.timeListenedFormatted}">0m</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Length</span><span class="mm-v" th:text="${song.lengthFormatted != null ? song.lengthFormatted : 'N/A'}">N/A</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Feat. artists</span><span class="mm-v" th:text="${song.featuredArtistCount != null ? song.featuredArtistCount : 0}">0</span></div>
+                                </div>
+                            </section>
+
+                            <section class="mm-sec mm-sec-listening">
+                                <p class="mm-cap">Listening</p>
+                                <section th:replace="~{fragments/consistency :: ledger(${song.consistencyPeriods()}, @{/songs/{id}/consistency(id=${song.id})}, true)}"></section>
+                            </section>
+
+                            <section class="mm-sec mm-sec-dates">
+                                <p class="mm-cap">Dates</p>
+                                <div class="mm-dates">
+                                    <div th:replace="~{fragments/catalog-card :: date-box('Released', ${song.releaseDate}, null)}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: date-box('Artist age', ${song.ageAtRelease}, null)}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: date-box('First listened', ${song.firstListenedDate}, null)}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: date-box('Last listened', ${song.lastListenedDate}, null)}"></div>
+                                </div>
+                            </section>
+
+                            <section class="mm-sec mm-sec-charts" th:if="${song.seasonalChartPeak != null or song.weeklyChartPeak != null or (song.weeklyChartWeeks != null and song.weeklyChartWeeks > 0) or song.yearlyChartPeak != null}">
+                                <p class="mm-cap">Charts</p>
+                                <div class="mm-peaks">
+                                    <div class="mm-peak" th:if="${song.weeklyChartPeak != null}"><span class="mm-l">Weekly peak</span>
+                                        <div class="mm-peak-v"><b th:text="'#' + ${song.weeklyChartPeak}">#1</b><span th:text="${song.weeklyChartPeakWeeks} + (${song.weeklyChartPeakWeeks == 1} ? ' week at peak' : ' weeks at peak')">1 week</span></div></div>
+                                    <div class="mm-peak" th:if="${song.weeklyChartWeeks != null and song.weeklyChartWeeks > 0}"><span class="mm-l">Weekly chart</span>
+                                        <div class="mm-peak-v"><b th:text="${song.weeklyChartWeeks}">1</b><span th:text="${song.weeklyChartWeeks == 1} ? 'week on chart' : 'weeks on chart'">weeks on chart</span></div></div>
+                                    <div class="mm-peak" th:if="${song.seasonalChartPeak != null}"><span class="mm-l">Seasonal peak</span>
+                                        <div class="mm-peak-v"><b th:text="'#' + ${song.seasonalChartPeak}">#1</b><span th:text="${song.seasonalChartPeakSeasons} + (${song.seasonalChartPeakSeasons == 1} ? ' season' : ' seasons')">1 season</span></div></div>
+                                    <div class="mm-peak" th:if="${song.yearlyChartPeak != null}"><span class="mm-l">Yearly peak</span>
+                                        <div class="mm-peak-v"><b th:text="'#' + ${song.yearlyChartPeak}">#1</b><span th:text="${song.yearlyChartPeakYears} + (${song.yearlyChartPeakYears == 1} ? ' year' : ' years')">1 year</span></div></div>
+                                </div>
+                            </section>
+
+                            <div th:replace="~{fragments/catalog-card :: modal-foot(${song.imageCount}, ${song.organized != null and song.organized})}"></div>
                         </div>
-
-                        <div class="modal-separator" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('female') ? 'gender-sep-female' : 'gender-sep-male'}"></div>
-
-                        <!-- Section 2: Details -->
-                        <div class="modal-section section-details">
-                            <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Details</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Length</span>
-                                <span class="modal-stat-value" th:classappend="${song.lengthFormatted == null ? 'null-value' : ''}" th:text="${song.lengthFormatted != null ? song.lengthFormatted : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Organized</span>
-                                <span class="modal-stat-value" th:text="${song.organized != null and song.organized ? 'Yes' : 'No'}">No</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Feat. Artists</span>
-                                <span class="modal-stat-value" th:text="${song.featuredArtistCount != null ? song.featuredArtistCount : 0}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Images</span>
-                                <span class="modal-stat-value" th:text="${song.imageCount}">0</span>
-                            </div>
-                        </div>
-
-                        <div class="modal-separator" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('female') ? 'gender-sep-female' : 'gender-sep-male'}"></div>
-
-                        <!-- Section 3: Dates -->
-                        <div class="modal-section section-dates">
-                            <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Dates</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Age at Release</span>
-                                <span class="modal-stat-value" th:classappend="${song.ageAtRelease == null ? 'null-value' : ''}" th:text="${song.ageAtRelease != null ? song.ageAtRelease : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Release Date</span>
-                                <span class="modal-stat-value" th:classappend="${song.releaseDate == null ? 'null-value' : ''}" th:text="${song.releaseDate != null ? song.releaseDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">First Listened</span>
-                                <span class="modal-stat-value" th:classappend="${song.firstListenedDate == null ? 'null-value' : ''}" th:text="${song.firstListenedDate != null ? song.firstListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Last Listened</span>
-                                <span class="modal-stat-value" th:classappend="${song.lastListenedDate == null ? 'null-value' : ''}" th:text="${song.lastListenedDate != null ? song.lastListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Days Listened</span>
-                                <span class="modal-stat-value" th:text="${song.daysListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Weeks Listened</span>
-                                <span class="modal-stat-value" th:text="${song.weeksListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Months Listened</span>
-                                <span class="modal-stat-value" th:text="${song.monthsListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Years Listened</span>
-                                <span class="modal-stat-value" th:text="${song.yearsListened}">0</span>
-                            </div>
-                        </div>
-
-                        <!-- Section 4: Charts (Conditional) -->
-                        <th:block th:if="${song.seasonalChartPeak != null or song.weeklyChartPeak != null or (song.weeklyChartWeeks != null and song.weeklyChartWeeks > 0) or song.yearlyChartPeak != null}">
-                           <div class="modal-separator" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('female') ? 'gender-sep-female' : 'gender-sep-male'}"></div>
-                           
-                           <div class="modal-section section-charts">
-                               <h4 class="modal-section-title" th:classappend="${song.genderName != null and song.genderName.toLowerCase().contains('male') and !song.genderName.toLowerCase().contains('female')} ? 'gender-text-male' : (${song.genderName != null and song.genderName.toLowerCase().contains('female')} ? 'gender-text-female' : '')">Charts</h4>
-                               <div class="modal-stat-row" th:if="${song.weeklyChartPeak != null}">
-                                   <span class="modal-stat-label">Weekly Peak</span>
-                                   <span class="modal-stat-value" th:text="'#' + ${song.weeklyChartPeak} + ' (' + ${song.weeklyChartPeakWeeks} + (${song.weeklyChartPeakWeeks == 1 ? ' wk' : ' wks'}) + ')'">N/A</span>
-                               </div>
-                               <div class="modal-stat-row" th:if="${song.weeklyChartWeeks != null and song.weeklyChartWeeks > 0}">
-                                   <span class="modal-stat-label">Weekly Weeks</span>
-                                   <span class="modal-stat-value" th:text="${song.weeklyChartWeeks}">0</span>
-                               </div>
-                               <div class="modal-stat-row" th:if="${song.seasonalChartPeak != null}">
-                                   <span class="modal-stat-label">Seasonal Peak</span>
-                                   <span class="modal-stat-value" th:text="'#' + ${song.seasonalChartPeak} + ' (' + ${song.seasonalChartPeakSeasons} + (${song.seasonalChartPeakSeasons == 1 ? ' sn' : ' sns'}) + ')'">N/A</span>
-                               </div>
-                               <div class="modal-stat-row" th:if="${song.yearlyChartPeak != null}">
-                                   <span class="modal-stat-label">Yearly Peak</span>
-                                   <span class="modal-stat-value" th:text="'#' + ${song.yearlyChartPeak} + ' (' + ${song.yearlyChartPeakYears} + (${song.yearlyChartPeakYears == 1 ? ' yr' : ' yrs'}) + ')'">N/A</span>
-                               </div>
-                           </div>
-                        </th:block>
                     </div>
 
-                    <!-- Card modal toggle -->
-                    <div class="card-expand-toggle" onclick="openCardModal(this)">
-                        <span class="expand-arrow">+</span>
-                        <span class="expand-label">More</span>
+                    <div class="gc-foot">
+                        <span th:replace="~{fragments/catalog-card :: organized(${song.organized != null and song.organized})}"></span>
+                        <div th:replace="~{fragments/catalog-card :: more-toggle}"></div>
                     </div>
-
                 </div>
             </div>
-            
+
             <!-- Infinite scroll sentinel + status indicators -->
             <div id="scrollSentinel" style="height:1px;"></div>
             <div id="scrollLoader" hidden style="text-align:center;padding:28px 0;color:#666;font-size:0.9rem;letter-spacing:0.5px;">Loading...</div>
@@ -2184,8 +2080,8 @@
         </div><!-- end cardView -->
 
         <!-- Table view container -->
-        <div id="tableView" style="display:none;">
-            <div class="top-sort-hint" style="margin:16px 0 0 0;">Sorting tip: Click a column header for primary sort. Shift + click adds secondary and tertiary sorts.</div>
+        <div id="tableView" style="display:none;" th:attr="data-legacy-hidden=${showLegacy == false}">
+            <div th:replace="~{fragments/catalog-table-toolbar :: toolbar}"></div>
             <div class="podium-section" id="songsPodium"></div>
             <div class="column-toggle-panel" id="songColumnTogglePanel">
                 <div class="column-toggle-header" onclick="toggleColumnPanel('song')">
@@ -2195,19 +2091,19 @@
                 <div class="column-toggle-grid" id="songColumnToggles"></div>
             </div>
             <div class="top-table-container" id="topSongsTableContainer">
-                <table class="top-table" id="topSongsTable">
+                <table class="top-table catalog-table" id="topSongsTable">
                     <thead>
                         <tr>
-                            <th class="rank-col">
+                            <th class="rank-col ct-pin ct-pin-rank">
                                 <label class="song-select-all" title="Select all songs matching the current filters">
                                     <input type="checkbox" autocomplete="off" id="selectAllSongsTableCheckbox" onchange="toggleAllVisibleSongsForBulkTagging(this)">
                                     <span>All</span>
                                 </label>
                             </th>
-                            <th class="cover-col"></th>
+                            <th class="cover-col ct-pin ct-pin-cover"></th>
+                            <th data-sort="name" data-col="name" class="ct-pin ct-pin-name">Song Name</th>
                             <th data-sort="artistName" data-col="artistName" class="hide-mobile">Artist Name</th>
                             <th data-sort="albumName" data-col="albumName" class="hide-mobile">Album Name</th>
-                            <th data-sort="name" data-col="name">Song Name</th>
                             <th data-sort="random" data-col="random" style="text-align:right;display:none;">Random</th>
                             <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
                             <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
@@ -2221,6 +2117,7 @@
                             <th data-sort="weeksListened" data-col="weeksListened" style="text-align:right;display:none;">Weeks Listened</th>
                             <th data-sort="monthsListened" data-col="monthsListened" style="text-align:right;display:none;">Months Listened</th>
                             <th data-sort="yearsListened" data-col="yearsListened" style="text-align:right;display:none;">Years Listened</th>
+                            <th data-sort="consistency" data-col="consistency" style="text-align:right;display:none;" title="Years with plays out of the years since the first play">Consistency</th>
                             <th data-sort="trackNumber" data-col="trackNumber" style="text-align:right;display:none;">Track #</th>
                             <th data-sort="ageAtRelease" data-col="ageAtRelease" style="text-align:right;display:none;">Age at Release</th>
                             <th data-sort="featuredArtistCount" data-col="featuredArtistCount" style="text-align:right;display:none;">Featured Artist Count</th>
@@ -3882,5 +3779,6 @@
             updateLoadAllButton();
         })();
     </script>
+    <th:block th:replace="~{fragments/share-history :: scripts}"></th:block>
 </body>
 </html>

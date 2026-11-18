@@ -894,26 +894,34 @@ public class TrlService {
         return jdbcTemplate.queryForList(sql, albumId);
     }
 
-    public List<Map<String, Object>> getChartedSongsByArtistId(int artistId) {
+    /**
+     * Charted songs of an artist detail page, following its Main / Groups / Featured toggles
+     * (see ChartAggregationUtils.artistSongScope). Rows carry owner_id, owner_name and featured_on.
+     */
+    public List<Map<String, Object>> getChartedSongsForArtistScope(List<Integer> ownerIds, Integer featuredArtistId) {
+        ChartAggregationUtils.ArtistSongScope scope = ChartAggregationUtils.artistSongScope("s", ownerIds, featuredArtistId);
+        if (scope == null) return List.of();
         String sql =
             "WITH stats AS ( " +
-            "    SELECT t.song_id, s.name AS song_name, t.days_on_countdown, " +
+            "    SELECT t.song_id, s.name AS song_name, s.artist_id AS owner_id, ar.name AS owner_name, " +
+            "           " + scope.featuredFlag() + " AS featured_on, t.days_on_countdown, " +
             "           MIN(ce.position) AS peak_position, COUNT(DISTINCT ce.chart_date) AS actual_days, " +
             "           MIN(ce.chart_date) AS debut_date, " +
             "           (SELECT MIN(ce2.chart_date) FROM trl_chart_entry ce2 JOIN trl_debut t2 ON ce2.debut_id = t2.id WHERE t2.song_id = t.song_id AND ce2.position = MIN(ce.position)) AS peak_date " +
             "    FROM trl_debut t " +
             "    JOIN song s ON t.song_id = s.id " +
+            "    JOIN artist ar ON s.artist_id = ar.id " +
             "    LEFT JOIN trl_chart_entry ce ON ce.debut_id = t.id " +
-            "    WHERE s.artist_id = ? " +
-            "    GROUP BY t.song_id, s.name, t.days_on_countdown " +
+            "    WHERE " + scope.where() + " " +
+            "    GROUP BY t.song_id, s.name, s.artist_id, ar.name, t.days_on_countdown " +
             ") " +
-            "SELECT song_id, song_name, days_on_countdown, peak_position, actual_days, debut_date, peak_date, " +
+            "SELECT song_id, song_name, owner_id, owner_name, featured_on, days_on_countdown, peak_position, actual_days, debut_date, peak_date, " +
             "       (SELECT COUNT(*) FROM trl_chart_entry ce2 " +
             "        JOIN trl_debut t2 ON ce2.debut_id = t2.id " +
             "        WHERE t2.song_id = stats.song_id AND ce2.position = stats.peak_position) AS days_at_peak " +
             "FROM stats WHERE days_on_countdown > 0 " +
             "ORDER BY CASE WHEN peak_position IS NULL THEN 999999 ELSE peak_position END ASC, days_at_peak DESC, song_name ASC";
-        return jdbcTemplate.queryForList(sql, artistId);
+        return jdbcTemplate.queryForList(sql, scope.params().toArray());
     }
 
     private record AlbumSongInfo(Integer albumId, String albumName, boolean hasImage) {

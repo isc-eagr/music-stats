@@ -58,46 +58,24 @@ CREATE INDEX IF NOT EXISTS idx_play_period_decade_song
     WHERE play_date IS NOT NULL;
 
 -- ===========================================
--- INDEX 2: Song covering index for joins
+-- INDEX 2: Artist attribute lookups
 -- ===========================================
--- Timeframe queries join Song and need: artist_id, album_id, length_seconds, override columns
--- This covering index allows index-only lookups without hitting the table.
-CREATE INDEX IF NOT EXISTS idx_song_timeframe_cover ON Song(
-    id, 
-    artist_id, 
-    album_id, 
-    length_seconds,
-    override_gender_id,
-    override_genre_id,
-    override_ethnicity_id,
-    override_language_id
-);
+-- When computing winning attributes, timeframe queries read one attribute per artist.
+-- Earlier versions of this script created idx_artist_attrs, idx_album_overrides and idx_song_timeframe_cover;
+-- the live DB uses these narrower indexes instead, and Song joins use idx_song_artist_cover /
+-- idx_song_album_cover (db_last_listened_performance_indexes.sql).
+CREATE INDEX IF NOT EXISTS idx_artist_id_gender ON Artist(id, gender_id);
+CREATE INDEX IF NOT EXISTS idx_artist_id_ethnicity ON Artist(id, ethnicity_id);
+CREATE INDEX IF NOT EXISTS idx_artist_id_country ON Artist(id, country);
 
 -- ===========================================
--- INDEX 3: Artist covering index for attribute lookups
--- ===========================================
--- When computing winning attributes, we need quick access to artist properties.
-CREATE INDEX IF NOT EXISTS idx_artist_attrs ON Artist(
-    id,
-    gender_id,
-    genre_id,
-    ethnicity_id,
-    language_id,
-    country
-);
-
--- ===========================================
--- INDEX 4: Album override covering index
+-- INDEX 3: Album override covering index
 -- ===========================================
 -- Album override columns are checked when Song override is NULL
-CREATE INDEX IF NOT EXISTS idx_album_overrides ON Album(
-    id,
-    override_genre_id,
-    override_language_id
-);
+CREATE INDEX IF NOT EXISTS idx_album_id_overrides ON Album(id, override_genre_id, override_language_id);
 
 -- ===========================================
--- INDEX 5: Play song_id index (if not exists)
+-- INDEX 4: Play song_id index (if not exists)
 -- ===========================================
 -- Essential for the Play->Song join performance
 CREATE INDEX IF NOT EXISTS idx_play_song_date ON Play(song_id, play_date);
@@ -112,8 +90,8 @@ ANALYZE;
 -- ===========================================
 -- After creating these indexes, timeframe queries should:
 -- 1. Use idx_play_date_song_id for the main GROUP BY period_key scan
--- 2. Use idx_song_timeframe_cover for Song joins without table lookups
--- 3. Use idx_artist_attrs for Artist attribute resolution
+-- 2. Use idx_song_artist_cover / idx_song_album_cover for Song joins without table lookups
+-- 3. Use idx_artist_id_* for Artist attribute resolution
 --
 -- To verify indexes are being used, run:
 -- EXPLAIN QUERY PLAN <your query here>

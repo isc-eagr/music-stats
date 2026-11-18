@@ -7,6 +7,8 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <th:block th:replace="~{fragments/share-history :: styles}"></th:block>
+    <th:block th:replace="~{fragments/catalog-row :: row-styles}"></th:block>
     <script th:src="@{/js/list-utils.js}"></script>
 </head>
 <body>
@@ -30,6 +32,7 @@
                             <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search countries..." oninput="this.form.submit()" id="searchInput">
                         </form>
                     </div>
+                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
 
                 <div class="toolbar-sort-panel">
@@ -65,9 +68,7 @@
                                 <span th:if="${sortDir != 'desc'}">↑</span>
                             </button>
                         </div>
-                    </div>
-                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
-                </div>
+                    </div>                </div>
             </div>
         </div>
         
@@ -86,196 +87,47 @@
         </div>
         
         <!-- Pagination info -->
+        <section th:replace="~{fragments/share-history :: panel('countries', 'plays,time,artists,albums,songs', 'data-id', 'data-filter-value')}"></section>
+
         <div class="pagination-info">
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
         
         <div id="cardView">
         <!-- Country cards grid -->
-        <div class="catalog-grid">
-            <div th:each="country : ${countries}" class="catalog-card" style="cursor: pointer;"
-                 th:data-name="${country.name}"
-                 onclick="navigateToGraphByName(this, 'country')">
-                <div class="catalog-image">
-                    <div class="catalog-icon" title="Country">
-                        🌐
+        <div class="lb-list">
+            <div th:each="country, iterStat : ${countries}" class="lb-row gc lb-static" th:attr="data-id=${country.name}"
+                 th:classappend="${country.malePlayCount > country.femalePlayCount} ? 'gender-male' : (${country.femalePlayCount > country.malePlayCount} ? 'gender-female' : '')">
+                <span class="lb-rank" th:text="${iterStat.count}">1</span>
+                <div class="lb-name">
+                    <div class="lb-thumb" th:if="${@countryCodeMapper.getCode(country.name) != null}" th:with="flagCode=${@countryCodeMapper.getCode(country.name)}">
+                        <img th:src="@{https://flagcdn.com/w80/{code}.png(code=${flagCode})}" th:alt="${country.name}">
+                    </div>
+                    <div class="lb-title">
+                        <h3 class="lb-h" th:title="${country.name}"><a th:href="@{/countries/{name}(name=${country.name})}" th:text="${country.name}">Name</a></h3>
                     </div>
                 </div>
-                
-                <div class="catalog-info">
-                    <h3 class="catalog-name" th:text="${country.name}">Country Name</h3>
-                    
-                    <!-- Sort metric display (only for non-visible metrics) -->
-                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'random' and sortBy != 'plays' and sortBy != 'primary_plays' and sortBy != 'legacy_plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs'}">
+                <div th:replace="~{fragments/catalog-row :: mix(${country}, ${sortBy}, @{/artists(country=${country.name}, countryMode='includes', view='table')}, @{/albums(country=${country.name}, countryMode='includes', view='table')}, @{/songs(country=${country.name}, countryMode='includes', view='table')})}"></div>
+                <div class="lb-foot">
+                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'random' and sortBy != 'plays' and sortBy != 'primary_plays' and sortBy != 'legacy_plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs' and !#strings.startsWith(sortBy, 'winning')}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
-                            <th:block th:case="'maleartistpct'">Male Artist %:</th:block>
-                            <th:block th:case="'malealbumpct'">Male Album %:</th:block>
-                            <th:block th:case="'malesongpct'">Male Song %:</th:block>
-                            <th:block th:case="'maleplaypct'">Male Play %:</th:block>
-                            <th:block th:case="'maletimepct'">Male Time %:</th:block>
-                            <th:block th:case="'winningdays'">Winning Days:</th:block>
-                            <th:block th:case="'winningweeks'">Winning Weeks:</th:block>
-                            <th:block th:case="'winningmonths'">Winning Months:</th:block>
-                            <th:block th:case="'winningseasons'">Winning Seasons:</th:block>
-                            <th:block th:case="'winningyears'">Winning Years:</th:block>
-                            <th:block th:case="'winningdecades'">Winning Decades:</th:block>
+                            <th:block th:case="'maleartistpct'">Male Artist %</th:block>
+                            <th:block th:case="'malealbumpct'">Male Album %</th:block>
+                            <th:block th:case="'malesongpct'">Male Song %</th:block>
+                            <th:block th:case="'maleplaypct'">Male Play %</th:block>
+                            <th:block th:case="'maletimepct'">Male Time %</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
-                            <th:block th:case="'maleartistpct'" th:text="${country.artistCount > 0 ? #numbers.formatDecimal(country.maleArtistCount * 100.0 / country.artistCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'malealbumpct'" th:text="${country.albumCount > 0 ? #numbers.formatDecimal(country.maleAlbumCount * 100.0 / country.albumCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'malesongpct'" th:text="${country.songCount > 0 ? #numbers.formatDecimal(country.maleSongCount * 100.0 / country.songCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'maleplaypct'" th:text="${country.playCount > 0 ? #numbers.formatDecimal(country.malePlayCount * 100.0 / country.playCount, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'maletimepct'" th:text="${country.timeListened > 0 ? #numbers.formatDecimal(country.maleTimeListened * 100.0 / country.timeListened, 1, 1) + '%' : 'N/A'}"></th:block>
-                            <th:block th:case="'winningdays'" th:text="${country.winningDaysCount}"></th:block>
-                            <th:block th:case="'winningweeks'" th:text="${country.winningWeeksCount}"></th:block>
-                            <th:block th:case="'winningmonths'" th:text="${country.winningMonthsCount}"></th:block>
-                            <th:block th:case="'winningseasons'" th:text="${country.winningSeasonsCount}"></th:block>
-                            <th:block th:case="'winningyears'" th:text="${country.winningYearsCount}"></th:block>
-                            <th:block th:case="'winningdecades'" th:text="${country.winningDecadesCount}"></th:block>
+                            <th:block th:case="'maleartistpct'" th:text="${country.artistCount > 0 ? #numbers.formatDecimal(country.maleArtistCount * 100.0 / country.artistCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malealbumpct'" th:text="${country.albumCount > 0 ? #numbers.formatDecimal(country.maleAlbumCount * 100.0 / country.albumCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'malesongpct'" th:text="${country.songCount > 0 ? #numbers.formatDecimal(country.maleSongCount * 100.0 / country.songCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maleplaypct'" th:text="${country.playCount > 0 ? #numbers.formatDecimal(country.malePlayCount * 100.0 / country.playCount, 1, 2) + '%' : 'N/A'}"></th:block>
+                            <th:block th:case="'maletimepct'" th:text="${country.timeListened > 0 ? #numbers.formatDecimal(country.maleTimeListened * 100.0 / country.timeListened, 1, 2) + '%' : 'N/A'}"></th:block>
                         </span>
                     </div>
-                    
-                    <div class="catalog-stats">
-                        <div class="stat" th:classappend="${sortBy == 'artists' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎤</span>
-                            <span class="stat-value" th:text="${country.artistCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">💿</span>
-                            <span class="stat-value" th:text="${country.albumCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎵</span>
-                            <span class="stat-value" th:text="${country.songCount}">0</span>
-                        </div>
-                    </div>
-                    <div class="catalog-stats catalog-stats-plays">
-                        <div class="stat" title="Primary plays" th:classappend="${sortBy == 'primary_plays' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon primary-plays">⏵</span>
-                            <span class="stat-value" th:text="${country.vatitoPlayCount}">0</span>
-                        </div>
-                        <div class="stat" title="Legacy plays" th:classappend="${sortBy == 'legacy_plays' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon legacy-plays">⏵</span>
-                            <span class="stat-value" th:text="${country.robertloverPlayCount}">0</span>
-                        </div>
-                        <div class="stat" title="Total plays" th:classappend="${sortBy == 'plays' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:text="${country.playCount}">0</span>
-                        </div>
-                    </div>
-                    <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🕒</span>
-                            <span class="stat-value" th:text="${country.timeListenedFormatted}">0m</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Gender breakdown bars -->
-                    <div class="gender-bars-container">
-                        <div class="gender-bar-row" th:if="${country.maleArtistCount > 0 or country.femaleArtistCount > 0 or country.otherArtistCount > 0}">
-                            <span class="gender-bar-icon" title="Artists">🎤</span>
-                            <div class="gender-bar" th:with="total=${country.maleArtistCount + country.femaleArtistCount + country.otherArtistCount}, malePct=${total > 0 ? (country.maleArtistCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${country.maleArtistCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${country.femaleArtistCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${country.femaleArtistCount} + ' (' + ${#numbers.formatDecimal((country.femaleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.otherArtistCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${country.otherArtistCount} + ' (' + ${#numbers.formatDecimal((country.otherArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${country.maleAlbumCount > 0 or country.femaleAlbumCount > 0 or country.otherAlbumCount > 0}">
-                            <span class="gender-bar-icon" title="Albums">💿</span>
-                            <div class="gender-bar" th:with="total=${country.maleAlbumCount + country.femaleAlbumCount + country.otherAlbumCount}, malePct=${total > 0 ? (country.maleAlbumCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${country.maleAlbumCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${country.femaleAlbumCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${country.femaleAlbumCount} + ' (' + ${#numbers.formatDecimal((country.femaleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.otherAlbumCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${country.otherAlbumCount} + ' (' + ${#numbers.formatDecimal((country.otherAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${country.maleCount > 0 or country.femaleCount > 0 or country.otherCount > 0}">
-                            <span class="gender-bar-icon" title="Songs">🎵</span>
-                            <div class="gender-bar" th:with="total=${country.maleCount + country.femaleCount + country.otherCount}, malePct=${total > 0 ? (country.maleCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${country.maleCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${country.femaleCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${country.femaleCount} + ' (' + ${#numbers.formatDecimal((country.femaleCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.otherCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${country.otherCount} + ' (' + ${#numbers.formatDecimal((country.otherCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${country.malePlayCount > 0 or country.femalePlayCount > 0 or country.otherPlayCount > 0}">
-                            <span class="gender-bar-icon total-plays" title="Plays">⏵</span>
-                            <div class="gender-bar" th:with="total=${country.malePlayCount + country.femalePlayCount + country.otherPlayCount}, malePct=${total > 0 ? (country.malePlayCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${country.malePlayCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${country.femalePlayCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${country.femalePlayCount} + ' (' + ${#numbers.formatDecimal((country.femalePlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.otherPlayCount} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${country.otherPlayCount} + ' (' + ${#numbers.formatDecimal((country.otherPlayCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                        <div class="gender-bar-row" th:if="${country.maleTimeListened > 0 or country.femaleTimeListened > 0 or country.otherTimeListened > 0}">
-                            <span class="gender-bar-icon" title="Listening Time">🕒</span>
-                            <div class="gender-bar" th:with="total=${country.maleTimeListened + country.femaleTimeListened + country.otherTimeListened}, malePct=${total > 0 ? (country.maleTimeListened * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${country.femaleTimeListened} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${#numbers.formatDecimal((country.femaleTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
-                                <div class="gender-other-bar" 
-                                     th:style="'width: ' + (${total > 0} ? (${country.otherTimeListened} * 100 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${#numbers.formatDecimal((country.otherTimeListened * 100.0 / total), 1, 2)} + '%'"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Top artist/album/song for this country -->
-                    <div th:if="${country.topArtistName != null or country.topAlbumName != null or country.topSongName != null}"
-                         class="number-one-info">
-                        <a th:if="${country.topArtistName != null}"
-                           th:class="${'number-one-item' + (country.topArtistGenderId == 2 ? ' gender-male' : (country.topArtistGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/artists/' + ${country.topArtistId}}" onclick="event.stopPropagation();">
-                            <span class="label">🎤</span>
-                            <span class="name" th:text="${country.topArtistName}" th:title="${country.topArtistName}">Artist Name</span>
-                        </a>
-                        <a th:if="${country.topAlbumName != null}"
-                           th:class="${'number-one-item' + (country.topAlbumGenderId == 2 ? ' gender-male' : (country.topAlbumGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/albums/' + ${country.topAlbumId}}" onclick="event.stopPropagation();">
-                            <span class="label">💿</span>
-                            <span class="name" th:text="${country.topAlbumArtistName + ' - ' + country.topAlbumName}" th:title="${country.topAlbumArtistName + ' - ' + country.topAlbumName}">Artist - Album</span>
-                        </a>
-                        <a th:if="${country.topSongName != null}"
-                           th:class="${'number-one-item' + (country.topSongGenderId == 2 ? ' gender-male' : (country.topSongGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/songs/' + ${country.topSongId}}" onclick="event.stopPropagation();">
-                            <span class="label">🎵</span>
-                            <span class="name" th:text="${country.topSongArtistName + ' - ' + country.topSongName}" th:title="${country.topSongArtistName + ' - ' + country.topSongName}">Artist - Song</span>
-                        </a>
-                    </div>
+                    <span th:replace="~{fragments/catalog-row :: wins(${country}, ${sortBy})}"></span>
+                    <div th:replace="~{fragments/catalog-row :: tops(${country})}"></div>
+                    <span th:replace="~{fragments/catalog-row :: accounts(${country})}"></span>
                 </div>
             </div>
         </div>
@@ -320,11 +172,6 @@
             window.location.href = url.toString();
         }
         
-        function navigateToGraphByName(element, filterType) {
-            const name = encodeURIComponent(element.getAttribute('data-name'));
-            window.location.href = '/songs?' + filterType + '=' + name + '&' + filterType + 'Mode=includes';
-        }
-
         // Auto-focus search input if there's a search query
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('searchInput');
@@ -334,5 +181,6 @@
             }
         });
     </script>
+    <th:block th:replace="~{fragments/share-history :: scripts}"></th:block>
 </body>
 </html>

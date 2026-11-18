@@ -166,4 +166,56 @@ public final class DateFormatUtils {
         }
         return null;
     }
+
+    /**
+     * Human span between two display dates (dd-MMM-yyyy from {@link #formatPlayDate} or dd/MM/yyyy),
+     * such as "21 years, 8 months, 26 days" (parts that are zero are left out). Returns null when either date
+     * is missing or unparsable, or when both fall on the same day.
+     */
+    public static String spanLabel(String from, String to) {
+        java.time.LocalDate start = parseDisplayDate(from);
+        java.time.LocalDate end = parseDisplayDate(to);
+        if (start == null || end == null || !end.isAfter(start)) {
+            return null;
+        }
+        java.time.Period period = java.time.Period.between(start, end);
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        addSpanPart(parts, period.getYears(), "year");
+        addSpanPart(parts, period.getMonths(), "month");
+        addSpanPart(parts, period.getDays(), "day");
+        return String.join(", ", parts);
+    }
+
+    private static void addSpanPart(java.util.List<String> parts, int amount, String unit) {
+        if (amount > 0) {
+            parts.add(amount + " " + unit + (amount == 1 ? "" : "s"));
+        }
+    }
+
+    /**
+     * Start of the 7-day weekly chart week that ends on the given display date (dd-MMM-yyyy), as dd-MMM-yyyy.
+     * Returns the input unchanged when it does not parse.
+     */
+    public static String weeklyChartStartFromEnd(String weekEnd) {
+        java.time.LocalDate end = parseDisplayDate(weekEnd);
+        return end == null ? weekEnd : formatIsoDateForDisplay(end.minusDays(6).toString());
+    }
+
+    /**
+     * Parses a display date (dd-MMM-yyyy or dd/MM/yyyy); returns null when blank or unparsable.
+     */
+    public static java.time.LocalDate parseDisplayDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        for (String pattern : new String[] {"dd-MMM-yyyy", "dd/MM/yyyy"}) {
+            try {
+                return java.time.LocalDate.parse(value.trim(),
+                        java.time.format.DateTimeFormatter.ofPattern(pattern, java.util.Locale.ENGLISH));
+            } catch (java.time.format.DateTimeParseException ignore) {
+                // try the next display format
+            }
+        }
+        return null;
+    }
 }

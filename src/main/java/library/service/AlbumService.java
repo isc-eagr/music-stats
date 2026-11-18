@@ -5,9 +5,7 @@ import library.dto.AlbumFullListenStats;
 import library.dto.AlbumSongDTO;
 import library.dto.AlbumStatsQuery;
 import library.dto.AlbumStatsRow;
-import library.dto.FeaturedArtistCardDTO;
 import library.dto.GenderCountDTO;
-import library.dto.PlaysByMonthDTO;
 import library.dto.PlayDTO;
 import library.entity.Album;
 import library.entity.AlbumImage;
@@ -1317,129 +1315,15 @@ public class AlbumService {
         return count != null ? count : 0;
     }
     
-    // Get plays by month for an album
-    public List<PlaysByMonthDTO> getPlaysByMonthForAlbum(int albumId) {
-        String sql = """
-            SELECT 
-                strftime('%Y', p.play_date) as year,
-                strftime('%m', p.play_date) as month,
-                COUNT(*) as play_count
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.album_id = ? AND p.play_date IS NOT NULL
-            GROUP BY strftime('%Y', p.play_date), strftime('%m', p.play_date)
-            ORDER BY year ASC, month ASC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByMonthDTO dto = new PlaysByMonthDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setMonth(rs.getString("month"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, albumId);
-    }
-    
-    /**
-     * Get featured artist cards for an album (aggregated from all songs in the album)
-     * Returns full artist card data with feature count, sorted alphabetically
-     */
-    public List<FeaturedArtistCardDTO> getFeaturedArtistCardsForAlbum(int albumId) {
-        // Combines two sources, both excluding the album's own artist:
-        // 1) Artists featured via SongFeaturedArtist on songs in the album
-        // 2) Primary artists of "foreign" songs (songs in this album whose artist != the album's artist)
-        String sql = """
-            SELECT 
-                a.id,
-                a.name,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gr.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
-                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                COALESCE(pc.play_count, 0) as play_count,
-                COALESCE(pc.time_listened, 0) as time_listened,
-                COUNT(DISTINCT combined.song_id) as feature_count,
-                GROUP_CONCAT(combined.song_name, '||') as song_names,
-                a.birth_date,
-                a.death_date
-            FROM (
-                SELECT sfa.artist_id, sfa.song_id, si.name as song_name
-                FROM SongFeaturedArtist sfa
-                INNER JOIN Song si ON sfa.song_id = si.id
-                INNER JOIN Album ali ON si.album_id = ali.id
-                WHERE si.album_id = ? AND sfa.artist_id != ali.artist_id
-                UNION
-                SELECT si.artist_id, si.id as song_id, si.name as song_name
-                FROM Song si
-                INNER JOIN Album ali ON si.album_id = ali.id
-                WHERE si.album_id = ? AND si.artist_id != ali.artist_id
-            ) combined
-            INNER JOIN Artist a ON combined.artist_id = a.id
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gr ON a.genre_id = gr.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN (
-                SELECT s2.artist_id, COUNT(*) as play_count, 
-                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Play p2
-                INNER JOIN Song s2 ON p2.song_id = s2.id
-                GROUP BY s2.artist_id
-            ) pc ON a.id = pc.artist_id
-            GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name,
-                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country,
-                     a.birth_date, a.death_date
-            ORDER BY a.name
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setGenderName(rs.getString("gender_name"));
-            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
-            dto.setEthnicityName(rs.getString("ethnicity_name"));
-            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
-            dto.setGenreName(rs.getString("genre_name"));
-            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
-            dto.setSubgenreName(rs.getString("subgenre_name"));
-            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
-            dto.setLanguageName(rs.getString("language_name"));
-            dto.setCountry(rs.getString("country"));
-            dto.setSongCount(rs.getInt("song_count"));
-            dto.setAlbumCount(rs.getInt("album_count"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setPlayCount(rs.getInt("play_count"));
-            long timeListened = rs.getLong("time_listened");
-            dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
-            dto.setFeatureCount(rs.getInt("feature_count"));
-            // Parse song names from GROUP_CONCAT result
-            String songNamesConcat = rs.getString("song_names");
-            if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
-                dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
-            }
-            String birthDateStr = rs.getString("birth_date");
-            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
-            String deathDateStr = rs.getString("death_date");
-            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
-            return dto;
-        }, albumId, albumId);
-    }
     
     // ============= RANKING METHODS =============
+
+    /** Fills the first and last listened song names shown in the More panel. */
+    public void fillListenedSongs(AlbumCardDTO dto) {
+        library.dto.ListenedSongs songs = albumRepository.findFirstAndLastListenedSongs(dto.getId());
+        dto.setFirstListenedSong(songs.first());
+        dto.setLastListenedSong(songs.last());
+    }
 
     /**
      * Get all rankings for an album in a single query (optimized)
@@ -1519,38 +1403,6 @@ public class AlbumService {
         return rankings;
     }
     
-    /**
-     * Get album ranks by year (position within albums that had plays in each year)
-     * Returns a map of year -> rank
-     */
-    public Map<Integer, Integer> getAlbumRanksByYear(int albumId) {
-        String sql = """
-            WITH year_song_plays AS MATERIALIZED (
-                SELECT strftime('%Y', play_date) AS year, song_id, COUNT(*) AS plays
-                FROM Play GROUP BY year, song_id
-            )
-            SELECT year, rank FROM (
-                SELECT alb.id, 
-                       p.year,
-                       ROW_NUMBER() OVER (PARTITION BY p.year ORDER BY SUM(p.plays) DESC, alb.id) as rank
-                FROM Album alb
-                INNER JOIN Song s ON s.album_id = alb.id
-                INNER JOIN year_song_plays p ON p.song_id = s.id
-                GROUP BY alb.id, p.year
-            ) ranked
-            WHERE id = ?
-            ORDER BY year
-            """;
-        
-        java.util.Map<Integer, Integer> result = new java.util.LinkedHashMap<>();
-        jdbcTemplate.query(sql, rs -> {
-            String yearStr = rs.getString("year");
-            if (yearStr != null) {
-                result.put(Integer.parseInt(yearStr), rs.getInt("rank"));
-            }
-        }, albumId);
-        return result;
-    }
 
     /**
      * Get album's overall position among all albums by play count.
@@ -1573,6 +1425,12 @@ public class AlbumService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Number of albums in the catalog (the "of N albums" next to the overall standing). */
+    public int getAlbumCount() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM Album", Integer.class);
+        return count != null ? count : 0;
     }
 
     /**

@@ -142,15 +142,6 @@
     gap: 24px;
 }
 
-.plays-chart-section {
-    width: 100%;
-}
-
-.chart-container {
-    height: 300px;
-    position: relative;
-}
-
 /* Flag overlay for images */
 .item-image-container {
     position: relative; /* ensure overlay can be positioned */
@@ -177,68 +168,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
-
-.play-count {
-    font-size: 0.85em;
-    font-weight: normal;
-    color: #9ca3af;
-}
-
-/* Pagination for plays tab */
-.plays-tab-content .pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 0;
-}
-
-.plays-tab-content .pagination.pagination-top {
-    margin-bottom: 8px;
-}
-
-.plays-tab-content .pagination.pagination-bottom {
-    margin-top: 16px;
-}
-
-.plays-tab-content .page-link {
-    padding: 8px 16px;
-    background-color: #374151;
-    color: #e5e7eb;
-    text-decoration: none;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: background-color 0.2s;
-}
-
-.plays-tab-content .page-link:hover {
-    background-color: #4b5563;
-}
-
-.plays-tab-content .page-link.disabled {
-    opacity: 0.4;
-    pointer-events: none;
-    cursor: not-allowed;
-}
-
-.plays-tab-content .page-info {
-    color: #9ca3af;
-    font-size: 14px;
-}
-
-/* Plays table adjustments */
-#playsTable {
-    font-size: 14px;
-}
-
-#playsTable td:first-child {
-    white-space: nowrap;
-    width: 180px;
-}
-
-#playsTable td:last-child {
-    width: 100px;
 }
 
 /* Chart History Grid - Two columns side by side */
@@ -348,26 +277,6 @@
     .toggle-text {
         font-size: 12px;
     }
-
-    /* Keep chart history type chips reachable when many chart types exist */
-    .chart-history-type-toggles {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 10px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        padding-bottom: 12px;
-    }
-
-    .chart-history-type-toggles::-webkit-scrollbar {
-        display: none;
-    }
-
-    .chart-history-type-toggles .ch-toggle-btn {
-        flex: 0 0 auto;
-        white-space: nowrap;
-    }
 }
 
 @media (max-width: 480px) {
@@ -376,10 +285,6 @@
         font-size: 11px;
     }
 
-    .chart-container {
-        height: 220px;
-    }
-    
     /* Hide less important toggle text, just show switch */
     .toggle-text {
         font-size: 10px;

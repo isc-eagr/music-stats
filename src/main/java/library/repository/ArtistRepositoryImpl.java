@@ -92,11 +92,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         boolean includeSongStats = query.includeExtendedStats() || needsItunesJoin
                 || songCountMin != null || songCountMax != null
                 || usesArtistSort(sortBy, sortBy2, sortBy3, "songs", "avg_length", "avg_plays", "solo_songs", "songs_with_features");
-        boolean includeAlbumStats = query.includeExtendedStats()
-                || albumCountMin != null || albumCountMax != null
-                || usesArtistSort(sortBy, sortBy2, sortBy3, "albums", "avg_plays_album");
-        boolean includeFeaturedStats = query.includeExtendedStats()
-                || usesArtistSort(sortBy, sortBy2, sortBy3, "featured");
+        // Song, album and featured counts are always loaded because the list card shows them;
+        // songs use a count-only join unless the full song stats are already needed.
         boolean includeFeaturedArtistStats = query.includeExtendedStats()
                 || usesArtistSort(sortBy, sortBy2, sortBy3, "featured_artist_count");
         int limit = query.limit();
@@ -151,8 +148,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append("    a.language_id, ");
         sql.append("    l.name as language_name, ");
         sql.append("    a.country, ");
-        sql.append(includeSongStats ? "    COALESCE(song_stats.song_count, 0) as song_count, " : "    0 as song_count, ");
-        sql.append(includeAlbumStats ? "    COALESCE(album_stats.album_count, 0) as album_count, " : "    0 as album_count, ");
+        sql.append(includeSongStats ? "    COALESCE(song_stats.song_count, 0) as song_count, " : "    COALESCE(song_count_stats.song_count, 0) as song_count, ");
+        sql.append("    COALESCE(album_stats.album_count, 0) as album_count, ");
         sql.append("    CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image, ");
         sql.append("    COALESCE(play_stats.play_count, 0) as play_count, ");
         sql.append("    COALESCE(play_stats.vatito_play_count, 0) as vatito_play_count, ");
@@ -178,7 +175,7 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             sql.append("    0 as days_listened, 0 as weeks_listened, 0 as months_listened, 0 as years_listened, ");
         }
         sql.append("    a.organized, ");
-        sql.append(includeFeaturedStats ? "    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count, " : "    0 as featured_song_count, ");
+        sql.append("    COALESCE(featured_stats.featured_song_count, 0) as featured_song_count, ");
         sql.append("    a.birth_date, ");
         sql.append("    a.death_date, ");
         sql.append("    (SELECT COUNT(*) FROM ArtistImage WHERE artist_id = a.id) + CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as image_count, ");
@@ -205,9 +202,11 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             sql.append("SUM(CASE WHEN EXISTS (SELECT 1 FROM SongFeaturedArtist sx WHERE sx.song_id = s.id) THEN 1 ELSE 0 END) as songs_with_feat_count, ");
             sql.append("SUM(CASE WHEN s.album_id IS NULL THEN 1 ELSE 0 END) as standalone_song_count ");
             sql.append("FROM ").append(songScopeSql).append(" scope JOIN Song s ON s.id = scope.song_id GROUP BY scope.target_artist_id) song_stats ON song_stats.artist_id = a.id ");
+        } else {
+            sql.append("LEFT JOIN (SELECT target_artist_id as artist_id, COUNT(*) as song_count FROM ").append(songScopeSql).append(" GROUP BY target_artist_id) song_count_stats ON song_count_stats.artist_id = a.id ");
         }
-        if (includeAlbumStats) sql.append("LEFT JOIN (SELECT target_artist_id as artist_id, COUNT(*) as album_count FROM ").append(albumScopeSql).append(" GROUP BY target_artist_id) album_stats ON album_stats.artist_id = a.id ");
-        if (includeFeaturedStats) sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as featured_song_count FROM SongFeaturedArtist GROUP BY artist_id) featured_stats ON featured_stats.artist_id = a.id ");
+        sql.append("LEFT JOIN (SELECT target_artist_id as artist_id, COUNT(*) as album_count FROM ").append(albumScopeSql).append(" GROUP BY target_artist_id) album_stats ON album_stats.artist_id = a.id ");
+        sql.append("LEFT JOIN (SELECT artist_id, COUNT(*) as featured_song_count FROM SongFeaturedArtist GROUP BY artist_id) featured_stats ON featured_stats.artist_id = a.id ");
         if (includeFeaturedArtistStats) sql.append("LEFT JOIN (SELECT scope.target_artist_id as artist_id, COUNT(DISTINCT sfa.artist_id) as featured_artist_count_stat FROM ").append(songScopeSql).append(" scope JOIN SongFeaturedArtist sfa ON sfa.song_id = scope.song_id GROUP BY scope.target_artist_id) fac_stats ON fac_stats.artist_id = a.id ");
         if (needsItunesJoin) {
             sql.append("LEFT JOIN (SELECT target_artist_id as artist_id, COUNT(*) as itunes_song_count FROM ").append(songScopeSql).append(" WHERE song_id IN (SELECT value FROM json_each(?)) GROUP BY target_artist_id) itunes_stats ON itunes_stats.artist_id = a.id ");
@@ -443,15 +442,35 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         sql.append(" ORDER BY ").append(String.join(", ", clauses));
     }
 
+    /** Song names behind the artist's first and last play, within the same main/groups/featured scope as the list. */
+    @Override
+    public library.dto.ListenedSongs findFirstAndLastListenedSongs(int artistId, boolean includeMain, boolean includeGroups, boolean includeFeatured) {
+        String base = "SELECT s.name FROM Play p JOIN Song s ON s.id = p.song_id "
+                + "WHERE p.song_id IN (SELECT song_id FROM " + buildSongScopeSql(includeMain, includeGroups, includeFeatured)
+                + " WHERE target_artist_id = ?) ORDER BY p.play_date ";
+        return new library.dto.ListenedSongs(
+                firstName(base + "ASC, p.id ASC LIMIT 1", artistId),
+                firstName(base + "DESC, p.id DESC LIMIT 1", artistId));
+    }
+
+    private String firstName(String sql, int artistId) {
+        List<String> names = jdbcTemplate.queryForList(sql, String.class, artistId);
+        return names.isEmpty() ? null : names.getFirst();
+    }
+
     private String buildSongScopeSql(ArtistStatsQuery query) {
+        return buildSongScopeSql(query.includeMain(), query.includeGroups(), query.includeFeatured());
+    }
+
+    private String buildSongScopeSql(boolean includeMain, boolean includeGroups, boolean includeFeatured) {
         List<String> scopes = new ArrayList<>();
-        if (query.includeMain()) {
+        if (includeMain) {
             scopes.add("SELECT s.artist_id AS target_artist_id, s.id AS song_id, 'main' AS source_type FROM Song s");
         }
-        if (query.includeGroups()) {
+        if (includeGroups) {
             scopes.add("SELECT am.member_artist_id AS target_artist_id, s.id AS song_id, 'group' AS source_type FROM ArtistMember am JOIN Song s ON s.artist_id = am.group_artist_id");
         }
-        if (query.includeFeatured()) {
+        if (includeFeatured) {
             scopes.add("SELECT sfa.artist_id AS target_artist_id, sfa.song_id AS song_id, 'featured' AS source_type FROM SongFeaturedArtist sfa");
         }
         if (scopes.isEmpty()) {
@@ -498,6 +517,9 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
             case "weeks_listened" -> "weeks_listened " + direction;
             case "months_listened" -> "months_listened " + direction;
             case "years_listened" -> "years_listened " + direction;
+            // Consistency: years with plays, ties to the higher share (later first year), then plays
+            case "consistency" -> "years_listened " + direction + ", substr(first_listened, 1, 4) " + direction
+                    + " NULLS LAST, play_count " + direction;
             case "image_count" -> "image_count " + direction;
             case "random" -> RandomSortUtils.sqliteNumericExpression("a.id", randomSeed);
             case "country" -> "a.country " + direction + " NULLS LAST";
@@ -522,7 +544,8 @@ public class ArtistRepositoryImpl implements ArtistRepositoryCustom {
         if (sortFields == null) return false;
         for (String sortField : sortFields) {
             if ("days_listened".equals(sortField) || "weeks_listened".equals(sortField)
-                    || "months_listened".equals(sortField) || "years_listened".equals(sortField)) {
+                    || "months_listened".equals(sortField) || "years_listened".equals(sortField)
+                    || "consistency".equals(sortField)) {
                 return true;
             }
         }

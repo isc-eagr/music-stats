@@ -1,0 +1,584 @@
+/* ==========================================================================
+   Catalog table view (Artists, Albums, Songs list pages, Table layout).
+   Dark table with pinned rank / cover / name columns, header menus, a sort
+   level badge on sorted headers, small visual cues inside cells and a
+   totals row. Rows are built in js/graphs.js. Male = blue, female = pink,
+   lime marks sorting.
+   ========================================================================== */
+
+/* ── Toolbar above the table: hint + totals mode ── */
+.ct-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+    margin: 16px 0 10px;
+}
+
+.ct-hint {
+    color: #8b8b94;
+    font-size: 12.5px;
+}
+
+.ct-totals-mode {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #8b8b94;
+    font-size: 13px;
+}
+
+.ct-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    border: 1px solid #232327;
+    background: #141417;
+}
+
+.ct-seg button {
+    min-height: 30px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #a1a1aa;
+    font: 600 12.5px Inter, system-ui, sans-serif;
+    cursor: pointer;
+}
+
+.ct-seg button:hover {
+    color: #f4f4f5;
+}
+
+.ct-seg button.active {
+    background: #2a2a2e;
+    color: #fafafa;
+}
+
+/* ── Column picker panel (existing Show/Hide Columns) ── */
+#tableView .column-toggle-panel {
+    margin: 0 0 12px;
+    padding: 4px 6px;
+    border: 1px solid #232327;
+    border-radius: 14px;
+    background: #0f0f11;
+}
+
+#tableView .column-toggle-header {
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 10px;
+    color: #d4d4d8;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#tableView .column-toggle-header:hover {
+    background: #17171a;
+    color: #fafafa;
+}
+
+#tableView .column-toggle-grid {
+    padding: 6px 10px 10px;
+    gap: 2px 12px;
+}
+
+#tableView .column-toggle-grid label {
+    padding: 5px 6px;
+    border-radius: 8px;
+    color: #a1a1aa;
+    font-size: 13px;
+}
+
+#tableView .column-toggle-grid label:hover {
+    background: #17171a;
+}
+
+#tableView .column-toggle-grid input[type="checkbox"] {
+    accent-color: #bef264;
+}
+
+#tableView .column-toggle-all-row {
+    border-bottom-color: #232327;
+}
+
+#tableView .column-toggle-all-row a {
+    color: #bef264;
+}
+
+/* ── Table shell ── */
+#tableView .top-table-container {
+    border: 1px solid #232327;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #121214, #0d0d0f);
+}
+
+.catalog-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+.catalog-table th {
+    background: #141417;
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid #232327;
+}
+
+#tableView .catalog-table thead th {
+    box-shadow: inset 0 -1px 0 #232327;
+}
+
+.catalog-table th[data-sort]:hover {
+    background: #1c1c20;
+    color: #f4f4f5;
+}
+
+.catalog-table th.sorted-asc::after,
+.catalog-table th.sorted-desc::after {
+    content: none;
+}
+
+.catalog-table th.ct-sorted {
+    background: #1c1c20;
+    color: #ecfccb;
+}
+
+#tableView .catalog-table thead th.ct-sorted {
+    box-shadow: inset 0 -2px 0 #bef264;
+}
+
+.catalog-table td {
+    color: #d4d4d8;
+    border-bottom: 1px solid #1d1d21;
+    vertical-align: middle;
+}
+
+.catalog-table tbody tr:hover td {
+    background: #16161a;
+}
+
+.catalog-table a {
+    color: #f3f4f6;
+}
+
+.catalog-table a:hover {
+    color: #bef264;
+}
+
+/* Numbers */
+.catalog-table td[style*="text-align:right"],
+.catalog-table .ct-num {
+    font-family: 'Space Grotesk', Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Header contents: label, sort badge, "then by" badge, menu button ── */
+.ct-h {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ct-sort-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #bef264;
+    color: #1a2e05;
+    font-size: 10.5px;
+    font-weight: 800;
+}
+
+.ct-sort-badge[hidden] {
+    display: none;
+}
+
+.ct-sort-badge.ct-level-2,
+.ct-sort-badge.ct-level-3 {
+    background: rgba(190, 242, 100, 0.22);
+    color: #d9f99d;
+}
+
+.ct-add {
+    display: none;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    border: 1px dashed rgba(190, 242, 100, 0.6);
+    background: rgba(190, 242, 100, 0.06);
+    color: #d9f99d;
+    font: 700 10.5px Inter, system-ui, sans-serif;
+    cursor: pointer;
+}
+
+.catalog-table th[data-sort]:hover .ct-add.ct-available,
+.ct-add.ct-available:focus-visible {
+    display: inline-flex;
+}
+
+.ct-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #8b8b94;
+    cursor: pointer;
+}
+
+.ct-menu-btn:hover,
+.ct-menu-btn[aria-expanded="true"] {
+    background: #2a2a2e;
+    color: #f4f4f5;
+}
+
+/* ── Header menu popover ── */
+.ct-menu {
+    position: absolute;
+    z-index: 2000;
+    width: 260px;
+    padding: 6px;
+    border: 1px solid #2e2e33;
+    border-radius: 14px;
+    background: #18181b;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7);
+    font-family: Inter, system-ui, sans-serif;
+}
+
+.ct-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #e4e4e7;
+    font: 500 13.5px Inter, system-ui, sans-serif;
+    text-align: left;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.ct-menu-item:hover,
+.ct-menu-item:focus-visible {
+    background: #232327;
+    outline: none;
+}
+
+.ct-menu-item svg {
+    flex: none;
+    color: #a1a1aa;
+}
+
+.ct-menu-item .ct-menu-k {
+    margin-left: auto;
+    color: #8b8b94;
+    font-size: 11.5px;
+}
+
+.ct-menu-sep {
+    height: 1px;
+    margin: 6px 4px;
+    background: #2a2a2e;
+}
+
+/* ── Pinned rank / cover / name columns (desktop) ── */
+@media (min-width: 769px) {
+    .catalog-table .ct-pin {
+        position: sticky;
+        z-index: 1;
+        background: #111113;
+    }
+
+    .catalog-table thead th.ct-pin {
+        z-index: 4;
+        background: #141417;
+    }
+
+    .catalog-table .ct-pin-rank { left: 0; }
+    /* Offsets are measured after each render (graphs.js updatePinnedOffsets) */
+    .catalog-table .ct-pin-cover { left: var(--ct-cover-left, 58px); }
+    .catalog-table .ct-pin-name {
+        left: var(--ct-name-left, 124px);
+        box-shadow: 6px 0 10px -6px rgba(0, 0, 0, 0.9);
+    }
+
+    #tableView .catalog-table thead th.ct-pin-name {
+        box-shadow: inset 0 -1px 0 #232327, 6px 0 10px -6px rgba(0, 0, 0, 0.9);
+    }
+
+    .catalog-table tbody tr:hover td.ct-pin {
+        background: #16161a;
+    }
+
+    .catalog-table tfoot td.ct-pin {
+        background: #141417;
+    }
+}
+
+/* ── Rank medals ── */
+.catalog-table td.rank-col {
+    font-family: 'Space Grotesk', Inter, sans-serif;
+    font-weight: 700;
+    color: #8b8b94;
+}
+
+.catalog-table td.rank-col.ct-medal-1 { color: #fcd34d; }
+.catalog-table td.rank-col.ct-medal-2 { color: #e4e4e7; }
+.catalog-table td.rank-col.ct-medal-3 { color: #f0a868; }
+
+/* ── Gender cues: cover ring and tinted secondary links ── */
+.catalog-table tr.ct-male .cover-col img {
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.75);
+}
+
+.catalog-table tr.ct-female .cover-col img {
+    box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.75);
+}
+
+.catalog-table tr.ct-male td.ct-sub a { color: #93c5fd; }
+.catalog-table tr.ct-female td.ct-sub a { color: #f9a8d4; }
+.catalog-table tr td.ct-sub a:hover { color: #bef264; }
+
+.catalog-table td.ct-name a {
+    font-weight: 700;
+}
+
+/* iTunes presence next to the name */
+.ct-it {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    margin-left: 6px;
+    border-radius: 7px;
+    vertical-align: -1px;
+}
+
+.ct-it.yes { background: rgba(34, 197, 94, 0.22); color: #4ade80; }
+.ct-it.no { background: rgba(239, 68, 68, 0.22); color: #f87171; }
+
+.ct-single {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 999px;
+    border: 1px solid #3f3f46;
+    color: #a1a1aa;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+}
+
+/* ── Cell sublines and bars ── */
+.ct-muted {
+    display: block;
+    margin-top: 2px;
+    color: #8b8b94;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 10.5px;
+    font-weight: 500;
+}
+
+.ct-dim {
+    color: #52525b !important;
+}
+
+.ct-plays {
+    color: #f4f4f5;
+    font-weight: 700;
+}
+
+.ct-bar {
+    height: 2px;
+    margin: 4px 0 0 auto;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(161, 161, 170, 0.2), #a1a1aa);
+}
+
+tr.ct-male .ct-bar { background: linear-gradient(90deg, rgba(96, 165, 250, 0.2), #60a5fa); }
+tr.ct-female .ct-bar { background: linear-gradient(90deg, rgba(244, 114, 182, 0.2), #f472b6); }
+
+/* Recency dot (Last listened, Last full listen) */
+.ct-rec {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #e4e4e7;
+    font-weight: 600;
+}
+
+.ct-rec + .ct-muted {
+    padding-left: 15px;
+}
+
+.ct-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #71717a;
+}
+
+.ct-dot.fresh { background: #4ade80; }
+.ct-dot.aging { background: #fbbf24; }
+.ct-dot.stale { background: #f87171; }
+
+/* ── Chart peak chips ── */
+.ct-pk {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font: 700 11.5px Inter, system-ui, sans-serif;
+    white-space: nowrap;
+}
+
+.ct-pk em {
+    font-style: normal;
+    font-weight: 500;
+    opacity: 0.75;
+}
+
+.ct-pk.weekly { color: #93c5fd; border: 1px solid rgba(147, 197, 253, 0.45); background: rgba(59, 130, 246, 0.12); }
+.ct-pk.seasonal { color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.5); background: rgba(16, 185, 129, 0.12); }
+.ct-pk.yearly { color: #fde68a; border: 1px solid rgba(253, 230, 138, 0.45); background: rgba(250, 204, 21, 0.1); }
+.ct-pk.trl { color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.5); background: rgba(245, 158, 11, 0.12); }
+.ct-pk.vatos { color: #ffb4aa; border: 1px solid rgba(255, 180, 170, 0.5); background: rgba(250, 128, 114, 0.12); }
+.ct-pk.billboard { color: #a8edf4; border: 1px solid rgba(103, 232, 249, 0.5); background: rgba(34, 211, 238, 0.1); }
+
+.ct-pk.p1 {
+    color: #ffe680;
+    border: 1px solid rgba(255, 215, 0, 0.75);
+    background: linear-gradient(135deg, rgba(40, 25, 0, 0.65), rgba(255, 215, 0, 0.25));
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+}
+
+.ct-pk.p2 { color: #e4e4e7; border: 1px solid rgba(212, 212, 216, 0.55); background: rgba(212, 212, 216, 0.1); }
+.ct-pk.p3 { color: #f0a868; border: 1px solid rgba(240, 168, 104, 0.55); background: rgba(240, 168, 104, 0.1); }
+
+.ct-pk.billboard.p1 {
+    color: #cffafe;
+    border-color: rgba(255, 215, 0, 0.7);
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(255, 215, 0, 0.18));
+    box-shadow: none;
+}
+
+/* ── Attribute chips ── */
+.ct-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 200px;
+    height: 22px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ct-chip.genre { color: #c4b5fd; border: 1px solid rgba(196, 181, 253, 0.5); background: rgba(139, 92, 246, 0.14); }
+.ct-chip.subgenre { color: #ddd6fe; border: 1px solid rgba(221, 214, 254, 0.45); background: rgba(167, 139, 250, 0.12); }
+.ct-chip.ethnicity { color: #fef08a; border: 1px solid rgba(253, 224, 71, 0.45); background: rgba(234, 179, 8, 0.12); }
+.ct-chip.language { color: #99f6e4; border: 1px solid rgba(94, 234, 212, 0.45); background: rgba(20, 184, 166, 0.12); }
+.ct-chip.country { color: #e8c49a; border: 1px solid rgba(213, 148, 85, 0.5); background: rgba(180, 100, 45, 0.12); }
+
+/* ── Totals row ── */
+.catalog-table tfoot td {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 9px 12px;
+    background: #141417;
+    border-top: 1px solid #2a2a2e;
+    border-bottom: 0;
+    color: #f4f4f5;
+    font-weight: 700;
+    vertical-align: top;
+}
+
+@media (min-width: 769px) {
+    .catalog-table tfoot td.ct-pin {
+        z-index: 3;
+    }
+}
+
+.ct-total-label {
+    color: #a1a1aa;
+    font-weight: 600;
+}
+
+.ct-split {
+    display: block;
+    margin-top: 3px;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.ct-split .m { color: #93c5fd; }
+.ct-split .f { color: #f9a8d4; }
+
+/* ── Phones: no pinned columns, slimmer chips ── */
+@media (max-width: 768px) {
+    .ct-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .catalog-table tfoot td {
+        position: static;
+    }
+}
+
+/* ── Row reached from a detail page rank (?highlight=id): two soft pulses, then a faint tint that stays ── */
+.catalog-table tr.ct-row-glow { --ct-glow: 250, 204, 21; }
+.catalog-table tr.ct-row-glow.ct-male { --ct-glow: 96, 165, 250; }
+.catalog-table tr.ct-row-glow.ct-female { --ct-glow: 244, 114, 182; }
+
+.catalog-table tr.ct-row-glow > td {
+    animation: ct-row-glow 1.4s ease-in-out 2 forwards;
+}
+
+.catalog-table tr.ct-row-glow > td:first-child {
+    animation-name: ct-row-glow-edge;
+}
+
+@keyframes ct-row-glow {
+    0%, 100% { box-shadow: inset 0 0 0 9999px rgba(var(--ct-glow), 0.08); }
+    50% { box-shadow: inset 0 0 0 9999px rgba(var(--ct-glow), 0.24); }
+}
+
+@keyframes ct-row-glow-edge {
+    0%, 100% { box-shadow: inset 3px 0 0 rgb(var(--ct-glow)), inset 0 0 0 9999px rgba(var(--ct-glow), 0.08); }
+    50% { box-shadow: inset 3px 0 0 rgb(var(--ct-glow)), inset 0 0 0 9999px rgba(var(--ct-glow), 0.24); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .catalog-table tr.ct-row-glow > td { animation-duration: 0.01s; animation-iteration-count: 1; }
+}

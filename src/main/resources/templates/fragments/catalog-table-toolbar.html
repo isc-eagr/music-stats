@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Row above the Artists / Albums / Songs table: how sorting works and the totals row mode
+     (styles in css/catalog-table.css, behavior in js/graphs.js). -->
+<div th:fragment="toolbar" class="ct-toolbar">
+    <span class="ct-hint">Click a header to sort by it. Hover a header and click its + badge to add it as the next sort level, or open its arrow menu for more.</span>
+    <div class="ct-totals-mode">
+        <span>Totals row</span>
+        <div class="ct-seg" id="ctTotalsMode" role="group" aria-label="Totals row">
+            <button type="button" data-mode="sum" onclick="setCatalogTotalsMode('sum')">Sum</button>
+            <button type="button" data-mode="avg" onclick="setCatalogTotalsMode('avg')">Average</button>
+            <button type="button" data-mode="median" onclick="setCatalogTotalsMode('median')">Median</button>
+            <button type="button" data-mode="off" onclick="setCatalogTotalsMode('off')">Off</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

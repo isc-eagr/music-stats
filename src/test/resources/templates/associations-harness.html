@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<!-- Test-only page: renders one associations fragment the way the detail pages include it -->
+<th:block th:if="${kind == 'artist'}"><div th:replace="~{fragments/detail-associations :: artist(${tab})}"></div></th:block>
+<th:block th:if="${kind == 'album'}"><div th:replace="~{fragments/detail-associations :: album(${tab})}"></div></th:block>
+<th:block th:if="${kind == 'song'}"><div th:replace="~{fragments/detail-associations :: song(${tab})}"></div></th:block>
+</body>
+</html>

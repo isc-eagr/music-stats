@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="ranks">
+    <th:block th:replace="~{fragments/detail-general :: rank-row('Genre', 'Pop', 1, @{/artists(genre=1,view='table')}, null, false, 'artists', 'override')}"></th:block>
+    <th:block th:replace="~{fragments/detail-general :: rank-row('Country', 'Mexico', 5, @{/artists(country='Mexico',view='table')}, 'mx', false, 'artists', 'Selena')}"></th:block>
+    <th:block th:replace="~{fragments/detail-general :: rank-row('Language', null, null, @{/artists(view='table')}, null, false, 'artists', null)}"></th:block>
+</div>
+<div th:replace="~{fragments/detail-general :: sort-chips}"></div>
+<table><thead><tr><th:block th:replace="~{fragments/detail-general :: sort-headers('Song')}"></th:block></tr></thead></table>
+<p id="shareTotal" th:text="${#aggregates.sum(slices.![plays])}">0</p>
+<p id="shareFirst" th:text="${slices[0].name} + '|' + ${slices[0].kind} + '|' + ${#numbers.formatDecimal(slices[0].percent, 1, 1)}">x</p>
+<p id="noAlbum" th:text="${noAlbum.songCount} + '|' + ${noAlbum.totalPlays} + '|' + ${noAlbum.firstListened}">x</p>
+</body>
+</html>

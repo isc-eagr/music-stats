@@ -472,7 +472,7 @@ function initializeAdditionalSortSelects() {
         const selectedValue = select.dataset.selectedSort || '';
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = 'None';
+        placeholder.textContent = 'Then by...';
         select.appendChild(placeholder);
 
         Array.from(primarySelect.options).forEach(function(option) {
@@ -1024,17 +1024,6 @@ function debounce(func, wait) {
     };
 }
 
-/**
- * Navigate to the songs list page with a filter applied.
- * Used by catalog cards (genres, ethnicities, languages, subgenres).
- * @param {HTMLElement} element - The element containing data-id and data-name attributes
- * @param {string} filterType - The type of filter (genre, ethnicity, language, subgenre)
- */
-function navigateToGraph(element, filterType) {
-    const id = element.dataset.id;
-    window.location.href = '/songs?' + filterType + '=' + encodeURIComponent(id) + '&' + filterType + 'Mode=includes';
-}
-
 function switchCatalogView(viewName) {
     const normalizedView = viewName === 'table' ? 'table' : 'card';
     const cardView = document.getElementById('cardView');
@@ -1057,16 +1046,20 @@ function switchCatalogView(viewName) {
     window.history.replaceState({}, '', url.toString());
 }
 
-function sortCatalogList(sortKey, defaultDir) {
+// explicitDir ('asc' / 'desc') comes from the column menu; without it a header click toggles.
+function sortCatalogList(sortKey, defaultDir, explicitDir) {
     if (!sortKey) return;
 
     const url = new URL(window.location.href);
     const currentSort = url.searchParams.get('sortby') || '';
     const currentDir = url.searchParams.get('sortdir') || '';
     const firstDir = defaultDir || (sortKey === 'name' || sortKey === 'genre' ? 'asc' : 'desc');
+    const nextDir = explicitDir === 'asc' || explicitDir === 'desc'
+        ? explicitDir
+        : (currentSort === sortKey ? (currentDir === 'asc' ? 'desc' : 'asc') : firstDir);
 
     url.searchParams.set('sortby', sortKey);
-    url.searchParams.set('sortdir', currentSort === sortKey ? (currentDir === 'asc' ? 'desc' : 'asc') : firstDir);
+    url.searchParams.set('sortdir', nextDir);
     url.searchParams.set('page', '0');
     url.searchParams.set('view', 'table');
     window.location.href = url.toString();
@@ -1088,6 +1081,317 @@ function navigateCatalogListRow(row) {
         + '&' + filterType + 'Mode=includes';
 }
 
+// Columns that can never be hidden from the catalog table.
+const CATALOG_TABLE_PINNED_COLS = ['rank', 'name'];
+let catalogColumnMenu = null;
+
+function catalogTableHiddenKey() {
+    return 'catalogTableHidden:' + window.location.pathname;
+}
+
+function readCatalogHiddenColumns() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(catalogTableHiddenKey()) || '[]');
+        return Array.isArray(parsed) ? parsed.filter(function(col) {
+            return typeof col === 'string' && CATALOG_TABLE_PINNED_COLS.indexOf(col) === -1;
+        }) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function writeCatalogHiddenColumns(cols) {
+    try {
+        if (cols.length) {
+            localStorage.setItem(catalogTableHiddenKey(), JSON.stringify(cols));
+        } else {
+            localStorage.removeItem(catalogTableHiddenKey());
+        }
+    } catch (e) {
+        // Storage unavailable: hiding still works for this page view.
+    }
+}
+
+function getCatalogHeaderCells(table) {
+    return Array.from(table.querySelectorAll('thead tr.cl-head-row th[data-col]'));
+}
+
+function setCatalogColumnHidden(table, col, hidden) {
+    if (!col || CATALOG_TABLE_PINNED_COLS.indexOf(col) !== -1) return;
+    const cols = readCatalogHiddenColumns().filter(function(c) { return c !== col; });
+    if (hidden) cols.push(col);
+    writeCatalogHiddenColumns(cols);
+    applyCatalogHiddenColumns(table);
+}
+
+function applyCatalogHiddenColumns(table) {
+    const headerCols = getCatalogHeaderCells(table).map(function(th) { return th.dataset.col; });
+    const hidden = readCatalogHiddenColumns().filter(function(col) { return headerCols.indexOf(col) !== -1; });
+
+    table.querySelectorAll('[data-col]').forEach(function(cell) {
+        cell.classList.toggle('cl-col-hidden', hidden.indexOf(cell.dataset.col) !== -1);
+    });
+
+    table.querySelectorAll('thead th.band').forEach(function(band) {
+        const visible = (band.dataset.bandCols || '').split(/\s+/).filter(function(col) {
+            return col && headerCols.indexOf(col) !== -1 && hidden.indexOf(col) === -1;
+        });
+        band.colSpan = Math.max(visible.length, 1);
+        band.classList.toggle('cl-col-hidden', visible.length === 0);
+    });
+
+    const emptyCell = table.querySelector('tbody tr.no-data td');
+    if (emptyCell) emptyCell.colSpan = Math.max(headerCols.length - hidden.length, 1);
+
+    const count = document.getElementById('catalogColumnsCount');
+    if (count) {
+        count.hidden = hidden.length === 0;
+        count.textContent = hidden.length + ' hidden';
+    }
+
+    const pop = document.getElementById('catalogColumnsPop');
+    if (pop && !pop.hidden) renderCatalogColumnsPopover(table);
+}
+
+function renderCatalogColumnsPopover(table) {
+    const pop = document.getElementById('catalogColumnsPop');
+    if (!pop) return;
+    const hidden = readCatalogHiddenColumns();
+    const hiddenHeaders = getCatalogHeaderCells(table).filter(function(th) {
+        return hidden.indexOf(th.dataset.col) !== -1;
+    });
+
+    pop.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'cl-columns-pop-title';
+    title.textContent = 'Hidden columns';
+    pop.appendChild(title);
+
+    if (!hiddenHeaders.length) {
+        const empty = document.createElement('div');
+        empty.className = 'cl-columns-pop-empty';
+        empty.textContent = 'No hidden columns. Use the arrow on a header to hide one.';
+        pop.appendChild(empty);
+        return;
+    }
+
+    hiddenHeaders.forEach(function(th) {
+        const row = document.createElement('div');
+        row.className = 'cl-columns-pop-row';
+        const label = document.createElement('span');
+        label.textContent = th.dataset.colLabel || th.textContent.trim();
+        const show = document.createElement('button');
+        show.type = 'button';
+        show.className = 'cl-columns-show';
+        show.textContent = 'Show';
+        show.addEventListener('click', function(event) {
+            event.stopPropagation();
+            setCatalogColumnHidden(table, th.dataset.col, false);
+        });
+        row.appendChild(label);
+        row.appendChild(show);
+        pop.appendChild(row);
+    });
+
+    const showAll = document.createElement('button');
+    showAll.type = 'button';
+    showAll.className = 'cl-columns-show-all';
+    showAll.textContent = 'Show all';
+    showAll.addEventListener('click', function(event) {
+        event.stopPropagation();
+        writeCatalogHiddenColumns([]);
+        applyCatalogHiddenColumns(table);
+    });
+    pop.appendChild(showAll);
+}
+
+function setCatalogColumnsPopoverOpen(table, open) {
+    const pop = document.getElementById('catalogColumnsPop');
+    const button = document.getElementById('catalogColumnsBtn');
+    if (!pop || !button) return;
+    if (open) {
+        closeCatalogColumnMenu();
+        renderCatalogColumnsPopover(table);
+    }
+    pop.hidden = !open;
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeCatalogColumnMenu() {
+    if (!catalogColumnMenu) return;
+    catalogColumnMenu.menu.remove();
+    catalogColumnMenu.button.setAttribute('aria-expanded', 'false');
+    catalogColumnMenu = null;
+}
+
+function openCatalogColumnMenu(table, header, button) {
+    const sameHeader = catalogColumnMenu && catalogColumnMenu.header === header;
+    closeCatalogColumnMenu();
+    if (sameHeader) return;
+    setCatalogColumnsPopoverOpen(table, false);
+
+    const sortKey = header.getAttribute('data-sort-key');
+    const col = header.dataset.col;
+    const currentDir = header.classList.contains('sort-asc') ? 'asc' : (header.classList.contains('sort-desc') ? 'desc' : '');
+    const menu = document.createElement('div');
+    menu.className = 'cl-col-menu';
+    menu.setAttribute('role', 'menu');
+
+    const title = document.createElement('div');
+    title.className = 'cl-col-menu-title';
+    title.textContent = header.dataset.colLabel || '';
+    menu.appendChild(title);
+
+    function addItem(label, onClick, active) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'cl-col-menu-item' + (active ? ' is-active' : '');
+        item.setAttribute('role', 'menuitem');
+        item.textContent = label;
+        item.addEventListener('click', function(event) {
+            event.stopPropagation();
+            closeCatalogColumnMenu();
+            onClick();
+        });
+        menu.appendChild(item);
+    }
+
+    if (sortKey) {
+        addItem('Sort high to low', function() {
+            sortCatalogList(sortKey, header.getAttribute('data-default-dir'), 'desc');
+        }, currentDir === 'desc');
+        addItem('Sort low to high', function() {
+            sortCatalogList(sortKey, header.getAttribute('data-default-dir'), 'asc');
+        }, currentDir === 'asc');
+        const sep = document.createElement('div');
+        sep.className = 'cl-col-menu-sep';
+        menu.appendChild(sep);
+    }
+
+    if (CATALOG_TABLE_PINNED_COLS.indexOf(col) === -1) {
+        addItem('Hide column', function() {
+            setCatalogColumnHidden(table, col, true);
+        }, false);
+    } else if (menu.lastElementChild && menu.lastElementChild.className === 'cl-col-menu-sep') {
+        menu.lastElementChild.remove();
+    }
+
+    document.body.appendChild(menu);
+    const rect = header.getBoundingClientRect();
+    const minLeft = window.scrollX + 8;
+    const maxLeft = window.scrollX + document.documentElement.clientWidth - menu.offsetWidth - 8;
+    menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    menu.style.left = Math.max(minLeft, Math.min(rect.left + window.scrollX, maxLeft)) + 'px';
+
+    button.setAttribute('aria-expanded', 'true');
+    catalogColumnMenu = { menu: menu, header: header, button: button };
+}
+
+// Mirrors TimeFormatUtils.formatTime: "2d 5h", "3h 45m" or "20m".
+function formatCatalogTableTime(totalSeconds) {
+    const seconds = Math.max(0, Math.floor(totalSeconds || 0));
+    if (seconds === 0) return '0m';
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (days > 0) return days + 'd ' + hours + 'h';
+    if (hours > 0) return hours + 'h ' + minutes + 'm';
+    return minutes + 'm';
+}
+
+function computeCatalogTableTotals(table) {
+    table.querySelectorAll('tfoot td[data-total]').forEach(function(footCell) {
+        const cells = Array.from(table.querySelectorAll('tbody td[data-col="' + footCell.dataset.col + '"]'));
+        const mode = footCell.dataset.total;
+
+        if (mode === 'time') {
+            footCell.textContent = formatCatalogTableTime(cells.reduce(function(sum, cell) {
+                return sum + (parseFloat(cell.dataset.seconds) || 0);
+            }, 0));
+        } else if (mode === 'pct') {
+            let male = 0;
+            let total = 0;
+            cells.forEach(function(cell) {
+                male += parseFloat(cell.dataset.m) || 0;
+                total += parseFloat(cell.dataset.t) || 0;
+            });
+            if (total > 0) {
+                const pct = male * 100 / total;
+                footCell.textContent = pct.toFixed(1) + '%';
+                footCell.classList.add(pct >= 50 ? 'male-lean' : 'female-lean');
+            } else {
+                footCell.textContent = '-';
+            }
+        } else {
+            footCell.textContent = String(cells.reduce(function(sum, cell) {
+                return sum + (parseInt(cell.textContent.replace(/[^\d-]/g, ''), 10) || 0);
+            }, 0));
+        }
+    });
+}
+
+function markCatalogSortedColumn(table) {
+    const sorted = table.querySelector('thead tr.cl-head-row th.sort-asc, thead tr.cl-head-row th.sort-desc');
+    if (!sorted || !sorted.dataset.col) return;
+    table.querySelectorAll('tbody td[data-col="' + sorted.dataset.col + '"]').forEach(function(cell) {
+        cell.classList.add('is-sorted');
+    });
+}
+
+function initializeCatalogListTable(table) {
+    table.querySelectorAll('th[data-sort-key]').forEach(function(header) {
+        header.addEventListener('click', function() {
+            sortCatalogList(this.getAttribute('data-sort-key'), this.getAttribute('data-default-dir'));
+        });
+    });
+
+    table.querySelectorAll('.cl-menu-btn').forEach(function(button) {
+        button.setAttribute('aria-haspopup', 'true');
+        button.setAttribute('aria-expanded', 'false');
+        button.addEventListener('click', function(event) {
+            event.stopPropagation();
+            openCatalogColumnMenu(table, button.closest('th'), button);
+        });
+    });
+
+    table.addEventListener('click', function(event) {
+        if (event.target.closest('a, button, input, select, textarea')) {
+            return;
+        }
+        const row = event.target.closest('.catalog-list-row');
+        if (row) navigateCatalogListRow(row);
+    });
+
+    const columnsButton = document.getElementById('catalogColumnsBtn');
+    const columnsPop = document.getElementById('catalogColumnsPop');
+    if (columnsButton && columnsPop) {
+        columnsButton.addEventListener('click', function(event) {
+            event.stopPropagation();
+            setCatalogColumnsPopoverOpen(table, columnsPop.hidden);
+        });
+        columnsPop.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+    }
+
+    document.addEventListener('click', function(event) {
+        if (catalogColumnMenu && !catalogColumnMenu.menu.contains(event.target)) closeCatalogColumnMenu();
+        if (columnsPop && !columnsPop.hidden && !columnsPop.contains(event.target)) setCatalogColumnsPopoverOpen(table, false);
+    });
+    document.addEventListener('keydown', function(event) {
+        if (event.key !== 'Escape') return;
+        closeCatalogColumnMenu();
+        setCatalogColumnsPopoverOpen(table, false);
+    });
+    const container = table.closest('.catalog-list-table-container');
+    if (container) container.addEventListener('scroll', closeCatalogColumnMenu, { passive: true });
+    window.addEventListener('resize', closeCatalogColumnMenu);
+
+    markCatalogSortedColumn(table);
+    computeCatalogTableTotals(table);
+    applyCatalogHiddenColumns(table);
+}
+
 function initializeCatalogListView() {
     if (!document.getElementById('catalogViewToggle')) {
         return;
@@ -1096,22 +1400,8 @@ function initializeCatalogListView() {
     const requestedView = new URLSearchParams(window.location.search).get('view');
     switchCatalogView(requestedView === 'table' ? 'table' : 'card');
 
-    document.querySelectorAll('#catalogListTable th[data-sort-key]').forEach(function(header) {
-        header.addEventListener('click', function() {
-            sortCatalogList(this.getAttribute('data-sort-key'), this.getAttribute('data-default-dir'));
-        });
-    });
-
     const table = document.getElementById('catalogListTable');
-    if (table) {
-        table.addEventListener('click', function(event) {
-            if (event.target.closest('a, button, input, select, textarea')) {
-                return;
-            }
-            const row = event.target.closest('.catalog-list-row');
-            if (row) navigateCatalogListRow(row);
-        });
-    }
+    if (table) initializeCatalogListTable(table);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1254,6 +1544,7 @@ async function openCardWithLazyDetails(card) {
 
         if (window.innerWidth <= 768) {
             card.classList.add('mobile-expanded');
+            if (window.loadConsistencyRanks) window.loadConsistencyRanks(card);
             return;
         }
 
@@ -1264,6 +1555,7 @@ async function openCardWithLazyDetails(card) {
         const body = modal.querySelector('.card-detail-modal-body');
         body.innerHTML = '';
         body.appendChild(clone);
+        if (window.loadConsistencyRanks) window.loadConsistencyRanks(body);
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
     } catch (error) {

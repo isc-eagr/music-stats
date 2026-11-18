@@ -7,8 +7,10 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
-    <link rel="stylesheet" th:href="@{/css/albums.css}">
+    <th:block th:replace="~{fragments/share-history :: styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
+    <link rel="stylesheet" th:href="@{/css/catalog-table.css}">
+    <th:block th:replace="~{fragments/catalog-card :: card-styles}"></th:block>
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -29,9 +31,9 @@
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
-                    <a th:href="@{/playground(view='graphs',source='albums')}" class="toolbar-btn toolbar-btn-soft"
+                    <a th:href="@{/playground(view='graphs',source='albums')}" class="toolbar-btn"
                        data-graphs-source="albums" onclick="return openPlaygroundGraphs(event)">Explore graphs</a>
-                    <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
+                    <button id="loadAllResultsButton" type="button" class="toolbar-btn" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Album</button>
                 </div>
             </div>
@@ -43,7 +45,8 @@
                            onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
                     <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
                 </div>
-                    <button type="button" class="filter-toggle toolbar-btn toolbar-btn-muted" onclick="toggleFilters()">Filters</button>
+                    <button type="button" class="filter-toggle toolbar-btn" onclick="toggleFilters()">Filters</button>
+                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
 
                 <div class="toolbar-sort-panel">
@@ -57,6 +60,7 @@
                             <option value="avg_length" th:selected="${sortBy == 'avg_length'}">Average Length</option>
                             <option value="avg_plays" th:selected="${sortBy == 'avg_plays'}">Average Plays</option>
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
+                            <option value="consistency" th:selected="${sortBy == 'consistency'}">Consistency</option>
                             <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
                             <option value="days_listened" th:selected="${sortBy == 'days_listened'}">Days Listened</option>
@@ -71,11 +75,11 @@
                             <option value="language" th:selected="${sortBy == 'language'}">Language</option>
                             <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
                             <option value="last_full_listen" th:selected="${sortBy == 'last_full_listen'}">Last Full Listen</option>
-                            <option value="legacy_plays" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
+                            <option value="legacy_plays" th:if="${showLegacy != false or sortBy == 'legacy_plays'}" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
                             <option value="album_length" th:selected="${sortBy == 'album_length'}">Length</option>
                             <option value="months_listened" th:selected="${sortBy == 'months_listened'}">Months Listened</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
-                            <option value="primary_plays" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
+                            <option value="primary_plays" th:if="${showLegacy != false or sortBy == 'primary_plays'}" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
                             <option value="random" th:selected="${sortBy == 'random'}">Random</option>
                             <option value="release_date" th:selected="${sortBy == 'release_date'}">Release Date</option>
                             <option value="seasonal_chart_peak" th:selected="${sortBy == 'seasonal_chart_peak'}">Seasonal Chart Peak</option>
@@ -118,9 +122,7 @@
                             <span th:if="${sortDir3 != 'desc'}">↑</span>
                         </button>
                     </div>
-                        </div>
-                        <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
-                </div>
+                        </div>                </div>
                 
                 <div class="catalog-toolbar-control-actions">
                     <div class="filters" id="filterPanel">
@@ -1734,6 +1736,8 @@
         </div>
         
         <!-- Pagination info -->
+        <section th:replace="~{fragments/share-history :: panel('albums', 'plays,time,songs', 'data-album-id', 'data-id')}"></section>
+
         <div class="pagination-info">
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
@@ -1743,97 +1747,71 @@
         <div class="album-grid" id="albumGrid"
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="album, iterStat : ${albums}" 
-                 class="album-card"
+                 class="album-card gc"
                  th:attr="data-album-id=${album.id}, data-full-listen-eligible=${album.fullListenEligible}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}"
                  th:classappend="${album.genderName != null and album.genderName.toLowerCase().contains('male') and !album.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${album.genderName != null and album.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
-                <div class="album-image item-image-container" style="cursor: pointer;">
+                <div class="album-image item-image-container gc-media" style="cursor: pointer;">
                     <img th:if="${album.hasImage}"
                          th:src="@{'/albums/' + ${album.id} + '/image?thumbnail=true'}"
                          th:alt="${album.name}"
                          th:onclick="|openAlbumImageModalFromList(${album.id})|"
                          class="clickable-image">
                     <div th:unless="${album.hasImage}" class="no-image">
-                        <span>💿</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
                     </div>
+                    <div class="gc-fade"></div>
 
-                          <a th:if="${album.country != null and @countryCodeMapper.getCode(album.country) != null}"
-                              th:href="@{/playground(country=${album.country},countryMode='includes',view='graphs',source='albums',tab='country')}"
+                    <a th:if="${album.country != null and @countryCodeMapper.getCode(album.country) != null}"
+                       th:href="@{/playground(country=${album.country},countryMode='includes',view='graphs',source='albums',tab='country')}"
                        class="flag-overlay"
                        th:title="${album.country}">
                         <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(album.country)})}"
-                            th:alt="${album.country}" />
+                             th:alt="${album.country}" />
                     </a>
-                    
-                    <span th:if="${album.albumLengthFormatted != null and !#strings.isEmpty(album.albumLengthFormatted)}"
-                          class="length-overlay"
-                          th:text="${album.albumLengthFormatted}"></span>
-                </div>
-                
-                <div class="album-info">
-                    <div class="card-index" th:text="${startIndex + iterStat.index}"></div>
-                    <a th:href="@{'/albums/' + ${album.id}}">
-                        <h3 class="album-name">
-                            <span th:if="${album.inItunes != null}" 
-                                  th:classappend="${album.inItunes ? 'in-itunes' : 'not-in-itunes'}"
-                                  class="itunes-badge"
-                                  th:title="${album.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                  th:text="${album.inItunes ? '✓' : '✗'}"></span><span th:text="${album.name}" th:title="${album.name}">Album Name</span>
-                        </h3>
-                    </a>
-                    
-                    <div class="album-artist" th:if="${album.artistName != null}">
-                        <a th:href="@{'/artists/' + ${album.artistId}}" th:text="${album.artistName}" class="artist-link"></a>
+
+                    <div class="gc-corner" th:if="${album.albumLengthFormatted != null and !#strings.isEmpty(album.albumLengthFormatted)}">
+                        <span class="length-overlay" th:text="${album.albumLengthFormatted}"></span>
                     </div>
 
-                    <div class="card-summary-stats album-summary-stats">
-                        <div class="album-stats">
-                            <div class="stat" th:classappend="${sortBy == 'song_count' ? 'sort-highlight' : ''}">
-                                <span class="stat-icon">🎵</span>
-                                <span class="stat-value" th:text="${album.songCount}">0</span>
-                            </div>
-                        </div>
-                        <div class="album-stats album-stats-plays">
-                            <div class="stat" title="Total plays">
-                                <span class="stat-icon total-plays">⏵</span>
-                                <span class="stat-value" th:text="${album.playCount}">0</span>
-                            </div>
-                            <div class="stat" title="Primary plays">
-                                <span class="stat-icon primary-plays">⏵</span>
-                                <span class="stat-value" th:text="${album.vatitoPlayCount}">0</span>
-                            </div>
-                            <div class="stat" title="Legacy plays">
-                                <span class="stat-icon legacy-plays">⏵</span>
-                                <span class="stat-value" th:text="${album.robertloverPlayCount}">0</span>
-                            </div>
-                        </div>
+                    <div class="gc-title">
+                        <a class="gc-name-link" th:href="@{'/albums/' + ${album.id}}">
+                            <h3 class="gc-name">
+                                <span th:replace="~{fragments/catalog-card :: itunes-badge(${album.inItunes})}"></span>
+                                <span class="gc-name-text" th:text="${album.name}" th:title="${album.name}">Album Name</span>
+                            </h3>
+                        </a>
+                        <a th:if="${album.artistName != null}" class="gc-sub" th:href="@{'/artists/' + ${album.artistId}}" th:text="${album.artistName}" th:title="${album.artistName}"></a>
                     </div>
-                    
+                </div>
+
+                <div class="album-info gc-body">
                     <!-- Sort metric display (only for non-visible metrics) -->
                     <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'artist' and sortBy != 'song_count' and sortBy != 'time'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
-                            <th:block th:case="'release_date'">Released:</th:block>
-                            <th:block th:case="'avg_length'">Avg Length:</th:block>
-                            <th:block th:case="'avg_plays'">Avg Plays:</th:block>
-                            <th:block th:case="'first_full_listen'">First Full Listen:</th:block>
-                            <th:block th:case="'first_listened'">First Listened:</th:block>
-                            <th:block th:case="'full_album_plays'">Full Album Plays:</th:block>
-                            <th:block th:case="'itunes_presence'">iTunes Presence:</th:block>
-                            <th:block th:case="'last_listened'">Last Listened:</th:block>
-                            <th:block th:case="'last_full_listen'">Last Full Listen:</th:block>
-                            <th:block th:case="'age_at_release'">Age at Release:</th:block>
-                            <th:block th:case="'album_length'">Length:</th:block>
-                            <th:block th:case="'birth_date'">Born:</th:block>
-                            <th:block th:case="'days_listened'">Days Listened:</th:block>
-                            <th:block th:case="'death_date'">Died:</th:block>
-                            <th:block th:case="'image_count'">Images:</th:block>
-                            <th:block th:case="'months_listened'">Months Listened:</th:block>
-                            <th:block th:case="'seasonal_chart_peak'">Seasonal Peak:</th:block>
-                            <th:block th:case="'weeks_listened'">Weeks Listened:</th:block>
-                            <th:block th:case="'weekly_chart_peak'">Weekly Peak:</th:block>
-                            <th:block th:case="'weekly_chart_peak_weeks'">Weekly @ Peak:</th:block>
-                            <th:block th:case="'weekly_chart_weeks'">Weekly Weeks:</th:block>
-                            <th:block th:case="'years_listened'">Years Listened:</th:block>
-                            <th:block th:case="'yearly_chart_peak'">Yearly Peak:</th:block>
+                            <th:block th:case="'release_date'">Released</th:block>
+                            <th:block th:case="'avg_length'">Avg Length</th:block>
+                            <th:block th:case="'avg_plays'">Avg Plays</th:block>
+                            <th:block th:case="'first_full_listen'">First Full Listen</th:block>
+                            <th:block th:case="'first_listened'">First Listened</th:block>
+                            <th:block th:case="'full_album_plays'">Full Album Plays</th:block>
+                            <th:block th:case="'itunes_presence'">iTunes Presence</th:block>
+                            <th:block th:case="'last_listened'">Last Listened</th:block>
+                            <th:block th:case="'last_full_listen'">Last Full Listen</th:block>
+                            <th:block th:case="'age_at_release'">Age at Release</th:block>
+                            <th:block th:case="'album_length'">Length</th:block>
+                            <th:block th:case="'birth_date'">Born</th:block>
+                            <th:block th:case="'days_listened'">Days Listened</th:block>
+                            <th:block th:case="'death_date'">Died</th:block>
+                            <th:block th:case="'image_count'">Images</th:block>
+                            <th:block th:case="'months_listened'">Months Listened</th:block>
+                            <th:block th:case="'seasonal_chart_peak'">Seasonal Peak</th:block>
+                            <th:block th:case="'weeks_listened'">Weeks Listened</th:block>
+                            <th:block th:case="'weekly_chart_peak'">Weekly Peak</th:block>
+                            <th:block th:case="'weekly_chart_peak_weeks'">Weekly @ Peak</th:block>
+                            <th:block th:case="'weekly_chart_weeks'">Weekly Weeks</th:block>
+                            <th:block th:case="'years_listened'">Years Listened</th:block>
+                            <th:block th:case="'consistency'">Consistency</th:block>
+                            <th:block th:case="'yearly_chart_peak'">Yearly Peak</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
                             <th:block th:case="'release_date'" th:text="${album.releaseDate != null ? album.releaseDate : 'N/A'}"></th:block>
@@ -1858,220 +1836,113 @@
                             <th:block th:case="'weekly_chart_peak_weeks'" th:text="${album.weeklyChartPeakWeeks != null ? album.weeklyChartPeakWeeks + (album.weeklyChartPeakWeeks == 1 ? ' week' : ' weeks') : 'N/A'}"></th:block>
                             <th:block th:case="'weekly_chart_weeks'" th:text="${album.weeklyChartWeeks}"></th:block>
                             <th:block th:case="'years_listened'" th:text="${album.yearsListened + (album.yearsListened == 1 ? ' year' : ' years')}"></th:block>
+                            <th:block th:case="'consistency'" th:text="${album.consistencyPeriods().get(3).summary()}"></th:block>
                             <th:block th:case="'yearly_chart_peak'" th:text="${album.yearlyChartPeak != null ? '#' + album.yearlyChartPeak + ' for ' + album.yearlyChartPeakYears + (album.yearlyChartPeakYears == 1 ? ' year' : ' years') + (album.yearlyChartPeakPeriod != null ? ' (' + album.yearlyChartPeakPeriod + ')' : '') : 'N/A'}"></th:block>
                         </span>
                     </div>
                     
-                    <div class="album-stats album-stats-row2">
-                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🕒</span>
-                            <span class="stat-value" th:text="${album.timeListenedFormatted}">0m</span>
+                    <div class="gc-plays">
+                        <div class="gc-total">
+                            <span class="gc-total-num" title="Total plays" th:text="${#numbers.formatInteger(album.playCount, 1, 'COMMA')}">0</span>
+                            <span th:replace="~{fragments/catalog-card :: plays-unit}"></span>
+                            <span class="card-index" title="Position in this list" th:text="'#' + ${startIndex + iterStat.index}">#1</span>
                         </div>
-                        <div class="stat" th:title="${album.organized != null and album.organized ? 'Organized' : 'Not Organized'}">
-                            <span class="stat-icon" th:text="${album.organized != null and album.organized ? '📦' : '📬'}">📬</span>
+                        <div th:replace="~{fragments/catalog-card :: split-bar(${album.vatitoPlayCount}, ${album.robertloverPlayCount})}"></div>
+                        <div class="gc-legend" th:if="${showLegacy != false}">
+                            <span class="gc-legend-item" title="Primary plays"><i class="gc-sw gc-sw-primary"></i>Primary <b th:text="${#numbers.formatInteger(album.vatitoPlayCount, 1, 'COMMA')}">0</b></span>
+                            <span th:if="${album.robertloverPlayCount != null and album.robertloverPlayCount > 0}" class="gc-legend-item" title="Legacy plays"><i class="gc-sw gc-sw-legacy"></i>Legacy <b th:text="${#numbers.formatInteger(album.robertloverPlayCount, 1, 'COMMA')}">0</b></span>
+                        </div>
+                    </div>
+                    <div class="gc-cells">
+                        <div class="gc-cell" title="Songs" th:classappend="${sortBy == 'song_count' ? 'gc-hl' : ''}">
+                            <span class="gc-cell-l">Songs</span><span class="gc-cell-v" th:text="${album.songCount}">0</span>
+                        </div>
+                        <div class="gc-cell" title="Time listened" th:classappend="${sortBy == 'time' ? 'gc-hl' : ''}">
+                            <span class="gc-cell-l">Listened</span><span class="gc-cell-v" th:text="${album.timeListenedFormatted}">0m</span>
                         </div>
                     </div>
 
-                    <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
+                    <!-- More panel content (hidden in the list; laid out by the card detail modal, lazy-hydrated on open) -->
                     <div class="card-modal-text-stats">
-                        <!-- Header for modal (Name & Chips) - hidden on mobile -->
-                        <div class="modal-header">
-                            <h3 class="modal-title">
-                                <span th:if="${album.inItunes != null}" 
-                                      th:classappend="${album.inItunes ? 'in-itunes' : 'not-in-itunes'}"
-                                      class="itunes-badge"
-                                      th:title="${album.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                      th:text="${album.inItunes ? '✓' : '✗'}"></span><span th:text="${album.name}">Album Name</span>
-                            </h3>
-                        </div>
-                        <div class="winning-chips modal-rank-chips" th:with="rankMap=${albumRankings.get(album.id)}">
-                            <a th:if="${album.genderName != null and !#strings.isEmpty(album.genderName)}"
-                                        th:href="@{/playground(gender=${album.genderId},genderMode='includes',view='graphs',source='albums',tab='general')}"
-                               class="winning-chip rank-chip gender"
-                               th:classappend="${album.genderName.toLowerCase().contains('female')} ? 'female' : (${album.genderName.toLowerCase().contains('male')} ? 'male' : '')"
-                               th:with="rank=${rankMap != null ? rankMap.get('gender') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.genderName}" title="Gender"></a>
-                            <a th:if="${album.genreName != null and !#strings.isEmpty(album.genreName)}"
-                                        th:href="@{/playground(genre=${album.genreId},genreMode='includes',view='graphs',source='albums',tab='genre')}"
-                               class="winning-chip rank-chip genre"
-                               th:with="rank=${rankMap != null ? rankMap.get('genre') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.genreName}" title="Genre"></a>
-                            <a th:if="${album.subgenreName != null and !#strings.isEmpty(album.subgenreName)}"
-                                        th:href="@{/playground(subgenre=${album.subgenreId},subgenreMode='includes',view='graphs',source='albums',tab='subgenre')}"
-                               class="winning-chip rank-chip subgenre"
-                               th:with="rank=${rankMap != null ? rankMap.get('subgenre') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.subgenreName}" title="Subgenre"></a>
-                            <a th:if="${album.ethnicityName != null and !#strings.isEmpty(album.ethnicityName)}"
-                                        th:href="@{/playground(ethnicity=${album.ethnicityId},ethnicityMode='includes',view='graphs',source='albums',tab='ethnicity')}"
-                               class="winning-chip rank-chip ethnicity"
-                               th:with="rank=${rankMap != null ? rankMap.get('ethnicity') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.ethnicityName}" title="Ethnicity"></a>
-                            <a th:if="${album.country != null and !#strings.isEmpty(album.country)}"
-                                        th:href="@{/playground(country=${album.country},countryMode='includes',view='graphs',source='albums',tab='country')}"
-                               class="winning-chip rank-chip country"
-                               th:with="rank=${rankMap != null ? rankMap.get('country') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.country}" title="Country"></a>
-                            <a th:if="${album.languageName != null and !#strings.isEmpty(album.languageName)}"
-                                        th:href="@{/playground(language=${album.languageId},languageMode='includes',view='graphs',source='albums',tab='language')}"
-                               class="winning-chip rank-chip language"
-                               th:with="rank=${rankMap != null ? rankMap.get('language') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${album.languageName}" title="Language"></a>
+                        <div class="mm-ranks" th:with="rankMap=${albumRankings.get(album.id)}">
+                            <p class="mm-cap">Ranks</p>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Gender', ${album.genderName}, ${rankMap != null ? rankMap.get('gender') : null}, @{/playground(gender=${album.genderId},genderMode='includes',view='graphs',source='albums',tab='general')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Genre', ${album.genreName}, ${rankMap != null ? rankMap.get('genre') : null}, @{/playground(genre=${album.genreId},genreMode='includes',view='graphs',source='albums',tab='genre')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Subgenre', ${album.subgenreName}, ${rankMap != null ? rankMap.get('subgenre') : null}, @{/playground(subgenre=${album.subgenreId},subgenreMode='includes',view='graphs',source='albums',tab='subgenre')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Ethnicity', ${album.ethnicityName}, ${rankMap != null ? rankMap.get('ethnicity') : null}, @{/playground(ethnicity=${album.ethnicityId},ethnicityMode='includes',view='graphs',source='albums',tab='ethnicity')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Country', ${album.country}, ${rankMap != null ? rankMap.get('country') : null}, @{/playground(country=${album.country},countryMode='includes',view='graphs',source='albums',tab='country')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Language', ${album.languageName}, ${rankMap != null ? rankMap.get('language') : null}, @{/playground(language=${album.languageId},languageMode='includes',view='graphs',source='albums',tab='language')})}"></a>
                         </div>
 
-                        <!-- Section 1: Plays -->
-                        <div class="modal-section section-plays">
-                            <h4 class="modal-section-title" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-text-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-text-female' : '')}">Plays</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Play Count</span>
-                                <span class="modal-stat-value" th:text="${album.playCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Primary Plays</span>
-                                <span class="modal-stat-value" th:text="${album.vatitoPlayCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Legacy Plays</span>
-                                <span class="modal-stat-value" th:text="${album.robertloverPlayCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Full Album Plays</span>
-                                <span class="modal-stat-value full-album-plays-value" aria-live="polite"
-                                      th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? album.fullAlbumPlays : 'Loading')}">Loading</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Time Listened</span>
-                                <span class="modal-stat-value" th:text="${album.timeListenedFormatted}">0m</span>
-                            </div>
-                             <div class="modal-stat-row">
-                                <span class="modal-stat-label">Avg Plays / Song</span>
-                                <span class="modal-stat-value" th:text="${album.avgPlays != null ? #numbers.formatDecimal(album.avgPlays, 1, 1) : 'N/A'}">0</span>
-                            </div>
-                        </div>
-
-                        <div class="modal-separator" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-sep-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-sep-female' : '')}"></div>
-
-                        <!-- Section 2: Songs -->
-                        <div class="modal-section section-songs">
-                            <h4 class="modal-section-title" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-text-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-text-female' : '')}">Songs</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Song Count</span>
-                                <span class="modal-stat-value" th:text="${album.songCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Album Length</span>
-                                <span class="modal-stat-value" th:text="${album.albumLengthFormatted}">0:00</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Avg Song Length</span>
-                                <span class="modal-stat-value" th:text="${album.avgLengthFormatted != null ? album.avgLengthFormatted : 'N/A'}">0:00</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Solo Songs</span>
-                                <span class="modal-stat-value" th:text="${album.soloSongCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Songs w/ Features</span>
-                                <span class="modal-stat-value" th:text="${album.featuredArtistCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row" th:if="${album.itunesPresenceRatio != null}">
-                                <span class="modal-stat-label">iTunes Presence</span>
-                                <span class="modal-stat-value" th:text="${#numbers.formatDecimal(album.itunesPresenceRatio, 1, 1) + '%'}">0.0%</span>
-                            </div>
-                        </div>
-
-                        <div class="modal-separator" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-sep-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-sep-female' : '')}"></div>
-                        
-                        <!-- Section 3: Details -->
-                        <div class="modal-section section-details">
-                            <h4 class="modal-section-title" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-text-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-text-female' : '')}">Details</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Artist</span>
-                                <span class="modal-stat-value" th:text="${album.artistName}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Images</span>
-                                <span class="modal-stat-value" th:text="${album.imageCount}">0</span>
-                            </div>
-                        </div>
-
-                        <div class="modal-separator" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-sep-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-sep-female' : '')}"></div>
-
-                        <!-- Section 4: Dates -->
-                        <div class="modal-section section-dates">
-                            <h4 class="modal-section-title" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-text-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-text-female' : '')}">Dates</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Age at Release</span>
-                                <span class="modal-stat-value" th:text="${album.ageAtRelease != null ? album.ageAtRelease + ' years' : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Release Date</span>
-                                <span class="modal-stat-value" th:text="${album.releaseDate != null ? album.releaseDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">First Listened</span>
-                                <span class="modal-stat-value" th:text="${album.firstListenedDate != null ? album.firstListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Last Listened</span>
-                                <span class="modal-stat-value" th:text="${album.lastListenedDate != null ? album.lastListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Days Listened</span>
-                                <span class="modal-stat-value" th:text="${album.daysListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Weeks Listened</span>
-                                <span class="modal-stat-value" th:text="${album.weeksListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Months Listened</span>
-                                <span class="modal-stat-value" th:text="${album.monthsListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Years Listened</span>
-                                <span class="modal-stat-value" th:text="${album.yearsListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">First Full Listen</span>
-                                <span class="modal-stat-value first-full-listen-value" aria-live="polite"
-                                      th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? (album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A') : 'Loading')}">Loading</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Last Full Listen</span>
-                                <span class="modal-stat-value last-full-listen-value" aria-live="polite"
-                                      th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? (album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A') : 'Loading')}">Loading</span>
-                            </div>
-                        </div>
-
-                        <!-- Section 5: Charts (Conditional) -->
-                        <th:block th:if="${album.weeklyChartPeak != null or album.seasonalChartPeak != null or album.yearlyChartPeak != null}">
-                             <div class="modal-separator" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-sep-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-sep-female' : '')}"></div>
-                             <div class="modal-section section-charts">
-                                <h4 class="modal-section-title" th:classappend="${album.genderName != null and album.genderName.contains('Male') ? 'gender-text-male' : (album.genderName != null and album.genderName.contains('Female') ? 'gender-text-female' : '')}">Charts</h4>
-                                <div class="modal-stat-row" th:if="${album.weeklyChartPeak != null}">
-                                    <span class="modal-stat-label">Weekly Peak</span>
-                                    <span class="modal-stat-value" th:text="'#' + ${album.weeklyChartPeak} + ' (' + ${album.weeklyChartPeakWeeks} + ' wks)'">N/A</span>
+                        <div class="mm-main">
+                            <section class="mm-sec mm-sec-plays">
+                                <p class="mm-cap">Plays</p>
+                                <div class="mm-hero">
+                                    <span class="mm-big" th:text="${#numbers.formatInteger(album.playCount, 1, 'COMMA')}">0</span>
+                                    <span th:replace="~{fragments/catalog-card :: plays-unit}"></span>
                                 </div>
-                                <div class="modal-stat-row" th:if="${album.seasonalChartPeak != null}">
-                                    <span class="modal-stat-label">Seasonal Peak</span>
-                                    <span class="modal-stat-value" th:text="'#' + ${album.seasonalChartPeak} + ' (' + ${album.seasonalChartPeakSeasons} + ' sns)'">N/A</span>
+                                <div th:replace="~{fragments/catalog-card :: split-bar(${album.vatitoPlayCount}, ${album.robertloverPlayCount})}"></div>
+                                <th:block th:if="${showLegacy != false}"><div th:replace="~{fragments/catalog-card :: share-legend(${album.playCount}, ${album.vatitoPlayCount}, ${album.robertloverPlayCount})}"></div></th:block>
+                                <div class="mm-tiles">
+                                    <div class="mm-tile"><span class="mm-l">Full album plays</span><span class="mm-v full-album-plays-value" aria-live="polite"
+                                          th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? album.fullAlbumPlays : 'Loading')}">Loading</span><span class="mm-s">start to finish</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Listened</span><span class="mm-v" th:text="${album.timeListenedFormatted}">0m</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Per song</span><span class="mm-v" th:text="${album.avgPlays != null ? #numbers.formatDecimal(album.avgPlays, 1, 1) : 'N/A'}">0</span><span class="mm-s">avg plays</span></div>
                                 </div>
-                                <div class="modal-stat-row" th:if="${album.yearlyChartPeak != null}">
-                                    <span class="modal-stat-label">Yearly Peak</span>
-                                    <span class="modal-stat-value" th:text="'#' + ${album.yearlyChartPeak} + ' (' + ${album.yearlyChartPeakYears} + ' yrs)'">N/A</span>
+                            </section>
+
+                            <section class="mm-sec mm-sec-tracklist">
+                                <p class="mm-cap">Tracklist</p>
+                                <div class="mm-tiles">
+                                    <div class="mm-tile"><span class="mm-l">Songs</span><span class="mm-v" th:text="${album.songCount}">0</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Length</span><span class="mm-v" th:text="${album.albumLengthFormatted != null ? album.albumLengthFormatted : 'N/A'}">0:00</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Avg song</span><span class="mm-v" th:text="${album.avgLengthFormatted != null ? album.avgLengthFormatted : 'N/A'}">0:00</span></div>
+                                    <div class="mm-tile" th:if="${album.itunesPresenceRatio != null}" title="iTunes presence"><span class="mm-l">iTunes</span><span class="mm-v" th:text="${#numbers.formatDecimal(album.itunesPresenceRatio, 1, 1) + '%'}">0.0%</span></div>
                                 </div>
-                             </div>
-                        </th:block>
+                                <div class="mm-stack">
+                                    <div th:replace="~{fragments/catalog-card :: split('Solo', ${album.soloSongCount}, 'With features', ${album.featuredArtistCount}, 100)}"></div>
+                                </div>
+                            </section>
+
+                            <section class="mm-sec mm-sec-listening">
+                                <p class="mm-cap">Listening</p>
+                                <section th:replace="~{fragments/consistency :: ledger(${album.consistencyPeriods()}, @{/albums/{id}/consistency(id=${album.id})}, true)}"></section>
+                            </section>
+
+                            <section class="mm-sec mm-sec-dates">
+                                <p class="mm-cap">Dates</p>
+                                <div class="mm-dates">
+                                    <div th:replace="~{fragments/catalog-card :: date-box('Released', ${album.releaseDate}, null)}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: date-box('Artist age', ${album.ageAtRelease}, null)}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: date-box('First listened', ${album.firstListenedDate}, ${album.firstListenedSong})}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: date-box('Last listened', ${album.lastListenedDate}, ${album.lastListenedSong})}"></div>
+                                    <div class="mm-date"><span class="mm-l">First full listen</span><b><span class="first-full-listen-value" aria-live="polite"
+                                          th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? (album.firstFullListenDate != null ? album.firstFullListenDate : 'N/A') : 'Loading')}">Loading</span></b></div>
+                                    <div class="mm-date"><span class="mm-l">Last full listen</span><b><span class="last-full-listen-value" aria-live="polite"
+                                          th:text="${!album.fullListenEligible ? 'Not an album' : (includeFullListenStats ? (album.lastFullListenDate != null ? album.lastFullListenDate : 'N/A') : 'Loading')}">Loading</span></b></div>
+                                </div>
+                            </section>
+
+                            <section class="mm-sec mm-sec-charts" th:if="${album.weeklyChartPeak != null or album.seasonalChartPeak != null or album.yearlyChartPeak != null}">
+                                <p class="mm-cap">Charts</p>
+                                <div class="mm-peaks">
+                                    <div class="mm-peak" th:if="${album.weeklyChartPeak != null}"><span class="mm-l">Weekly peak</span>
+                                        <div class="mm-peak-v"><b th:text="'#' + ${album.weeklyChartPeak}">#1</b><span th:text="${album.weeklyChartPeakWeeks} + (${album.weeklyChartPeakWeeks == 1} ? ' week at peak' : ' weeks at peak')">1 week</span></div></div>
+                                    <div class="mm-peak" th:if="${album.seasonalChartPeak != null}"><span class="mm-l">Seasonal peak</span>
+                                        <div class="mm-peak-v"><b th:text="'#' + ${album.seasonalChartPeak}">#1</b><span th:text="${album.seasonalChartPeakSeasons} + (${album.seasonalChartPeakSeasons == 1} ? ' season' : ' seasons')">1 season</span></div></div>
+                                    <div class="mm-peak" th:if="${album.yearlyChartPeak != null}"><span class="mm-l">Yearly peak</span>
+                                        <div class="mm-peak-v"><b th:text="'#' + ${album.yearlyChartPeak}">#1</b><span th:text="${album.yearlyChartPeakYears} + (${album.yearlyChartPeakYears == 1} ? ' year' : ' years')">1 year</span></div></div>
+                                </div>
+                            </section>
+
+                            <div th:replace="~{fragments/catalog-card :: modal-foot(${album.imageCount}, ${album.organized != null and album.organized})}"></div>
+                        </div>
                     </div>
 
-                    <!-- Card modal toggle -->
-                    <div class="card-expand-toggle" onclick="openCardModal(this)">
-                        <span class="expand-arrow">+</span>
-                        <span class="expand-label">More</span>
+                    <div class="gc-foot">
+                        <span th:replace="~{fragments/catalog-card :: organized(${album.organized != null and album.organized})}"></span>
+                        <div th:replace="~{fragments/catalog-card :: more-toggle}"></div>
                     </div>
-
-
-
                 </div>
             </div>
 
@@ -2082,8 +1953,8 @@
         </div><!-- end cardView -->
 
         <!-- Table view container -->
-        <div id="tableView" style="display:none;">
-            <div class="top-sort-hint" style="margin:16px 0 0 0;">Sorting tip: Click a column header for primary sort. Shift + click adds secondary and tertiary sorts.</div>
+        <div id="tableView" style="display:none;" th:attr="data-legacy-hidden=${showLegacy == false}">
+            <div th:replace="~{fragments/catalog-table-toolbar :: toolbar}"></div>
             <div class="podium-section" id="albumsPodium"></div>
             <div class="column-toggle-panel" id="albumColumnTogglePanel">
                 <div class="column-toggle-header" onclick="toggleColumnPanel('album')">
@@ -2093,13 +1964,13 @@
                 <div class="column-toggle-grid" id="albumColumnToggles"></div>
             </div>
             <div class="top-table-container" id="topAlbumsTableContainer">
-                <table class="top-table" id="topAlbumsTable">
+                <table class="top-table catalog-table" id="topAlbumsTable">
                     <thead>
                         <tr>
-                            <th class="rank-col">#</th>
-                            <th class="cover-col"></th>
+                            <th class="rank-col ct-pin ct-pin-rank">#</th>
+                            <th class="cover-col ct-pin ct-pin-cover"></th>
+                            <th data-sort="name" data-col="name" class="ct-pin ct-pin-name">Album Name</th>
                             <th data-sort="artistName" data-col="artistName" class="hide-mobile">Artist Name</th>
-                            <th data-sort="name" data-col="name">Album Name</th>
                             <th data-sort="random" data-col="random" style="text-align:right;display:none;">Random</th>
                             <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
                             <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
@@ -2113,6 +1984,7 @@
                             <th data-sort="weeksListened" data-col="weeksListened" style="text-align:right;display:none;">Weeks Listened</th>
                             <th data-sort="monthsListened" data-col="monthsListened" style="text-align:right;display:none;">Months Listened</th>
                             <th data-sort="yearsListened" data-col="yearsListened" style="text-align:right;display:none;">Years Listened</th>
+                            <th data-sort="consistency" data-col="consistency" style="text-align:right;display:none;" title="Years with plays out of the years since the first play">Consistency</th>
                             <th data-sort="firstFullListen" data-col="firstFullListen" style="display:none;">First Full Listen</th>
                             <th data-sort="lastFullListen" data-col="lastFullListen" style="display:none;">Last Full Listen</th>
                             <th data-sort="fullAlbumPlays" data-col="fullAlbumPlays" style="text-align:right;display:none;">Full Album Plays</th>
@@ -3330,6 +3202,7 @@
             updateLoadAllButton();
         })();
     </script>
+    <th:block th:replace="~{fragments/share-history :: scripts}"></th:block>
 </body>
 </html>
 

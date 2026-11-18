@@ -925,24 +925,31 @@ public class BillboardHot100Service {
         return jdbcTemplate.queryForList(sql, albumId);
     }
 
-    public List<Map<String, Object>> getChartedSongsByArtistId(int artistId) {
-        if (!tableExists()) return Collections.emptyList();
+    /**
+     * Charted songs of an artist detail page, following its Main / Groups / Featured toggles
+     * (see ChartAggregationUtils.artistSongScope). Rows carry owner_id, owner_name and featured_on.
+     */
+    public List<Map<String, Object>> getChartedSongsForArtistScope(List<Integer> ownerIds, Integer featuredArtistId) {
+        ChartAggregationUtils.ArtistSongScope scope = ChartAggregationUtils.artistSongScope("s", ownerIds, featuredArtistId);
+        if (scope == null || !tableExists()) return Collections.emptyList();
         String sql =
             "WITH stats AS ( " +
-            "    SELECT s.id AS song_id, s.name AS song_name, " +
+            "    SELECT s.id AS song_id, s.name AS song_name, s.artist_id AS owner_id, ar.name AS owner_name, " +
+            "           " + scope.featuredFlag() + " AS featured_on, " +
             "           COUNT(e.id) AS weeks_on_chart, MIN(e.position) AS peak_position, " +
             "           MIN(e.chart_date) AS debut_date, " +
             "           (SELECT MIN(e2.chart_date) FROM billboard_hot100_entry e2 WHERE e2.song_id = s.id AND e2.position = MIN(e.position)) AS peak_date " +
             "    FROM billboard_hot100_entry e " +
             "    JOIN song s ON e.song_id = s.id " +
-            "    WHERE s.artist_id = ? " +
-            "    GROUP BY s.id, s.name " +
+            "    JOIN artist ar ON s.artist_id = ar.id " +
+            "    WHERE " + scope.where() + " " +
+            "    GROUP BY s.id, s.name, s.artist_id, ar.name " +
             ") " +
-            "SELECT song_id, song_name, weeks_on_chart, peak_position, debut_date, peak_date, " +
+            "SELECT song_id, song_name, owner_id, owner_name, featured_on, weeks_on_chart, peak_position, debut_date, peak_date, " +
             "       (SELECT COUNT(*) FROM billboard_hot100_entry e2 WHERE e2.song_id = stats.song_id AND e2.position = stats.peak_position) AS weeks_at_peak " +
             "FROM stats WHERE weeks_on_chart > 0 " +
             "ORDER BY peak_position ASC, weeks_on_chart DESC, song_name ASC";
-        return jdbcTemplate.queryForList(sql, artistId);
+        return jdbcTemplate.queryForList(sql, scope.params().toArray());
     }
 
     private record AlbumSongInfo(Integer albumId, String albumName, boolean hasImage) {

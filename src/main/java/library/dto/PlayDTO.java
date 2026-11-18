@@ -30,6 +30,22 @@ public class PlayDTO {
         this.playDate = playDate;
     }
 
+    /** dd/MM/yyyy part of the play date (stored as yyyy-MM-dd HH:mm). */
+    public String getDisplayDate() {
+        if (playDate == null || playDate.length() < 10) return playDate;
+        return playDate.substring(8, 10) + "/" + playDate.substring(5, 7) + "/" + playDate.substring(0, 4);
+    }
+
+    /** HH:mm part of the play date, or empty when it has no time. */
+    public String getDisplayTime() {
+        return playDate != null && playDate.length() >= 16 ? playDate.substring(11, 16) : "";
+    }
+
+    /** The account as the redesigned pages name it: Primary (vatito) or Legacy (robertlover). */
+    public boolean isLegacy() {
+        return "robertlover".equals(account);
+    }
+
     public String getSongName() {
         return songName;
     }

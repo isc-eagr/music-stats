@@ -8,9 +8,12 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <th:block th:replace="~{fragments/share-history :: styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/artists.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
+    <link rel="stylesheet" th:href="@{/css/catalog-table.css}">
+    <th:block th:replace="~{fragments/catalog-card :: card-styles}"></th:block>
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -30,34 +33,29 @@
                         <button type="button" class="view-btn active" id="viewBtn-card" onclick="switchView('card')">Cards</button>
                         <button type="button" class="view-btn" id="viewBtn-table" onclick="switchView('table')">Table</button>
                     </div>
-                    <div class="toggles-container artist-list-scope-toggles" aria-label="Included artist sources">
-                        <div class="include-groups-toggle">
-                            <label class="toggle-label">
-                                <input type="checkbox" autocomplete="off" id="artistIncludeMainToggle"
-                                       th:checked="${includeMain}" onchange="toggleArtistScope('includeMain', this.checked)">
-                                <span class="toggle-slider"></span><span class="toggle-text"><span class="toggle-prefix">Include </span>Main</span>
-                            </label>
-                        </div>
-                        <div class="include-groups-toggle">
-                            <label class="toggle-label">
-                                <input type="checkbox" autocomplete="off" id="artistIncludeGroupsToggle"
-                                       th:checked="${includeGroups}" onchange="toggleArtistScope('includeGroups', this.checked)">
-                                <span class="toggle-slider"></span><span class="toggle-text"><span class="toggle-prefix">Include </span>Groups</span>
-                            </label>
-                        </div>
-                        <div class="include-groups-toggle">
-                            <label class="toggle-label">
-                                <input type="checkbox" autocomplete="off" id="artistIncludeFeaturedToggle"
-                                       th:checked="${includeFeatured}" onchange="toggleArtistScope('includeFeatured', this.checked)">
-                                <span class="toggle-slider"></span><span class="toggle-text"><span class="toggle-prefix">Include </span>Featured</span>
-                            </label>
-                        </div>
+                    <div class="scope-toggles" role="group" aria-label="Included artist sources">
+                        <span class="scope-toggles-label">Include</span>
+                        <label class="scope-toggle">
+                            <input type="checkbox" autocomplete="off" id="artistIncludeMainToggle"
+                                   th:checked="${includeMain}" onchange="toggleArtistScope('includeMain', this.checked)">
+                            <span class="scope-toggle-check" aria-hidden="true"></span>Main
+                        </label>
+                        <label class="scope-toggle">
+                            <input type="checkbox" autocomplete="off" id="artistIncludeGroupsToggle"
+                                   th:checked="${includeGroups}" onchange="toggleArtistScope('includeGroups', this.checked)">
+                            <span class="scope-toggle-check" aria-hidden="true"></span>Groups
+                        </label>
+                        <label class="scope-toggle">
+                            <input type="checkbox" autocomplete="off" id="artistIncludeFeaturedToggle"
+                                   th:checked="${includeFeatured}" onchange="toggleArtistScope('includeFeatured', this.checked)">
+                            <span class="scope-toggle-check" aria-hidden="true"></span>Featured
+                        </label>
                     </div>
                 </div>
                 <div class="catalog-toolbar-actions">
-                    <a th:href="@{/playground(view='graphs',source='artists')}" class="toolbar-btn toolbar-btn-soft"
+                    <a th:href="@{/playground(view='graphs',source='artists')}" class="toolbar-btn"
                        data-graphs-source="artists" onclick="return openPlaygroundGraphs(event)">Explore graphs</a>
-                    <button id="loadAllResultsButton" type="button" class="toolbar-btn toolbar-btn-soft" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
+                    <button id="loadAllResultsButton" type="button" class="toolbar-btn" hidden onclick="window.loadAllVisibleResults && window.loadAllVisibleResults()">Load all</button>
                     <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="openCreateModal()">New Artist</button>
                 </div>
             </div>
@@ -69,7 +67,8 @@
                            onkeydown="if(event.key==='Enter'){event.preventDefault();performSearchWithFilters(this.value);}">
                     <button type="button" class="search-btn" onclick="performSearchWithFilters(document.getElementById('searchInput').value);" ontouchstart="this.classList.add('touched');" ontouchend="event.preventDefault(); performSearchWithFilters(document.getElementById('searchInput').value);">🔍</button>
                 </div>
-                    <button type="button" class="filter-toggle toolbar-btn toolbar-btn-muted" onclick="toggleFilters()">Filters</button>
+                    <button type="button" class="filter-toggle toolbar-btn" onclick="toggleFilters()">Filters</button>
+                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
 
                 <div class="toolbar-sort-panel">
@@ -84,6 +83,7 @@
                             <option value="avg_plays" th:selected="${sortBy == 'avg_plays'}">Average Plays / Song</option>
                             <option value="avg_plays_album" th:selected="${sortBy == 'avg_plays_album'}">Average Plays / Album</option>
                             <option value="birth_date" th:selected="${sortBy == 'birth_date'}">Birth Date</option>
+                            <option value="consistency" th:selected="${sortBy == 'consistency'}">Consistency</option>
                             <option value="country" th:selected="${sortBy == 'country'}">Country</option>
                             <option value="death_date" th:selected="${sortBy == 'death_date'}">Death Date</option>
                             <option value="days_listened" th:selected="${sortBy == 'days_listened'}">Days Listened</option>
@@ -96,11 +96,11 @@
                             <option value="itunes_presence" th:selected="${sortBy == 'itunes_presence'}">iTunes Presence Ratio</option>
                             <option value="language" th:selected="${sortBy == 'language'}">Language</option>
                             <option value="last_listened" th:selected="${sortBy == 'last_listened'}">Last Listened</option>
-                            <option value="legacy_plays" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
+                            <option value="legacy_plays" th:if="${showLegacy != false or sortBy == 'legacy_plays'}" th:selected="${sortBy == 'legacy_plays'}">Legacy Plays</option>
                             <option value="months_listened" th:selected="${sortBy == 'months_listened'}">Months Listened</option>
                             <option value="name" th:selected="${sortBy == 'name'}">Name</option>
                             <option value="plays" th:selected="${sortBy == 'plays'}">Total Plays</option>
-                            <option value="primary_plays" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
+                            <option value="primary_plays" th:if="${showLegacy != false or sortBy == 'primary_plays'}" th:selected="${sortBy == 'primary_plays'}">Primary Plays</option>
                             <option value="random" th:selected="${sortBy == 'random'}">Random</option>
                             <option value="solo_songs" th:selected="${sortBy == 'solo_songs'}">Solo Songs</option>
                             <option value="songs" th:selected="${sortBy == 'songs'}">Song Count</option>
@@ -136,9 +136,7 @@
                             <span th:if="${sortDir3 != 'desc'}">↑</span>
                         </button>
                     </div>
-                        </div>
-                        <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
-                </div>
+                        </div>                </div>
                 
                 <div class="catalog-toolbar-control-actions">
                     <div class="filters" id="filterPanel">
@@ -1287,6 +1285,8 @@
         </div> <!-- Close pagination-and-counters-wrapper -->
         
         <!-- Pagination info -->
+        <section th:replace="~{fragments/share-history :: panel('artists', 'plays,time,albums,songs', 'data-artist-id', 'data-id')}"></section>
+
         <div class="pagination-info">
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
@@ -1296,60 +1296,62 @@
         <div class="artist-grid" id="artistGrid"
              th:attr="data-current-page=${currentPage},data-total-pages=${totalPages}">
             <div th:each="artist, iterStat : ${artists}" 
-                 class="artist-card" 
+                 class="artist-card gc"
                  th:attr="data-artist-id=${artist.id}, data-page=${currentPage}, data-result-index=${currentPage * perPage + iterStat.index}, data-has-theme-image=${activeTheme != null and artist.hasThemeImage}"
                  th:classappend="${artist.genderName != null and artist.genderName.toLowerCase().contains('male') and !artist.genderName.toLowerCase().contains('female')} ? 'gender-male' : (${artist.genderName != null and artist.genderName.toLowerCase().contains('female')} ? 'gender-female' : '')">
-                <div class="artist-image item-image-container" style="cursor: pointer;">
-                        <img th:if="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}"
-                             th:src="@{'/artists/' + ${artist.id} + '/image?thumbnail=true'}"
-                             th:alt="${artist.name}"
-                             th:onclick="|openArtistImageModalFromList(${artist.id})|"
-                             class="clickable-image">
-                        <div th:unless="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}" class="no-image">
-                            <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
-                        </div>
-
-                                                        <a th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
-                                                            th:href="@{/playground(country=${artist.country},countryMode='includes',view='graphs',source='artists',tab='country')}"
-                              class="flag-overlay"
-                              th:title="${artist.country}">
-                               <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
-                                   th:alt="${artist.country}" />
-                            </a>
-                            
-                            <!-- Death indicator overlay -->
-                            <span class="death-overlay" th:if="${artist.deathDate != null}" th:title="'Passed away on ' + ${#temporals.format(artist.deathDate, 'dd-MMM-yyyy')}">†</span>
+                <div class="artist-image item-image-container gc-media" style="cursor: pointer;">
+                    <img th:if="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}"
+                         th:src="@{'/artists/' + ${artist.id} + '/image?thumbnail=true'}"
+                         th:alt="${artist.name}"
+                         th:onclick="|openArtistImageModalFromList(${artist.id})|"
+                         class="clickable-image">
+                    <div th:unless="${activeTheme != null ? artist.hasThemeImage : artist.hasImage}" class="no-image">
+                        <span th:text="${#strings.substring(artist.name, 0, 1)}"></span>
                     </div>
-                
-                <div class="artist-info">
-                    <div class="card-index" th:text="${startIndex + iterStat.index}"></div>
-                    <a th:href="@{/artists/{id}(id=${artist.id},includeMain=${includeMain ? null : 'false'},includeGroups=${includeGroups ? 'true' : null},includeFeatured=${includeFeatured ? 'true' : null})}">
-                        <h3 class="artist-name">
-                            <span th:if="${artist.inItunes != null}" 
-                                  th:classappend="${artist.inItunes ? 'in-itunes' : 'not-in-itunes'}"
-                                  class="itunes-badge"
-                                  th:title="${artist.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                  th:text="${artist.inItunes ? '✓' : '✗'}"></span><span th:text="${artist.name}" th:title="${artist.name}">Artist Name</span>
-                        </h3>
+                    <div class="gc-fade"></div>
+
+                    <a th:if="${artist.country != null and @countryCodeMapper.getCode(artist.country) != null}"
+                       th:href="@{/playground(country=${artist.country},countryMode='includes',view='graphs',source='artists',tab='country')}"
+                       class="flag-overlay"
+                       th:title="${artist.country}">
+                        <img th:src="@{https://flagcdn.com/w40/{code}.png(code=${@countryCodeMapper.getCode(artist.country)})}"
+                             th:alt="${artist.country}" />
                     </a>
-                    
+
+                    <div class="gc-corner" th:if="${artist.deathDate != null}">
+                        <span class="death-overlay" th:title="'Passed away on ' + ${#temporals.format(artist.deathDate, 'dd-MMM-yyyy')}">†</span>
+                    </div>
+
+                    <div class="gc-title">
+                        <a class="gc-name-link" th:href="@{/artists/{id}(id=${artist.id},includeMain=${includeMain ? null : 'false'},includeGroups=${includeGroups ? 'true' : null},includeFeatured=${includeFeatured ? 'true' : null})}">
+                            <h3 class="gc-name">
+                                <span th:replace="~{fragments/catalog-card :: itunes-badge(${artist.inItunes})}"></span>
+                                <span class="gc-name-text" th:text="${artist.name}" th:title="${artist.name}">Artist Name</span>
+                            </h3>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="artist-info gc-body">
+
                     <!-- Sort metric display (only for non-visible metrics) -->
                     <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'name' and sortBy != 'songs' and sortBy != 'albums' and sortBy != 'time' and sortBy != 'featured'}">
                         <span class="sort-metric-label" th:switch="${sortBy}">
-                            <th:block th:case="'age'">Age:</th:block>
-                            <th:block th:case="'avg_length'">Avg Length:</th:block>
-                            <th:block th:case="'avg_plays'">Avg Plays / Song:</th:block>
-                            <th:block th:case="'avg_plays_album'">Avg Plays / Album:</th:block>
-                            <th:block th:case="'birth_date'">Born:</th:block>
-                            <th:block th:case="'death_date'">Died:</th:block>
-                            <th:block th:case="'days_listened'">Days Listened:</th:block>
-                            <th:block th:case="'first_listened'">First Listened:</th:block>
-                            <th:block th:case="'image_count'">Images:</th:block>
-                            <th:block th:case="'itunes_presence'">iTunes Presence:</th:block>
-                            <th:block th:case="'last_listened'">Last Listened:</th:block>
-                            <th:block th:case="'months_listened'">Months Listened:</th:block>
-                            <th:block th:case="'weeks_listened'">Weeks Listened:</th:block>
-                            <th:block th:case="'years_listened'">Years Listened:</th:block>
+                            <th:block th:case="'age'">Age</th:block>
+                            <th:block th:case="'avg_length'">Avg Length</th:block>
+                            <th:block th:case="'avg_plays'">Avg Plays / Song</th:block>
+                            <th:block th:case="'avg_plays_album'">Avg Plays / Album</th:block>
+                            <th:block th:case="'birth_date'">Born</th:block>
+                            <th:block th:case="'death_date'">Died</th:block>
+                            <th:block th:case="'days_listened'">Days Listened</th:block>
+                            <th:block th:case="'first_listened'">First Listened</th:block>
+                            <th:block th:case="'image_count'">Images</th:block>
+                            <th:block th:case="'itunes_presence'">iTunes Presence</th:block>
+                            <th:block th:case="'last_listened'">Last Listened</th:block>
+                            <th:block th:case="'months_listened'">Months Listened</th:block>
+                            <th:block th:case="'weeks_listened'">Weeks Listened</th:block>
+                            <th:block th:case="'years_listened'">Years Listened</th:block>
+                            <th:block th:case="'consistency'">Consistency</th:block>
                         </span>
                         <span class="sort-metric-value" th:switch="${sortBy}">
                             <th:block th:case="'age'" th:text="${artist.ageDisplay != null ? artist.ageDisplay : 'N/A'}"></th:block>
@@ -1366,264 +1368,125 @@
                             <th:block th:case="'months_listened'" th:text="${artist.monthsListened + (artist.monthsListened == 1 ? ' month' : ' months')}"></th:block>
                             <th:block th:case="'weeks_listened'" th:text="${artist.weeksListened + (artist.weeksListened == 1 ? ' week' : ' weeks')}"></th:block>
                             <th:block th:case="'years_listened'" th:text="${artist.yearsListened + (artist.yearsListened == 1 ? ' year' : ' years')}"></th:block>
+                            <th:block th:case="'consistency'" th:text="${artist.consistencyPeriods().get(3).summary()}"></th:block>
                         </span>
                     </div>
                     
-                    <div class="artist-stats">
-                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎵</span>
-                            <span class="stat-value" th:text="${artist.songCount}">0</span>
-                        </div>
-                        <div class="stat" th:if="${artist.featuredSongCount != null and artist.featuredSongCount > 0}" title="Featured songs" th:classappend="${sortBy == 'featured' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon featured">
-                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill="currentColor" d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
-                                </svg>
-                            </span>
-                            <span class="stat-value" th:text="${artist.featuredSongCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">💿</span>
-                            <span class="stat-value" th:text="${artist.albumCount}">0</span>
-                        </div>
-                    </div>
-                    <div class="artist-stats artist-stats-plays">
-                        <div class="stat" title="Total plays">
-                            <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Total plays by source:' : null}">
-                                <span th:text="${artist.playCount}">0</span>
+                    <div class="gc-plays">
+                        <div class="gc-total">
+                            <span class="gc-total-num" title="Total plays" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Total plays by source:' : null}">
+                                <span th:text="${#numbers.formatInteger(artist.playCount, 1, 'COMMA')}">0</span>
                                 <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainPlayCount}"></span>
                                 <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupPlayCount}"></span>
                                 <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredPlayCount}"></span>
                             </span>
+                            <span th:replace="~{fragments/catalog-card :: plays-unit}"></span>
+                            <span class="card-index" title="Position in this list" th:text="'#' + ${startIndex + iterStat.index}">#1</span>
                         </div>
-                        <div class="stat" title="Primary plays">
-                            <span class="stat-icon primary-plays">⏵</span>
-                            <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Primary plays by source:' : null}">
-                                <span th:text="${artist.vatitoPlayCount}">0</span>
-                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainVatitoPlayCount}"></span>
-                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupVatitoPlayCount}"></span>
-                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredVatitoPlayCount}"></span>
+                        <div th:replace="~{fragments/catalog-card :: split-bar(${artist.vatitoPlayCount}, ${artist.robertloverPlayCount})}"></div>
+                        <div class="gc-legend" th:if="${showLegacy != false}">
+                            <span class="gc-legend-item" title="Primary plays"><i class="gc-sw gc-sw-primary"></i>Primary
+                                <b th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Primary plays by source:' : null}">
+                                    <span th:text="${#numbers.formatInteger(artist.vatitoPlayCount, 1, 'COMMA')}">0</span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainVatitoPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupVatitoPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredVatitoPlayCount}"></span>
+                                </b>
                             </span>
-                        </div>
-                        <div class="stat" title="Legacy plays">
-                            <span class="stat-icon legacy-plays">⏵</span>
-                            <span class="stat-value" th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Legacy plays by source:' : null}">
-                                <span th:text="${artist.robertloverPlayCount}">0</span>
-                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainRobertloverPlayCount}"></span>
-                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupRobertloverPlayCount}"></span>
-                                <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredRobertloverPlayCount}"></span>
+                            <span th:if="${artist.robertloverPlayCount != null and artist.robertloverPlayCount > 0}" class="gc-legend-item" title="Legacy plays"><i class="gc-sw gc-sw-legacy"></i>Legacy
+                                <b th:classappend="${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''" th:attr="tabindex=${showPlayBreakdown ? '0' : null},data-tooltip-title=${showPlayBreakdown ? 'Legacy plays by source:' : null}">
+                                    <span th:text="${#numbers.formatInteger(artist.robertloverPlayCount, 1, 'COMMA')}">0</span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeMain}" th:text="'Main: ' + ${artist.mainRobertloverPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeGroups}" th:text="'Groups: ' + ${artist.groupRobertloverPlayCount}"></span>
+                                    <span class="play-breakdown-tooltip-item-source" hidden th:if="${showPlayBreakdown and includeFeatured}" th:text="'Featured: ' + ${artist.featuredRobertloverPlayCount}"></span>
+                                </b>
                             </span>
                         </div>
                     </div>
-                    <div class="artist-stats artist-stats-row2">
-                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🕒</span>
-                            <span class="stat-value" th:text="${artist.timeListenedFormatted}">0m</span>
+                    <div class="gc-cells">
+                        <div class="gc-cell" title="Songs" th:classappend="${sortBy == 'songs' ? 'gc-hl' : ''}">
+                            <span class="gc-cell-l">Songs</span><span class="gc-cell-v" th:text="${artist.songCount}">0</span>
                         </div>
-                        <div class="stat" th:title="${artist.organized != null and artist.organized ? 'Organized' : 'Not Organized'}">
-                            <span class="stat-icon" th:text="${artist.organized != null and artist.organized ? '📦' : '📬'}">📬</span>
+                        <div class="gc-cell" title="Featured songs" th:classappend="${sortBy == 'featured' ? 'gc-hl' : ''}">
+                            <span class="gc-cell-l">Feat. on</span><span class="gc-cell-v" th:text="${artist.featuredSongCount != null ? artist.featuredSongCount : 0}">0</span>
+                        </div>
+                        <div class="gc-cell" title="Albums" th:classappend="${sortBy == 'albums' ? 'gc-hl' : ''}">
+                            <span class="gc-cell-l">Albums</span><span class="gc-cell-v" th:text="${artist.albumCount}">0</span>
+                        </div>
+                        <div class="gc-cell" title="Time listened" th:classappend="${sortBy == 'time' ? 'gc-hl' : ''}">
+                            <span class="gc-cell-l">Listened</span><span class="gc-cell-v" th:text="${artist.timeListenedFormatted}">0m</span>
                         </div>
                     </div>
 
-                    <!-- Text-based stats for modal view (hidden in list, shown via CSS in modal) -->
+                    <!-- More panel content (hidden in the list; laid out by the card detail modal, lazy-hydrated on open) -->
                     <div class="card-modal-text-stats">
-                        <!-- Header for modal (Name & Chips) - hidden on mobile -->
-                        <div class="modal-header">
-                            <h3 class="modal-title">
-                                <span th:if="${artist.inItunes != null}" 
-                                      th:classappend="${artist.inItunes ? 'in-itunes' : 'not-in-itunes'}"
-                                      class="itunes-badge"
-                                      th:title="${artist.inItunes ? 'In iTunes Library' : 'Not in iTunes Library'}"
-                                      th:text="${artist.inItunes ? '✓' : '✗'}"></span><span th:text="${artist.name}">Artist Name</span>
-                            </h3>
-                        </div>
-                        <div class="winning-chips modal-rank-chips" th:with="rankMap=${artistRankings.get(artist.id)}">
-                            <a th:if="${artist.genderName != null and !#strings.isEmpty(artist.genderName)}"
-                                        th:href="@{/playground(gender=${artist.genderId},genderMode='includes',view='graphs',source='artists',tab='general')}"
-                               class="winning-chip rank-chip gender"
-                               th:classappend="${artist.genderName.toLowerCase().contains('female')} ? 'female' : (${artist.genderName.toLowerCase().contains('male')} ? 'male' : '')"
-                               th:with="rank=${rankMap != null ? rankMap.get('gender') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.genderName}" title="Gender"></a>
-                            <a th:if="${artist.genreName != null and !#strings.isEmpty(artist.genreName)}"
-                                        th:href="@{/playground(genre=${artist.genreId},genreMode='includes',view='graphs',source='artists',tab='genre')}"
-                               class="winning-chip rank-chip genre"
-                               th:with="rank=${rankMap != null ? rankMap.get('genre') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.genreName}" title="Genre"></a>
-                            <a th:if="${artist.subgenreName != null and !#strings.isEmpty(artist.subgenreName)}"
-                                        th:href="@{/playground(subgenre=${artist.subgenreId},subgenreMode='includes',view='graphs',source='artists',tab='subgenre')}"
-                               class="winning-chip rank-chip subgenre"
-                               th:with="rank=${rankMap != null ? rankMap.get('subgenre') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.subgenreName}" title="Subgenre"></a>
-                            <a th:if="${artist.ethnicityName != null and !#strings.isEmpty(artist.ethnicityName)}"
-                                        th:href="@{/playground(ethnicity=${artist.ethnicityId},ethnicityMode='includes',view='graphs',source='artists',tab='ethnicity')}"
-                               class="winning-chip rank-chip ethnicity"
-                               th:with="rank=${rankMap != null ? rankMap.get('ethnicity') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.ethnicityName}" title="Ethnicity"></a>
-                            <a th:if="${artist.country != null and !#strings.isEmpty(artist.country)}"
-                                        th:href="@{/playground(country=${artist.country},countryMode='includes',view='graphs',source='artists',tab='country')}"
-                               class="winning-chip rank-chip country"
-                               th:with="rank=${rankMap != null ? rankMap.get('country') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.country}" title="Country"></a>
-                            <a th:if="${artist.languageName != null and !#strings.isEmpty(artist.languageName)}"
-                                        th:href="@{/playground(language=${artist.languageId},languageMode='includes',view='graphs',source='artists',tab='language')}"
-                               class="winning-chip rank-chip language"
-                               th:with="rank=${rankMap != null ? rankMap.get('language') : null}"
-                               th:text="${rank != null ? '#' + rank + ' ' : ''} + ${artist.languageName}" title="Language"></a>
+                        <div class="mm-ranks" th:with="rankMap=${artistRankings.get(artist.id)}">
+                            <p class="mm-cap">Ranks</p>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Gender', ${artist.genderName}, ${rankMap != null ? rankMap.get('gender') : null}, @{/playground(gender=${artist.genderId},genderMode='includes',view='graphs',source='artists',tab='general')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Genre', ${artist.genreName}, ${rankMap != null ? rankMap.get('genre') : null}, @{/playground(genre=${artist.genreId},genreMode='includes',view='graphs',source='artists',tab='genre')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Subgenre', ${artist.subgenreName}, ${rankMap != null ? rankMap.get('subgenre') : null}, @{/playground(subgenre=${artist.subgenreId},subgenreMode='includes',view='graphs',source='artists',tab='subgenre')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Ethnicity', ${artist.ethnicityName}, ${rankMap != null ? rankMap.get('ethnicity') : null}, @{/playground(ethnicity=${artist.ethnicityId},ethnicityMode='includes',view='graphs',source='artists',tab='ethnicity')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Country', ${artist.country}, ${rankMap != null ? rankMap.get('country') : null}, @{/playground(country=${artist.country},countryMode='includes',view='graphs',source='artists',tab='country')})}"></a>
+                            <a th:replace="~{fragments/catalog-card :: rank-row('Language', ${artist.languageName}, ${rankMap != null ? rankMap.get('language') : null}, @{/playground(language=${artist.languageId},languageMode='includes',view='graphs',source='artists',tab='language')})}"></a>
                         </div>
 
-                        <!-- Section 1: Plays -->
-                        <div class="modal-section section-plays">
-                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Plays</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Play Count</span>
-                                <span class="modal-stat-value" th:text="${artist.playCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Primary Plays</span>
-                                <span class="modal-stat-value" th:text="${artist.vatitoPlayCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Legacy Plays</span>
-                                <span class="modal-stat-value" th:text="${artist.robertloverPlayCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Time Listened</span>
-                                <span class="modal-stat-value" th:text="${artist.timeListenedFormatted}">0m</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Avg Plays / Song</span>
-                                <span class="modal-stat-value" th:text="${artist.avgPlays != null ? #numbers.formatDecimal(artist.avgPlays, 1, 1) : 'N/A'}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Avg Plays / Album</span>
-                                <span class="modal-stat-value" th:text="${artist.avgPlaysPerAlbum != null ? #numbers.formatDecimal(artist.avgPlaysPerAlbum, 1, 1) : 'N/A'}">0</span>
-                            </div>
-                        </div>
+                        <div class="mm-main">
+                            <section class="mm-sec mm-sec-plays">
+                                <p class="mm-cap">Plays</p>
+                                <div class="mm-hero">
+                                    <span class="mm-big" th:text="${#numbers.formatInteger(artist.playCount, 1, 'COMMA')}">0</span>
+                                    <span th:replace="~{fragments/catalog-card :: plays-unit}"></span>
+                                </div>
+                                <div th:replace="~{fragments/catalog-card :: split-bar(${artist.vatitoPlayCount}, ${artist.robertloverPlayCount})}"></div>
+                                <th:block th:if="${showLegacy != false}"><div th:replace="~{fragments/catalog-card :: share-legend(${artist.playCount}, ${artist.vatitoPlayCount}, ${artist.robertloverPlayCount})}"></div></th:block>
+                                <div class="mm-tiles">
+                                    <div class="mm-tile"><span class="mm-l">Listened</span><span class="mm-v" th:text="${artist.timeListenedFormatted}">0m</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Per song</span><span class="mm-v" th:text="${artist.avgPlays != null ? #numbers.formatDecimal(artist.avgPlays, 1, 1) : 'N/A'}">0</span><span class="mm-s">avg plays</span></div>
+                                    <div class="mm-tile"><span class="mm-l">Per album</span><span class="mm-v" th:text="${artist.avgPlaysPerAlbum != null ? #numbers.formatDecimal(artist.avgPlaysPerAlbum, 1, 1) : 'N/A'}">0</span><span class="mm-s">avg plays</span></div>
+                                </div>
+                            </section>
 
-                        <div class="modal-separator" th:classappend="${artist.genderName == 'Male' ? 'gender-sep-male' : (artist.genderName == 'Female' ? 'gender-sep-female' : '')}"></div>
+                            <section class="mm-sec mm-sec-catalog"
+                                     th:with="featured=${artist.featuredSongCount != null ? artist.featuredSongCount : 0},
+                                              totalSongs=${artist.songCount + featured},
+                                              ownWidth=${totalSongs > 0 ? artist.songCount * 100.0 / totalSongs : 100}">
+                                <p class="mm-cap">Catalog</p>
+                                <p class="mm-total">Total songs <b th:text="${#numbers.formatInteger(totalSongs, 1, 'COMMA')}">0</b> including features</p>
+                                <div class="mm-stack">
+                                    <div th:replace="~{fragments/catalog-card :: split('Own songs', ${artist.songCount}, 'Featured on', ${featured}, 100)}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: split('Solo', ${artist.soloSongCount}, 'With features', ${artist.songsWithFeatCount}, ${ownWidth})}"></div>
+                                    <div th:replace="~{fragments/catalog-card :: split('Album songs', ${artist.songCount - artist.standaloneSongCount}, 'Standalone', ${artist.standaloneSongCount}, ${ownWidth})}"></div>
+                                </div>
+                                <div class="mm-facts">
+                                    <span class="mm-fact">Albums <b th:text="${artist.albumCount}">0</b></span>
+                                    <span class="mm-fact">Avg song <b th:text="${artist.avgLengthFormatted != null ? artist.avgLengthFormatted : 'N/A'}">0:00</b></span>
+                                    <span class="mm-fact">Avg album <b th:text="${artist.avgAlbumLengthFormatted != null ? artist.avgAlbumLengthFormatted : 'N/A'}">0:00</b></span>
+                                    <span class="mm-fact" th:if="${artist.itunesPresenceRatio != null}" title="iTunes presence">iTunes <b th:text="${#numbers.formatDecimal(artist.itunesPresenceRatio, 1, 1) + '%'}">0.0%</b></span>
+                                </div>
+                            </section>
 
-                        <!-- Section 2: Catalog -->
-                        <div class="modal-section section-catalog">
-                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Catalog</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Album Count</span>
-                                <span class="modal-stat-value" th:text="${artist.albumCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Song Count</span>
-                                <span class="modal-stat-value" th:text="${artist.songCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Song Count w/ Features</span>
-                                <span class="modal-stat-value" th:text="${artist.songCount + artist.featuredSongCount}">0</span>
-                            </div>
+                            <section class="mm-sec mm-sec-listening">
+                                <p class="mm-cap">Listening</p>
+                                <div th:replace="~{fragments/catalog-card :: timeline('First listened', ${artist.firstListenedDate}, ${artist.firstListenedSong}, 'Last listened', ${artist.lastListenedDate}, ${artist.lastListenedSong}, ${artist.listeningSpan})}"></div>
+                                <section th:replace="~{fragments/consistency :: ledger(${artist.consistencyPeriods()}, @{/artists/{id}/consistency(id=${artist.id})}, true)}"></section>
+                            </section>
 
-                            <div style="margin-top:14px;"></div>
+                            <section class="mm-sec mm-sec-life" th:if="${artist.birthDate != null or artist.deathDate != null}">
+                                <p class="mm-cap">Life</p>
+                                <div class="mm-facts">
+                                    <span class="mm-fact" th:if="${artist.birthDate != null}">Born <b th:text="${#temporals.format(artist.birthDate, 'dd/MM/yyyy')}">N/A</b></span>
+                                    <span class="mm-fact" th:if="${artist.deathDate != null}">Died <b th:text="${#temporals.format(artist.deathDate, 'dd/MM/yyyy')}">N/A</b></span>
+                                    <span class="mm-fact" th:if="${artist.ageDisplay != null}"><th:block th:text="${artist.deathDate != null ? 'Age at death' : 'Age'}">Age</th:block> <b th:text="${#strings.replace(artist.ageDisplay, ' (†)', '')}">N/A</b></span>
+                                </div>
+                            </section>
 
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Solo Songs</span>
-                                <span class="modal-stat-value" th:text="${artist.soloSongCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Songs w/ Features</span>
-                                <span class="modal-stat-value" th:text="${artist.songsWithFeatCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Featured Songs</span>
-                                <span class="modal-stat-value" th:text="${artist.featuredSongCount}">0</span>
-                            </div>
-
-                            <div style="margin-top:14px;"></div>
-
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Songs on Album</span>
-                                <span class="modal-stat-value" th:text="${artist.songCount - artist.standaloneSongCount}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Standalone Songs</span>
-                                <span class="modal-stat-value" th:text="${artist.standaloneSongCount}">0</span>
-                            </div>
-
-                            <div style="margin-top:14px;"></div>
-
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Avg Song Length</span>
-                                <span class="modal-stat-value" th:text="${artist.avgLengthFormatted != null ? artist.avgLengthFormatted : 'N/A'}">0:00</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Avg Album Length</span>
-                                <span class="modal-stat-value" th:text="${artist.avgAlbumLengthFormatted != null ? artist.avgAlbumLengthFormatted : 'N/A'}">0:00</span>
-                            </div>
-                            <div class="modal-stat-row" th:if="${artist.itunesPresenceRatio != null}">
-                                <span class="modal-stat-label">iTunes Presence</span>
-                                <span class="modal-stat-value" th:text="${#numbers.formatDecimal(artist.itunesPresenceRatio, 1, 1) + '%'}">0.0%</span>
-                            </div>
-                        </div>
-
-                        <div class="modal-separator" th:classappend="${artist.genderName == 'Male' ? 'gender-sep-male' : (artist.genderName == 'Female' ? 'gender-sep-female' : '')}"></div>
-
-                        <!-- Section 3: Details -->
-                        <div class="modal-section section-details">
-                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Details</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Images</span>
-                                <span class="modal-stat-value" th:text="${artist.imageCount}">0</span>
-                            </div>
-                        </div>
-
-                        <div class="modal-separator" th:classappend="${artist.genderName == 'Male' ? 'gender-sep-male' : (artist.genderName == 'Female' ? 'gender-sep-female' : '')}"></div>
-
-                        <!-- Section 4: Dates -->
-                        <div class="modal-section section-dates">
-                            <h4 class="modal-section-title" th:classappend="${artist.genderName == 'Male' ? 'gender-text-male' : (artist.genderName == 'Female' ? 'gender-text-female' : '')}">Dates</h4>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">First Listened</span>
-                                <span class="modal-stat-value" th:text="${artist.firstListenedDate != null ? artist.firstListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Last Listened</span>
-                                <span class="modal-stat-value" th:text="${artist.lastListenedDate != null ? artist.lastListenedDate : 'N/A'}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Days Listened</span>
-                                <span class="modal-stat-value" th:text="${artist.daysListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Weeks Listened</span>
-                                <span class="modal-stat-value" th:text="${artist.weeksListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Months Listened</span>
-                                <span class="modal-stat-value" th:text="${artist.monthsListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row">
-                                <span class="modal-stat-label">Years Listened</span>
-                                <span class="modal-stat-value" th:text="${artist.yearsListened}">0</span>
-                            </div>
-                            <div class="modal-stat-row" th:if="${artist.birthDate != null}">
-                                <span class="modal-stat-label">Birth Date</span>
-                                <span class="modal-stat-value" th:text="${#temporals.format(artist.birthDate, 'dd/MM/yyyy')}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row" th:if="${artist.deathDate != null}">
-                                <span class="modal-stat-label">Death Date</span>
-                                <span class="modal-stat-value" th:text="${#temporals.format(artist.deathDate, 'dd/MM/yyyy')}">N/A</span>
-                            </div>
-                            <div class="modal-stat-row" th:if="${artist.deathDate != null}">
-                                <span class="modal-stat-label">Age at Death</span>
-                                <span class="modal-stat-value" th:text="${artist.ageDisplay}">N/A</span>
-                            </div>
-                             <div class="modal-stat-row" th:if="${artist.deathDate == null and artist.birthDate != null}">
-                                <span class="modal-stat-label">Age</span>
-                                <span class="modal-stat-value" th:text="${artist.ageDisplay}">N/A</span>
-                            </div>
+                            <div th:replace="~{fragments/catalog-card :: modal-foot(${artist.imageCount}, ${artist.organized != null and artist.organized})}"></div>
                         </div>
                     </div>
 
-                    <!-- Card modal toggle -->
-                    <div class="card-expand-toggle" onclick="openCardModal(this)">
-                        <span class="expand-arrow">+</span>
-                        <span class="expand-label">More</span>
+                    <div class="gc-foot">
+                        <span th:replace="~{fragments/catalog-card :: organized(${artist.organized != null and artist.organized})}"></span>
+                        <div th:replace="~{fragments/catalog-card :: more-toggle}"></div>
                     </div>
                 </div>
             </div>
@@ -1635,8 +1498,8 @@
         </div><!-- end cardView -->
 
         <!-- Table view container -->
-        <div id="tableView" style="display:none;">
-            <div class="top-sort-hint" style="margin:16px 0 0 0;">Sorting tip: Click a column header for primary sort. Shift + click adds secondary and tertiary sorts.</div>
+        <div id="tableView" style="display:none;" th:attr="data-legacy-hidden=${showLegacy == false}">
+            <div th:replace="~{fragments/catalog-table-toolbar :: toolbar}"></div>
             <div class="podium-section" id="artistsPodium"></div>
             <div class="column-toggle-panel" id="artistColumnTogglePanel">
                 <div class="column-toggle-header" onclick="toggleColumnPanel('artist')">
@@ -1646,12 +1509,12 @@
                 <div class="column-toggle-grid" id="artistColumnToggles"></div>
             </div>
             <div class="top-table-container" id="topArtistsTableContainer">
-                <table class="top-table" id="topArtistsTable">
+                <table class="top-table catalog-table" id="topArtistsTable">
                     <thead>
                         <tr>
-                            <th class="rank-col">#</th>
-                            <th class="cover-col"></th>
-                            <th data-sort="name" data-col="name">Artist Name</th>
+                            <th class="rank-col ct-pin ct-pin-rank">#</th>
+                            <th class="cover-col ct-pin ct-pin-cover"></th>
+                            <th data-sort="name" data-col="name" class="ct-pin ct-pin-name">Artist Name</th>
                             <th data-sort="random" data-col="random" style="text-align:right;display:none;">Random</th>
                             <th data-sort="plays" data-col="plays" style="text-align:right;">Total</th>
                             <th data-sort="primaryPlays" data-col="primaryPlays" style="text-align:right;" class="hide-mobile">Primary</th>
@@ -1663,6 +1526,7 @@
                             <th data-sort="weeksListened" data-col="weeksListened" style="text-align:right;display:none;">Weeks Listened</th>
                             <th data-sort="monthsListened" data-col="monthsListened" style="text-align:right;display:none;">Months Listened</th>
                             <th data-sort="yearsListened" data-col="yearsListened" style="text-align:right;display:none;">Years Listened</th>
+                            <th data-sort="consistency" data-col="consistency" style="text-align:right;display:none;" title="Years with plays out of the years since the first play">Consistency</th>
                             <th data-sort="age" data-col="age" style="text-align:right;display:none;">Age</th>
                             <th data-sort="albumCount" data-col="albumCount" style="text-align:right;display:none;">Album Count</th>
                             <th data-sort="avgLength" data-col="avgLength" style="text-align:right;display:none;">Avg Length</th>
@@ -2850,5 +2714,6 @@
             updateLoadAllButton();
         })();
     </script>
+    <th:block th:replace="~{fragments/share-history :: scripts}"></th:block>
 </body>
 </html>

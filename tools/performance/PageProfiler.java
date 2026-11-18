@@ -109,7 +109,8 @@ public class PageProfiler {
         var pc = new PcService(jdbc);
         var trl = new TrlService(jdbc);
         var tags = new TagService(jdbc);
-        var heatmap = new DetailPlayHeatmapService(jdbc);
+        var plays = new DetailPlaysService(jdbc);
+        var associations = new DetailAssociationsService(jdbc);
         var catalogCharts = new CatalogChartService(songs);
         var chartFilters = new ChartFilterRequestFactory();
         var winning = new CatalogWinningPeriodService(jdbc);
@@ -119,9 +120,9 @@ public class PageProfiler {
         setField(main, "globalSearchService", new GlobalSearchService(jdbc));
         itunes.artistExistsInItunes(""); // one-time iTunes XML load, excluded from timings
         var r = new ArrayList<Route>();
-        var ac = new ArtistController(artists, charts, lookup, itunes, null, config, bb, pc, trl, catalogCharts, chartFilters, tags, heatmap);
-        var alc = new AlbumController(albums, charts, artists, lookup, itunes, config, bb, pc, trl, catalogCharts, chartFilters, tags, heatmap);
-        var sc = new SongController(songs, charts, artists, albums, library, lookup, config, itunes, trl, pc, bb, links, tags, heatmap);
+        var ac = new ArtistController(artists, charts, lookup, itunes, null, config, bb, pc, trl, catalogCharts, chartFilters, tags, plays, associations);
+        var alc = new AlbumController(albums, charts, artists, lookup, itunes, config, bb, pc, trl, catalogCharts, chartFilters, tags, plays, associations);
+        var sc = new SongController(songs, charts, artists, albums, library, lookup, config, itunes, trl, pc, bb, links, tags, plays, associations);
         var chc = new ChartsController(charts, config, bb, pc, trl, overviewFilters);
         route(r, "/", main, "index");
         route(r, "/albums", alc, "listAlbums");

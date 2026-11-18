@@ -1,0 +1,315 @@
+/* Share over time panel above the catalog lists (fragments/share-history.html, js/catalog-share-history.js).
+   Surface, labels and pills reuse the list cards (catalog-cards.css) and toolbar (catalog-list.css) look. */
+
+.share-history {
+    --sh-line: #232327;
+    --sh-fill: #141417;
+    --sh-knob: #222226;
+    --sh-label: #8b8b94;
+    --sh-muted: rgba(212, 212, 216, 0.5);
+    --sh-accent: #bef264;
+    margin: 0 0 22px;
+    border: 1px solid rgba(161, 161, 170, 0.18);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #18181a 0%, #121214 100%);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+/* Header: title, Measure pill (built like the toolbar's Sort pill) and the collapse knob */
+.sh-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 14px 20px;
+}
+
+.sh-heading {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    min-width: 0;
+    margin-right: auto;
+}
+
+.sh-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #f2f2f4;
+}
+
+.sh-subtitle {
+    color: var(--sh-label);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.sh-measure {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.sh-measure-label {
+    color: var(--sh-label);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.sh-measure-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--sh-line);
+    border-radius: 999px;
+    background: var(--sh-fill);
+}
+
+.sh-measure select {
+    width: auto;
+    field-sizing: content;
+    min-width: 0;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 22px 0 4px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 2px center / 15px;
+    color: #f4f4f5;
+    font-size: 13.5px;
+    font-weight: 600;
+    appearance: none;
+    cursor: pointer;
+}
+
+.sh-measure select option {
+    background: #18181b;
+    color: #f4f4f5;
+}
+
+.sh-toggle {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--sh-knob);
+    color: #e4e4e7;
+    cursor: pointer;
+}
+
+.sh-toggle:hover { background: #2e2e33; }
+.sh-toggle svg { transition: transform 0.18s ease; }
+.is-collapsed .sh-toggle svg { transform: rotate(-90deg); }
+.is-collapsed .sh-measure { display: none; }
+
+.sh-measure select:focus-visible,
+.sh-toggle:focus-visible,
+.sh-chip:focus-visible,
+.sh-clear:focus-visible {
+    outline: 2px solid var(--sh-accent);
+    outline-offset: 2px;
+}
+
+.sh-body {
+    padding: 0 20px 18px;
+}
+
+.sh-status {
+    margin: 0 0 10px;
+    color: var(--sh-label);
+    font-size: 13px;
+}
+
+.sh-retry {
+    margin-bottom: 10px;
+    padding: 8px 14px;
+    border: 1px solid var(--sh-line);
+    border-radius: 999px;
+    background: var(--sh-fill);
+    color: #f4f4f5;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sh-chart-wrap {
+    position: relative;
+    height: 300px;
+}
+
+/* Tooltip: a small card in the same surface */
+.sh-tooltip {
+    position: absolute;
+    z-index: 5;
+    min-width: 190px;
+    max-width: 280px;
+    padding: 10px 12px;
+    border: 1px solid rgba(161, 161, 170, 0.22);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #1c1c1f 0%, #151517 100%);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+    color: #e4e4e7;
+    font-size: 12px;
+    line-height: 1.5;
+    pointer-events: none;
+    transform: translate(-50%, calc(-100% - 12px));
+}
+
+.sh-tooltip-title {
+    margin-bottom: 4px;
+    color: var(--sh-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.sh-tooltip-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #f2f2f4;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.sh-tooltip-sub { padding-left: 17px; color: var(--sh-label); }
+.sh-tooltip-value { margin-top: 3px; font-variant-numeric: tabular-nums; }
+.sh-tooltip-change { color: var(--sh-label); font-variant-numeric: tabular-nums; }
+.sh-tooltip-change .up { color: #86c99a; }
+.sh-tooltip-change .down { color: #d98b8b; }
+
+.sh-tooltip-hint {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--sh-muted);
+    font-size: 11px;
+}
+
+/* Legend chips match the gender counter pills above the list */
+.sh-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.sh-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 7px 13px 7px 11px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #f2f2f4;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+button.sh-chip { cursor: pointer; }
+button.sh-chip:hover { border-color: rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.08); }
+.sh-chip.is-active { border-color: rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.1); }
+.sh-chip.is-dimmed { opacity: 0.4; }
+.sh-chip-rest { color: var(--sh-label); }
+
+.sh-chip-name {
+    overflow: hidden;
+    max-width: 220px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sh-chip-value {
+    color: #9ca3af;
+    font-family: 'Space Grotesk', Inter, system-ui, sans-serif;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.sh-swatch {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.sh-clear {
+    padding: 7px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #e4e4e7;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.sh-note {
+    margin: 14px 0 0;
+    color: var(--sh-muted);
+    font-size: 12px;
+}
+
+/* Highlight a card or table row picked from the chart, in that item's band color */
+.gc.share-glow,
+.lb-row.share-glow {
+    animation: share-glow-card 1.5s ease-in-out 2;
+}
+
+tr.share-glow > td {
+    animation: share-glow-row 1.5s ease-in-out 2;
+}
+
+tr.share-glow > td:first-child {
+    animation-name: share-glow-row-edge;
+}
+
+@keyframes share-glow-card {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(var(--share-glow), 0.5), 0 0 18px rgba(var(--share-glow), 0.18); }
+    50% { box-shadow: 0 0 0 3px rgb(var(--share-glow)), 0 0 30px rgba(var(--share-glow), 0.4); }
+}
+
+@keyframes share-glow-row {
+    0%, 100% { box-shadow: inset 0 0 0 9999px rgba(var(--share-glow), 0.08); }
+    50% { box-shadow: inset 0 0 0 9999px rgba(var(--share-glow), 0.24); }
+}
+
+@keyframes share-glow-row-edge {
+    0%, 100% { box-shadow: inset 3px 0 0 rgb(var(--share-glow)), inset 0 0 0 9999px rgba(var(--share-glow), 0.08); }
+    50% { box-shadow: inset 3px 0 0 rgb(var(--share-glow)), inset 0 0 0 9999px rgba(var(--share-glow), 0.24); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gc.share-glow,
+    .lb-row.share-glow,
+    tr.share-glow > td { animation-duration: 0.01s; animation-iteration-count: 1; animation-fill-mode: forwards; }
+}
+
+@media (max-width: 768px) {
+    .sh-head { flex-wrap: wrap; padding: 12px 12px 12px 16px; }
+    .sh-heading { flex: 1 1 calc(100% - 44px); }
+    .sh-measure { order: 3; width: 100%; }
+    .sh-measure-pill { flex: 1; }
+    .sh-measure select { field-sizing: fixed; width: 100%; }
+    .sh-body { padding: 0 14px 14px; }
+    .sh-chart-wrap { height: 240px; }
+    .sh-chip-name { max-width: 150px; }
+}

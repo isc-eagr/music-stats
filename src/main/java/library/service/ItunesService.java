@@ -844,24 +844,6 @@ public class ItunesService {
         return ratios;
     }
 
-    /**
-     * Compute iTunes presence ratio for a single album's songs.
-     * Returns null if iTunes library is not available or album has no songs.
-     */
-    public Double getAlbumItunesPresenceRatio(int albumId) {
-        if (!libraryExists()) return null;
-        String idsJson = getAllItunesSongIdsJson();
-        if ("[]".equals(idsJson)) return null;
-        Integer total = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM Song WHERE album_id = ?", Integer.class, albumId);
-        if (total == null || total == 0) return null;
-        Integer inItunes = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM Song WHERE album_id = ? AND id IN (SELECT value FROM json_each(?))",
-            Integer.class, albumId, idsJson);
-        if (inItunes == null) return null;
-        return (inItunes * 100.0) / total;
-    }
-
     public Map<Integer, Double> getAlbumItunesPresenceRatios(List<Integer> albumIds) {
         if (!libraryExists() || albumIds == null || albumIds.isEmpty()) return Collections.emptyMap();
 

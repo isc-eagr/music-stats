@@ -1,0 +1,935 @@
+/* ==========================================================================
+   Detail pages: Artist Associations (artist) and Featured Artists (album, song) tabs.
+   Builds on detail-general.css (ad-card, ad-tiles, ad-table, ad-rank...).
+   Gender colors: is-m blue, is-f pink, is-o gray.
+   ========================================================================== */
+
+.as {
+    --as-m: #60a5fa;
+    --as-f: #f472b6;
+    --as-o: #a1a1aa;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.as-body {
+    padding: 0 22px 22px;
+}
+
+.as-note {
+    font-size: 11.5px;
+    color: #9a9aa3;
+}
+
+.as-empty {
+    margin: 0;
+    padding: 6px 0 4px;
+    font-size: 13px;
+    color: #9a9aa3;
+}
+
+.as-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+}
+
+.as-dot.is-m, .as-split i.is-m { background: var(--as-m); }
+.as-dot.is-f, .as-split i.is-f { background: var(--as-f); }
+.as-dot.is-o, .as-split i.is-o { background: var(--as-o); }
+.as-dot.is-self, .as-split i.is-self { background: var(--ad-c); }
+.as-dot.is-rest, .as-split i.is-rest { background: rgba(255, 255, 255, 0.16); }
+/* Association types: shades of the page colour, and the app's group purple for bandmates */
+.as-dot.is-link-guest, .as-split i.is-link-guest, .as-types i.is-link-guest { background: rgba(var(--ad-rgb), 0.95); }
+.as-dot.is-link-host, .as-split i.is-link-host, .as-types i.is-link-host { background: rgba(var(--ad-rgb), 0.55); }
+.as-dot.is-link-co, .as-split i.is-link-co, .as-types i.is-link-co { background: rgba(var(--ad-rgb), 0.28); }
+.as-dot.is-link-group, .as-split i.is-link-group, .as-types i.is-link-group { background: rgba(167, 139, 250, 0.45); }
+.as-dot.is-link-band, .as-split i.is-link-band, .as-types i.is-link-band { background: #a78bfa; }
+
+.as-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: var(--ad-mut);
+}
+
+.as-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.as-legend b {
+    color: #f2f2f4;
+    font-weight: 600;
+}
+
+/* ── Avatars: initials under the photo ── */
+.as-av {
+    --s: 32px;
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* 2:3 portrait like the artist photos; --s is the height (only the map keeps round pictures) */
+    width: calc(var(--s) * 2 / 3);
+    height: var(--s);
+    border-radius: 5px;
+    overflow: hidden;
+    font-family: var(--ad-num);
+    font-size: calc(var(--s) * 0.26);
+    font-weight: 700;
+    color: #fff;
+    background: radial-gradient(circle at 30% 25%, #71717a 0%, #27272a 100%);
+    box-shadow: 0 0 0 2px rgba(161, 161, 170, 0.7);
+}
+
+.as-av.is-m {
+    background: radial-gradient(circle at 30% 25%, #3b82f6 0%, #1e3a8a 100%);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.75);
+}
+
+.as-av.is-f {
+    background: radial-gradient(circle at 30% 25%, #ec4899 0%, #831843 100%);
+    box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.75);
+}
+
+.as-av img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+}
+
+/* ── Chips ── */
+.as-link,
+.as-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 19px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #d4d4d8;
+    white-space: nowrap;
+}
+
+.as-link {
+    gap: 5px;
+    padding: 0 7px;
+}
+
+.as-link b {
+    font-weight: 700;
+    color: #f2f2f4;
+}
+
+.as-chip.is-m { background: rgba(96, 165, 250, 0.15); color: #bfdbfe; }
+.as-chip.is-f { background: rgba(244, 114, 182, 0.15); color: #fbcfe8; }
+.as-chip.is-o { background: rgba(161, 161, 170, 0.18); color: #e4e4e7; }
+.as-chip.is-gold { background: rgba(250, 204, 21, 0.12); color: #fde68a; }
+
+.as-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+}
+
+/* ── Glance: split bars ── */
+.as-splits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+    margin-top: 20px;
+}
+
+.as-split {
+    display: flex;
+    gap: 2px;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.as-split i {
+    display: block;
+    height: 100%;
+}
+
+.as-split-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.as-split-legend > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11.5px;
+    color: var(--ad-mut);
+}
+
+.as-split-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.as-split-legend b {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.as-split-legend em {
+    font-style: normal;
+    font-family: var(--ad-num);
+    font-size: 12px;
+    color: #d4d4d8;
+}
+
+/* Count chip next to a block title (Collaborators) */
+.as-splits .ad-cap .ad-count {
+    height: 18px;
+    font-size: 11px;
+    letter-spacing: 0;
+}
+
+/* ── Groups & members: a tree per group, group card on top, members under one connector line ── */
+.as-family {
+    --as-grp: 167, 139, 250;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.as-grp {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: min(100%, 420px);
+    margin: 0 auto;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    border-radius: 14px;
+    border: 1px solid rgba(var(--as-grp), 0.4);
+    background: linear-gradient(180deg, rgba(var(--as-grp), 0.12), rgba(0, 0, 0, 0.2));
+    color: #f2f2f4;
+    text-decoration: none;
+}
+
+.as-grp:hover,
+.as-mc:hover {
+    border-color: var(--ad-tintb);
+    text-decoration: none;
+}
+
+.as-grp.is-self {
+    border-color: var(--ad-c);
+    box-shadow: 0 0 0 1px var(--ad-c), 0 0 24px rgba(var(--ad-rgb), 0.25);
+}
+
+.as-grp-tx {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.as-grp-tx b {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.as-grp-n {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.as-grp-n b {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.as-grp-n small {
+    font-size: 11px;
+    color: #9a9aa3;
+}
+
+.as-chip.is-group {
+    background: rgba(var(--as-grp), 0.16);
+    color: #ddd6fe;
+}
+
+.as-stem {
+    width: 2px;
+    height: 22px;
+    margin: 0 auto;
+    background: rgba(var(--as-grp), 0.45);
+}
+
+.as-mem-scroll {
+    overflow-x: auto;
+}
+
+/* Fixed-width member columns so the connector runs exactly from the first card's centre to the last one's */
+.as-mem {
+    --as-col: 140px;
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--as-col);
+    gap: 10px;
+    width: max-content;
+    margin: 0 auto;
+    padding-top: 20px;
+}
+
+.as-mem::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: calc(var(--as-col) / 2);
+    right: calc(var(--as-col) / 2);
+    height: 2px;
+    background: rgba(var(--as-grp), 0.45);
+}
+
+.as-mem.is-one::before {
+    display: none;
+}
+
+.as-mc {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 8px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(0, 0, 0, 0.2);
+    color: #f2f2f4;
+    text-align: center;
+    text-decoration: none;
+}
+
+.as-mc::before {
+    content: '';
+    position: absolute;
+    top: -21px;
+    left: calc(50% - 1px);
+    width: 2px;
+    height: 20px;
+    background: rgba(var(--as-grp), 0.45);
+}
+
+.as-mc.is-self {
+    border-color: var(--ad-c);
+    background: linear-gradient(180deg, rgba(var(--ad-rgb), 0.16), rgba(0, 0, 0, 0.2));
+}
+
+.as-mc.is-dim {
+    opacity: 0.5;
+}
+
+.as-mc b {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.as-mc-n {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.as-mc small {
+    font-size: 10.5px;
+    color: #9a9aa3;
+}
+
+/* ── Map (top of the Collaborators card, the table under it is the ranked list) ── */
+.as-map {
+    display: block;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+    border: 1px solid var(--ad-hair);
+    background: radial-gradient(circle at 50% 50%, rgba(var(--ad-rgb), 0.1) 0%, rgba(0, 0, 0, 0.18) 62%);
+}
+
+.as-ring {
+    fill: none;
+    stroke: rgba(var(--ad-rgb), 0.18);
+    stroke-dasharray: 4 5;
+}
+
+.as-ring-l {
+    font: 700 9.5px Inter, system-ui, sans-serif;
+    letter-spacing: 0.1em;
+    fill: var(--ad-lbl);
+    paint-order: stroke;
+    stroke: var(--ad-bg2);
+    stroke-width: 6px;
+}
+
+.as-edge {
+    stroke-linecap: round;
+    stroke-opacity: 0.5;
+}
+
+.as-edge.is-m { stroke: var(--as-m); }
+.as-edge.is-f { stroke: var(--as-f); }
+.as-edge.is-o { stroke: var(--as-o); }
+
+.as-ini {
+    font-family: var(--ad-num);
+    font-weight: 700;
+    fill: #fff;
+    pointer-events: none;
+}
+
+.as-node-ring {
+    fill: none;
+    stroke-width: 2;
+}
+
+.as-node-ring.is-m { stroke: rgba(96, 165, 250, 0.85); }
+.as-node-ring.is-f { stroke: rgba(244, 114, 182, 0.85); }
+.as-node-ring.is-o { stroke: rgba(161, 161, 170, 0.8); }
+
+.as-node:hover .as-node-ring,
+.as-node.is-hot .as-node-ring {
+    stroke: #fff;
+    stroke-width: 3;
+}
+
+/* A hovered table row (or bubble) dims every other bubble and edge */
+.as-node,
+.as-edge {
+    transition: opacity 0.15s ease;
+}
+
+.as-map.has-hot .as-node:not(.is-hot),
+.as-map.has-hot .as-edge:not(.is-hot) {
+    opacity: 0.22;
+}
+
+.as-map.has-hot .as-edge.is-hot {
+    stroke-opacity: 0.9;
+}
+
+.as-table tr.is-hot td {
+    background: rgba(var(--ad-rgb), 0.08);
+}
+
+.as-table tr.is-flash td {
+    animation: as-flash 1.4s ease-out;
+}
+
+@keyframes as-flash {
+    0%, 30% { background: rgba(var(--ad-rgb), 0.28); }
+    100% { background: transparent; }
+}
+
+.as-me-ring {
+    fill: none;
+    stroke: var(--ad-c);
+    stroke-width: 3;
+    filter: drop-shadow(0 0 10px rgba(var(--ad-rgb), 0.55));
+}
+
+.as-lbl {
+    font: 600 11.5px Inter, system-ui, sans-serif;
+    fill: #f2f2f4;
+    paint-order: stroke;
+    stroke: rgba(10, 12, 16, 0.8);
+    stroke-width: 3px;
+}
+
+.as-lbl-n {
+    font: 600 11px 'Space Grotesk', Inter, sans-serif;
+    fill: var(--ad-mut);
+    paint-order: stroke;
+    stroke: rgba(10, 12, 16, 0.8);
+    stroke-width: 3px;
+}
+
+/* Thin bar (song pairs, also-together lists) */
+.as-rl-bar {
+    display: block;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.as-rl-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+}
+
+.as-rl-bar i.is-self { background: var(--ad-c); }
+
+/* ── Tables: every stat keeps its own column, the song column takes what is left, and the wide
+      album table scrolls sideways when the column is too narrow (same as the other detail tables) ── */
+.ad-table.as-table.is-wide { min-width: 1180px; }
+.as-table .as-col-name { width: 220px; }
+.as-table .as-col-link { width: 190px; }
+.as-table .as-col-g { width: 82px; }
+.as-table .as-col-role { width: 104px; }
+.as-table .as-col-s { width: 64px; }
+.as-table .as-col-sh { width: 230px; }
+
+/* Plays column: total with primary / legacy beside it, and a bar scaled to the top collaborator */
+.as-th-multi {
+    display: inline-flex;
+    gap: 10px;
+}
+
+.as-pl {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.as-pl-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.as-pl-top b {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.as-pl-top small {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--ad-num);
+    font-size: 11.5px;
+    color: #d4d4d8;
+}
+
+.as-pl-top small .as-dot.is-legacy {
+    margin-left: 6px;
+}
+
+.as-dot.is-primary { background: var(--ad-c); }
+.as-dot.is-legacy { background: var(--ad-soft); }
+
+.as-pl-bar {
+    display: flex;
+    gap: 1px;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.as-pl-bar i {
+    display: block;
+    height: 100%;
+    background: var(--ad-c);
+}
+
+.as-pl-bar i.is-legacy {
+    background: var(--ad-soft);
+}
+.as-table .as-col-plays { width: 124px; }
+.as-table .as-col-n { width: 86px; }
+.as-table .as-col-top { width: auto; }
+
+.as-table tbody tr {
+    scroll-margin-top: 90px;
+}
+
+/* Link cell: a bar with the mix of association types, and one chip per type with its song count */
+.as-link-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    white-space: normal;
+}
+
+.as-types {
+    display: flex;
+    gap: 2px;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.as-types i {
+    display: block;
+    height: 100%;
+}
+
+.as-link-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.as-sep {
+    width: 1px;
+    height: 12px;
+    background: var(--ad-hair);
+}
+
+.as-top {
+    color: #e4e4e7;
+    text-decoration: none;
+}
+
+.as-top:hover {
+    color: var(--ad-t);
+}
+
+.as-top-n {
+    margin-left: 6px;
+    font-family: var(--ad-num);
+    font-size: 11px;
+    color: #9a9aa3;
+}
+
+/* ── Album track strip ── */
+.as-strip-scroll {
+    overflow-x: auto;
+}
+
+.as-strip {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(22px, 1fr));
+    gap: 6px;
+    align-items: end;
+    min-height: 270px;
+    padding-top: 6px;
+}
+
+.as-tk {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    height: 100%;
+    min-width: 0;
+    text-decoration: none;
+}
+
+.as-tk:hover {
+    text-decoration: none;
+}
+
+.as-tk:hover .as-tk-bar {
+    filter: brightness(1.25);
+}
+
+.as-tk-v {
+    font-size: 10.5px;
+    color: rgba(212, 212, 216, 0.8);
+    white-space: nowrap;
+}
+
+.as-strip.is-dense .as-tk-v {
+    display: none;
+}
+
+.as-tk-bar {
+    display: block;
+    width: 100%;
+    border-radius: 6px 6px 2px 2px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.as-tk-bar.is-m { background: linear-gradient(180deg, #93c5fd, #3b82f6); }
+.as-tk-bar.is-f { background: linear-gradient(180deg, #f9a8d4, #ec4899); }
+.as-tk-bar.is-o { background: linear-gradient(180deg, #d4d4d8, #71717a); }
+
+.as-tk-no {
+    width: 100%;
+    padding-top: 6px;
+    border-top: 1px solid var(--ad-hair);
+    text-align: center;
+    font-size: 11px;
+    color: var(--ad-lbl);
+}
+
+.as-tk-no.is-ft {
+    color: #f2f2f4;
+    font-weight: 700;
+}
+
+.as-album-foot {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 28px;
+    margin-top: 22px;
+}
+
+/* ── Glance tiles: number, a bar to read it at a glance, readable breakdown ── */
+.as-tile {
+    gap: 6px;
+}
+
+.as-tile small {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    font-size: 12px;
+    color: #d4d4d8;
+}
+
+/* .ad-tile span is the uppercase tile label; the breakdown spans stay plain text */
+.as-tile small > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    overflow: visible;
+    font-size: inherit;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: inherit;
+}
+
+.as-tile small em {
+    font-style: normal;
+    font-family: var(--ad-num);
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.as-tile-bar {
+    display: flex;
+    gap: 2px;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.as-tile-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--ad-c);
+}
+
+.as-tile-bar i.is-m { background: var(--as-m); }
+.as-tile-bar i.is-f { background: var(--as-f); }
+.as-tile-bar i.is-o { background: var(--as-o); }
+
+/* ── Song credits: photo, name, role, gender and three plain numbers ── */
+.as-credits {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.as-credit {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(161, 161, 170, 0.28);
+    background: rgba(0, 0, 0, 0.2);
+    color: #f2f2f4;
+    text-decoration: none;
+}
+
+.as-credit:hover {
+    border-color: var(--ad-tintb);
+    text-decoration: none;
+}
+
+.as-credit.is-m {
+    border-color: rgba(96, 165, 250, 0.3);
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.07), rgba(0, 0, 0, 0.2));
+}
+
+.as-credit.is-f {
+    border-color: rgba(244, 114, 182, 0.34);
+    background: linear-gradient(180deg, rgba(244, 114, 182, 0.08), rgba(0, 0, 0, 0.2));
+}
+
+.as-credit-tx {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.as-credit-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.as-credit-tx .as-chips {
+    margin-top: 0;
+}
+
+.as-credit-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.as-credit-stats b {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+/* Pairs */
+.as-pairs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+}
+
+.as-pair {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) 56px 64px;
+    align-items: center;
+    gap: 12px;
+    min-height: 54px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.as-duo {
+    display: flex;
+    align-items: center;
+}
+
+.as-duo .as-av + .as-av {
+    margin-left: -8px;
+}
+
+.as-pair-tx {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.as-pair-tx b {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.as-pair-n {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.as-pair-n b {
+    font-size: 14px;
+}
+
+.as-pair-n small {
+    font-size: 11px;
+    color: #9a9aa3;
+}
+
+.as-also-h {
+    margin: 10px 0 2px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ad-mut);
+}
+
+.as-also {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 80px 48px;
+    align-items: center;
+    gap: 10px;
+    min-height: 34px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+    font-size: 12.5px;
+    color: #e4e4e7;
+    text-decoration: none;
+}
+
+.as-also:hover {
+    color: var(--ad-t);
+    text-decoration: none;
+}
+
+.as-also > span:first-child {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.as-also b {
+    text-align: right;
+}
+
+/* ── Narrow columns: two-up blocks stack ── */
+@media (max-width: 1100px) {
+    .as-album-foot,
+    .as-pairs,
+    .as-splits {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ── Phones: tables keep rank, name and the main numbers, no sideways scroll ── */
+@media (max-width: 900px) {
+    .ad-table.as-table {
+        min-width: 0;
+    }
+
+    .as-table .hide-mobile {
+        display: none;
+    }
+
+    .as-table .as-col-name {
+        width: auto;
+    }
+
+    .as-body {
+        padding: 0 14px 16px;
+    }
+}

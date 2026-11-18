@@ -862,6 +862,9 @@ public class SongRepository {
             case "weeks_listened" -> "weeks_listened " + dir;
             case "months_listened" -> "months_listened " + dir;
             case "years_listened" -> "years_listened " + dir;
+            // Consistency: years with plays, ties to the higher share (later first year), then plays
+            case "consistency" -> "years_listened " + dir + ", substr(first_listened, 1, 4) " + dir + " " + nullsOrder
+                    + ", play_count " + dir;
             case "age_at_release" -> "CAST((julianday(COALESCE(s.release_date, alb.release_date)) - julianday(ar.birth_date)) / 365.25 AS INTEGER) " + dir + " " + nullsOrder;
             case "birth_date" -> "ar.birth_date " + dir + " " + nullsOrder;
             case "billboard_peak" -> allowInternalTieBreakers

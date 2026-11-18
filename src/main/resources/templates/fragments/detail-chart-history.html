@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+
+<!--/* Chart History tab of the artist, album and song detail pages.
+       view: ChartHistoryViewDTO; subject: "artist", "album" or "song" (empty state copy).
+       Chart tiles switch between the hit grids (Weekly, Hot 100, Cuntdown, TRL) and the
+       Seasonal + Yearly calendar; detail-chart-history.js draws the run bars. */-->
+<div th:fragment="tab(view, subject)" class="chh">
+
+    <div th:if="${view.isEmpty()}" class="chh-card chh-empty">
+        <p>This <span th:text="${subject}">artist</span> has not charted.</p>
+    </div>
+
+    <th:block th:unless="${view.isEmpty()}">
+
+        <section class="chh-card chh-spread" th:if="${view.hasSpread()}" aria-label="Where they peaked">
+            <div class="chh-head">
+                <div class="chh-head-text">
+                    <span class="chh-eyebrow">Where they peaked</span>
+                    <h2 class="chh-title">Peak spread on every chart</h2>
+                </div>
+                <div class="chh-legend" aria-label="Legend">
+                    <span><i class="chh-band-one"></i>#1</span>
+                    <span><i class="chh-band-top5"></i>#2 to #5</span>
+                    <span><i class="chh-band-top10"></i>#6 to #10</span>
+                    <span><i class="chh-band-rest"></i>#11 and below</span>
+                </div>
+            </div>
+            <div class="chh-spread-rows" th:unless="${view.spread().isEmpty()}">
+                <th:block th:each="row : ${view.spread()}"><div th:replace="~{fragments/detail-chart-history :: spreadRow(${row})}"></div></th:block>
+            </div>
+            <div class="chh-spread-group" th:unless="${view.periodSpread().isEmpty()}">
+                <span class="chh-spread-group-label">Seasonal + yearly charts <span>· best placement of each song or album</span></span>
+                <div class="chh-spread-rows">
+                    <th:block th:each="row : ${view.periodSpread()}"><div th:replace="~{fragments/detail-chart-history :: spreadRow(${row})}"></div></th:block>
+                </div>
+            </div>
+        </section>
+
+        <div class="chh-tiles" role="group" aria-label="Charts"
+             th:style="${'--chh-tile-cols:' + T(library.dto.ChartHistoryViewDTO.Tile).columns(view.tiles().size())}">
+            <button th:each="tile, st : ${view.tiles()}" type="button" class="chh-tile"
+                    th:classappend="${'chh-tone-' + tile.tone() + (st.first ? ' is-active' : '')}"
+                    th:attr="data-chh-key=${tile.key()},data-chh-target=${tile.target()},aria-pressed=${st.first}">
+                <span class="chh-tile-top">
+                    <span class="chh-tile-name"><span class="chh-dot" aria-hidden="true"></span><span th:text="${tile.name()}">Weekly</span></span>
+                    <span class="chh-tile-peak-label">best peak</span>
+                </span>
+                <span class="chh-tile-peak">
+                    <span class="chh-num" th:classappend="${tile.isNumberOne()} ? 'is-one'" th:text="'#' + ${tile.bestPeak()}">#1</span>
+                    <span th:if="${tile.bestCount() > 0}" class="chh-times" th:classappend="${tile.isNumberOne()} ? 'is-one'"
+                          th:title="${tile.bestCount() + ' ' + tile.bestLabel()}" th:text="'×' + ${tile.bestCount()}">×15</span>
+                    <span th:if="${tile.bestCount() > 0}" class="chh-times-label" th:text="${tile.bestLabel()}">weeks at #1</span>
+                </span>
+                <span class="chh-tile-stats">
+                    <span th:each="stat : ${tile.stats()}" class="chh-tile-stat">
+                        <b class="chh-num" th:text="${stat.value()}">51</b> <small th:text="${stat.label()}">songs</small>
+                    </span>
+                </span>
+            </button>
+        </div>
+
+        <section th:each="sec : ${view.sections()}" class="chh-card chh-section"
+                 th:attr="data-chh-section=${sec.key()}" th:hidden="${sec.key() != view.firstTarget()}"
+                 th:aria-label="${sec.title()}">
+            <div class="chh-head">
+                <h2 class="chh-title"><span th:text="${sec.title()}">Weekly hits</span>
+                    <span class="chh-title-sub" th:text="${sec.songs().isEmpty() ? sec.albums().size() + (sec.albums().size() == 1 ? ' album' : ' albums') : sec.songs().size() + (sec.songs().size() == 1 ? ' song' : ' songs')} + ' · sorted by peak'"
+                          th:attr="data-chh-sub-songs=${sec.songs().size() + (sec.songs().size() == 1 ? ' song' : ' songs') + ' · sorted by peak'},data-chh-sub-albums=${sec.albums().size() + (sec.albums().size() == 1 ? ' album' : ' albums') + ' · sorted by peak'}">12 songs</span>
+                </h2>
+                <div th:if="${sec.hasBoth()}" class="chh-switch" role="group" aria-label="Songs or albums">
+                    <button type="button" class="is-active" data-chh-view-btn="songs" aria-pressed="true">Songs</button>
+                    <button type="button" data-chh-view-btn="albums" aria-pressed="false">Albums</button>
+                </div>
+            </div>
+            <div class="chh-grid" data-chh-view="songs" th:unless="${sec.songs().isEmpty()}">
+                <th:block th:each="c : ${sec.songs()}"><article th:replace="~{fragments/detail-chart-history :: hitCard(${c}, ${sec}, ${sec.songScale()})}"></article></th:block>
+            </div>
+            <div class="chh-grid" data-chh-view="albums" th:unless="${sec.albums().isEmpty()}" th:hidden="${!sec.songs().isEmpty()}">
+                <th:block th:each="c : ${sec.albums()}"><article th:replace="~{fragments/detail-chart-history :: hitCard(${c}, ${sec}, ${sec.albumScale()})}"></article></th:block>
+            </div>
+        </section>
+
+        <section th:if="${view.calendar().isPresent()}" class="chh-card chh-section chh-calendar"
+                 data-chh-section="calendar" th:hidden="${view.firstTarget() != 'calendar'}" aria-label="Seasonal and yearly charts">
+            <div class="chh-head">
+                <div class="chh-head-text">
+                    <span class="chh-eyebrow">Seasonal + yearly charts</span>
+                    <th:block th:each="grid : ${ {view.calendar().songs(), view.calendar().albums()} }">
+                        <h2 th:if="${grid != null}" class="chh-title" th:attr="data-chh-view=${grid.view()}"
+                            th:hidden="${grid.view() != view.calendar().firstView()}"
+                            th:text="${grid.seasonsCharted() + (grid.seasonsCharted() == 1 ? ' season' : ' seasons') + ' charted · ' + grid.numberOnes() + (grid.numberOnes() == 1 ? ' period' : ' periods') + ' at #1'}">14 seasons charted</h2>
+                    </th:block>
+                </div>
+                <div th:if="${view.calendar().hasBoth()}" class="chh-switch" role="group" aria-label="Songs or albums">
+                    <button type="button" class="is-active" data-chh-view-btn="songs" aria-pressed="true">Songs</button>
+                    <button type="button" data-chh-view-btn="albums" aria-pressed="false">Albums</button>
+                </div>
+            </div>
+
+            <th:block th:each="grid : ${ {view.calendar().songs(), view.calendar().albums()} }">
+                <div th:if="${grid != null}" class="chh-cal" th:attr="data-chh-view=${grid.view()}"
+                     th:hidden="${grid.view() != view.calendar().firstView()}">
+                    <div class="chh-cal-scroll">
+                        <div class="chh-cal-table">
+                            <div class="chh-cal-row chh-cal-headrow" aria-hidden="true">
+                                <span></span>
+                                <span><svg viewBox="0 0 24 24"><path d="M12 2v20M4.9 4.9l14.2 14.2M2 12h20M4.9 19.1L19.1 4.9"/></svg>Winter</span>
+                                <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3a3 3 0 0 1 0 6M12 15a3 3 0 0 1 0 6M3 12a3 3 0 0 1 6 0M15 12a3 3 0 0 1 6 0"/></svg>Spring</span>
+                                <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg>Summer</span>
+                                <span><svg viewBox="0 0 24 24"><path d="M5 19C5 10 10 5 20 4c-1 10-6 15-15 15zM5 19l7-7"/></svg>Fall</span>
+                                <span class="chh-cal-yearhead">Year-end</span>
+                            </div>
+                            <div th:each="yr : ${grid.years()}" class="chh-cal-row">
+                                <span class="chh-cal-year" th:text="${yr.year()}">2022</span>
+                                <th:block th:each="cell : ${yr.cells()}">
+                                    <button th:if="${cell.isCharted()}" type="button" class="chh-cal-cell"
+                                            th:classappend="${'chh-band-' + cell.band() + (cell.kind() == 'year' ? ' is-year' : '') + (cell.id() == grid.selectedId() ? ' is-selected' : '')}"
+                                            th:attr="data-chh-cell=${cell.id()},aria-pressed=${cell.id() == grid.selectedId()},aria-label=${cell.label() + ': best #' + cell.best().position() + ', ' + cell.best().name()}">
+                                        <span class="chh-cal-top"><span class="chh-cal-pos" th:text="'#' + ${cell.best().position()}">#1</span>
+                                            <span class="chh-cal-more" th:if="${cell.more() > 0}" th:text="'+' + ${cell.more()}">+2</span></span>
+                                        <span class="chh-cal-name" th:text="${cell.best().name()}">Song</span>
+                                    </button>
+                                    <span th:unless="${cell.isCharted()}" class="chh-cal-cell is-empty"
+                                          th:classappend="${cell.kind() == 'year'} ? 'is-year'"
+                                          th:title="${cell.label() + ': not charted'}"></span>
+                                </th:block>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chh-legend" aria-label="Legend">
+                        <span><i class="chh-band-one"></i>#1</span>
+                        <span><i class="chh-band-top5"></i>#2 to #5</span>
+                        <span><i class="chh-band-top10"></i>#6 to #10</span>
+                        <span><i class="chh-band-rest"></i>#11 and below</span>
+                    </div>
+
+                    <th:block th:each="yr : ${grid.years()}">
+                        <th:block th:each="cell : ${yr.cells()}">
+                            <div th:if="${cell.isCharted()}" class="chh-period" th:attr="data-chh-period=${cell.id()}"
+                                 th:hidden="${cell.id() != grid.selectedId()}">
+                                <div class="chh-period-head">
+                                    <div class="chh-head-text">
+                                        <span class="chh-eyebrow" th:text="${cell.kind() == 'year' ? 'Yearly chart' : 'Seasonal chart'}">Seasonal chart</span>
+                                        <span class="chh-period-label" th:text="${cell.label()}">Summer 2022</span>
+                                    </div>
+                                    <a class="chh-pill-link" th:href="@{${cell.chartHref()}}" th:text="'Open ' + ${cell.label()} + ' chart'">Open chart</a>
+                                </div>
+                                <div class="chh-period-items">
+                                    <a th:each="item : ${cell.items()}" class="chh-period-item" th:classappend="${item.isNumberOne()} ? 'is-one'"
+                                       th:href="${item.href() != null} ? @{${item.href()}} : null">
+                                        <span class="chh-num" th:classappend="${item.isNumberOne()} ? 'is-one'" th:text="'#' + ${item.position()}">#1</span>
+                                        <span class="chh-period-item-text">
+                                            <span class="chh-period-item-name" th:text="${item.name()}">Song</span>
+                                            <span class="chh-period-item-note" th:if="${item.note() != null}" th:text="${item.note()}">feat. on</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </th:block>
+                    </th:block>
+                </div>
+            </th:block>
+        </section>
+
+    </th:block>
+</div>
+
+<!--/* One "Where they peaked" row: a bar split by peak band. */-->
+<div th:fragment="spreadRow(row)" class="chh-spread-row" th:classappend="${'chh-tone-' + row.tone()}">
+    <span class="chh-spread-name"><span class="chh-dot" aria-hidden="true"></span><span th:text="${row.name()}">Weekly songs</span></span>
+    <div class="chh-spread-bar">
+        <span th:each="seg : ${row.segments()}" class="chh-seg" th:classappend="${'chh-band-' + seg.band()}"
+              th:style="${'flex-grow:' + seg.count()}" th:text="${seg.count()}">3</span>
+    </div>
+    <span class="chh-spread-total"><b th:text="${row.total()}">12</b> total</span>
+</div>
+
+<!--/* One hit card. scale: the chart size the run bars are drawn against. */-->
+<article th:fragment="hitCard(c, sec, scale)" class="chh-hit" th:classappend="${c.isNumberOne()} ? 'is-one'"
+         th:attr="data-run-url=@{${c.runUrl()}},data-scale=${scale},data-period-href=${sec.periodHref()},data-unit=${sec.unit()}">
+    <div class="chh-hit-head">
+        <a class="chh-cover" th:href="@{${c.href()}}" tabindex="-1" aria-hidden="true">
+            <img th:if="${c.coverUrl() != null}" loading="lazy" decoding="async" alt=""
+                 th:src="@{${c.coverUrl()}}" th:data-fallback="${c.fallbackUrl() != null} ? @{${c.fallbackUrl()}} : null"
+                 onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback='';}else{this.hidden=true;this.nextElementSibling.hidden=false;}">
+            <span class="chh-cover-ph" th:text="${c.initials()}" th:hidden="${c.coverUrl() != null}">UV</span>
+        </a>
+        <div class="chh-hit-title">
+            <a class="chh-hit-name" th:href="@{${c.href()}}"><span th:if="${c.inItunes() != null}"
+                    class="itunes-badge" th:classappend="${c.inItunes() ? 'in-itunes' : 'not-in-itunes'}"
+                    th:title="${c.inItunes() ? 'In iTunes Library' : 'Not in iTunes Library'}"
+                    th:text="${c.inItunes() ? '✓' : '✗'}"></span><span th:text="${c.name()}">Song</span></a>
+            <a th:if="${c.sub() != null and c.subHref() != null}" class="chh-hit-sub" th:href="@{${c.subHref()}}" th:text="${c.sub()}">feat. on</a>
+            <span th:if="${c.sub() != null and c.subHref() == null}" class="chh-hit-sub" th:text="${c.sub()}">Released</span>
+        </div>
+        <a class="chh-hit-peak" th:href="${c.peakHref() != null} ? @{${c.peakHref()}} : null"
+           th:title="${c.peakLabel() != null} ? ${'First reached #' + c.peak() + ' on ' + c.peakLabel()} : null">
+            <span class="chh-peak-line">
+                <span class="chh-num" th:classappend="${c.isNumberOne()} ? 'is-one'" th:text="'#' + ${c.peak()}">#1</span>
+                <span th:if="${c.atPeak() != null and c.atPeak() > 0}" class="chh-times" th:classappend="${c.isNumberOne()} ? 'is-one'"
+                      th:title="${c.atPeak() + ' ' + (sec.unit() == 'days' ? (c.atPeak() == 1 ? 'day' : 'days') : (c.atPeak() == 1 ? 'week' : 'weeks')) + ' at #' + c.peak()}"
+                      th:text="'×' + ${c.atPeak()}">×19</span>
+            </span>
+            <span class="chh-mini-label">peak</span>
+        </a>
+    </div>
+    <button type="button" class="chh-run" aria-haspopup="dialog" th:aria-label="${'Open the chart run of ' + c.name()}"
+            title="Open the full chart run">
+        <span class="chh-run-bars" aria-hidden="true"></span>
+    </button>
+    <div class="chh-hit-foot">
+        <span class="chh-hit-total">
+            <span th:if="${c.hasBreakdown()}" class="linked-song-tooltip-trigger tooltip-enabled" data-tooltip-title="Combined song versions (Weeks):">
+                <b class="chh-num" th:text="${c.total()}">31</b>
+                <span class="linked-song-tooltip-item-source" hidden th:each="tooltipItem : ${c.breakdown()}" th:text="${tooltipItem}"></span>
+            </span><b th:unless="${c.hasBreakdown()}" class="chh-num" th:text="${c.total()}">31</b>
+            <small th:text="${sec.unit() == 'days' ? (c.total() == 1 ? 'day' : 'days') : (c.total() == 1 ? 'week' : 'weeks')} + ' on chart'">weeks on chart</small>
+        </span>
+        <span class="chh-hit-dates">
+            <a th:if="${c.debutLabel() != null and c.debutHref() != null}" class="chh-hit-debut" th:href="@{${c.debutHref()}}">Debut <b th:text="${c.debutLabel()}">02-Jul-2023</b></a>
+            <span th:if="${c.debutLabel() != null and c.debutHref() == null}" class="chh-hit-debut">Debut <b th:text="${c.debutLabel()}">02-Jul-2023</b></span>
+            <a th:if="${c.peakLabel() != null and c.peakHref() != null}" class="chh-hit-peakdate" th:classappend="${c.isNumberOne()} ? 'is-one'"
+               th:href="@{${c.peakHref()}}">Peak <b th:text="${c.peakLabel()}">14-Jul-2023</b></a>
+            <span th:if="${c.peakLabel() != null and c.peakHref() == null}" class="chh-hit-peakdate" th:classappend="${c.isNumberOne()} ? 'is-one'">Peak <b th:text="${c.peakLabel()}">14-Jul-2023</b></span>
+        </span>
+    </div>
+</article>
+
+</body>
+</html>

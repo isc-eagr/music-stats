@@ -18,7 +18,10 @@ import library.service.PcService;
 import library.service.ThemeService;
 import library.service.TagService;
 import library.service.TrlService;
-import library.service.DetailPlayHeatmapService;
+import library.service.DetailAssociationsService;
+import library.service.DetailChartHistoryService;
+import library.service.DetailPlaysService;
+import library.util.ArtistGeneralSummaries;
 import library.util.DateFormatUtils;
 import library.util.GraphsNavigation;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,13 +56,18 @@ public class ArtistController {
     private final CatalogChartService catalogChartService;
     private final ChartFilterRequestFactory chartFilterRequestFactory;
     private final TagService tagService;
-    private final DetailPlayHeatmapService detailPlayHeatmapService;
+    private final DetailPlaysService detailPlaysService;
+    private final DetailAssociationsService detailAssociationsService;
+    private final DetailChartHistoryService detailChartHistoryService;
 
     public ArtistController(ArtistService artistService, ChartService chartService, LookupRepository lookupRepository,
                              ItunesService itunesService, ThemeService themeService, AppConfigService appConfigService,
                              BillboardHot100Service billboardHot100Service, PcService pcService, TrlService trlService,
                              CatalogChartService catalogChartService, ChartFilterRequestFactory chartFilterRequestFactory,
-                             TagService tagService, DetailPlayHeatmapService detailPlayHeatmapService) {
+                             TagService tagService, DetailPlaysService detailPlaysService,
+                             DetailAssociationsService detailAssociationsService,
+                             DetailChartHistoryService detailChartHistoryService) {
+        this.detailChartHistoryService = detailChartHistoryService;
         this.artistService = artistService;
         this.chartService = chartService;
         this.lookupRepository = lookupRepository;
@@ -72,7 +80,8 @@ public class ArtistController {
         this.catalogChartService = catalogChartService;
         this.chartFilterRequestFactory = chartFilterRequestFactory;
         this.tagService = tagService;
-        this.detailPlayHeatmapService = detailPlayHeatmapService;
+        this.detailPlaysService = detailPlaysService;
+        this.detailAssociationsService = detailAssociationsService;
     }
     
     @InitBinder
@@ -298,7 +307,13 @@ public class ArtistController {
         // Add data to model
         model.addAttribute("currentSection", "artists");
         model.addAttribute("artists", artists);
-        model.addAttribute("artistRankings", java.util.Collections.emptyMap());
+        if (lazyCard && includeExtendedStats && !artists.isEmpty()) {
+            artistService.fillListenedSongs(artists.getFirst(), includeMain, includeGroups, includeFeatured);
+        }
+        // Ranks are shown in the More panel, which loads one card at a time (lazyCard), so only rank that card
+        model.addAttribute("artistRankings", lazyCard && !artists.isEmpty()
+                ? java.util.Map.of(artists.getFirst().getId(), artistService.getAllArtistRankings(artists.getFirst().getId()))
+                : java.util.Collections.emptyMap());
         model.addAttribute("genderCounts", genderCounts);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
@@ -388,6 +403,8 @@ public class ArtistController {
         
         // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
+        // Lists opened from a timeframe or year after the legacy account stopped leave Primary / Legacy out
+        model.addAttribute("showLegacy", library.util.LegacyPlays.worthShowingFrom(listenedDateFrom));
         model.addAttribute("listenedDateTo", listenedDateTo);
         model.addAttribute("listenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateFrom));
         model.addAttribute("listenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateTo));
@@ -574,6 +591,13 @@ public class ArtistController {
         };
     }
     
+    /** Plays tab: the latest overall rank moves, loaded when the tab is opened (it replays the whole play history). */
+    @GetMapping("/{id}/rank-moves")
+    @ResponseBody
+    public DetailPlaysService.RankMoves rankMoves(@PathVariable Integer id) {
+        return detailPlaysService.rankMoves(DetailPlaysService.Kind.ARTIST, id);
+    }
+
     @GetMapping("/{id}")
     public String viewArtist(@PathVariable Integer id, 
                             @RequestParam(defaultValue = "general") String tab,
@@ -581,7 +605,6 @@ public class ArtistController {
                             @RequestParam(defaultValue = "false") boolean includeGroups,
                             @RequestParam(defaultValue = "false") boolean includeFeatured,
                             @RequestParam(defaultValue = "true") boolean includeMain,
-                            @RequestParam(required = false) Integer heatmapYear,
                             Model model) {
         Optional<Artist> artist = artistService.getArtistById(id);
         
@@ -627,12 +650,9 @@ public class ArtistController {
         // Add includeMain toggle data (toggle is always shown, default is on)
         model.addAttribute("includeMain", includeMain);
         
-        // Get group/member cards for Artist Associations tab
+        // Groups this artist belongs to (sidebar "Member of" tags and the group editor)
         List<FeaturedArtistCardDTO> groupArtistCards = artistService.getGroupsForArtist(id);
-        List<FeaturedArtistCardDTO> memberArtistCards = artistService.getMembersForArtist(id);
-        
         model.addAttribute("groupArtistCards", groupArtistCards);
-        model.addAttribute("memberArtistCards", memberArtistCards);
         
         // Determine which data sources to use
         // includeGroups works independently from includeMain
@@ -658,52 +678,23 @@ public class ArtistController {
         model.addAttribute("totalListeningTime", library.util.TimeFormatUtils.formatTime(scopedMetrics.listeningSeconds()));
         model.addAttribute("firstListenedDate", scopedMetrics.firstListened() != null ? DateFormatUtils.formatIsoDateForDisplay(scopedMetrics.firstListened().substring(0, 10)) : null);
         model.addAttribute("lastListenedDate", scopedMetrics.lastListened() != null ? DateFormatUtils.formatIsoDateForDisplay(scopedMetrics.lastListened().substring(0, 10)) : null);
-        model.addAttribute("firstListenedSong", includeMain && !includeGroups && !includeFeatured
-                ? artistService.getFirstListenedSongForArtist(id) : null);
+        boolean mainScopeOnly = includeMain && !includeGroups && !includeFeatured;
+        model.addAttribute("firstListenedSong", mainScopeOnly ? artistService.getFirstListenedSongForArtist(id) : null);
+        model.addAttribute("lastListenedSong", mainScopeOnly ? artistService.getLastListenedSongForArtist(id) : null);
+        model.addAttribute("listeningSpan", DateFormatUtils.spanLabel(
+                (String) model.getAttribute("firstListenedDate"), (String) model.getAttribute("lastListenedDate")));
         model.addAttribute("averageSongLength", scopedMetrics.songCount() > 0
                 ? library.util.TimeFormatUtils.formatTimeHMS(scopedMetrics.totalSongLength() / scopedMetrics.songCount()) : "-");
         model.addAttribute("averagePlaysPerSong", formatAverage(scopedMetrics.averagePlaysPerSong()));
         model.addAttribute("averagePlaysPerAlbum", formatAverage(scopedMetrics.averagePlaysPerAlbum()));
-        model.addAttribute("uniqueDaysPlayed", scopedMetrics.uniqueDays());
-        model.addAttribute("uniqueWeeksPlayed", scopedMetrics.uniqueWeeks());
-        model.addAttribute("uniqueMonthsPlayed", scopedMetrics.uniqueMonths());
-        model.addAttribute("uniqueYearsPlayed", scopedMetrics.uniqueYears());
-        
-        // Calculate totals based on first listened date
         java.time.LocalDate firstListened = scopedMetrics.firstListened() != null
                 ? java.time.LocalDate.parse(scopedMetrics.firstListened().substring(0, 10)) : null;
-        if (firstListened != null) {
-            java.time.LocalDate now = java.time.LocalDate.now();
-            
-            // Calendar days: actual days between dates
-            long daysSinceFirst = java.time.temporal.ChronoUnit.DAYS.between(firstListened, now) + 1;
-            
-            // Calendar weeks: count week numbers from first to now
-            java.time.temporal.WeekFields weekFields = java.time.temporal.WeekFields.of(java.util.Locale.getDefault());
-            int firstWeek = firstListened.get(weekFields.weekOfWeekBasedYear());
-            int firstWeekYear = firstListened.get(weekFields.weekBasedYear());
-            int nowWeek = now.get(weekFields.weekOfWeekBasedYear());
-            int nowWeekYear = now.get(weekFields.weekBasedYear());
-            // Approximate: weeks in between years + week difference in current year
-            long weeksSinceFirst = ((nowWeekYear - firstWeekYear) * 52L) + (nowWeek - firstWeek) + 1;
-            
-            // Calendar months: count month numbers from first to now
-            long monthsSinceFirst = ((now.getYear() - firstListened.getYear()) * 12L) + (now.getMonthValue() - firstListened.getMonthValue()) + 1;
-            
-            // Calendar years: count year numbers from first to now
-            long yearsSinceFirst = (now.getYear() - firstListened.getYear()) + 1;
-            
-            model.addAttribute("totalDaysSinceFirstPlay", daysSinceFirst);
-            model.addAttribute("totalWeeksSinceFirstPlay", weeksSinceFirst);
-            model.addAttribute("totalMonthsSinceFirstPlay", monthsSinceFirst);
-            model.addAttribute("totalYearsSinceFirstPlay", yearsSinceFirst);
-        } else {
-            model.addAttribute("totalDaysSinceFirstPlay", 0);
-            model.addAttribute("totalWeeksSinceFirstPlay", 0);
-            model.addAttribute("totalMonthsSinceFirstPlay", 0);
-            model.addAttribute("totalYearsSinceFirstPlay", 0);
-        }
-        
+        model.addAttribute("showLegacy", library.util.LegacyPlays.worthShowing(scopedMetrics.robertloverPlayCount(), firstListened));
+        model.addAttribute("consistencyPeriods", library.dto.ConsistencyPeriodDTO.of(scopedMetrics.uniqueDays(),
+                scopedMetrics.uniqueWeeks(), scopedMetrics.uniqueMonths(), scopedMetrics.uniqueYears(), firstListened));
+        // Ranks compare the artist's own songs, so they only match the counts in the main-only scope
+        model.addAttribute("consistencyRankUrl", mainScopeOnly ? "/artists/" + id + "/consistency" : null);
+
         // Add albums list for the artist
         List<library.dto.ArtistAlbumDTO> albumsList;
         if (includeMain && effectiveGroupIds != null) {
@@ -753,30 +744,19 @@ public class ArtistController {
             songs = artistService.combineLinkedSongs(songs);
         }
         model.addAttribute("songs", songs);
-        
+        model.addAttribute("noAlbumSummary", ArtistGeneralSummaries.noAlbumSummary(songs));
+        model.addAttribute("playsShare", ArtistGeneralSummaries.playsShare(albumsList, songs));
+        model.addAttribute("releases", ArtistGeneralSummaries.releases(albumsList));
+
         // Tab and plays data
         model.addAttribute("activeTab", tab);
-        model.addAttribute("playHeatmap", detailPlayHeatmapService.forArtist(
-                id, effectiveGroupIds, includeMain, includeFeatured, heatmapYear));
+        java.util.Map<Integer, Integer[]> yearRanks = detailPlaysService.yearRanks(DetailPlaysService.Kind.ARTIST, id);
+        model.addAttribute("ranksByYear", DetailPlaysService.overallByYear(yearRanks));
+        model.addAttribute("playsTab", detailPlaysService.build(
+                detailPlaysService.artistScope(id, effectiveGroupIds, includeMain, includeFeatured), yearRanks));
         
-        // Add collaborated artist cards (always pre-loaded for Artist Associations tab)
-        if (includeMain && effectiveGroupIds != null) {
-            // Main + Groups
-            model.addAttribute("collaboratedArtistCards", artistService.getAggregatedCollaboratedArtists(id, effectiveGroupIds));
-        } else if (includeMain && effectiveGroupIds == null) {
-            // Main only
-            model.addAttribute("collaboratedArtistCards", artistService.getCollaboratedArtistsForArtist(id));
-        } else if (!includeMain && effectiveGroupIds != null) {
-            // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
-            model.addAttribute("collaboratedArtistCards", artistService.getAggregatedCollaboratedArtists(0, effectiveGroupIds));
-        } else {
-            // No main, no groups - only featured collaborators
-            if (includeFeatured && hasFeaturedSongs) {
-                model.addAttribute("collaboratedArtistCards", artistService.getFeaturedCollaboratedArtists(id));
-            } else {
-                model.addAttribute("collaboratedArtistCards", java.util.Collections.emptyList());
-            }
-        }
+        // Artist Associations tab (always pre-loaded): every song the artist is credited on, whatever the toggles
+        model.addAttribute("associations", detailAssociationsService.artistTab(id));
         
         // Always load plays data (eager loading for all tabs)
         {
@@ -800,7 +780,6 @@ public class ArtistController {
                 model.addAttribute("playsTotalCount", totalCount);
                 model.addAttribute("playsPage", playsPage);
                 model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(id, effectiveGroupIds));
             } else if (includeMain && effectiveGroupIds == null) {
                 // Main only
                 plays = new java.util.ArrayList<>(artistService.getPlaysForArtist(id, playsPage, pageSize));
@@ -818,7 +797,6 @@ public class ArtistController {
                 model.addAttribute("playsTotalCount", totalCount);
                 model.addAttribute("playsPage", playsPage);
                 model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                model.addAttribute("playsByMonth", artistService.getPlaysByMonthForArtist(id));
             } else if (!includeMain && effectiveGroupIds != null) {
                 // Groups only (no main) - pass 0 as ID to exclude main artist from aggregation
                 plays = new java.util.ArrayList<>(artistService.getAggregatedPlaysForArtist(0, effectiveGroupIds, playsPage, pageSize));
@@ -836,7 +814,6 @@ public class ArtistController {
                 model.addAttribute("playsTotalCount", totalCount);
                 model.addAttribute("playsPage", playsPage);
                 model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                model.addAttribute("playsByMonth", artistService.getAggregatedPlaysByMonth(0, effectiveGroupIds));
             } else {
                 // No main, no groups - only featured
                 if (includeFeatured && hasFeaturedSongs) {
@@ -846,13 +823,11 @@ public class ArtistController {
                     model.addAttribute("playsTotalCount", totalCount);
                     model.addAttribute("playsPage", playsPage);
                     model.addAttribute("playsTotalPages", (int) Math.ceil((double) totalCount / pageSize));
-                    model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 } else {
                     model.addAttribute("plays", java.util.Collections.emptyList());
                     model.addAttribute("playsTotalCount", 0L);
                     model.addAttribute("playsPage", 0);
                     model.addAttribute("playsTotalPages", 0);
-                    model.addAttribute("playsByMonth", java.util.Collections.emptyList());
                 }
             }
         }
@@ -949,15 +924,16 @@ public class ArtistController {
                 songHistory = chartService.combineLinkedSongChartHistory(songHistory);
             }
 
-            model.addAttribute("songChartHistory", songHistory);
-            model.addAttribute("albumChartHistory", albumHistory);
-            model.addAttribute("seasonalSongChartHistory", seasonalSongHistory);
-            model.addAttribute("yearlySongChartHistory", yearlySongHistory);
-            model.addAttribute("seasonalAlbumChartHistory", seasonalAlbumHistory);
-            model.addAttribute("yearlyAlbumChartHistory", yearlyAlbumHistory);
-            model.addAttribute("bbChartedSongs", billboardHot100Service.getChartedSongsByArtistId(id));
-            model.addAttribute("pcChartedSongs", pcService.getChartedSongsByArtistId(id));
-            model.addAttribute("trlChartedSongs", trlService.getChartedSongsByArtistId(id));
+            // Hot 100 / Cuntdown / TRL follow the same Main / Groups / Featured toggles
+            List<Integer> ownerIds = new java.util.ArrayList<>();
+            if (includeMain) ownerIds.add(id);
+            if (effectiveGroupIds != null) ownerIds.addAll(effectiveGroupIds);
+            Integer featuredArtistId = includeFeatured && hasFeaturedSongs ? id : null;
+            model.addAttribute("chartHistoryView", detailChartHistoryService.forArtist(id, songHistory, albumHistory,
+                    seasonalSongHistory, yearlySongHistory, seasonalAlbumHistory, yearlyAlbumHistory,
+                    billboardHot100Service.getChartedSongsForArtistScope(ownerIds, featuredArtistId),
+                    pcService.getChartedSongsForArtistScope(ownerIds, featuredArtistId),
+                    trlService.getChartedSongsForArtistScope(ownerIds, featuredArtistId)));
         }
         
         // Get gender name for bar color
@@ -981,51 +957,7 @@ public class ArtistController {
 
         // Add new ranking chips
         model.addAttribute("overallPosition", artistService.getArtistOverallPosition(id));
-        
-        // Add #1 song achievement chips
-        Integer numberOneSongsCount = chartService.getNumberOneSongsCount(id);
-        model.addAttribute("numberOneSongsCount", numberOneSongsCount);
-        model.addAttribute("numberOneWeeksCount", chartService.getNumberOneWeeksCount(id));
-        
-        // Get list of #1 songs for tooltip
-        if (numberOneSongsCount != null && numberOneSongsCount > 0) {
-            model.addAttribute("numberOneSongsList", chartService.getNumberOneSongNames(id));
-        }
-        
-        // Add #1 album achievement chips
-        Integer numberOneAlbumsCount = chartService.getNumberOneAlbumsCount(id);
-        model.addAttribute("numberOneAlbumsCount", numberOneAlbumsCount);
-        model.addAttribute("numberOneAlbumWeeksCount", chartService.getNumberOneAlbumWeeksCount(id));
-        
-        // Get list of #1 albums for tooltip
-        if (numberOneAlbumsCount != null && numberOneAlbumsCount > 0) {
-            model.addAttribute("numberOneAlbumsList", chartService.getNumberOneAlbumNames(id));
-        }
-        
-        // Add #1 featured song achievement chips
-        Integer numberOneFeaturedSongsCount = chartService.getNumberOneFeaturedSongsCount(id);
-        model.addAttribute("numberOneFeaturedSongsCount", numberOneFeaturedSongsCount);
-        model.addAttribute("numberOneFeaturedWeeksCount", chartService.getNumberOneFeaturedWeeksCount(id));
-        
-        // Get list of #1 featured songs for tooltip
-        if (numberOneFeaturedSongsCount != null && numberOneFeaturedSongsCount > 0) {
-            model.addAttribute("numberOneFeaturedSongsList", chartService.getNumberOneFeaturedSongNames(id));
-        }
-        
-        // Reverse the year rankings order for artist detail page (most recent first)
-        Map<Integer, Integer> yearRanks = artistService.getArtistRanksByYear(id);
-        if (yearRanks != null && !yearRanks.isEmpty()) {
-            // Convert to list, reverse it, and create a new LinkedHashMap in reversed order
-            List<Map.Entry<Integer, Integer>> yearList = new java.util.ArrayList<>(yearRanks.entrySet());
-            java.util.Collections.reverse(yearList);
-            Map<Integer, Integer> reversedYearRanks = new java.util.LinkedHashMap<>();
-            for (Map.Entry<Integer, Integer> entry : yearList) {
-                reversedYearRanks.put(entry.getKey(), entry.getValue());
-            }
-            model.addAttribute("ranksByYear", reversedYearRanks);
-        } else {
-            model.addAttribute("ranksByYear", yearRanks);
-        }
+        model.addAttribute("totalArtistCount", artistService.getArtistCount());
 
         // Extended stats for detail page
         model.addAttribute("soloSongCount", scopedMetrics.soloSongCount());
@@ -1042,11 +974,12 @@ public class ArtistController {
     @PostMapping("/{id}")
     public String updateArtist(@PathVariable Integer id,
                                @ModelAttribute Artist artist,
-                               @RequestParam(required = false) List<Integer> tags) {
+                               @RequestParam(required = false) List<Integer> tags,
+                               HttpServletRequest request) {
         artist.setId(id);
         artistService.saveArtist(artist);
         tagService.saveArtistTags(id, tags);
-        return "redirect:/artists/" + id;
+        return DetailRedirects.backTo("/artists/" + id, request);
     }
     
     @GetMapping("/{id}/image")
@@ -1290,5 +1223,5 @@ public class ArtistController {
     private int selectedArtistPlaySourceCount(boolean includeMain, boolean includeGroups, boolean includeFeatured) {
         return (includeMain ? 1 : 0) + (includeGroups ? 1 : 0) + (includeFeatured ? 1 : 0);
     }
-    
+
 }

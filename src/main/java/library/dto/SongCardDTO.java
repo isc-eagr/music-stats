@@ -406,6 +406,11 @@ public class SongCardDTO {
         this.yearsListened = yearsListened;
     }
 
+    /** Not a bean getter, so the list APIs' JSON leaves it out; the More panel calls it directly. */
+    public java.util.List<ConsistencyPeriodDTO> consistencyPeriods() {
+        return ConsistencyPeriodDTO.forCard(daysListened, weeksListened, monthsListened, yearsListened, firstListenedDate);
+    }
+
     public Boolean getLinkedSongGroup() {
         return linkedSongGroup;
     }

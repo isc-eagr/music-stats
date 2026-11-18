@@ -887,6 +887,9 @@ public class AlbumRepository {
             case "weeks_listened" -> "weeks_listened " + direction;
             case "months_listened" -> "months_listened " + direction;
             case "years_listened" -> "years_listened " + direction;
+            // Consistency: years with plays, ties to the higher share (later first year), then plays
+            case "consistency" -> "years_listened " + direction + ", substr(first_listened, 1, 4) " + direction
+                    + " NULLS LAST, play_count " + direction;
             case "age_at_release" -> "CAST((julianday(a.release_date) - julianday(ar.birth_date)) / 365.25 AS INTEGER) " + direction + " NULLS LAST";
             case "birth_date" -> "ar.birth_date " + direction + " NULLS LAST";
             case "death_date" -> "ar.death_date " + direction + " NULLS LAST";
@@ -1963,6 +1966,14 @@ public class AlbumRepository {
         return result;
     }
 
+    /** Song names behind the album's first and last play. */
+    public library.dto.ListenedSongs findFirstAndLastListenedSongs(int albumId) {
+        String base = "SELECT s.name FROM Play p JOIN Song s ON s.id = p.song_id WHERE s.album_id = ? ORDER BY p.play_date ";
+        List<String> first = jdbcTemplate.queryForList(base + "ASC, p.id ASC LIMIT 1", String.class, albumId);
+        List<String> last = jdbcTemplate.queryForList(base + "DESC, p.id DESC LIMIT 1", String.class, albumId);
+        return new library.dto.ListenedSongs(first.isEmpty() ? null : first.getFirst(), last.isEmpty() ? null : last.getFirst());
+    }
+
     public AlbumFullListenStats findFullListenStatsForAlbum(int albumId) {
         return fullListenCalculator.calculateForAlbum(albumId);
     }
@@ -1977,7 +1988,7 @@ public class AlbumRepository {
             if (sortField == null) continue;
             if (sortField.equals("days_listened") || sortField.equals("weeks_listened")
                     || sortField.equals("months_listened") || sortField.equals("years_listened")
-                    || sortField.equals("seasonal_chart_peak") || sortField.equals("weekly_chart_peak")
+                    || sortField.equals("consistency") || sortField.equals("seasonal_chart_peak") || sortField.equals("weekly_chart_peak")
                     || sortField.equals("weekly_chart_weeks") || sortField.equals("weekly_chart_peak_weeks")
                     || sortField.equals("yearly_chart_peak")) {
                 return true;

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Leaderboard rows for the Timeframe and Catalog list pages (styles in css/catalog-rows.css).
+     Rows reuse the gender theme variables of css/catalog-cards.css through the .gc class. -->
+
+<!-- Fonts and styles; include after the page's other stylesheets -->
+<th:block th:fragment="row-styles">
+    <th:block th:replace="~{fragments/catalog-card :: card-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-rows.css}">
+</th:block>
+
+<!-- One metric column: label and total on top, a slim bar split male / female / other, shares underneath -->
+<div th:fragment="metric(label, total, male, female, other, highlighted)"
+     class="lb-m" th:classappend="${highlighted} ? 'hl'"
+     th:with="m=${male != null ? male : 0}, f=${female != null ? female : 0}, o=${other != null ? other : 0}, sum=${m + f + o}">
+    <div class="lb-m-hd"><span class="lb-m-l" th:text="${label}">Plays</span><span class="lb-m-v" th:text="${total}">0</span></div>
+    <div class="lb-m-bar" aria-hidden="true">
+        <span th:if="${m > 0}" class="lb-m-male" th:style="|flex: ${m} 1 0|"></span>
+        <span th:if="${f > 0}" class="lb-m-female" th:style="|flex: ${f} 1 0|"></span>
+        <span th:if="${o > 0}" class="lb-m-other" th:style="|flex: ${o} 1 0|"></span>
+        <span th:if="${sum == 0}" class="lb-m-empty"></span>
+    </div>
+    <div class="lb-m-pc">
+        <span class="lb-m-pm" th:title="${'Male: ' + m}" th:text="${sum > 0 ? #numbers.formatDecimal(m * 100.0 / sum, 1, 2) + '%' : '-'}">0%</span>
+        <span class="lb-m-pf" th:title="${'Female: ' + f}" th:text="${sum > 0 ? #numbers.formatDecimal(f * 100.0 / sum, 1, 2) + '%' : '-'}">0%</span>
+    </div>
+</div>
+
+<!-- One metric column for the Genders page: the bar shows this gender's share of the whole -->
+<div th:fragment="share-metric(label, total, part, whole, highlighted)"
+     class="lb-m lb-m-share" th:classappend="${highlighted} ? 'hl'"
+     th:with="p=${part != null ? part : 0}, w=${whole != null ? whole : 0}">
+    <div class="lb-m-hd"><span class="lb-m-l" th:text="${label}">Plays</span><span class="lb-m-v" th:text="${total}">0</span></div>
+    <div class="lb-m-bar" aria-hidden="true">
+        <span th:if="${p > 0}" class="lb-m-fill" th:style="|flex: ${p} 1 0|"></span>
+        <span th:if="${w > p}" class="lb-m-rest" th:style="|flex: ${w - p} 1 0|"></span>
+        <span th:if="${w == 0}" class="lb-m-empty"></span>
+    </div>
+    <div class="lb-m-pc"><span class="lb-m-ps" th:text="${w > 0 ? #numbers.formatDecimal(p * 100.0 / w, 1, 2) + '% of all' : '-'}">0% of all</span></div>
+</div>
+
+<!-- A metric column that opens a filtered list (href) in table layout; plain column when href is null.
+     A metricTarget variable set by the page (e.g. '_blank') applies to the link. -->
+<th:block th:fragment="linked-metric(href, label, total, male, female, other, highlighted)">
+    <a th:if="${href != null}" class="lb-m-link" th:href="${href}" th:target="${metricTarget}"
+       th:title="${'View these ' + #strings.toLowerCase(label) + ' in table layout'}">
+        <div th:replace="~{fragments/catalog-row :: metric(${label}, ${total}, ${male}, ${female}, ${other}, ${highlighted})}"></div>
+    </a>
+    <th:block th:if="${href == null}">
+        <div th:replace="~{fragments/catalog-row :: metric(${label}, ${total}, ${male}, ${female}, ${other}, ${highlighted})}"></div>
+    </th:block>
+</th:block>
+
+<!-- The five gender-split metrics shared by catalogs and timeframes (same field names on their DTOs).
+     artistsHref / albumsHref / songsHref link those columns to the matching filtered list (null = not clickable). -->
+<div th:fragment="mix(it, sortBy, artistsHref, albumsHref, songsHref)" class="lb-mix">
+    <th:block th:replace="~{fragments/catalog-row :: linked-metric(${artistsHref}, 'Artists', ${#numbers.formatInteger(it.artistCount, 1, 'COMMA')}, ${it.maleArtistCount}, ${it.femaleArtistCount}, ${it.otherArtistCount}, ${sortBy == 'artists'})}"></th:block>
+    <th:block th:replace="~{fragments/catalog-row :: linked-metric(${albumsHref}, 'Albums', ${#numbers.formatInteger(it.albumCount, 1, 'COMMA')}, ${it.maleAlbumCount}, ${it.femaleAlbumCount}, ${it.otherAlbumCount}, ${sortBy == 'albums'})}"></th:block>
+    <th:block th:replace="~{fragments/catalog-row :: linked-metric(${songsHref}, 'Songs', ${#numbers.formatInteger(it.songCount, 1, 'COMMA')}, ${it.maleCount}, ${it.femaleCount}, ${it.otherCount}, ${sortBy == 'songs'})}"></th:block>
+    <div th:replace="~{fragments/catalog-row :: metric('Plays', ${#numbers.formatInteger(it.playCount, 1, 'COMMA')}, ${it.malePlayCount}, ${it.femalePlayCount}, ${it.otherPlayCount}, ${sortBy == 'plays' or sortBy == 'primary_plays' or sortBy == 'legacy_plays'})}"></div>
+    <div th:replace="~{fragments/catalog-row :: metric('Time', ${it.timeListenedFormatted}, ${it.maleTimeListened}, ${it.femaleTimeListened}, ${it.otherTimeListened}, ${sortBy == 'time'})}"></div>
+</div>
+
+<!-- Primary / legacy plays, shown in the row footer of catalog pages -->
+<th:block th:fragment="accounts(it)"><span th:replace="~{fragments/catalog-row :: accounts-split(${it}, true)}"></span></th:block>
+
+<!-- Same footer; showLegacy false leaves Legacy out (periods after the legacy account stopped) -->
+<span th:fragment="accounts-split(it, showLegacy)" class="lb-acc">
+    Primary <b th:text="${#numbers.formatInteger(it.vatitoPlayCount != null ? it.vatitoPlayCount : 0, 1, 'COMMA')}">0</b>
+    <th:block th:if="${showLegacy}">&#183; Legacy <b th:text="${#numbers.formatInteger(it.robertloverPlayCount != null ? it.robertloverPlayCount : 0, 1, 'COMMA')}">0</b></th:block>
+</span>
+
+<!-- Winning periods capsule for the row footer: how many days / weeks / months / seasons / years / decades
+     the item was #1. The period the page is sorted by lights up. -->
+<span th:fragment="wins(it, sortBy)" class="lb-wins" title="Periods this item was #1">
+    <span class="lb-wins-k">Won</span>
+    <span th:each="p : ${ {{'winningdays', it.winningDaysCount, 'days'}, {'winningweeks', it.winningWeeksCount, 'wks'}, {'winningmonths', it.winningMonthsCount, 'mos'}, {'winningseasons', it.winningSeasonsCount, 'seas'}, {'winningyears', it.winningYearsCount, 'yrs'}, {'winningdecades', it.winningDecadesCount, 'dec'}} }"
+          class="lb-wins-c" th:classappend="${(sortBy == p[0] ? 'on ' : '') + (p[1] == 0 ? 'zero' : '')}"><b th:text="${#numbers.formatInteger(p[1], 1, 'COMMA')}">0</b><th:block th:text="${p[2]}">days</th:block></span>
+</span>
+
+<!-- #1 artist / album / song links (gender id 2 = male, 1 = female, as on the old cards) -->
+<div th:fragment="tops(it)" th:if="${it.topArtistName != null or it.topAlbumName != null or it.topSongName != null}" class="lb-tops">
+    <a th:if="${it.topArtistName != null}" class="lb-top" th:classappend="${it.topArtistGenderId == 2} ? 'male' : (${it.topArtistGenderId == 1} ? 'female' : '')"
+       th:href="@{'/artists/' + ${it.topArtistId}}" th:title="${it.topArtistName}">
+        <span class="lb-top-k">#1 Artist</span><span class="lb-top-n" th:text="${it.topArtistName}">Artist</span></a>
+    <a th:if="${it.topAlbumName != null}" class="lb-top" th:classappend="${it.topAlbumGenderId == 2} ? 'male' : (${it.topAlbumGenderId == 1} ? 'female' : '')"
+       th:href="@{'/albums/' + ${it.topAlbumId}}" th:title="${it.topAlbumArtistName + ' - ' + it.topAlbumName}">
+        <span class="lb-top-k">#1 Album</span><span class="lb-top-n" th:text="${it.topAlbumName}">Album</span></a>
+    <a th:if="${it.topSongName != null}" class="lb-top" th:classappend="${it.topSongGenderId == 2} ? 'male' : (${it.topSongGenderId == 1} ? 'female' : '')"
+       th:href="@{'/songs/' + ${it.topSongId}}" th:title="${it.topSongArtistName + ' - ' + it.topSongName}">
+        <span class="lb-top-k">#1 Song</span><span class="lb-top-n" th:text="${it.topSongName}">Song</span></a>
+</div>
+
+</body>
+</html>

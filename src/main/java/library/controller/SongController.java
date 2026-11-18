@@ -19,8 +19,11 @@ import library.service.ItunesService;
 import library.service.TrlService;
 import library.service.PcService;
 import library.service.BillboardHot100Service;
-import library.service.DetailPlayHeatmapService;
+import library.service.DetailAssociationsService;
+import library.service.DetailChartHistoryService;
+import library.service.DetailPlaysService;
 import library.util.DateFormatUtils;
+import library.util.SongGeneralSummaries;
 import library.util.GraphsNavigation;
 import library.util.ArtistFilterMode;
 import library.service.iTunesLibraryService;
@@ -59,7 +62,9 @@ public class SongController {
     private final BillboardHot100Service billboardHot100Service;
     private final SongLinkService songLinkService;
     private final TagService tagService;
-    private final DetailPlayHeatmapService detailPlayHeatmapService;
+    private final DetailPlaysService detailPlaysService;
+    private final DetailAssociationsService detailAssociationsService;
+    private final DetailChartHistoryService detailChartHistoryService;
     private static final Pattern PARENTHETICAL_PATTERN = Pattern.compile("\\(([^)]*)\\)");
     private static final Pattern BRACKET_PATTERN = Pattern.compile("\\[([^]]*)\\]");
 
@@ -68,7 +73,11 @@ public class SongController {
                          AppConfigService appConfigService,
                          ItunesService itunesService, TrlService trlService, PcService pcService,
                          BillboardHot100Service billboardHot100Service, SongLinkService songLinkService,
-                         TagService tagService, DetailPlayHeatmapService detailPlayHeatmapService) {
+                         TagService tagService, DetailPlaysService detailPlaysService,
+                         DetailAssociationsService detailAssociationsService,
+                         DetailChartHistoryService detailChartHistoryService) {
+        this.detailAssociationsService = detailAssociationsService;
+        this.detailChartHistoryService = detailChartHistoryService;
         this.songService = songService;
         this.chartService = chartService;
         this.artistService = artistService;
@@ -82,7 +91,7 @@ public class SongController {
         this.billboardHot100Service = billboardHot100Service;
         this.songLinkService = songLinkService;
         this.tagService = tagService;
-        this.detailPlayHeatmapService = detailPlayHeatmapService;
+        this.detailPlaysService = detailPlaysService;
     }
     
     @InitBinder
@@ -381,7 +390,10 @@ public class SongController {
         // Add data to model
         model.addAttribute("currentSection", "songs");
         model.addAttribute("songs", songs);
-        model.addAttribute("songRankings", java.util.Collections.emptyMap());
+        // Ranks are shown in the More panel, which loads one card at a time (lazyCard), so only rank that card
+        model.addAttribute("songRankings", lazyCard && !songs.isEmpty()
+                ? java.util.Map.of(songs.getFirst().getId(), songService.getAllSongRankings(songs.getFirst().getId()))
+                : java.util.Collections.emptyMap());
         model.addAttribute("genderCounts", genderCounts);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
@@ -521,6 +533,8 @@ public class SongController {
         
         // Listened date filter attributes (filters by actual play date)
         model.addAttribute("listenedDateFrom", listenedDateFrom);
+        // Lists opened from a timeframe or year after the legacy account stopped leave Primary / Legacy out
+        model.addAttribute("showLegacy", library.util.LegacyPlays.worthShowingFrom(listenedDateFrom));
         model.addAttribute("listenedDateTo", listenedDateTo);
         model.addAttribute("listenedDateFromFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateFrom));
         model.addAttribute("listenedDateToFormatted", DateFormatUtils.formatIsoDateForDisplay(listenedDateTo));
@@ -773,11 +787,17 @@ public class SongController {
         return result;
     }
     
+    /** Plays tab: the latest overall rank moves, loaded when the tab is opened (it replays the whole play history). */
+    @GetMapping("/{id}/rank-moves")
+    @ResponseBody
+    public DetailPlaysService.RankMoves rankMoves(@PathVariable Integer id) {
+        return detailPlaysService.rankMoves(DetailPlaysService.Kind.SONG, id);
+    }
+
     @GetMapping("/{id}")
     public String viewSong(@PathVariable Integer id, 
                           @RequestParam(defaultValue = "general") String tab,
                           @RequestParam(defaultValue = "0") int playsPage,
-                          @RequestParam(required = false) Integer heatmapYear,
                           Model model) {
         Optional<Song> song = songService.getSongById(id);
         
@@ -819,9 +839,13 @@ public class SongController {
         model.addAttribute("albumName", albumName);
         model.addAttribute("whoSampledUrl", whoSampledUrl);
         model.addAttribute("whoSampledSearchUrl", whoSampledSearchUrl);
-        model.addAttribute("linkedSongs", songLinkService.getLinkedSongs(id));
+        List<library.dto.LinkedSongDTO> linkedSongs = songLinkService.getLinkedSongs(id);
+        model.addAttribute("linkedSongs", linkedSongs);
+        // Plays split across linked versions, only when the song's play counts combine them
+        model.addAttribute("linkedPlaysShare", appConfigService.isCombineLinkedSongsEnabled()
+                ? SongGeneralSummaries.linkedPlaysShare(linkedSongs, id) : List.of());
         
-        // Add artist and album entities for ranking chips
+        // Artist and album entities for the profile ranks and release date
         Artist artist = artistService.findById(song.get().getArtistId());
         model.addAttribute("artist", artist);
         Album album = song.get().getAlbumId() != null ? 
@@ -837,58 +861,37 @@ public class SongController {
         String albumReleaseDate = (album != null && album.getReleaseDateFormatted() != null) ? 
                                   album.getReleaseDateFormatted() : null;
         model.addAttribute("albumReleaseDate", albumReleaseDate);
+        model.addAttribute("releaseDateSource", SongGeneralSummaries.releaseDateSource(
+                songEntity.getReleaseDate() != null, album != null && album.getReleaseDate() != null));
         
         // NEW: add song play count
         model.addAttribute("songPlayCount", songService.getPlayCountForSong(id));
         model.addAttribute("songVatitoPlayCount", songService.getVatitoPlayCountForSong(id));
-        model.addAttribute("songRobertloverPlayCount", songService.getRobertloverPlayCountForSong(id));
-        
+        int songLegacyPlays = songService.getRobertloverPlayCountForSong(id);
+        model.addAttribute("songRobertloverPlayCount", songLegacyPlays);
+
         // Add statistics for the song
         model.addAttribute("totalListeningTime", songService.getTotalListeningTimeForSong(id));
-        model.addAttribute("firstListenedDate", songService.getFirstListenedDateForSong(id));
+        String songFirstListened = songService.getFirstListenedDateForSong(id);
+        model.addAttribute("firstListenedDate", songFirstListened);
+        // Song release date, falling back to the album's
+        java.sql.Date releaseDateValue = songEntity.getReleaseDate() != null ? songEntity.getReleaseDate()
+                : (album != null ? album.getReleaseDate() : null);
+        java.time.LocalDate effectiveReleaseDate = releaseDateValue != null ? releaseDateValue.toLocalDate() : null;
+        model.addAttribute("showLegacy", library.util.LegacyPlays.worthShowing(songLegacyPlays,
+                effectiveReleaseDate, DateFormatUtils.parseDisplayDate(songFirstListened)));
         model.addAttribute("lastListenedDate", songService.getLastListenedDateForSong(id));
+        model.addAttribute("listeningSpan", DateFormatUtils.spanLabel(
+                (String) model.getAttribute("firstListenedDate"), (String) model.getAttribute("lastListenedDate")));
         
-        // Add unique period stats for the song
-        model.addAttribute("uniqueDaysPlayed", songService.getUniqueDaysPlayedForSong(id));
-        model.addAttribute("uniqueWeeksPlayed", songService.getUniqueWeeksPlayedForSong(id));
-        model.addAttribute("uniqueMonthsPlayed", songService.getUniqueMonthsPlayedForSong(id));
-        model.addAttribute("uniqueYearsPlayed", songService.getUniqueYearsPlayedForSong(id));
+        // Consistency ledger: periods with plays out of the periods since the first play; ranks load in the background
+        model.addAttribute("consistencyPeriods", library.dto.ConsistencyPeriodDTO.of(
+                songService.getUniqueDaysPlayedForSong(id), songService.getUniqueWeeksPlayedForSong(id),
+                songService.getUniqueMonthsPlayedForSong(id), songService.getUniqueYearsPlayedForSong(id),
+                songService.getFirstListenedDateAsLocalDateForSong(id)));
+        model.addAttribute("consistencyRankUrl", "/songs/" + id + "/consistency");
         
-        // Calculate totals based on first listened date
-        java.time.LocalDate firstListened = songService.getFirstListenedDateAsLocalDateForSong(id);
-        if (firstListened != null) {
-            java.time.LocalDate now = java.time.LocalDate.now();
-            
-            // Calendar days: actual days between dates
-            long daysSinceFirst = java.time.temporal.ChronoUnit.DAYS.between(firstListened, now) + 1;
-            
-            // Calendar weeks: count week numbers from first to now
-            java.time.temporal.WeekFields weekFields = java.time.temporal.WeekFields.of(java.util.Locale.getDefault());
-            int firstWeek = firstListened.get(weekFields.weekOfWeekBasedYear());
-            int firstWeekYear = firstListened.get(weekFields.weekBasedYear());
-            int nowWeek = now.get(weekFields.weekOfWeekBasedYear());
-            int nowWeekYear = now.get(weekFields.weekBasedYear());
-            // Approximate: weeks in between years + week difference in current year
-            long weeksSinceFirst = ((nowWeekYear - firstWeekYear) * 52L) + (nowWeek - firstWeek) + 1;
-            
-            // Calendar months: count month numbers from first to now
-            long monthsSinceFirst = ((now.getYear() - firstListened.getYear()) * 12L) + (now.getMonthValue() - firstListened.getMonthValue()) + 1;
-            
-            // Calendar years: count year numbers from first to now
-            long yearsSinceFirst = (now.getYear() - firstListened.getYear()) + 1;
-            
-            model.addAttribute("totalDaysSinceFirstPlay", daysSinceFirst);
-            model.addAttribute("totalWeeksSinceFirstPlay", weeksSinceFirst);
-            model.addAttribute("totalMonthsSinceFirstPlay", monthsSinceFirst);
-            model.addAttribute("totalYearsSinceFirstPlay", yearsSinceFirst);
-        } else {
-            model.addAttribute("totalDaysSinceFirstPlay", 0);
-            model.addAttribute("totalWeeksSinceFirstPlay", 0);
-            model.addAttribute("totalMonthsSinceFirstPlay", 0);
-            model.addAttribute("totalYearsSinceFirstPlay", 0);
-        }
-        
-        // Add lookup maps for ranking chips
+        // Lookup maps for the profile and the override dropdowns
         Map<Integer, String> genres = songService.getGenres();
         Map<Integer, String> subgenres = songService.getSubGenres();
         Map<Integer, String> languages = songService.getLanguages();
@@ -910,6 +913,7 @@ public class SongController {
         model.addAttribute("effectiveLanguageName", s.getEffectiveLanguageId() != null ? languages.get(s.getEffectiveLanguageId()) : null);
         model.addAttribute("effectiveGenderName", s.getEffectiveGenderId() != null ? genders.get(s.getEffectiveGenderId()) : null);
         model.addAttribute("effectiveEthnicityName", s.getEffectiveEthnicityId() != null ? ethnicities.get(s.getEffectiveEthnicityId()) : null);
+        model.addAttribute("valueSources", SongGeneralSummaries.attributeSources(s));
         
         // Add inherited value names (what would be used if no song override) for dropdown "Inherit" options
         Integer inheritedGenreId = s.getAlbumGenreId() != null ? s.getAlbumGenreId() : s.getArtistGenreId();
@@ -926,13 +930,15 @@ public class SongController {
         
         // Tab and plays data
         model.addAttribute("activeTab", tab);
-        model.addAttribute("playHeatmap", detailPlayHeatmapService.forSong(id, heatmapYear));
+        java.util.Map<Integer, Integer[]> yearRanks = detailPlaysService.yearRanks(DetailPlaysService.Kind.SONG, id);
+        model.addAttribute("ranksByYear", DetailPlaysService.overallByYear(yearRanks));
+        model.addAttribute("playsTab", detailPlaysService.build(detailPlaysService.songScope(id), yearRanks));
         
         // Add featured artists for this song (for editing)
         model.addAttribute("featuredArtists", songService.getFeaturedArtistsForSong(id));
         
-        // Add featured artist cards (always pre-loaded for Featured Artists tab)
-        model.addAttribute("featuredArtistCards", songService.getFeaturedArtistCardsForSong(id));
+        // Featured Artists tab (always pre-loaded)
+        model.addAttribute("songAssociations", detailAssociationsService.songTab(id));
         
         // Always load plays data (eager loading for all tabs)
         int pageSize = appConfigService.getSongDetailPlaysPageSize();
@@ -941,16 +947,17 @@ public class SongController {
         model.addAttribute("playsTotalCount", playsTotalCount);
         model.addAttribute("playsPage", playsPage);
         model.addAttribute("playsTotalPages", (int) Math.ceil((double) playsTotalCount / pageSize));
-        model.addAttribute("playsByMonth", songService.getPlaysByMonthForSong(id));
         
-        // Always load seasonal/yearly chart history for sidebar chips
-        model.addAttribute("seasonalChartHistory", chartService.getChartHistoryForItem(id, "song", "seasonal"));
-        model.addAttribute("yearlyChartHistory", chartService.getChartHistoryForItem(id, "song", "yearly"));
-        
+        // Seasonal/yearly chart placements for the General tab chart block and the Chart History tab
+        List<Map<String, Object>> seasonalChartHistory = chartService.getChartHistoryForItem(id, "song", "seasonal");
+        List<Map<String, Object>> yearlyChartHistory = chartService.getChartHistoryForItem(id, "song", "yearly");
+        model.addAttribute("seasonalChartHistory", seasonalChartHistory);
+        model.addAttribute("yearlyChartHistory", yearlyChartHistory);
+
         // Always load weekly chart history (eager loading for all tabs)
-        model.addAttribute("chartHistory", chartService.getSongChartHistory(id));
+        List<library.dto.ChartHistoryDTO> songChartHistory = chartService.getSongChartHistory(id);
         
-        // Add ranking chips data - optimized single query
+        // Profile ranks - optimized single query
         java.util.Map<String, Integer> rankings = songService.getAllSongRankings(id);
         model.addAttribute("rankByGender", rankings.get("gender"));
         model.addAttribute("rankByGenre", rankings.get("genre"));
@@ -958,7 +965,6 @@ public class SongController {
         model.addAttribute("rankByEthnicity", rankings.get("ethnicity"));
         model.addAttribute("rankByLanguage", rankings.get("language"));
         model.addAttribute("rankByCountry", rankings.get("country"));
-        model.addAttribute("ranksByYear", songService.getSongRanksByYear(id));
         
         // Add Spanish Rap rank (special combination)
         if (songService.isSongSpanishRap(id)) {
@@ -967,31 +973,28 @@ public class SongController {
             model.addAttribute("spanishLanguageId", lookupRepository.getLanguageIdByName("Spanish"));
         }
 
-        // Add new ranking chips
+        // Weekly chart run, then the overall, release year, artist and album ranks
         model.addAttribute("weeklyChartStats", chartService.getSongWeeklyChartStats(id));
         model.addAttribute("overallPosition", songService.getSongOverallPosition(id));
+        model.addAttribute("totalSongCount", songService.getSongCount());
         model.addAttribute("rankByReleaseYear", songService.getSongRankByReleaseYear(id));
         model.addAttribute("releaseYear", songService.getSongReleaseYear(id));
         model.addAttribute("rankByArtist", songService.getSongRankByArtist(id));
         model.addAttribute("rankByAlbum", songService.getSongRankByAlbum(id));
 
-        // TRL chip
-        model.addAttribute("trlStats", trlService.getTrlStatsBySongId(id));
-
-        // Vato's Cuntdown chip
-        model.addAttribute("pcStats", pcService.getPcStatsBySongId(id));
-
-        // Billboard Hot 100 chip
-        model.addAttribute("billboardHot100Stats", billboardHot100Service.getStatsBySongId(id));
+        // TRL, Vato's Cuntdown and Billboard Hot 100 runs (General tab rows and the Chart History tab)
+        Map<String, Object> trlStats = trlService.getTrlStatsBySongId(id);
+        Map<String, Object> pcStats = pcService.getPcStatsBySongId(id);
+        Map<String, Object> billboardHot100Stats = billboardHot100Service.getStatsBySongId(id);
+        model.addAttribute("trlStats", trlStats);
+        model.addAttribute("pcStats", pcStats);
+        model.addAttribute("billboardHot100Stats", billboardHot100Stats);
+        model.addAttribute("chartHistoryView", detailChartHistoryService.forSong(id, songEntity.getName(),
+                songEntity.getAlbumId(), songChartHistory, seasonalChartHistory, yearlyChartHistory,
+                billboardHot100Stats, pcStats, trlStats));
 
         // Extended stats for detail page - age at release
         if (artist != null && artist.getBirthDate() != null) {
-            java.time.LocalDate effectiveReleaseDate = null;
-            if (song.get().getReleaseDate() != null) {
-                effectiveReleaseDate = song.get().getReleaseDate().toLocalDate();
-            } else if (album != null && album.getReleaseDate() != null) {
-                effectiveReleaseDate = album.getReleaseDate().toLocalDate();
-            }
             if (effectiveReleaseDate != null) {
                 long ageAtRelease = java.time.temporal.ChronoUnit.YEARS.between(artist.getBirthDate(), effectiveReleaseDate);
                 model.addAttribute("ageAtRelease", ageAtRelease);
@@ -1004,11 +1007,12 @@ public class SongController {
     @PostMapping("/{id}")
     public String updateSong(@PathVariable Integer id,
                              @ModelAttribute Song song,
-                             @RequestParam(required = false) List<Integer> tags) {
+                             @RequestParam(required = false) List<Integer> tags,
+                             HttpServletRequest request) {
         song.setId(id);
         songService.saveSong(song);
         tagService.saveSongTags(id, tags);
-        return "redirect:/songs/" + id;
+        return DetailRedirects.backTo("/songs/" + id, request);
     }
 
     @PostMapping("/bulk-tags")
@@ -1038,12 +1042,13 @@ public class SongController {
 
     @PostMapping("/{id}/linked-songs")
     public String updateLinkedSongs(@PathVariable Integer id,
-                                    @RequestParam(required = false) List<Integer> linkedSongIds) {
+                                    @RequestParam(required = false) List<Integer> linkedSongIds,
+                                    HttpServletRequest request) {
         java.util.Set<Integer> impactedSongIds = songLinkService.saveLinkedSongs(id, linkedSongIds);
         if (appConfigService.isCombineLinkedSongsEnabled()) {
             chartService.regenerateAffectedWeeklySongChartsForSongIds(impactedSongIds);
         }
-        return "redirect:/songs/" + id;
+        return DetailRedirects.backTo("/songs/" + id, request);
     }
     
     @GetMapping("/{id}/image")

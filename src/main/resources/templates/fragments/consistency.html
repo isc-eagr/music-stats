@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Consistency ledger: days / weeks / months / years with plays, their share since the first play, and the item's rank
+     by each count (ties: higher share, then more plays). Counts render here; ranks load from rankUrl via js/consistency.js.
+     A null rankUrl shows "-" ranks (artist detail outside the main-only scope). Styles in css/consistency.css. -->
+<section th:fragment="ledger(periods, rankUrl, compact)" class="cons" th:classappend="${compact} ? 'cons-compact'"
+         th:attr="data-cons-url=${rankUrl}">
+    <div class="cons-head">
+        <div class="cons-heading">
+            <p class="cons-title">Consistency</p>
+            <p class="cons-sub" th:unless="${compact}">Periods with plays since the first play, ranked by periods played</p>
+        </div>
+        <span class="cons-badge" data-cons-badge hidden></span>
+    </div>
+    <table class="cons-table">
+        <thead>
+            <tr>
+                <th scope="col">Period</th>
+                <th scope="col" class="cons-num">Played / total</th>
+                <th scope="col" class="cons-num">Share</th>
+                <th scope="col" class="cons-num" title="Rank by periods played; ties go to the higher share, then more plays">Rank</th>
+                <th scope="col" class="cons-num" th:unless="${compact}" data-cons-gender-head>Gender rank</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="p : ${periods}" th:attr="data-cons-period=${p.key()}"
+                th:title="${p.label() + ' with plays since the first play'}">
+                <th scope="row" th:text="${p.label()}">Days</th>
+                <td class="cons-num">
+                    <span class="cons-count"><b th:text="${#numbers.formatInteger(p.played(), 1, 'COMMA')}">0</b> / <th:block th:text="${#numbers.formatInteger(p.total(), 1, 'COMMA')}">0</th:block></span>
+                    <span class="cons-bar" aria-hidden="true"><span th:style="'width: ' + ${p.barWidth()} + '%'"></span></span>
+                </td>
+                <td class="cons-num cons-share" th:text="${p.shareLabel()}">0%</td>
+                <td class="cons-num cons-rank" data-cons-rank th:text="${rankUrl != null ? '...' : '-'}"
+                    th:title="${rankUrl == null ? 'Ranks only cover the main scope (own songs, no groups or features)' : null}">-</td>
+                <td class="cons-num cons-grank" data-cons-grank th:unless="${compact}" th:text="${rankUrl != null ? '...' : '-'}">-</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+</body>
+</html>

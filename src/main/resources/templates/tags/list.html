@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <th:block th:replace="~{fragments/catalog-row :: row-styles}"></th:block>
     <style>
         .tags-page {
             max-width: 1800px;
@@ -66,34 +67,8 @@
             background: #333;
             border-color: #555;
         }
-        .tag-card {
-            position: relative;
-        }
-        .tag-card .catalog-info {
-            padding: 16px;
-        }
-        .tag-card .catalog-name {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-height: 28px;
-            margin-bottom: 12px;
-            padding-right: 28px;
-            font-size: 18px;
-            white-space: normal;
-            word-break: break-word;
-            overflow: visible;
-        }
-        .tag-name-icon {
-            color: #888;
-            font-size: 16px;
-            flex: 0 0 auto;
-        }
         .tag-delete-form {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            z-index: 2;
+            margin-left: auto;
         }
         .tag-delete-button {
             width: 24px;
@@ -113,21 +88,6 @@
             color: #fca5a5;
             border-color: rgba(248, 113, 113, 0.35);
             background: rgba(127, 29, 29, 0.28);
-        }
-        .tag-card .catalog-stats {
-            margin-bottom: 10px;
-        }
-        .tag-card .catalog-stats .stat {
-            text-decoration: none;
-        }
-        .tag-card .catalog-stats .stat:hover .stat-value {
-            color: #22c55e;
-        }
-        .tag-card .gender-bars-container {
-            margin-top: 14px;
-        }
-        .tag-card .number-one-info {
-            margin-top: 14px;
         }
         .tag-alert {
             margin-bottom: 16px;
@@ -187,115 +147,29 @@
         <div th:if="${successMessage}" class="tag-alert tag-alert-success" th:text="${successMessage}"></div>
         <div th:if="${errorMessage}" class="tag-alert tag-alert-error" th:text="${errorMessage}"></div>
 
-        <div class="catalog-grid" th:if="${tags != null and !tags.isEmpty()}">
-            <article class="catalog-card tag-card" th:each="tag : ${tags}">
-                <form class="tag-delete-form"
-                      th:action="@{/tags/{id}/delete(id=${tag.id})}"
-                      method="post"
-                      onsubmit="return confirm('Delete this tag and clear it from all artists, albums, and songs?');">
-                    <button type="submit" class="tag-delete-button" title="Delete tag" aria-label="Delete tag">&times;</button>
-                </form>
-
-                <div class="catalog-info">
-                    <h3 class="catalog-name">
-                        <span class="tag-name-icon">&#127991;</span>
-                        <span th:text="${tag.name}">Tag Name</span>
-                    </h3>
-
-                    <div class="catalog-stats">
-                        <a class="stat"
-                           th:href="@{/artists(tag=${tag.id}, tagMode='includes')}"
-                           th:title="${tag.artistCount + ' artists'}">
-                            <span class="stat-icon">&#127908;</span>
-                            <span class="stat-value" th:text="${tag.artistCount}">0</span>
-                        </a>
-                        <a class="stat"
-                           th:href="@{/albums(tag=${tag.id}, tagMode='includes')}"
-                           th:title="${tag.albumCount + ' albums'}">
-                            <span class="stat-icon">&#128191;</span>
-                            <span class="stat-value" th:text="${tag.albumCount}">0</span>
-                        </a>
-                        <a class="stat"
-                           th:href="@{/songs(tag=${tag.id}, tagMode='includes')}"
-                           th:title="${tag.songCount + ' songs'}">
-                            <span class="stat-icon">&#127925;</span>
-                            <span class="stat-value" th:text="${tag.songCount}">0</span>
-                        </a>
+        <div class="lb-list" th:if="${tags != null and !tags.isEmpty()}">
+            <article class="lb-row gc lb-static tag-row" th:each="tag, iterStat : ${tags}"
+                     th:classappend="${tag.maleSongCount > tag.femaleSongCount} ? 'gender-male' : (${tag.femaleSongCount > tag.maleSongCount} ? 'gender-female' : '')">
+                <span class="lb-rank" th:text="${iterStat.count}">1</span>
+                <div class="lb-name">
+                    <div class="lb-title">
+                        <h3 class="lb-h" th:text="${tag.name}" th:title="${tag.name}">Tag Name</h3>
+                        <span class="lb-sub">Tag</span>
                     </div>
-
-                    <div class="gender-bars-container">
-                        <div class="gender-bar-row" th:if="${tag.maleArtistCount > 0 or tag.femaleArtistCount > 0 or tag.otherArtistCount > 0}">
-                            <span class="gender-bar-icon" title="Artists">&#127908;</span>
-                            <div class="gender-bar" th:with="total=${tag.maleArtistCount + tag.femaleArtistCount + tag.otherArtistCount}, malePct=${total > 0 ? (tag.maleArtistCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${tag.maleArtistCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tag.femaleArtistCount} * 100.0 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${tag.femaleArtistCount} + ' (' + ${#numbers.formatDecimal((tag.femaleArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tag.otherArtistCount} * 100.0 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${tag.otherArtistCount} + ' (' + ${#numbers.formatDecimal((tag.otherArtistCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-
-                        <div class="gender-bar-row" th:if="${tag.maleAlbumCount > 0 or tag.femaleAlbumCount > 0 or tag.otherAlbumCount > 0}">
-                            <span class="gender-bar-icon" title="Albums">&#128191;</span>
-                            <div class="gender-bar" th:with="total=${tag.maleAlbumCount + tag.femaleAlbumCount + tag.otherAlbumCount}, malePct=${total > 0 ? (tag.maleAlbumCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${tag.maleAlbumCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tag.femaleAlbumCount} * 100.0 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${tag.femaleAlbumCount} + ' (' + ${#numbers.formatDecimal((tag.femaleAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tag.otherAlbumCount} * 100.0 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${tag.otherAlbumCount} + ' (' + ${#numbers.formatDecimal((tag.otherAlbumCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-
-                        <div class="gender-bar-row" th:if="${tag.maleSongCount > 0 or tag.femaleSongCount > 0 or tag.otherSongCount > 0}">
-                            <span class="gender-bar-icon" title="Songs">&#127925;</span>
-                            <div class="gender-bar" th:with="total=${tag.maleSongCount + tag.femaleSongCount + tag.otherSongCount}, malePct=${total > 0 ? (tag.maleSongCount * 100.0 / total) : 0}">
-                                <div class="gender-male-bar"
-                                     th:style="'width: ' + ${malePct} + '%'"
-                                     th:title="'Male: ' + ${tag.maleSongCount} + ' (' + ${#numbers.formatDecimal(malePct, 1, 2)} + '%)'">
-                                    <span class="gender-male-bar-text" th:text="${#numbers.formatDecimal(malePct, 1, 2)} + '%'"></span>
-                                </div>
-                                <div class="gender-female-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tag.femaleSongCount} * 100.0 / ${total}) : 0) + '%'"
-                                     th:title="'Female: ' + ${tag.femaleSongCount} + ' (' + ${#numbers.formatDecimal((tag.femaleSongCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                                <div class="gender-other-bar"
-                                     th:style="'width: ' + (${total > 0} ? (${tag.otherSongCount} * 100.0 / ${total}) : 0) + '%'"
-                                     th:title="'Other: ' + ${tag.otherSongCount} + ' (' + ${#numbers.formatDecimal((tag.otherSongCount * 100.0 / total), 1, 2)} + '%)'"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div th:if="${tag.topArtistName != null or tag.topAlbumName != null or tag.topSongName != null}" class="number-one-info">
-                        <a th:if="${tag.topArtistName != null}"
-                           th:class="${'number-one-item' + (tag.topArtistGenderId == 2 ? ' gender-male' : (tag.topArtistGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/artists/' + ${tag.topArtistId}}">
-                            <span class="label">&#127908;</span>
-                            <span class="name" th:text="${tag.topArtistName}" th:title="${tag.topArtistName}">Artist Name</span>
-                        </a>
-                        <a th:if="${tag.topAlbumName != null}"
-                           th:class="${'number-one-item' + (tag.topAlbumGenderId == 2 ? ' gender-male' : (tag.topAlbumGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/albums/' + ${tag.topAlbumId}}">
-                            <span class="label">&#128191;</span>
-                            <span class="name" th:text="${tag.topAlbumArtistName + ' - ' + tag.topAlbumName}" th:title="${tag.topAlbumArtistName + ' - ' + tag.topAlbumName}">Artist - Album</span>
-                        </a>
-                        <a th:if="${tag.topSongName != null}"
-                           th:class="${'number-one-item' + (tag.topSongGenderId == 2 ? ' gender-male' : (tag.topSongGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/songs/' + ${tag.topSongId}}">
-                            <span class="label">&#127925;</span>
-                            <span class="name" th:text="${tag.topSongArtistName + ' - ' + tag.topSongName}" th:title="${tag.topSongArtistName + ' - ' + tag.topSongName}">Artist - Song</span>
-                        </a>
-                    </div>
+                </div>
+                <div class="lb-mix">
+                    <th:block th:replace="~{fragments/catalog-row :: linked-metric(@{/artists(tag=${tag.id}, tagMode='includes', view='table')}, 'Artists', ${#numbers.formatInteger(tag.artistCount, 1, 'COMMA')}, ${tag.maleArtistCount}, ${tag.femaleArtistCount}, ${tag.otherArtistCount}, false)}"></th:block>
+                    <th:block th:replace="~{fragments/catalog-row :: linked-metric(@{/albums(tag=${tag.id}, tagMode='includes', view='table')}, 'Albums', ${#numbers.formatInteger(tag.albumCount, 1, 'COMMA')}, ${tag.maleAlbumCount}, ${tag.femaleAlbumCount}, ${tag.otherAlbumCount}, false)}"></th:block>
+                    <th:block th:replace="~{fragments/catalog-row :: linked-metric(@{/songs(tag=${tag.id}, tagMode='includes', view='table')}, 'Songs', ${#numbers.formatInteger(tag.songCount, 1, 'COMMA')}, ${tag.maleSongCount}, ${tag.femaleSongCount}, ${tag.otherSongCount}, false)}"></th:block>
+                </div>
+                <div class="lb-foot">
+                    <div th:replace="~{fragments/catalog-row :: tops(${tag})}"></div>
+                    <form class="tag-delete-form"
+                          th:action="@{/tags/{id}/delete(id=${tag.id})}"
+                          method="post"
+                          onsubmit="return confirm('Delete this tag and clear it from all artists, albums, and songs?');">
+                        <button type="submit" class="tag-delete-button" title="Delete tag" aria-label="Delete tag">&times;</button>
+                    </form>
                 </div>
             </article>
         </div>

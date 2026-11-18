@@ -554,11 +554,63 @@ public class TimeframeCardDTO {
         this.yearlyChartFinalized = yearlyChartFinalized;
     }
     
-    // #1 song/album names for finalized charts
+    // #1 song/album of the period's chart (weekly charts, finalized seasonal/yearly charts).
+    // Names are "Artist - Title".
+    private Integer numberOneSongId;
     private String numberOneSongName;
     private Integer numberOneSongGenderId;
+    private Integer numberOneAlbumId;
     private String numberOneAlbumName;
     private Integer numberOneAlbumGenderId;
+
+    /** Copies the chart #1 song and album onto this card. */
+    public void applyChartTopEntry(ChartTopEntryDTO entry) {
+        if (entry == null) {
+            return;
+        }
+        numberOneSongId = entry.getNumberOneSongId();
+        numberOneSongName = entry.getNumberOneSongName();
+        numberOneSongGenderId = entry.getNumberOneSongGenderId();
+        numberOneAlbumId = entry.getNumberOneAlbumId();
+        numberOneAlbumName = entry.getNumberOneAlbumName();
+        numberOneAlbumGenderId = entry.getNumberOneAlbumGenderId();
+    }
+
+    /** The chart #1 song is also the most played song of the period. */
+    public boolean isChartSongSameAsTop() {
+        return numberOneSongId != null && numberOneSongId.equals(topSongId);
+    }
+
+    /** The period has a chart #1 song and it is not the most played song. */
+    public boolean isChartSongDifferentFromTop() {
+        return numberOneSongId != null && !numberOneSongId.equals(topSongId);
+    }
+
+    /** The chart #1 album is also the most played album of the period. */
+    public boolean isChartAlbumSameAsTop() {
+        return numberOneAlbumId != null && numberOneAlbumId.equals(topAlbumId);
+    }
+
+    /** The period has a chart #1 album and it is not the most played album. */
+    public boolean isChartAlbumDifferentFromTop() {
+        return numberOneAlbumId != null && !numberOneAlbumId.equals(topAlbumId);
+    }
+
+    public Integer getNumberOneSongId() {
+        return numberOneSongId;
+    }
+
+    public void setNumberOneSongId(Integer numberOneSongId) {
+        this.numberOneSongId = numberOneSongId;
+    }
+
+    public Integer getNumberOneAlbumId() {
+        return numberOneAlbumId;
+    }
+
+    public void setNumberOneAlbumId(Integer numberOneAlbumId) {
+        this.numberOneAlbumId = numberOneAlbumId;
+    }
 
     public String getNumberOneSongName() {
         return numberOneSongName;

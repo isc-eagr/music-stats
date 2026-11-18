@@ -1,58 +1,69 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+<!-- Header cell with optional sort, sort badge and column menu. sortKey null = not sortable (menu only offers Hide). -->
+<th th:fragment="col-th(colKey, sortKey, label, fullLabel, cls, defaultDir)"
+    th:class="${cls + (sortKey != null and sortBy == sortKey ? (sortDir == 'asc' ? ' sort-asc' : ' sort-desc') : '')}"
+    th:attr="data-col=${colKey},data-col-label=${fullLabel},data-sort-key=${sortKey},data-default-dir=${defaultDir}"><span class="cl-th-inner"><span class="cl-th-label" th:text="${label}">Label</span><span th:if="${sortKey != null and sortBy == sortKey}" class="cl-sort-badge">1</span><button type="button" class="cl-menu-btn" aria-label="Column menu"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></th>
+
+<!-- Hint line plus the Columns button that lists hidden columns -->
+<div th:fragment="table-toolbar" class="catalog-list-hint-row">
+    <span class="catalog-list-hint">Click a header to sort. Use the arrow on a header for more options.</span>
+    <div class="cl-columns-wrap">
+        <button type="button" class="cl-columns-btn" id="catalogColumnsBtn" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 3h11v10h-11zM6.2 3v10M9.8 3v10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            <span>Columns</span>
+            <span class="cl-columns-count" id="catalogColumnsCount" hidden>0 hidden</span>
+        </button>
+        <div class="cl-columns-pop" id="catalogColumnsPop" hidden></div>
+    </div>
+</div>
+
 <th:block th:fragment="metric-table(items, emptyLabel, showParent, showMalePercentages, showTop, filterType, valueMode, nameSortKey, nameHeader)">
-    <div class="top-sort-hint catalog-list-hint">Click a sortable column header to update the current catalog sort.</div>
+    <div th:replace="~{fragments/catalog-list-table :: table-toolbar}"></div>
     <div class="catalog-list-table-container">
         <table class="catalog-list-table" id="catalogListTable">
             <thead>
-                <tr>
-                    <th class="rank-col">#</th>
-                    <th th:data-sort-key="${nameSortKey}"
-                        th:attr="data-default-dir=${nameSortKey == 'name' ? 'asc' : 'desc'}"
-                        th:classappend="${sortBy == nameSortKey} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''"
-                        th:text="${nameHeader}">Name</th>
-                    <th th:if="${showParent}" data-sort-key="genre" data-default-dir="asc"
-                        th:classappend="${sortBy == 'genre'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Parent Genre</th>
-                    <th data-sort-key="artists" class="numeric-cell"
-                        th:classappend="${sortBy == 'artists'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Artists</th>
-                    <th data-sort-key="albums" class="numeric-cell"
-                        th:classappend="${sortBy == 'albums'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Albums</th>
-                    <th data-sort-key="songs" class="numeric-cell"
-                        th:classappend="${sortBy == 'songs'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Songs</th>
-                    <th data-sort-key="plays" class="numeric-cell"
-                        th:classappend="${sortBy == 'plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Plays</th>
-                    <th data-sort-key="primary_plays" class="numeric-cell"
-                        th:classappend="${sortBy == 'primary_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Primary Plays</th>
-                    <th data-sort-key="legacy_plays" class="numeric-cell"
-                        th:classappend="${sortBy == 'legacy_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Legacy Plays</th>
-                    <th data-sort-key="time" class="numeric-cell"
-                        th:classappend="${sortBy == 'time'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Time</th>
-                    <th data-sort-key="winningdays" data-default-dir="desc" class="numeric-cell winning-period-cell"
-                        th:classappend="${sortBy == 'winningdays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Days</th>
-                    <th data-sort-key="winningweeks" data-default-dir="desc" class="numeric-cell winning-period-cell"
-                        th:classappend="${sortBy == 'winningweeks'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Weeks</th>
-                    <th data-sort-key="winningmonths" data-default-dir="desc" class="numeric-cell winning-period-cell"
-                        th:classappend="${sortBy == 'winningmonths'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Months</th>
-                    <th data-sort-key="winningseasons" data-default-dir="desc" class="numeric-cell winning-period-cell"
-                        th:classappend="${sortBy == 'winningseasons'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Seasons</th>
-                    <th data-sort-key="winningyears" data-default-dir="desc" class="numeric-cell winning-period-cell"
-                        th:classappend="${sortBy == 'winningyears'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Years</th>
-                    <th data-sort-key="winningdecades" data-default-dir="desc" class="numeric-cell winning-period-cell"
-                        th:classappend="${sortBy == 'winningdecades'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Winning Decades</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="maleartistpct" class="numeric-cell"
-                        th:classappend="${sortBy == 'maleartistpct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Artist %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="malealbumpct" class="numeric-cell"
-                        th:classappend="${sortBy == 'malealbumpct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Album %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="malesongpct" class="numeric-cell"
-                        th:classappend="${sortBy == 'malesongpct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Song %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="maleplaypct" class="numeric-cell"
-                        th:classappend="${sortBy == 'maleplaypct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Play %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="maletimepct" class="numeric-cell"
-                        th:classappend="${sortBy == 'maletimepct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Time %</th>
-                    <th th:if="${showTop}">Top Artist</th>
-                    <th th:if="${showTop}">Top Album</th>
-                    <th th:if="${showTop}">Top Song</th>
+                <tr class="cl-band-row">
+                    <th class="band band-blank pin-band" colspan="2" data-band-cols="rank name"></th>
+                    <th th:if="${showParent}" class="band band-blank" colspan="1" data-band-cols="parent"></th>
+                    <th class="band band-catalog" colspan="3" data-band-cols="artists albums songs">Catalog</th>
+                    <th class="band band-plays" colspan="4" data-band-cols="plays primary legacy time">Plays</th>
+                    <th class="band band-winning" colspan="6" data-band-cols="wdays wweeks wmonths wseasons wyears wdecades">Winning periods</th>
+                    <th th:if="${showMalePercentages}" class="band band-male" colspan="5" data-band-cols="maleartist malealbum malesong maleplay maletime">Male share</th>
+                    <th th:if="${showTop}" class="band band-top" colspan="3" data-band-cols="topartist topalbum topsong">Number ones</th>
+                </tr>
+                <tr class="cl-head-row">
+                    <th class="rank-col pin-rank" data-col="rank">#</th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('name', ${nameSortKey}, ${nameHeader}, ${nameHeader}, 'name-col pin-name', ${nameSortKey == 'name' ? 'asc' : 'desc'})}"></th>
+                    <th:block th:if="${showParent}">
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('parent', 'genre', 'Parent Genre', 'Parent Genre', '', 'asc')}"></th>
+                    </th:block>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('artists', 'artists', 'Artists', 'Artists', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('albums', 'albums', 'Albums', 'Albums', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('songs', 'songs', 'Songs', 'Songs', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('plays', 'plays', 'Plays', 'Plays', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('primary', 'primary_plays', 'Primary', 'Primary Plays', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('legacy', 'legacy_plays', 'Legacy', 'Legacy Plays', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('time', 'time', 'Time', 'Time', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wdays', 'winningdays', 'Days', 'Winning Days', 'numeric-cell winning-period-cell', 'desc')}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wweeks', 'winningweeks', 'Weeks', 'Winning Weeks', 'numeric-cell winning-period-cell', 'desc')}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wmonths', 'winningmonths', 'Months', 'Winning Months', 'numeric-cell winning-period-cell', 'desc')}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wseasons', 'winningseasons', 'Seasons', 'Winning Seasons', 'numeric-cell winning-period-cell', 'desc')}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wyears', 'winningyears', 'Years', 'Winning Years', 'numeric-cell winning-period-cell', 'desc')}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wdecades', 'winningdecades', 'Decades', 'Winning Decades', 'numeric-cell winning-period-cell', 'desc')}"></th>
+                    <th:block th:if="${showMalePercentages}">
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('maleartist', 'maleartistpct', 'Artist %', 'Male Artist %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('malealbum', 'malealbumpct', 'Album %', 'Male Album %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('malesong', 'malesongpct', 'Song %', 'Male Song %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('maleplay', 'maleplaypct', 'Play %', 'Male Play %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('maletime', 'maletimepct', 'Time %', 'Male Time %', 'numeric-cell', null)}"></th>
+                    </th:block>
+                    <th:block th:if="${showTop}">
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('topartist', null, 'Top Artist', 'Top Artist', 'top-col', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('topalbum', null, 'Top Album', 'Top Album', 'top-col', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('topsong', null, 'Top Song', 'Top Song', 'top-col', null)}"></th>
+                    </th:block>
                 </tr>
             </thead>
             <tbody>
@@ -63,88 +74,145 @@
                 <tr th:each="item, iterStat : ${items}"
                     class="catalog-list-row"
                     th:attr="data-filter-type=${filterType},data-filter-value=${valueMode == 'name' ? item.name : item.id},data-value-mode=${valueMode}">
-                    <td class="rank-col" th:text="${startIndex + iterStat.index}">1</td>
-                    <td class="name-cell">
-                        <span th:text="${item.name}">Name</span>
+                    <td class="rank-col pin-rank" data-col="rank"
+                        th:classappend="${startIndex + iterStat.index <= 3} ? ${'rank-' + (startIndex + iterStat.index)} : ''"
+                        th:text="${startIndex + iterStat.index}">1</td>
+                    <td class="name-cell pin-name" data-col="name"
+                        th:with="detailBase=${filterType == 'genre' ? 'genres' : (filterType == 'subgenre' ? 'subgenres' : (filterType == 'language' ? 'languages' : (filterType == 'ethnicity' ? 'ethnicities' : (filterType == 'country' ? 'countries' : null))))}">
+                        <a th:if="${detailBase != null}" class="cl-name-link" th:text="${item.name}"
+                           th:href="@{/{base}/{key}(base=${detailBase},key=${valueMode == 'name' ? item.name : item.id})}">Name</a>
+                        <span th:if="${detailBase == null}" th:text="${item.name}">Name</span>
                     </td>
-                    <td th:if="${showParent}">
+                    <td th:if="${showParent}" data-col="parent">
                         <span th:if="${item.parentGenreName != null}" class="catalog-list-chip" th:text="${item.parentGenreName}">Parent</span>
                         <span th:if="${item.parentGenreName == null}" class="catalog-list-empty">-</span>
                     </td>
-                    <td class="numeric-cell" th:text="${item.artistCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.albumCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.songCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.playCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.vatitoPlayCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.robertloverPlayCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.timeListenedFormatted}">0m</td>
-                    <td class="numeric-cell winning-period-cell" th:text="${item.winningDaysCount}">0</td>
-                    <td class="numeric-cell winning-period-cell" th:text="${item.winningWeeksCount}">0</td>
-                    <td class="numeric-cell winning-period-cell" th:text="${item.winningMonthsCount}">0</td>
-                    <td class="numeric-cell winning-period-cell" th:text="${item.winningSeasonsCount}">0</td>
-                    <td class="numeric-cell winning-period-cell" th:text="${item.winningYearsCount}">0</td>
-                    <td class="numeric-cell winning-period-cell" th:text="${item.winningDecadesCount}">0</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleArtistPercentage != null ? #numbers.formatDecimal(item.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleAlbumPercentage != null ? #numbers.formatDecimal(item.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleSongPercentage != null ? #numbers.formatDecimal(item.maleSongPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.malePlayPercentage != null ? #numbers.formatDecimal(item.malePlayPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleTimePercentage != null ? #numbers.formatDecimal(item.maleTimePercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showTop}">
-                        <a th:if="${item.topArtistName != null}" th:href="@{'/artists/' + ${item.topArtistId}}" th:text="${item.topArtistName}">Artist</a>
+                    <td class="numeric-cell" data-col="artists" th:text="${item.artistCount}">0</td>
+                    <td class="numeric-cell" data-col="albums" th:text="${item.albumCount}">0</td>
+                    <td class="numeric-cell" data-col="songs" th:text="${item.songCount}">0</td>
+                    <td class="numeric-cell" data-col="plays" th:text="${item.playCount}">0</td>
+                    <td class="numeric-cell" data-col="primary" th:text="${item.vatitoPlayCount}">0</td>
+                    <td class="numeric-cell" data-col="legacy" th:text="${item.robertloverPlayCount}">0</td>
+                    <td class="numeric-cell" data-col="time" th:attr="data-seconds=${item.timeListened ?: 0}" th:text="${item.timeListenedFormatted}">0m</td>
+                    <td class="numeric-cell winning-period-cell" data-col="wdays" th:classappend="${item.winningDaysCount == 0} ? 'is-zero' : ''" th:text="${item.winningDaysCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" data-col="wweeks" th:classappend="${item.winningWeeksCount == 0} ? 'is-zero' : ''" th:text="${item.winningWeeksCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" data-col="wmonths" th:classappend="${item.winningMonthsCount == 0} ? 'is-zero' : ''" th:text="${item.winningMonthsCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" data-col="wseasons" th:classappend="${item.winningSeasonsCount == 0} ? 'is-zero' : ''" th:text="${item.winningSeasonsCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" data-col="wyears" th:classappend="${item.winningYearsCount == 0} ? 'is-zero' : ''" th:text="${item.winningYearsCount}">0</td>
+                    <td class="numeric-cell winning-period-cell" data-col="wdecades" th:classappend="${item.winningDecadesCount == 0} ? 'is-zero' : ''" th:text="${item.winningDecadesCount}">0</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="maleartist"
+                        th:classappend="${item.maleArtistPercentage == null ? '' : (item.maleArtistPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleArtistCount ?: 0},data-t=${(item.maleArtistCount ?: 0) + (item.femaleArtistCount ?: 0) + (item.otherArtistCount ?: 0)}"
+                        th:text="${item.maleArtistPercentage != null ? #numbers.formatDecimal(item.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="malealbum"
+                        th:classappend="${item.maleAlbumPercentage == null ? '' : (item.maleAlbumPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleAlbumCount ?: 0},data-t=${(item.maleAlbumCount ?: 0) + (item.femaleAlbumCount ?: 0) + (item.otherAlbumCount ?: 0)}"
+                        th:text="${item.maleAlbumPercentage != null ? #numbers.formatDecimal(item.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="malesong"
+                        th:classappend="${item.maleSongPercentage == null ? '' : (item.maleSongPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleCount ?: 0},data-t=${(item.maleCount ?: 0) + (item.femaleCount ?: 0) + (item.otherCount ?: 0)}"
+                        th:text="${item.maleSongPercentage != null ? #numbers.formatDecimal(item.maleSongPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="maleplay"
+                        th:classappend="${item.malePlayPercentage == null ? '' : (item.malePlayPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.malePlayCount ?: 0},data-t=${(item.malePlayCount ?: 0) + (item.femalePlayCount ?: 0) + (item.otherPlayCount ?: 0)}"
+                        th:text="${item.malePlayPercentage != null ? #numbers.formatDecimal(item.malePlayPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="maletime"
+                        th:classappend="${item.maleTimePercentage == null ? '' : (item.maleTimePercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleTimeListened ?: 0},data-t=${(item.maleTimeListened ?: 0) + (item.femaleTimeListened ?: 0) + (item.otherTimeListened ?: 0)}"
+                        th:text="${item.maleTimePercentage != null ? #numbers.formatDecimal(item.maleTimePercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showTop}" class="top-col" data-col="topartist">
+                        <a th:if="${item.topArtistName != null}" class="cl-top-link"
+                           th:classappend="${item.topArtistGenderId == 2} ? 'g-male' : (${item.topArtistGenderId == 1} ? 'g-female' : '')"
+                           th:href="@{'/artists/' + ${item.topArtistId}}" th:text="${item.topArtistName}">Artist</a>
                         <span th:if="${item.topArtistName == null}" class="catalog-list-empty">-</span>
                     </td>
-                    <td th:if="${showTop}">
-                        <a th:if="${item.topAlbumName != null}" th:href="@{'/albums/' + ${item.topAlbumId}}" th:text="${item.topAlbumArtistName + ' - ' + item.topAlbumName}">Album</a>
+                    <td th:if="${showTop}" class="top-col" data-col="topalbum">
+                        <a th:if="${item.topAlbumName != null}" class="cl-top-link"
+                           th:classappend="${item.topAlbumGenderId == 2} ? 'g-male' : (${item.topAlbumGenderId == 1} ? 'g-female' : '')"
+                           th:href="@{'/albums/' + ${item.topAlbumId}}" th:text="${item.topAlbumArtistName + ' - ' + item.topAlbumName}">Album</a>
                         <span th:if="${item.topAlbumName == null}" class="catalog-list-empty">-</span>
                     </td>
-                    <td th:if="${showTop}">
-                        <a th:if="${item.topSongName != null}" th:href="@{'/songs/' + ${item.topSongId}}" th:text="${item.topSongArtistName + ' - ' + item.topSongName}">Song</a>
+                    <td th:if="${showTop}" class="top-col" data-col="topsong">
+                        <a th:if="${item.topSongName != null}" class="cl-top-link"
+                           th:classappend="${item.topSongGenderId == 2} ? 'g-male' : (${item.topSongGenderId == 1} ? 'g-female' : '')"
+                           th:href="@{'/songs/' + ${item.topSongId}}" th:text="${item.topSongArtistName + ' - ' + item.topSongName}">Song</a>
                         <span th:if="${item.topSongName == null}" class="catalog-list-empty">-</span>
                     </td>
                 </tr>
             </tbody>
+            <tfoot th:unless="${#lists.isEmpty(items)}">
+                <tr class="cl-total-row">
+                    <td class="rank-col pin-rank" data-col="rank"></td>
+                    <td class="name-cell pin-name" data-col="name" th:text="'Total of ' + ${#lists.size(items)} + ' ' + ${emptyLabel}">Total</td>
+                    <td th:if="${showParent}" data-col="parent"></td>
+                    <td class="numeric-cell" data-col="artists" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="albums" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="songs" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="plays" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="primary" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="legacy" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="time" data-total="time"></td>
+                    <td class="numeric-cell" data-col="wdays" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="wweeks" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="wmonths" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="wseasons" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="wyears" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="wdecades" data-total="sum"></td>
+                    <th:block th:if="${showMalePercentages}">
+                        <td class="numeric-cell pct-cell" data-col="maleartist" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="malealbum" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="malesong" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="maleplay" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="maletime" data-total="pct"></td>
+                    </th:block>
+                    <th:block th:if="${showTop}">
+                        <td class="top-col" data-col="topartist"></td>
+                        <td class="top-col" data-col="topalbum"></td>
+                        <td class="top-col" data-col="topsong"></td>
+                    </th:block>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </th:block>
 
 <th:block th:fragment="year-table(items, emptyLabel, showMalePercentages, showTop)">
-    <div class="top-sort-hint catalog-list-hint">Click a sortable column header to update the current catalog sort.</div>
+    <div th:replace="~{fragments/catalog-list-table :: table-toolbar}"></div>
     <div class="catalog-list-table-container">
         <table class="catalog-list-table" id="catalogListTable">
             <thead>
-                <tr>
-                    <th class="rank-col">#</th>
-                    <th data-sort-key="year" data-default-dir="desc"
-                        th:classappend="${sortBy == 'year'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Year</th>
-                    <th data-sort-key="artists" class="numeric-cell"
-                        th:classappend="${sortBy == 'artists'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Artists</th>
-                    <th data-sort-key="albums" class="numeric-cell"
-                        th:classappend="${sortBy == 'albums'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Albums</th>
-                    <th data-sort-key="songs" class="numeric-cell"
-                        th:classappend="${sortBy == 'songs'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Songs</th>
-                    <th data-sort-key="plays" class="numeric-cell"
-                        th:classappend="${sortBy == 'plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Plays</th>
-                    <th data-sort-key="primary_plays" class="numeric-cell"
-                        th:classappend="${sortBy == 'primary_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Primary Plays</th>
-                    <th data-sort-key="legacy_plays" class="numeric-cell"
-                        th:classappend="${sortBy == 'legacy_plays'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Legacy Plays</th>
-                    <th data-sort-key="time" class="numeric-cell"
-                        th:classappend="${sortBy == 'time'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Time</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="maleartistpct" class="numeric-cell"
-                        th:classappend="${sortBy == 'maleartistpct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Artist %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="malealbumpct" class="numeric-cell"
-                        th:classappend="${sortBy == 'malealbumpct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Album %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="malesongpct" class="numeric-cell"
-                        th:classappend="${sortBy == 'malesongpct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Song %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="maleplaypct" class="numeric-cell"
-                        th:classappend="${sortBy == 'maleplaypct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Play %</th>
-                    <th th:if="${showMalePercentages}" data-sort-key="maletimepct" class="numeric-cell"
-                        th:classappend="${sortBy == 'maletimepct'} ? (${sortDir == 'asc'} ? ' sort-asc' : ' sort-desc') : ''">Male Time %</th>
-                    <th>Winning Gender</th>
-                    <th>Winning Genre</th>
-                    <th th:if="${showTop}">Top Artist</th>
-                    <th th:if="${showTop}">Top Album</th>
-                    <th th:if="${showTop}">Top Song</th>
+                <tr class="cl-band-row">
+                    <th class="band band-blank pin-band" colspan="2" data-band-cols="rank name"></th>
+                    <th class="band band-catalog" colspan="3" data-band-cols="artists albums songs">Catalog</th>
+                    <th class="band band-plays" colspan="4" data-band-cols="plays primary legacy time">Plays</th>
+                    <th th:if="${showMalePercentages}" class="band band-male" colspan="5" data-band-cols="maleartist malealbum malesong maleplay maletime">Male share</th>
+                    <th class="band band-winning" colspan="2" data-band-cols="wgender wgenre">Winners</th>
+                    <th th:if="${showTop}" class="band band-top" colspan="3" data-band-cols="topartist topalbum topsong">Number ones</th>
+                </tr>
+                <tr class="cl-head-row">
+                    <th class="rank-col pin-rank" data-col="rank">#</th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('name', 'year', 'Year', 'Year', 'name-col pin-name', 'desc')}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('artists', 'artists', 'Artists', 'Artists', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('albums', 'albums', 'Albums', 'Albums', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('songs', 'songs', 'Songs', 'Songs', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('plays', 'plays', 'Plays', 'Plays', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('primary', 'primary_plays', 'Primary', 'Primary Plays', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('legacy', 'legacy_plays', 'Legacy', 'Legacy Plays', 'numeric-cell', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('time', 'time', 'Time', 'Time', 'numeric-cell', null)}"></th>
+                    <th:block th:if="${showMalePercentages}">
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('maleartist', 'maleartistpct', 'Artist %', 'Male Artist %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('malealbum', 'malealbumpct', 'Album %', 'Male Album %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('malesong', 'malesongpct', 'Song %', 'Male Song %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('maleplay', 'maleplaypct', 'Play %', 'Male Play %', 'numeric-cell', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('maletime', 'maletimepct', 'Time %', 'Male Time %', 'numeric-cell', null)}"></th>
+                    </th:block>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wgender', null, 'Gender', 'Winning Gender', '', null)}"></th>
+                    <th th:replace="~{fragments/catalog-list-table :: col-th('wgenre', null, 'Genre', 'Winning Genre', '', null)}"></th>
+                    <th:block th:if="${showTop}">
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('topartist', null, 'Top Artist', 'Top Artist', 'top-col', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('topalbum', null, 'Top Album', 'Top Album', 'top-col', null)}"></th>
+                        <th th:replace="~{fragments/catalog-list-table :: col-th('topsong', null, 'Top Song', 'Top Song', 'top-col', null)}"></th>
+                    </th:block>
                 </tr>
             </thead>
             <tbody>
@@ -154,45 +222,95 @@
                 </tr>
                 <tr th:each="item, iterStat : ${items}" class="catalog-list-row"
                     th:attr="data-direct-url=${yearType == 'listen' ? '/songs?accountMode=includes&amp;listenedDateFrom=' + item.year + '-01-01&amp;listenedDateTo=' + item.year + '-12-31' : '/songs?releaseDateMode=between&amp;releaseDateFrom=01/01/' + item.year + '&amp;releaseDateTo=31/12/' + item.year}">
-                    <td class="rank-col" th:text="${startIndex + iterStat.index}">1</td>
-                    <td class="name-cell" th:text="${item.year}">2024</td>
-                    <td class="numeric-cell" th:text="${item.artistCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.albumCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.songCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.playCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.vatitoPlayCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.robertloverPlayCount}">0</td>
-                    <td class="numeric-cell" th:text="${item.timeListenedFormatted}">0m</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleArtistPercentage != null ? #numbers.formatDecimal(item.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleAlbumPercentage != null ? #numbers.formatDecimal(item.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleSongPercentage != null ? #numbers.formatDecimal(item.maleSongPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.malePlayPercentage != null ? #numbers.formatDecimal(item.malePlayPercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td th:if="${showMalePercentages}" class="numeric-cell" th:text="${item.maleTimePercentage != null ? #numbers.formatDecimal(item.maleTimePercentage, 1, 1) + '%' : '-'}">-</td>
-                    <td>
+                    <td class="rank-col pin-rank" data-col="rank"
+                        th:classappend="${startIndex + iterStat.index <= 3} ? ${'rank-' + (startIndex + iterStat.index)} : ''"
+                        th:text="${startIndex + iterStat.index}">1</td>
+                    <td class="name-cell pin-name" data-col="name" th:text="${item.year}">2024</td>
+                    <td class="numeric-cell" data-col="artists" th:text="${item.artistCount}">0</td>
+                    <td class="numeric-cell" data-col="albums" th:text="${item.albumCount}">0</td>
+                    <td class="numeric-cell" data-col="songs" th:text="${item.songCount}">0</td>
+                    <td class="numeric-cell" data-col="plays" th:text="${item.playCount}">0</td>
+                    <td class="numeric-cell" data-col="primary" th:text="${item.vatitoPlayCount}">0</td>
+                    <td class="numeric-cell" data-col="legacy" th:text="${item.robertloverPlayCount}">0</td>
+                    <td class="numeric-cell" data-col="time" th:attr="data-seconds=${item.timeListened ?: 0}" th:text="${item.timeListenedFormatted}">0m</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="maleartist"
+                        th:classappend="${item.maleArtistPercentage == null ? '' : (item.maleArtistPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleArtistCount ?: 0},data-t=${(item.maleArtistCount ?: 0) + (item.femaleArtistCount ?: 0) + (item.otherArtistCount ?: 0)}"
+                        th:text="${item.maleArtistPercentage != null ? #numbers.formatDecimal(item.maleArtistPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="malealbum"
+                        th:classappend="${item.maleAlbumPercentage == null ? '' : (item.maleAlbumPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleAlbumCount ?: 0},data-t=${(item.maleAlbumCount ?: 0) + (item.femaleAlbumCount ?: 0) + (item.otherAlbumCount ?: 0)}"
+                        th:text="${item.maleAlbumPercentage != null ? #numbers.formatDecimal(item.maleAlbumPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="malesong"
+                        th:classappend="${item.maleSongPercentage == null ? '' : (item.maleSongPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleCount ?: 0},data-t=${(item.maleCount ?: 0) + (item.femaleCount ?: 0) + (item.otherCount ?: 0)}"
+                        th:text="${item.maleSongPercentage != null ? #numbers.formatDecimal(item.maleSongPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="maleplay"
+                        th:classappend="${item.malePlayPercentage == null ? '' : (item.malePlayPercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.malePlayCount ?: 0},data-t=${(item.malePlayCount ?: 0) + (item.femalePlayCount ?: 0) + (item.otherPlayCount ?: 0)}"
+                        th:text="${item.malePlayPercentage != null ? #numbers.formatDecimal(item.malePlayPercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td th:if="${showMalePercentages}" class="numeric-cell pct-cell" data-col="maletime"
+                        th:classappend="${item.maleTimePercentage == null ? '' : (item.maleTimePercentage >= 50 ? 'male-lean' : 'female-lean')}"
+                        th:attr="data-m=${item.maleTimeListened ?: 0},data-t=${(item.maleTimeListened ?: 0) + (item.femaleTimeListened ?: 0) + (item.otherTimeListened ?: 0)}"
+                        th:text="${item.maleTimePercentage != null ? #numbers.formatDecimal(item.maleTimePercentage, 1, 1) + '%' : '-'}">-</td>
+                    <td data-col="wgender">
                         <span th:if="${item.winningGenderName != null}"
                               class="catalog-list-chip"
                               th:classappend="${item.winningGenderName != null and item.winningGenderName.toLowerCase().contains('female')} ? ' female' : (${item.winningGenderName != null and item.winningGenderName.toLowerCase().contains('male')} ? ' male' : '')"
                               th:text="${item.winningGenderName}">Gender</span>
                         <span th:if="${item.winningGenderName == null}" class="catalog-list-empty">-</span>
                     </td>
-                    <td>
+                    <td data-col="wgenre">
                         <span th:if="${item.winningGenreName != null}" class="catalog-list-chip genre" th:text="${item.winningGenreName}">Genre</span>
                         <span th:if="${item.winningGenreName == null}" class="catalog-list-empty">-</span>
                     </td>
-                    <td th:if="${showTop}">
-                        <a th:if="${item.topArtistName != null}" th:href="@{'/artists/' + ${item.topArtistId}}" th:text="${item.topArtistName}">Artist</a>
+                    <td th:if="${showTop}" class="top-col" data-col="topartist">
+                        <a th:if="${item.topArtistName != null}" class="cl-top-link"
+                           th:classappend="${item.topArtistGenderId == 2} ? 'g-male' : (${item.topArtistGenderId == 1} ? 'g-female' : '')"
+                           th:href="@{'/artists/' + ${item.topArtistId}}" th:text="${item.topArtistName}">Artist</a>
                         <span th:if="${item.topArtistName == null}" class="catalog-list-empty">-</span>
                     </td>
-                    <td th:if="${showTop}">
-                        <a th:if="${item.topAlbumName != null}" th:href="@{'/albums/' + ${item.topAlbumId}}" th:text="${item.topAlbumArtistName + ' - ' + item.topAlbumName}">Album</a>
+                    <td th:if="${showTop}" class="top-col" data-col="topalbum">
+                        <a th:if="${item.topAlbumName != null}" class="cl-top-link"
+                           th:classappend="${item.topAlbumGenderId == 2} ? 'g-male' : (${item.topAlbumGenderId == 1} ? 'g-female' : '')"
+                           th:href="@{'/albums/' + ${item.topAlbumId}}" th:text="${item.topAlbumArtistName + ' - ' + item.topAlbumName}">Album</a>
                         <span th:if="${item.topAlbumName == null}" class="catalog-list-empty">-</span>
                     </td>
-                    <td th:if="${showTop}">
-                        <a th:if="${item.topSongName != null}" th:href="@{'/songs/' + ${item.topSongId}}" th:text="${item.topSongArtistName + ' - ' + item.topSongName}">Song</a>
+                    <td th:if="${showTop}" class="top-col" data-col="topsong">
+                        <a th:if="${item.topSongName != null}" class="cl-top-link"
+                           th:classappend="${item.topSongGenderId == 2} ? 'g-male' : (${item.topSongGenderId == 1} ? 'g-female' : '')"
+                           th:href="@{'/songs/' + ${item.topSongId}}" th:text="${item.topSongArtistName + ' - ' + item.topSongName}">Song</a>
                         <span th:if="${item.topSongName == null}" class="catalog-list-empty">-</span>
                     </td>
                 </tr>
             </tbody>
+            <tfoot th:unless="${#lists.isEmpty(items)}">
+                <tr class="cl-total-row">
+                    <td class="rank-col pin-rank" data-col="rank"></td>
+                    <td class="name-cell pin-name" data-col="name" th:text="'Total of ' + ${#lists.size(items)} + ' ' + ${emptyLabel}">Total</td>
+                    <td class="numeric-cell" data-col="artists" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="albums" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="songs" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="plays" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="primary" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="legacy" data-total="sum"></td>
+                    <td class="numeric-cell" data-col="time" data-total="time"></td>
+                    <th:block th:if="${showMalePercentages}">
+                        <td class="numeric-cell pct-cell" data-col="maleartist" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="malealbum" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="malesong" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="maleplay" data-total="pct"></td>
+                        <td class="numeric-cell pct-cell" data-col="maletime" data-total="pct"></td>
+                    </th:block>
+                    <td data-col="wgender"></td>
+                    <td data-col="wgenre"></td>
+                    <th:block th:if="${showTop}">
+                        <td class="top-col" data-col="topartist"></td>
+                        <td class="top-col" data-col="topalbum"></td>
+                        <td class="top-col" data-col="topsong"></td>
+                    </th:block>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </th:block>

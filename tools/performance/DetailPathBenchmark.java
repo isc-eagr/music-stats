@@ -36,10 +36,11 @@ public class DetailPathBenchmark {
             var pc = new PcService(jdbc);
             var trl = new TrlService(jdbc);
             var tags = new TagService(jdbc);
-            var heatmap = new DetailPlayHeatmapService(jdbc);
-            var ac = new ArtistController(artists, charts, lookup, itunes, null, config, bb, pc, trl, null, null, tags, heatmap);
-            var alc = new AlbumController(albums, charts, artists, lookup, itunes, config, bb, pc, trl, null, null, tags, heatmap);
-            var sc = new SongController(songs, charts, artists, albums, library, lookup, config, itunes, trl, pc, bb, links, tags, heatmap);
+            var plays = new DetailPlaysService(jdbc);
+            var associations = new DetailAssociationsService(jdbc);
+            var ac = new ArtistController(artists, charts, lookup, itunes, null, config, bb, pc, trl, null, null, tags, plays, associations);
+            var alc = new AlbumController(albums, charts, artists, lookup, itunes, config, bb, pc, trl, null, null, tags, plays, associations);
+            var sc = new SongController(songs, charts, artists, albums, library, lookup, config, itunes, trl, pc, bb, links, tags, plays, associations);
             var yc = new YearController(new YearService(jdbc));
             var cases = new ArrayList<Case>();
             cases.add(new Case("/songs?trackNumber=1&trackNumberMode=equals", sc, "listSongs", Map.of("trackNumber", 1, "trackNumberMode", "equals")));

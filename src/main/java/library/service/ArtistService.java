@@ -8,7 +8,6 @@ import library.dto.ArtistStatsQuery;
 import library.dto.ArtistStatsRow;
 import library.dto.FeaturedArtistCardDTO;
 import library.dto.GenderCountDTO;
-import library.dto.PlaysByMonthDTO;
 import library.dto.PlayDTO;
 import library.entity.Artist;
 import library.entity.ArtistImage;
@@ -667,6 +666,30 @@ public class ArtistService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public ArtistFirstListenedSongDTO getLastListenedSongForArtist(int artistId) {
+        String sql = """
+            SELECT s.id, s.name
+            FROM Play p
+            INNER JOIN Song s ON p.song_id = s.id
+            WHERE s.artist_id = ?
+            ORDER BY p.play_date DESC, p.id DESC
+            LIMIT 1
+            """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) ->
+                    new ArtistFirstListenedSongDTO(rs.getInt("id"), rs.getString("name")), artistId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Total artists in the library, the denominator of the overall position. */
+    public int getArtistCount() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM Artist", Integer.class);
+        return count != null ? count : 0;
     }
 
     // Get average song length for an artist (formatted as mm:ss)
@@ -1441,28 +1464,6 @@ public class ArtistService {
         return count != null ? count : 0;
     }
     
-    // Get plays by month for an artist
-    public List<PlaysByMonthDTO> getPlaysByMonthForArtist(int artistId) {
-        String sql = """
-            SELECT 
-                strftime('%Y', p.play_date) as year,
-                strftime('%m', p.play_date) as month,
-                COUNT(*) as play_count
-            FROM Play p
-            INNER JOIN Song s ON p.song_id = s.id
-            WHERE s.artist_id = ? AND p.play_date IS NOT NULL
-            GROUP BY strftime('%Y', p.play_date), strftime('%m', p.play_date)
-            ORDER BY year ASC, month ASC
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByMonthDTO dto = new PlaysByMonthDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setMonth(rs.getString("month"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, artistId);
-    }
     
     // Get artist gender name
     public String getArtistGenderName(int artistId) {
@@ -1472,244 +1473,6 @@ public class ArtistService {
         } catch (Exception e) {
             return null;
         }
-    }
-    
-    /**
-     * Get featured artist cards for an artist (artists who are featured on this artist's songs)
-     * Returns full artist card data with feature count, sorted alphabetically
-     */
-    public List<FeaturedArtistCardDTO> getCollaboratedArtistsForArtist(int artistId) {
-        // Combines three sources, all excluding the artist themselves:
-        // 1) Artists featured on this artist's own songs (SongFeaturedArtist where s.artist_id = artistId)
-        // 2) Primary artists of "foreign" songs in this artist's albums (songs in artist's albums by a different artist)
-        // 3) Featured artists on those foreign songs (excluding self)
-        String sql = """
-            SELECT 
-                a.id,
-                a.name,
-                a.birth_date,
-                a.death_date,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gr.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
-                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
-                COALESCE(scr.play_count, 0) as play_count,
-                COALESCE(scr.time_listened, 0) as time_listened,
-                COUNT(DISTINCT combined.song_id) as feature_count,
-                GROUP_CONCAT(combined.song_name, '||') as song_names
-            FROM (
-                SELECT sfa.artist_id, sfa.song_id, s.name as song_name
-                FROM SongFeaturedArtist sfa
-                INNER JOIN Song s ON sfa.song_id = s.id
-                WHERE s.artist_id = ? AND sfa.artist_id != ?
-                UNION
-                SELECT s.artist_id, s.id as song_id, s.name as song_name
-                FROM Song s
-                INNER JOIN Album al ON s.album_id = al.id
-                WHERE al.artist_id = ? AND s.artist_id != ?
-                UNION
-                SELECT sfa.artist_id, sfa.song_id, s.name as song_name
-                FROM SongFeaturedArtist sfa
-                INNER JOIN Song s ON sfa.song_id = s.id
-                INNER JOIN Album al ON s.album_id = al.id
-                WHERE al.artist_id = ? AND s.artist_id != ? AND sfa.artist_id != ?
-            ) combined
-            INNER JOIN Artist a ON combined.artist_id = a.id
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gr ON a.genre_id = gr.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN (
-                SELECT s2.artist_id, COUNT(*) as play_count, 
-                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Play p2
-                INNER JOIN Song s2 ON p2.song_id = s2.id
-                GROUP BY s2.artist_id
-            ) scr ON a.id = scr.artist_id
-            GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name,
-                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country,
-                     a.birth_date, a.death_date
-            ORDER BY a.name
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setGenderName(rs.getString("gender_name"));
-            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
-            dto.setEthnicityName(rs.getString("ethnicity_name"));
-            dto.setGenreId(rs.getObject("gender_id") != null ? rs.getInt("genre_id") : null);
-            dto.setGenreName(rs.getString("genre_name"));
-            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
-            dto.setSubgenreName(rs.getString("subgenre_name"));
-            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
-            dto.setLanguageName(rs.getString("language_name"));
-            dto.setCountry(rs.getString("country"));
-            dto.setSongCount(rs.getInt("song_count"));
-            dto.setAlbumCount(rs.getInt("album_count"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setPlayCount(rs.getInt("play_count"));
-            long timeListened = rs.getLong("time_listened");
-            dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
-            dto.setFeatureCount(rs.getInt("feature_count"));
-            // Parse song names from GROUP_CONCAT result
-            String songNamesConcat = rs.getString("song_names");
-            if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
-                dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
-            }
-            String birthDateStr = rs.getString("birth_date");
-            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
-            String deathDateStr = rs.getString("death_date");
-            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
-            return dto;
-        }, artistId, artistId, artistId, artistId, artistId, artistId, artistId);
-    }
-    
-    /**
-     * Get collaborated artists from songs where this artist is FEATURED
-     * (i.e., the main artist of songs where this artist appears as a feature, plus other featured artists on those songs)
-     */
-    public List<FeaturedArtistCardDTO> getFeaturedCollaboratedArtists(int artistId) {
-        // This gets both the main artist of songs where artistId is featured,
-        // AND other featured artists on those same songs
-        String sql = """
-            SELECT 
-                a.id,
-                a.name,
-                a.birth_date,
-                a.death_date,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gr.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
-                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
-                COALESCE(scr.play_count, 0) as play_count,
-                COALESCE(scr.time_listened, 0) as time_listened,
-                COUNT(DISTINCT s.id) as feature_count,
-                GROUP_CONCAT(s.name, '||') as song_names
-            FROM SongFeaturedArtist sfa_me
-            INNER JOIN Song s ON sfa_me.song_id = s.id
-            INNER JOIN Artist a ON s.artist_id = a.id
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gr ON a.genre_id = gr.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN (
-                SELECT s2.artist_id, COUNT(*) as play_count, 
-                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Play p2
-                INNER JOIN Song s2 ON p2.song_id = s2.id
-                GROUP BY s2.artist_id
-            ) scr ON a.id = scr.artist_id
-            WHERE sfa_me.artist_id = ?
-            AND a.id != ?
-            GROUP BY a.id
-            
-            UNION
-            
-            SELECT 
-                a.id,
-                a.name as name,
-                a.birth_date,
-                a.death_date,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gr.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
-                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
-                COALESCE(scr.play_count, 0) as play_count,
-                COALESCE(scr.time_listened, 0) as time_listened,
-                COUNT(DISTINCT s.id) as feature_count,
-                GROUP_CONCAT(s.name, '||') as song_names
-            FROM SongFeaturedArtist sfa_me
-            INNER JOIN Song s ON sfa_me.song_id = s.id
-            INNER JOIN SongFeaturedArtist sfa_other ON s.id = sfa_other.song_id
-            INNER JOIN Artist a ON sfa_other.artist_id = a.id
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gr ON a.genre_id = gr.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN (
-                SELECT s2.artist_id, COUNT(*) as play_count, 
-                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Play p2
-                INNER JOIN Song s2 ON p2.song_id = s2.id
-                GROUP BY s2.artist_id
-            ) scr ON a.id = scr.artist_id
-            WHERE sfa_me.artist_id = ?
-            AND sfa_other.artist_id != ?
-            GROUP BY a.id
-            
-            ORDER BY name
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setGenderName(rs.getString("gender_name"));
-            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
-            dto.setEthnicityName(rs.getString("ethnicity_name"));
-            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
-            dto.setGenreName(rs.getString("genre_name"));
-            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
-            dto.setSubgenreName(rs.getString("subgenre_name"));
-            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
-            dto.setLanguageName(rs.getString("language_name"));
-            dto.setCountry(rs.getString("country"));
-            dto.setSongCount(rs.getInt("song_count"));
-            dto.setAlbumCount(rs.getInt("album_count"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setPlayCount(rs.getInt("play_count"));
-            long timeListened = rs.getLong("time_listened");
-            dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
-            dto.setFeatureCount(rs.getInt("feature_count"));
-            String songNamesConcat = rs.getString("song_names");
-            if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
-                dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
-            }
-            String birthDateStr = rs.getString("birth_date");
-            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
-            String deathDateStr = rs.getString("death_date");
-            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
-            return dto;
-        }, artistId, artistId, artistId, artistId);
     }
     
     // ========================================
@@ -1759,82 +1522,6 @@ public class ArtistService {
                 GROUP BY s2.artist_id
             ) scr ON a.id = scr.artist_id
             WHERE am.member_artist_id = ?
-            ORDER BY a.name
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setGenderName(rs.getString("gender_name"));
-            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
-            dto.setEthnicityName(rs.getString("ethnicity_name"));
-            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
-            dto.setGenreName(rs.getString("genre_name"));
-            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
-            dto.setSubgenreName(rs.getString("subgenre_name"));
-            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
-            dto.setLanguageName(rs.getString("language_name"));
-            dto.setCountry(rs.getString("country"));
-            dto.setSongCount(rs.getInt("song_count"));
-            dto.setAlbumCount(rs.getInt("album_count"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setPlayCount(rs.getInt("play_count"));
-            long timeListened = rs.getLong("time_listened");
-            dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
-            String birthDateStr = rs.getString("birth_date");
-            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
-            String deathDateStr = rs.getString("death_date");
-            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
-            return dto;
-        }, artistId);
-    }
-    
-    /**
-     * Get members of a group artist (e.g., Beyoncé for Destiny's Child)
-     * Returns full artist card data for display
-     */
-    public List<FeaturedArtistCardDTO> getMembersForArtist(int artistId) {
-        String sql = """
-            SELECT 
-                a.id,
-                a.name,
-                a.birth_date,
-                a.death_date,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gr.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                a.is_band,
-                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
-                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                COALESCE(scr.play_count, 0) as play_count,
-                COALESCE(scr.time_listened, 0) as time_listened
-            FROM ArtistMember am
-            INNER JOIN Artist a ON am.member_artist_id = a.id
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gr ON a.genre_id = gr.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN (
-                SELECT s2.artist_id, COUNT(*) as play_count, 
-                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Play p2
-                INNER JOIN Song s2 ON p2.song_id = s2.id
-                GROUP BY s2.artist_id
-            ) scr ON a.id = scr.artist_id
-            WHERE am.group_artist_id = ?
             ORDER BY a.name
             """;
         
@@ -2016,30 +1703,6 @@ public class ArtistService {
         return count != null ? count : 0;
     }
 
-    /**
-     * Get aggregated plays by month for an artist including all groups
-     */
-    public List<PlaysByMonthDTO> getAggregatedPlaysByMonth(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String placeholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        String sql = "SELECT strftime('%Y', p.play_date) as year, strftime('%m', p.play_date) as month, COUNT(*) as play_count " +
-            "FROM Play p INNER JOIN Song s ON p.song_id = s.id " +
-            "WHERE s.artist_id IN (" + placeholders + ") AND p.play_date IS NOT NULL " +
-            "GROUP BY strftime('%Y', p.play_date), strftime('%m', p.play_date) ORDER BY year ASC, month ASC";
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByMonthDTO dto = new PlaysByMonthDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setMonth(rs.getString("month"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, allArtistIds.toArray());
-    }
     
     /**
      * Get aggregated songs for an artist including all groups.
@@ -2472,123 +2135,6 @@ public class ArtistService {
         }, params.toArray());
     }
     
-    /**
-     * Get aggregated collaborated artists for an artist including all groups
-     */
-    public List<FeaturedArtistCardDTO> getAggregatedCollaboratedArtists(int artistId, List<Integer> groupIds) {
-        List<Integer> allArtistIds = new ArrayList<>();
-        allArtistIds.add(artistId);
-        if (groupIds != null) {
-            allArtistIds.addAll(groupIds);
-        }
-        
-        String inPlaceholders = String.join(",", allArtistIds.stream().map(id -> "?").toArray(String[]::new));
-        // Combines three sources, all excluding any of the aggregated artist IDs:
-        // 1) Featured artists on songs by any aggregated artist
-        // 2) Primary artists of foreign songs in these artists' albums
-        // 3) Featured artists on those foreign songs
-        String sql = """
-            SELECT 
-                a.id,
-                a.name,
-                a.birth_date,
-                a.death_date,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gr.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
-                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                MAX(CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END) as has_image,
-                COALESCE(scr.play_count, 0) as play_count,
-                COALESCE(scr.time_listened, 0) as time_listened,
-                COUNT(DISTINCT combined.song_id) as feature_count,
-                GROUP_CONCAT(combined.song_name, '||') as song_names
-            FROM (
-                SELECT sfa.artist_id, sfa.song_id, s.name as song_name
-                FROM SongFeaturedArtist sfa
-                INNER JOIN Song s ON sfa.song_id = s.id
-                WHERE s.artist_id IN (%s) AND sfa.artist_id NOT IN (%s)
-                UNION
-                SELECT s.artist_id, s.id as song_id, s.name as song_name
-                FROM Song s
-                INNER JOIN Album al ON s.album_id = al.id
-                WHERE al.artist_id IN (%s) AND s.artist_id NOT IN (%s)
-                UNION
-                SELECT sfa.artist_id, sfa.song_id, s.name as song_name
-                FROM SongFeaturedArtist sfa
-                INNER JOIN Song s ON sfa.song_id = s.id
-                INNER JOIN Album al ON s.album_id = al.id
-                WHERE al.artist_id IN (%s) AND s.artist_id NOT IN (%s) AND sfa.artist_id NOT IN (%s)
-            ) combined
-            INNER JOIN Artist a ON combined.artist_id = a.id
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gr ON a.genre_id = gr.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN (
-                SELECT s2.artist_id, COUNT(*) as play_count, 
-                       SUM(COALESCE(s2.length_seconds, 0)) as time_listened
-                FROM Play p2
-                INNER JOIN Song s2 ON p2.song_id = s2.id
-                GROUP BY s2.artist_id
-            ) scr ON a.id = scr.artist_id
-            GROUP BY a.id, a.name, a.gender_id, g.name, a.ethnicity_id, e.name,
-                     a.genre_id, gr.name, a.subgenre_id, sg.name, a.language_id, l.name, a.country,
-                     a.birth_date, a.death_date
-            ORDER BY a.name
-            """.formatted(inPlaceholders, inPlaceholders, inPlaceholders, inPlaceholders,
-                          inPlaceholders, inPlaceholders, inPlaceholders);
-        
-        // Build params: 7 repetitions of allArtistIds for the 7 IN/NOT IN clauses
-        List<Object> params = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            params.addAll(allArtistIds);
-        }
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setGenderName(rs.getString("gender_name"));
-            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
-            dto.setEthnicityName(rs.getString("ethnicity_name"));
-            dto.setGenreId(rs.getObject("gender_id") != null ? rs.getInt("genre_id") : null);
-            dto.setGenreName(rs.getString("genre_name"));
-            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
-            dto.setSubgenreName(rs.getString("subgenre_name"));
-            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
-            dto.setLanguageName(rs.getString("language_name"));
-            dto.setCountry(rs.getString("country"));
-            dto.setSongCount(rs.getInt("song_count"));
-            dto.setAlbumCount(rs.getInt("album_count"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setPlayCount(rs.getInt("play_count"));
-            long timeListened = rs.getLong("time_listened");
-            dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
-            dto.setFeatureCount(rs.getInt("feature_count"));
-            String songNamesConcat = rs.getString("song_names");
-            if (songNamesConcat != null && !songNamesConcat.isEmpty()) {
-                dto.setSongNames(java.util.Arrays.asList(songNamesConcat.split("\\|\\|")));
-            }
-            String birthDateStr = rs.getString("birth_date");
-            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
-            String deathDateStr = rs.getString("death_date");
-            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
-            return dto;
-        }, params.toArray());
-    }
-    
     // ===== FEATURED SONGS METHODS =====
     
     /**
@@ -2812,6 +2358,13 @@ public class ArtistService {
     
     // ============= RANKING METHODS =============
 
+    /** Fills the first and last listened song names shown in the More panel. */
+    public void fillListenedSongs(ArtistCardDTO dto, boolean includeMain, boolean includeGroups, boolean includeFeatured) {
+        library.dto.ListenedSongs songs = artistRepository.findFirstAndLastListenedSongs(dto.getId(), includeMain, includeGroups, includeFeatured);
+        dto.setFirstListenedSong(songs.first());
+        dto.setLastListenedSong(songs.last());
+    }
+
     /**
      * Get all rankings for an artist in a single query (optimized)
      * Returns a Map with keys: "gender", "genre", "subgenre", "ethnicity", "language", "country"
@@ -2888,38 +2441,6 @@ public class ArtistService {
         return rankings;
     }
     
-    /**
-     * Get artist ranks by year (position within artists that had plays in each year)
-     * Returns a map of year -> rank
-     */
-    public Map<Integer, Integer> getArtistRanksByYear(int artistId) {
-        String sql = """
-            WITH year_song_plays AS MATERIALIZED (
-                SELECT strftime('%Y', play_date) AS year, song_id, COUNT(*) AS plays
-                FROM Play GROUP BY year, song_id
-            )
-            SELECT year, rank FROM (
-                SELECT a.id, 
-                       p.year,
-                       ROW_NUMBER() OVER (PARTITION BY p.year ORDER BY SUM(p.plays) DESC, a.id) as rank
-                FROM Artist a
-                INNER JOIN Song s ON s.artist_id = a.id
-                INNER JOIN year_song_plays p ON p.song_id = s.id
-                GROUP BY a.id, p.year
-            ) ranked
-            WHERE id = ?
-            ORDER BY year
-            """;
-        
-        java.util.Map<Integer, Integer> result = new java.util.LinkedHashMap<>();
-        jdbcTemplate.query(sql, rs -> {
-            String yearStr = rs.getString("year");
-            if (yearStr != null) {
-                result.put(Integer.parseInt(yearStr), rs.getInt("rank"));
-            }
-        }, artistId);
-        return result;
-    }
 
     /**
      * Get artist's overall position among all artists by play count.

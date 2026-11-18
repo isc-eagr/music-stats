@@ -1,0 +1,75 @@
+/* ==========================================================================
+   Album detail page - album-only pieces of the General tab redesign.
+   Everything shared with the artist and song pages lives in detail-general.css;
+   colors come from its gender tokens (--ad-c, --ad-t, ...).
+   ========================================================================== */
+
+/* ── Cover: album name with the artist link under it, over the bottom fade ── */
+.album-detail .ab-photo-title {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 14px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    pointer-events: none;
+}
+
+.album-detail .ab-photo-title .item-name-top.ad-photo-name {
+    position: static;
+}
+
+.album-detail .ab-photo-artist {
+    align-self: flex-start;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ad-t);
+    text-decoration: none;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
+}
+
+.album-detail .ab-photo-artist:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+/* ── Stats card: every song in the legend links to its page ── */
+.album-detail a.ad-share-name {
+    color: inherit;
+    text-decoration: none;
+}
+
+.album-detail a.ad-share-name:hover {
+    color: var(--ad-t);
+    text-decoration: none;
+}
+
+/* ── Songs (tracklist) table ── */
+.album-detail .ad-table .ab-col-track {
+    width: 64px;
+}
+
+.album-detail .ad-name-tx small a.ab-by {
+    text-decoration: none;
+    color: #a1a1aa;
+}
+
+.album-detail .ad-name-tx small a.ab-by.is-male {
+    color: #60a5fa;
+}
+
+.album-detail .ad-name-tx small a.ab-by.is-female {
+    color: #f472b6;
+}
+
+.album-detail .ad-name-tx small a.ab-by:hover {
+    text-decoration: underline;
+}

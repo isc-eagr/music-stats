@@ -17,7 +17,9 @@ Run from the repo root. Java 25, Spring Boot 4.0.5, Maven wrapper (no linter or 
     ./mvnw.cmd -Dtest=CatalogFilterRegressionTest test
     ./mvnw.cmd -Dtest=CatalogFilterRegressionTest#artistLookupTagImageThemeAndItunesFiltersCoverAllModes test
 
-Do not start the app. `music-stats.bat` kills any Java on port 8080 and runs the jar at the repo root; `deploy-prod.bat` runs `clean package` and copies `target/*.jar` over that root jar. Both are user-initiated only.
+Never start the live app. `music-stats.bat` kills any Java on port 8080 and runs the jar at the repo root; `deploy-prod.bat` runs `clean package` and copies `target/*.jar` over that root jar. Both are user-initiated only.
+
+Always run and verify UI and runtime changes on the dev instance (see "Dev environment" in AGENTS.md): `preview_start` with the `music-stats-dev` entry of `.claude/launch.json` (runs `music-stats-dev.bat`, `dev` profile, http://localhost:8081, dev DB `C:/Music Stats DB/music-stats-dev.db`), then check pages in the browser pane and the server log. Stop it with `preview_stop` before rebuilding the dev DB with `tools/devdb/build-dev-db.bat`.
 
 Read-only query benchmarks (no Spring, SQLite opened `mode=ro`) live in `tools/performance/`. `performance-optimization-report.md` summarizes the optimization work done so far. Do not reintroduce app-level timeframe caching.
 
@@ -36,4 +38,4 @@ Read-only query benchmarks (no Spring, SQLite opened `mode=ro`) live in `tools/p
 
 **Tests do not use Spring or the real DB.** `TestDatabaseSupport` opens an in-memory SQLite (`mode=memory&cache=shared`), creates the schema, seeds a small catalog (artists such as Selena and Bad Bunny, with tags, themes, iTunes ids) and wires repositories by hand with a mocked `AppConfigService`. Follow that pattern for new repository or filter tests instead of adding `@SpringBootTest`.
 
-**Frontend.** Server-rendered Thymeleaf under `src/main/resources/templates/<catalog>/`, with shared pieces in `fragments/`. Thymeleaf caching is off in `application.properties`. The Graphs page lives in `fragments/graphs-view.html` with `static/js/graphs.js`.
+**Frontend.** Server-rendered Thymeleaf under `src/main/resources/templates/<catalog>/`, with shared pieces in `fragments/`. Thymeleaf caching is off in `application.properties`. The Graphs page is now the Playground Library explorer (`fragments/graphs-view.html` with `static/js/playground-graphs.js`); `static/js/graphs.js` is the Table view of the Artists / Albums / Songs lists.

@@ -166,6 +166,32 @@ public class ArtistCardDTO {
         this.lastListenedDate = lastListenedDate;
     }
 
+    /** Song behind the first play (More panel only; loaded for the lazily opened card). */
+    private String firstListenedSong;
+    /** Song behind the last play (More panel only; loaded for the lazily opened card). */
+    private String lastListenedSong;
+
+    public String getFirstListenedSong() {
+        return firstListenedSong;
+    }
+
+    public void setFirstListenedSong(String firstListenedSong) {
+        this.firstListenedSong = firstListenedSong;
+    }
+
+    public String getLastListenedSong() {
+        return lastListenedSong;
+    }
+
+    public void setLastListenedSong(String lastListenedSong) {
+        this.lastListenedSong = lastListenedSong;
+    }
+
+    /** Span between first and last listened, for the More panel timeline (e.g. "21 years"). */
+    public String getListeningSpan() {
+        return library.util.DateFormatUtils.spanLabel(firstListenedDate, lastListenedDate);
+    }
+
     public Integer getSongCount() {
         return songCount;
     }
@@ -343,6 +369,11 @@ public class ArtistCardDTO {
 
     public void setYearsListened(Integer yearsListened) {
         this.yearsListened = yearsListened;
+    }
+
+    /** Not a bean getter, so the list APIs' JSON leaves it out; the More panel calls it directly. */
+    public java.util.List<ConsistencyPeriodDTO> consistencyPeriods() {
+        return ConsistencyPeriodDTO.forCard(daysListened, weeksListened, monthsListened, yearsListened, firstListenedDate);
     }
 
     private Double avgPlays;

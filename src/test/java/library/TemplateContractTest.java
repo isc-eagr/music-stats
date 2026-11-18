@@ -169,22 +169,15 @@ class TemplateContractTest {
             assertThat(html)
                     .describedAs(path)
                     .contains("fragments/saved-filters :: saved-filters");
-            Element sortPanel = doc.selectFirst(".toolbar-sort-panel");
-            List<Element> sortPanelChildren = sortPanel.children();
-            int sortListIndex = -1;
-            int savedFiltersIndex = -1;
-            for (int i = 0; i < sortPanelChildren.size(); i++) {
-                Element child = sortPanelChildren.get(i);
-                if (child.hasClass("toolbar-sort-list")) {
-                    sortListIndex = i;
-                }
-                if (child.attr("th:replace").contains("fragments/saved-filters :: saved-filters")) {
-                    savedFiltersIndex = i;
-                }
-            }
-            assertThat(savedFiltersIndex)
-                    .describedAs(path + " keeps saved filters after sort controls")
-                    .isGreaterThan(sortListIndex);
+            Element searchRow = doc.selectFirst(".catalog-toolbar-search-row");
+            assertThat(searchRow).describedAs(path).isNotNull();
+            Element lastInSearchRow = searchRow.children().last();
+            assertThat(lastInSearchRow.attr("th:replace"))
+                    .describedAs(path + " puts saved filters at the end of the search row")
+                    .contains("fragments/saved-filters :: saved-filters");
+            assertThat(doc.select(".toolbar-sort-panel [th:replace*=saved-filters]"))
+                    .describedAs(path + " no longer keeps saved filters in the sort row")
+                    .isEmpty();
         }
 
         String fragment = read("fragments/saved-filters.html");
@@ -200,6 +193,28 @@ class TemplateContractTest {
                 .contains("/api/saved-filters")
                 .contains("function initSavedFilters()")
                 .contains("initSavedFilters();");
+    }
+
+    @Test
+    void catalogToolbarUsesPillControls() throws IOException {
+        Document saved = parse("fragments/saved-filters.html");
+        assertThat(saved.select(".saved-filters > .saved-filter-group")).hasSize(2);
+        for (String action : List.of("saved-filter-apply", "saved-filter-delete", "saved-filter-save")) {
+            Element button = saved.selectFirst("button." + action);
+            assertThat(button).describedAs(action).isNotNull();
+            assertThat(button.hasClass("saved-filter-icon-btn")).describedAs(action).isTrue();
+            assertThat(button.attr("aria-label")).describedAs(action).isNotBlank();
+        }
+
+        Document artists = parse("artists/list.html");
+        Element scope = artists.selectFirst(".catalog-toolbar-heading > #viewToggle + .scope-toggles");
+        assertThat(scope).describedAs("Include toggles sit right after Cards/Table").isNotNull();
+        assertThat(scope.select(".scope-toggle input[type=checkbox]")).extracting(Element::id)
+                .containsExactly("artistIncludeMainToggle", "artistIncludeGroupsToggle", "artistIncludeFeaturedToggle");
+        assertThat(artists.select(".catalog-toolbar-search-row .scope-toggles, .toggles-container")).isEmpty();
+
+        String listUtils = Files.readString(Path.of("src/main/resources/static/js/list-utils.js"), StandardCharsets.UTF_8);
+        assertThat(listUtils).contains("placeholder.textContent = 'Then by...'");
     }
 
     @Test
@@ -352,7 +367,8 @@ class TemplateContractTest {
                 .contains("th:classappend=\"${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''\"");
         assertThat(detailHtml).contains("showPlayBreakdown")
                 .contains("th:classappend=\"${showPlayBreakdown} ? ' play-breakdown-tooltip-trigger' : ''\"");
-        assertThat(detail.select(".play-breakdown-tooltip-item-source")).hasSizeGreaterThanOrEqualTo(18);
+        // Total, primary and legacy in the sidebar plays block, three sources each
+        assertThat(detail.select(".play-breakdown-tooltip-item-source")).hasSizeGreaterThanOrEqualTo(9);
 
         String tooltipJs = Files.readString(
                 Path.of("src/main/resources/static/js/play-breakdown-tooltip.js"), StandardCharsets.UTF_8);
@@ -360,6 +376,65 @@ class TemplateContractTest {
                 .contains("initializePlayBreakdownTooltips")
                 .contains("data-tooltip-title")
                 .contains("safeItems.length <= 1");
+    }
+
+    @Test
+    void artistGeneralTabEditsInTheSidebarAndSortsOneKeyAtATime() throws IOException {
+        Document detail = parse("artists/detail.html");
+        String detailHtml = read("artists/detail.html");
+
+        // Profile edits in place inside the sidebar card, with every editable field in a labelled box
+        Element sidebar = detail.selectFirst("aside#artistSidebar");
+        assertThat(sidebar).isNotNull();
+        assertThat(sidebar.select("form#artistForm")).hasSize(1);
+        for (String field : List.of("name", "genderId", "ethnicityId", "country", "genreId", "subgenreId",
+                "languageId", "birthDate", "deathDate", "isBand", "organized", "tags", "groups")) {
+            assertThat(sidebar.select("#artistForm .ad-fb[data-field=" + field + "]"))
+                    .describedAs("field box for " + field).hasSize(1);
+        }
+        assertThat(sidebar.select("#btnFetchExternal")).hasSize(1);
+        assertThat(sidebar.select("#deleteBtn")).hasSize(1);
+        assertThat(detailHtml).contains("function enterEditMode()")
+                .contains("function updateProfileDirtyState()")
+                .contains("saveForm.requestSubmit()");
+
+        // Albums and songs share the single-key chip sort; no multi-sort or old table sorter
+        String fragment = read("fragments/detail-general.html");
+        assertThat(fragment).contains("th:fragment=\"sort-chips\"").doesNotContain("th:fragment=\"crown(");
+        assertThat(detailHtml).contains("/js/detail-sort.js")
+                .contains("initDetailSort('artistAlbums'")
+                .contains("initDetailSort('artistSongs'")
+                .doesNotContain("initTopTableSort")
+                .doesNotContain("computeNoAlbumSummary");
+        assertThat(detail.select("#artistAlbums [data-sort-container]")).hasSize(2);
+        assertThat(detail.select("#artistSongs [data-sort-container]")).hasSize(1);
+        // Songs sort from their column headers only (no chip row, no play bars)
+        assertThat(detail.select("#artistSongs [th:replace*=sort-chips]")).isEmpty();
+        assertThat(detail.select("#artistSongs .ad-mb")).isEmpty();
+        assertThat(detailHtml).contains("is-medal is-gold").contains("is-medal is-silver").contains("is-medal is-bronze");
+
+        String css = Files.readString(Path.of("src/main/resources/static/css/detail-general.css"), StandardCharsets.UTF_8);
+        // th:field adds a hidden input after each checkbox, so the switch must use the general sibling selector
+        assertThat(css).contains(".ad-switch input:checked ~ span").doesNotContain("input:checked + span");
+        assertThat(css).contains("position: sticky").doesNotContain("content: ' changed'");
+        // Unsaved changes are orange so they never read as the gold used for top ranks
+        assertThat(css).contains(".ad-fb.is-changed {\n    border-color: #fb923c;");
+
+        // Lean album cards: length on the cover, and only the sorted-by metric below the plays
+        assertThat(detail.select("#artistAlbums .ad-shelf .ad-kv")).isEmpty();
+        assertThat(detail.select("#artistAlbums .ad-shelf .ad-album-len")).hasSize(1);
+        assertThat(detail.select("#artistAlbums .ad-shelf .ad-album-metric [data-metric]"))
+                .extracting(e -> e.attr("data-metric"))
+                .contains("primaryplays", "legacyplays", "releasedate", "firstlistened", "lastlistened", "timelistened");
+        assertThat(Files.readString(Path.of("src/main/resources/static/js/detail-sort.js"), StandardCharsets.UTF_8))
+                .contains("root.dataset.activeSort = state.key");
+
+        String sortJs = Files.readString(Path.of("src/main/resources/static/js/detail-sort.js"), StandardCharsets.UTF_8);
+        assertThat(sortJs).contains("window.initDetailSort").contains("data-sort-pin").doesNotContain("shiftKey");
+
+        // The old ranking chips and their JS tooltips are gone, and so are the #1 crowns (Chart History covers them)
+        assertThat(detailHtml).doesNotContain("winning-chip").doesNotContain("setupNumberOneTooltip");
+        assertThat(detailHtml).doesNotContain("numberOneSongs").doesNotContain("numberOneAlbums").doesNotContain("ad-crown");
     }
 
     @Test
@@ -515,8 +590,9 @@ class TemplateContractTest {
 
         String catalogTable = read("fragments/catalog-list-table.html");
         assertThat(catalogTable)
-                .contains("data-sort-key=\"primary_plays\"")
-                .contains("data-sort-key=\"legacy_plays\"")
+                .contains("col-th('primary', 'primary_plays'")
+                .contains("col-th('legacy', 'legacy_plays'")
+                .contains("data-sort-key=${sortKey}")
                 .contains("item.vatitoPlayCount")
                 .contains("item.robertloverPlayCount");
     }
@@ -555,6 +631,64 @@ class TemplateContractTest {
         String combinedCatalogHtml = read("artists/list.html") + read("albums/list.html") + read("songs/list.html");
         assertThat(combinedCatalogHtml).contains("flatpickr");
         assertThat(combinedCatalogHtml).contains("d/m/Y");
+    }
+
+    @Test
+    void catalogCardsShowWinningPeriodsCapsuleInTheFooter() throws IOException {
+        String fragment = read("fragments/catalog-row.html");
+        assertThat(fragment)
+                .contains("th:fragment=\"wins(it, sortBy)\"")
+                .contains("it.winningDaysCount", "it.winningWeeksCount", "it.winningMonthsCount",
+                        "it.winningSeasonsCount", "it.winningYearsCount", "it.winningDecadesCount");
+
+        for (String path : List.of("genres/list.html", "subgenres/list.html", "languages/list.html",
+                "ethnicities/list.html", "countries/list.html", "genders/list.html")) {
+            Document doc = parse(path);
+            Element foot = doc.selectFirst(".lb-foot");
+            assertThat(foot).describedAs(path).isNotNull();
+            assertThat(foot.select("[th:replace*=catalog-row :: wins(]")).describedAs(path).hasSize(1);
+            assertThat(read(path))
+                    .describedAs(path + " no longer repeats the winning count in the sort pill")
+                    .doesNotContain("th:case=\"'winningdays'\"");
+        }
+        assertThat(Files.readString(Path.of("src/main/resources/static/css/catalog-rows.css"), StandardCharsets.UTF_8))
+                .contains(".lb-wins", ".lb-wins-c.on");
+    }
+
+    @Test
+    void catalogTablesUseHeaderMenusPinnedNamesAndATotalsRow() throws IOException {
+        for (CatalogPage page : catalogPages()) {
+            Document doc = parse(page.path());
+            Element table = doc.selectFirst(page.tableSelector());
+            assertThat(table.hasClass("catalog-table")).describedAs(page.path()).isTrue();
+            List<Element> headers = table.select("thead tr").first().select("th");
+            assertThat(headers.get(0).hasClass("ct-pin-rank")).describedAs(page.path()).isTrue();
+            assertThat(headers.get(1).hasClass("ct-pin-cover")).describedAs(page.path()).isTrue();
+            assertThat(headers.get(2).attr("data-col"))
+                    .describedAs(page.path() + " puts the pinned name right after the cover")
+                    .isEqualTo("name");
+            assertThat(read(page.path()))
+                    .contains("fragments/catalog-table-toolbar :: toolbar", "/css/catalog-table.css")
+                    .doesNotContain("Shift + click");
+        }
+
+        Document toolbar = parse("fragments/catalog-table-toolbar.html");
+        assertThat(toolbar.select("#ctTotalsMode button").eachAttr("data-mode")).containsExactly("sum", "avg", "median", "off");
+
+        String graphs = Files.readString(Path.of("src/main/resources/static/js/graphs.js"), StandardCharsets.UTF_8);
+        assertThat(graphs)
+                .doesNotContain("shiftKey", "getGenderRowStyle", "high-plays")
+                .contains("function addCatalogSortLevel(type, column)")
+                .contains("function openCatalogColumnMenu(type, th)")
+                .contains("function syncToolbarSortControls(type)")
+                .contains("function renderCatalogTotals(type)")
+                .contains("function ctRecencyCell(value)")
+                .contains("function ctPeakChip(value, family, atPeak, unit)");
+
+        Document catalogTable = parse("fragments/catalog-list-table.html");
+        assertThat(catalogTable.select("tr.cl-band-row")).hasSize(2);
+        assertThat(catalogTable.select("tfoot")).hasSize(2);
+        assertThat(read("fragments/catalog-list-table.html")).doesNotContain("Click a sortable column header");
     }
 
     private static void assertColumns(String relativePath, Set<String> expectedColumns) throws IOException {

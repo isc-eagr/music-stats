@@ -1,677 +1,1197 @@
-.charts-table-wrapper,
-.recap-table-wrap {
-    overflow-x: auto;
-}
+/* ==========================================================================
+   Detail pages (artist, album, song) - Chart History tab
+   Chart tiles (switcher), "Where they peaked" spread, hit cards with run bars,
+   Seasonal + Yearly calendar. Gender colors come from the .ad-page tokens
+   (detail-general.css): --ad-c, --ad-t, --ad-rgb, --ad-bd, --ad-hair, ...
+   ========================================================================== */
 
-.charts-table,
-.recap-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #0a0a0a;
-    border: 1px solid #2a2a2a;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.charts-table th,
-.charts-table td,
-.recap-table th,
-.recap-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #1b1d27;
-    vertical-align: middle;
-}
-
-.charts-table th,
-.recap-table th {
-    background: #111;
-    color: #8c8f9a;
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.charts-table tbody tr:hover,
-.recap-table tbody tr:hover {
-    background: #151515;
-}
-
-.charts-table tbody tr.gender-female {
-    background: rgba(236, 72, 153, 0.12);
-    border-left: 3px solid rgba(236, 72, 153, 0.45);
-}
-
-.charts-table tbody tr.gender-female:hover {
-    background: rgba(236, 72, 153, 0.16);
-}
-
-.charts-table tbody tr.gender-male {
-    background: rgba(59, 130, 246, 0.12);
-    border-left: 3px solid rgba(59, 130, 246, 0.45);
-}
-
-.charts-table tbody tr.gender-male:hover {
-    background: rgba(59, 130, 246, 0.16);
-}
-
-.charts-table tbody tr:last-child td,
-.recap-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.charts-table .col-expand,
-.charts-table .col-span,
-.charts-table .col-peak,
-.charts-table .col-at-peak,
-.recap-table .col-expand,
-.recap-table .col-span,
-.recap-table .col-peak,
-.recap-table .col-at-peak {
-    text-align: center;
-}
-
-.charts-table .col-expand,
-.recap-table .col-expand {
-    width: 52px;
-}
-
-.charts-table .col-span,
-.charts-table .col-peak,
-.charts-table .col-at-peak,
-.recap-table .col-span,
-.recap-table .col-peak,
-.recap-table .col-at-peak {
-    width: 88px;
-}
-
-.charts-table .col-title,
-.charts-table .mobile-name-col,
-.recap-table .col-title,
-.recap-table .mobile-name-col {
-    min-width: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.charts-table .cover-col,
-.recap-table .cover-col {
-    width: 62px;
-    padding: 8px 10px;
-}
-
-.charts-table .cover-col img,
-.charts-table .cover-col .cover-placeholder,
-.recap-table .cover-col img,
-.recap-table .cover-col .cover-placeholder {
-    width: 42px;
-    height: 42px;
-    border-radius: 6px;
-}
-
-.charts-table .cover-col img,
-.recap-table .cover-col img {
-    display: block;
-    object-fit: cover;
-    background: #0f0f0f;
-    border: 1px solid #2a2a2a;
-}
-
-.charts-table .cover-col .cover-placeholder,
-.recap-table .cover-col .cover-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #1a1a1a, #262626);
-    border: 1px dashed #333;
-    color: #666;
-}
-
-.detail-chart-history-row .peak-cell,
-.detail-chart-history-row .recap-pos-cell {
+.chh {
+    --chh-gold: #fbbf24;
+    --chh-gold-ink: #1a1205;
+    --chh-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+    --chh-muted: #a1a1aa;
+    --chh-soft: #c7cad1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    gap: 18px;
+    font-family: Inter, system-ui, sans-serif;
+    color: #f2f2f4;
 }
 
-.peak-position {
-    font-size: 1.1rem;
+.chh [hidden] {
+    display: none !important;
+}
+
+.chh a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.chh-tone-weekly { --chh-tone: var(--ad-c); --chh-tone-rgb: var(--ad-rgb); --chh-tone-text: var(--ad-t); }
+.chh-tone-bb { --chh-tone: #22d3ee; --chh-tone-rgb: 34, 211, 238; --chh-tone-text: #93deea; }
+.chh-tone-pc { --chh-tone: #fa8072; --chh-tone-rgb: 250, 128, 114; --chh-tone-text: #ffd1ca; }
+.chh-tone-trl { --chh-tone: #d1ae58; --chh-tone-rgb: 209, 174, 88; --chh-tone-text: #e5c97f; }
+
+.chh-band-one { --chh-band: var(--chh-gold); --chh-band-ink: var(--chh-gold-ink); }
+.chh-band-top5 { --chh-band: var(--ad-c); --chh-band-ink: var(--ad-ink); }
+.chh-band-top10 { --chh-band: rgba(var(--ad-rgb), 0.55); --chh-band-ink: #fff; }
+.chh-band-rest { --chh-band: rgba(var(--ad-rgb), 0.24); --chh-band-ink: #e5e7eb; }
+
+.chh-num {
+    font-family: var(--chh-num);
     font-weight: 700;
-    color: #e5e7eb;
+    line-height: 1;
 }
 
-.peak-position.peak-number-one {
-    color: #fbbf24;
-    text-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.4);
+.chh-num.is-one {
+    color: var(--chh-gold);
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.55), 0 0 22px rgba(251, 191, 36, 0.3);
 }
 
-.mvmt {
+.chh-dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--chh-tone, var(--ad-c));
+}
+
+/* ── Cards and headers ── */
+.chh-card {
+    border: 1px solid var(--ad-bd);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--ad-bg) 0%, var(--ad-bg2) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.chh-empty {
+    align-items: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+}
+
+.chh-empty p {
+    margin: 0;
+    font-size: 16px;
+}
+
+.chh-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.chh-head-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.chh-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ad-lbl);
+}
+
+.chh-title {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+}
+
+.chh-title-sub {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--chh-muted);
+}
+
+.chh-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: 12px;
+    color: var(--chh-soft);
+}
+
+.chh-legend span {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    padding: 4px 8px;
+    gap: 6px;
+}
+
+.chh-legend i {
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--chh-band);
+}
+
+/* Songs / Albums segmented switch */
+.chh-switch {
+    display: flex;
+    padding: 3px;
     border-radius: 999px;
-    font-size: 0.74rem;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--ad-hair);
+}
+
+.chh-switch button {
+    font: inherit;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    background: #1f2937;
-    color: #d1d5db;
-    border: 1px solid #374151;
-}
-
-.mvmt-up {
-    color: #86efac;
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(34, 197, 94, 0.3);
-}
-
-.mvmt-down {
-    color: #fca5a5;
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.3);
-}
-
-.mvmt-same {
-    color: #d1d5db;
-    background: rgba(148, 163, 184, 0.12);
-    border-color: rgba(148, 163, 184, 0.28);
-}
-
-.mvmt-new {
-    color: #86efac;
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(34, 197, 94, 0.3);
-}
-
-.mvmt-re {
-    color: #fcd34d;
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.3);
-}
-
-.expand-btn,
-.recap-expand-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1px solid #333;
-    background: #222;
-    color: #888;
+    padding: 7px 16px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--chh-soft);
     cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.2s ease;
 }
 
-.expand-btn:hover,
-.recap-expand-btn:hover {
-    background: #333;
+.chh-switch button:hover {
     color: #fff;
 }
 
-.expand-btn.expanded,
-.recap-expand-btn.expanded {
-    background: rgba(115, 115, 125, 0.14);
-    border-color: rgba(115, 115, 125, 0.4);
-    color: #d1d5db;
+.chh-switch button.is-active {
+    background: var(--ad-c);
+    color: var(--ad-ink);
 }
 
-.charts-table tbody tr.gender-male .expand-btn.expanded {
-    background: rgba(74, 144, 226, 0.14);
-    border-color: rgba(74, 144, 226, 0.45);
-    color: #93c5fd;
-}
-
-.charts-table tbody tr.gender-female .expand-btn.expanded {
-    background: rgba(217, 74, 138, 0.14);
-    border-color: rgba(217, 74, 138, 0.45);
-    color: #f9a8d4;
-}
-
-.recap-table tbody tr.gender-male .recap-expand-btn.expanded {
-    background: rgba(74, 144, 226, 0.14);
-    border-color: rgba(74, 144, 226, 0.45);
-    color: #93c5fd;
-}
-
-.recap-table tbody tr.gender-female .recap-expand-btn.expanded {
-    background: rgba(217, 74, 138, 0.14);
-    border-color: rgba(217, 74, 138, 0.45);
-    color: #f9a8d4;
-}
-
-.chart-run-row,
-.recap-detail-row {
-    display: none;
-}
-
-.chart-run-row.visible,
-.recap-detail-row.visible {
-    display: table-row;
-}
-
-.chart-run-cell,
-.recap-detail-cell {
-    background: #0f0f0f;
-    padding: 16px 20px !important;
-}
-
-.chart-run-content,
-.recap-detail-content {
+/* ── Chart tiles ── */
+/* One column per tile up to four, then rows of three (--chh-tile-cols is set by the template) */
+.chh-tiles {
     display: grid;
-    gap: 16px;
+    grid-template-columns: repeat(var(--chh-tile-cols, 3), minmax(0, 1fr));
+    gap: 12px;
 }
 
-.detail-chart-tone-weekly {
-    --mobile-detail-card-bg: rgba(96, 165, 250, 0.09);
-    --mobile-detail-card-border: rgba(96, 165, 250, 0.22);
-    --mobile-detail-label: #9fc2f5;
-    --mobile-detail-value: #edf5ff;
-}
-
-.detail-chart-tone-bb {
-    --mobile-detail-card-bg: rgba(34, 211, 238, 0.09);
-    --mobile-detail-card-border: rgba(34, 211, 238, 0.22);
-    --mobile-detail-label: #93deea;
-    --mobile-detail-value: #edfdff;
-}
-
-.detail-chart-tone-pc {
-    --mobile-detail-card-bg: rgba(250, 128, 114, 0.09);
-    --mobile-detail-card-border: rgba(250, 128, 114, 0.22);
-    --mobile-detail-label: #ffd1ca;
-    --mobile-detail-value: #fff1ee;
-}
-
-.detail-chart-tone-trl {
-    --mobile-detail-card-bg: rgba(251, 191, 36, 0.09);
-    --mobile-detail-card-border: rgba(251, 191, 36, 0.22);
-    --mobile-detail-label: #d1ae58;
-    --mobile-detail-value: #fff7d6;
-}
-
-.chart-run-stat,
-.recap-run-stat {
-    min-width: 96px;
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--mobile-detail-card-border, #2b3140);
-    background: var(--mobile-detail-card-bg, #151823);
-}
-
-.chart-run-stat-label,
-.recap-run-stat-label {
-    margin-bottom: 6px;
-    color: var(--mobile-detail-label, #8c8f9a);
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.chart-run-stat-value,
-.recap-run-stat-value {
-    color: var(--mobile-detail-value, #e5e7eb);
-    font-size: 1.05rem;
-    font-weight: 700;
-}
-
-.chart-run-stats,
-.recap-run-stats {
+.chh-tile {
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    padding: 16px 16px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0d0d10;
+    color: #f2f2f4;
     display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.chart-run-wrap {
-    display: grid;
+.chh-tile-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 8px;
 }
 
-.chart-run-label,
-.recap-run-label {
-    color: #8c8f9a;
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+.chh-tile:hover {
+    border-color: rgba(var(--chh-tone-rgb), 0.45);
 }
 
-.chart-run-boxes,
-.recap-run-boxes {
+.chh-tile.is-active {
+    border-color: var(--chh-tone);
+    background: rgba(var(--chh-tone-rgb), 0.12);
+}
+
+.chh-tile-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--chh-soft);
+}
+
+.chh-tile.is-active .chh-tile-name {
+    color: var(--chh-tone-text);
+}
+
+.chh-tile-peak {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+}
+
+.chh-tile-peak .chh-num {
+    font-size: 36px;
+}
+
+.chh-tile-peak .chh-times {
+    font-size: 15px;
+    padding: 3px 8px;
+}
+
+.chh-tile-peak-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--chh-muted);
+}
+
+.chh-times-label {
+    font-size: 12px;
+    color: var(--chh-soft);
+}
+
+/* Headline counts: big number over a small label, split by hairlines */
+.chh-tile-stats {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.chh-tile.is-active .chh-tile-stats {
+    border-top-color: rgba(var(--chh-tone-rgb), 0.25);
+}
+
+.chh-tile-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 0 8px;
+}
+
+.chh-tile-stat:first-child {
+    padding-left: 0;
+}
+
+.chh-tile-stat + .chh-tile-stat {
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.chh-tile-stat b {
+    font-size: 19px;
+    color: #fff;
+}
+
+.chh-tile-stat small {
+    font-size: 11px;
+    color: var(--chh-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* "×19": time spent at the peak, next to the peak itself */
+.chh-times {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 7px;
+    font-family: var(--chh-num);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--ad-t);
+    background: rgba(var(--ad-rgb), 0.16);
+    border: 1px solid rgba(var(--ad-rgb), 0.3);
+}
+
+.chh-times.is-one {
+    color: #fcd34d;
+    background: rgba(251, 191, 36, 0.14);
+    border-color: rgba(251, 191, 36, 0.4);
+}
+
+/* ── Where they peaked ── */
+.chh-spread-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Seasonal + yearly rows sit apart from the run charts */
+.chh-spread-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 6px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--ad-hair);
+}
+
+.chh-spread-rows + .chh-spread-group {
+    margin-top: 10px;
+}
+
+.chh-spread-group-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ad-lbl);
+}
+
+.chh-spread-group-label span {
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--chh-muted);
+}
+
+.chh-spread-row {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr) 64px;
+    gap: 14px;
+    align-items: center;
+}
+
+.chh-spread-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.chh-spread-bar {
+    display: flex;
+    gap: 3px;
+    height: 30px;
+    min-width: 0;
+}
+
+.chh-seg {
+    flex-basis: 0;
+    flex-shrink: 1;
+    min-width: 30px;
+    border-radius: 6px;
+    background: var(--chh-band);
+    color: var(--chh-band-ink);
+    font-family: var(--chh-num);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+}
+
+.chh-spread-total {
+    text-align: right;
+    font-size: 12px;
+    color: var(--chh-muted);
+}
+
+.chh-spread-total b {
+    font-family: var(--chh-num);
+    font-size: 15px;
+    color: #f2f2f4;
+}
+
+/* ── Hit cards ── */
+.chh-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-auto-flow: row dense;
+    gap: 12px;
+}
+
+.chh-hit {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--ad-hair);
+    min-width: 0;
+}
+
+.chh-hit.is-one {
+    border-color: rgba(251, 191, 36, 0.38);
+    box-shadow: 0 10px 30px rgba(251, 191, 36, 0.06);
+}
+
+.chh-hit-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.chh-cover {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    flex: none;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1b1c22;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.chh-cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chh-cover-ph {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(var(--ad-rgb), 0.16);
+}
+
+.chh-hit-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.chh-hit-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f2f2f4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chh-hit-name:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.chh-hit-sub {
+    font-size: 12px;
+    color: var(--chh-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+a.chh-hit-sub:hover {
+    color: var(--ad-t);
+}
+
+.chh-hit-peak {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+}
+
+.chh-hit-peak .chh-num {
+    font-size: 28px;
+}
+
+.chh-peak-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chh-mini-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--chh-muted);
+}
+
+/* Run bars: one bar per chart period, taller is better, gold at #1 */
+.chh-run {
+    font: inherit;
+    display: block;
+    width: 100%;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.chh-run:hover .chh-run-bars,
+.chh-run:focus-visible .chh-run-bars {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.chh-run-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    height: 100%;
+    border-radius: 6px;
+    border-bottom: 1px solid var(--ad-hair);
+}
+
+.chh-run-bars.is-dense {
+    gap: 0;
+}
+
+.chh-run-bars.is-loading {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(var(--ad-rgb), 0.08), rgba(255, 255, 255, 0.02));
+    background-size: 200% 100%;
+    animation: chh-shimmer 1.2s linear infinite;
+}
+
+@keyframes chh-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+}
+
+/* Bars share the strip's width (long absences are collapsed into .chh-gap, so they don't shrink the bars) */
+.chh-bar {
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: 1px 1px 0 0;
+    background: var(--chh-band);
+}
+
+.chh-bar.is-off {
+    background: transparent;
+}
+
+/* A long absence: one dotted break instead of an empty bar per period */
+.chh-gap {
+    position: relative;
+    flex: 0 0 9px;
+    align-self: stretch;
+    margin: 0 2px;
+    background: linear-gradient(rgba(255, 255, 255, 0.38) 50%, transparent 0) center top / 1px 5px repeat-y;
+}
+
+.chh-run-bars.is-dense .chh-gap {
+    flex-basis: 7px;
+    margin: 0 1px;
+}
+
+.chh-run-bars.is-large {
+    gap: 2px;
+}
+
+.chh-run-bars.is-large .chh-bar {
+    border-radius: 3px 3px 0 0;
+}
+
+.chh-run-bars.is-large .chh-gap {
+    flex-basis: 30px;
+    margin: 0 3px;
+}
+
+.chh-gap-label {
+    position: absolute;
+    left: 50%;
+    bottom: -20px;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--chh-muted);
+    white-space: nowrap;
+}
+
+.chh-hit-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 12px;
+    color: var(--chh-muted);
+}
+
+.chh-hit-foot b {
+    color: #f2f2f4;
+    font-weight: 600;
+}
+
+/* Time on the chart: a headline number with its unit underneath */
+.chh-hit-total {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.chh-hit-total .chh-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.chh-hit-total small {
+    font-size: 11px;
+    color: var(--chh-muted);
+}
+
+/* Debut and first peak week, stacked at the right */
+.chh-hit-dates {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    margin-left: auto;
+    text-align: right;
+}
+
+.chh-hit-dates b {
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.chh-hit-peakdate.is-one b {
+    color: var(--chh-gold);
+}
+
+.chh-hit-foot a:hover {
+    color: var(--ad-t);
+}
+
+/* Expanded run: numbered boxes linking to each chart */
+.chh-run-boxes {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
 }
 
-.chart-run-box,
-.recap-run-box {
-    min-width: 28px;
-    height: 28px;
-    padding: 0 7px;
+.chh-box {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    border: 1px solid #3b3d46;
-    background: #25262d;
-    color: #d9dde7;
-    font-size: 0.78rem;
+    font-family: var(--chh-num);
+    font-size: 12px;
     font-weight: 700;
-    text-decoration: none;
+    background: #15161c;
+    color: var(--chh-muted);
+    border: 1px solid #2a2c35;
 }
 
-.chart-run-box:hover,
-.recap-run-box:hover {
-    border-color: rgba(96, 165, 250, 0.34);
-    color: #fff;
-}
-
-.chart-run-box.gender-male,
-.recap-run-box.gender-male {
-    background: #2a5c8a;
-    border-color: #3a7cc0;
-    color: #fff;
-}
-
-.chart-run-box.gender-female,
-.recap-run-box.gender-female {
-    background: #8a2a63;
-    border-color: #c04a8d;
-    color: #fff;
-}
-
-.chart-run-box.gender-other,
-.recap-run-box.gender-other {
-    background: #3a3b43;
-    border-color: #555861;
-    color: #e5e7eb;
-}
-
-.chart-run-box.peak-one,
-.recap-run-box.peak-one {
+.chh-box.chh-band-one {
     background: rgba(245, 158, 11, 0.18);
-    border-color: rgba(251, 191, 36, 0.45);
     color: #fcd34d;
+    border-color: rgba(251, 191, 36, 0.5);
 }
 
-.chart-run-box.absent,
-.recap-run-box.absent {
-    background: #111218;
-    border-color: #262831;
-    color: #636773;
-    cursor: default;
+.chh-box.chh-band-top5,
+.chh-box.chh-band-top10 {
+    background: rgba(var(--ad-rgb), 0.12);
+    color: var(--ad-t);
+    border-color: var(--ad-bd);
 }
 
-.chart-run-loading,
-.recap-run-loading,
-.chart-run-error,
-.recap-run-error {
-    color: #8c8f9a;
-    font-size: 0.88rem;
+.chh-box.is-off {
+    background: transparent;
+    border-color: transparent;
+    color: #6b6f7a;
+    font-size: 11px;
 }
 
-.chart-run-error,
-.recap-run-error {
-    color: #f87171;
-}
-
-.recap-table tbody tr.gender-female {
-    background: rgba(236, 72, 153, 0.15);
-    border-left: 3px solid rgba(236, 72, 153, 0.6);
-}
-
-.recap-table tbody tr.gender-female:hover {
-    background: rgba(236, 72, 153, 0.19);
-}
-
-.recap-table tbody tr.gender-male {
-    background: rgba(59, 130, 246, 0.15);
-    border-left: 3px solid rgba(59, 130, 246, 0.6);
-}
-
-.recap-table tbody tr.gender-male:hover {
-    background: rgba(59, 130, 246, 0.19);
-}
-
-.detail-period-history-wrapper {
-    background: #0a0a0a;
-    border: 1px solid #2a2a2a;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.detail-period-history-wrapper--single {
-    display: inline-block;
-    width: auto;
-    max-width: 100%;
-}
-
-.detail-period-history-table.seasonal-table {
-    width: 100%;
-}
-
-.detail-period-history-table--single.seasonal-table {
-    width: auto;
-    min-width: 220px;
-    max-width: 100%;
-}
-
-.detail-period-history-table th.st-pos,
-.detail-period-history-table td.st-pos {
-    width: 52px;
-    text-align: center !important;
-    font-size: 1.1rem;
-    font-weight: 700;
+a.chh-box:hover {
+    border-color: var(--ad-c);
     color: #fff;
 }
 
-.detail-period-history-table .st-title {
-    color: #fff;
-    font-weight: 600;
+.chh-run-note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--chh-muted);
 }
 
-.detail-period-history-table th.st-title,
-.detail-period-history-table td.st-title,
-.detail-period-history-table th.st-period,
-.detail-period-history-table td.st-period {
-    text-align: left !important;
+/* ── Run modal (opened from a card's bars) ── */
+.chh-modal {
+    width: min(920px, calc(100vw - 24px));
+    max-height: calc(100vh - 32px);
+    padding: 0;
+    border: 1px solid var(--ad-bd);
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--ad-bg) 0%, var(--ad-bg2) 100%);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+    overflow-y: auto;
 }
 
-.detail-period-history-table .st-period {
-    color: #cbd5e1;
+.chh-modal::backdrop {
+    background: rgba(0, 0, 0, 0.68);
+    backdrop-filter: blur(3px);
 }
 
-.chart-history-period-pill {
-    display: inline-flex;
+.chh-modal-inner {
+    position: relative;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.chh-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 38px;
+    height: 38px;
+    display: flex;
     align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid var(--ad-hair);
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--chh-soft);
+    cursor: pointer;
+}
+
+.chh-modal-close:hover {
+    border-color: var(--ad-bd);
+    color: #fff;
+}
+
+.chh-modal-close svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.chh-modal-head .chh-hit-head {
+    padding-right: 52px;
+    gap: 16px;
+}
+
+.chh-modal-head .chh-cover {
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+}
+
+.chh-modal-head .chh-hit-name {
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.chh-modal-head .chh-hit-sub {
+    font-size: 13px;
+}
+
+.chh-modal-head .chh-hit-peak .chh-num {
+    font-size: 36px;
+}
+
+.chh-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.chh-modal-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: 8px;
+}
+
+.chh-stat {
+    display: flex;
+    flex-direction: column;
     gap: 6px;
-    padding: 6px 10px;
-    border: 1px solid #242938;
-    border-radius: 999px;
-    background: #151823;
-    color: #cbd5e1;
-    font-size: 0.82rem;
-    text-decoration: none !important;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--ad-hair);
+}
+
+.chh-stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ad-lbl);
+}
+
+.chh-stat-value {
+    font-size: 19px;
+    color: #fff;
+}
+
+.chh-modal-chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 4px;
+}
+
+.chh-modal-range {
+    font-size: 12px;
+    color: var(--chh-muted);
+}
+
+.chh-modal-chart {
+    position: relative;
+    height: 200px;
+    padding-left: 40px;
+    margin-bottom: 22px;
+}
+
+.chh-modal-chart .chh-run-bars {
+    position: relative;
+    height: 100%;
+    border-radius: 0;
+}
+
+.chh-axis {
+    position: absolute;
+    left: 0;
+    width: 34px;
+    text-align: right;
+    font-family: var(--chh-num);
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    transform: translateY(-50%);
+}
+
+/* Modal chart guide lines (not .chh-grid, which is the card grid) */
+.chh-modal-chart .chh-guide {
+    position: absolute;
+    left: 40px;
+    right: 0;
+    border-top: 1px dashed var(--ad-hair);
+}
+
+.chh-axis-top { top: 0; }
+.chh-axis-mid { top: 50%; }
+.chh-axis-bottom { top: 100%; }
+.chh-guide-top { top: 0; border-top-color: rgba(251, 191, 36, 0.3) !important; }
+.chh-guide-mid { top: 50%; }
+.chh-guide-bottom { top: 100%; }
+
+.chh-legend-gap {
+    background: linear-gradient(rgba(255, 255, 255, 0.5) 50%, transparent 0) center top / 1px 4px repeat-y !important;
+}
+
+.chh-modal-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ad-hair);
+    font-size: 13px;
+    color: var(--chh-muted);
+}
+
+.chh-modal-foot a:hover {
+    color: var(--ad-t);
 }
 
 @media (max-width: 768px) {
-    .chart-history-content .detail-content-card .table-wrapper.charts-table-wrapper,
-    .chart-history-content .detail-content-card .table-wrapper.recap-table-wrap {
-        margin: 0 !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-        max-width: 100% !important;
+    .chh-modal-inner {
+        padding: 18px 14px;
     }
 
-    .charts-table-wrapper,
-    .recap-table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+    .chh-modal-chart {
+        height: 160px;
     }
 
-    .charts-table.mobile-compact-table,
-    .recap-table.mobile-compact-table {
-        width: 100%;
-        min-width: 0;
-        table-layout: fixed;
+    .chh-modal-head .chh-cover {
+        width: 56px;
+        height: 56px;
+    }
+}
+
+/* ── Seasonal + Yearly calendar ── */
+.chh-cal {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chh-cal-scroll {
+    overflow-x: auto;
+}
+
+.chh-cal-table {
+    min-width: 660px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chh-cal-row {
+    display: grid;
+    grid-template-columns: 52px repeat(4, minmax(0, 1fr)) minmax(0, 1.15fr);
+    gap: 6px;
+    align-items: stretch;
+}
+
+.chh-cal-headrow span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #9ca3af;
+}
+
+.chh-cal-headrow svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.chh-cal-headrow .chh-cal-yearhead {
+    margin-left: 10px;
+    color: var(--ad-lbl);
+}
+
+.chh-cal-year {
+    display: flex;
+    align-items: center;
+    font-family: var(--chh-num);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--chh-soft);
+}
+
+.chh-cal-cell {
+    font: inherit;
+    text-align: left;
+    height: 56px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: var(--chh-band);
+    color: var(--chh-band-ink);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.chh-cal-cell.is-year {
+    margin-left: 10px;
+}
+
+.chh-cal-cell:hover {
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.chh-cal-cell.is-selected {
+    border-color: #fff;
+}
+
+.chh-cal-cell.is-empty {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    cursor: default;
+}
+
+.chh-cal-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.chh-cal-pos {
+    font-family: var(--chh-num);
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.chh-cal-more {
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.8;
+}
+
+.chh-cal-name {
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.9;
+}
+
+.chh-period {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--ad-hair);
+}
+
+.chh-period-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chh-period-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.chh-pill-link {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--ad-bd);
+    background: var(--ad-tint);
+    color: var(--ad-t) !important;
+}
+
+.chh-pill-link:hover {
+    border-color: var(--ad-c);
+    color: #fff !important;
+}
+
+.chh-period-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
+}
+
+.chh-period-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--ad-hair);
+    min-width: 0;
+}
+
+.chh-period-item.is-one {
+    border-color: rgba(251, 191, 36, 0.45);
+}
+
+a.chh-period-item[href]:hover {
+    border-color: var(--ad-bd);
+}
+
+.chh-period-item .chh-num {
+    width: 40px;
+    flex: none;
+    font-size: 21px;
+    text-align: center;
+}
+
+.chh-period-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.chh-period-item-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chh-period-item-note {
+    font-size: 12px;
+    color: var(--chh-muted);
+}
+
+@media (max-width: 768px) {
+    .chh-card {
+        padding: 16px;
+        border-radius: 16px;
     }
 
-    .charts-table.mobile-compact-table th,
-    .charts-table.mobile-compact-table td,
-    .recap-table.mobile-compact-table th,
-    .recap-table.mobile-compact-table td {
-        padding: 8px 6px;
+    .chh-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
     }
 
-    .charts-table.mobile-compact-table th.mobile-expand-col,
-    .charts-table.mobile-compact-table td.mobile-expand-col,
-    .recap-table.mobile-compact-table th.mobile-expand-col,
-    .recap-table.mobile-compact-table td.mobile-expand-col {
-        width: 32px;
-        padding-left: 4px;
-        padding-right: 4px;
-    }
-
-    .charts-table.mobile-compact-table th.col-span,
-    .charts-table.mobile-compact-table td.col-span,
-    .charts-table.mobile-compact-table th.col-peak,
-    .charts-table.mobile-compact-table td.col-peak,
-    .charts-table.mobile-compact-table th.col-at-peak,
-    .charts-table.mobile-compact-table td.col-at-peak,
-    .recap-table.mobile-compact-table th.col-span,
-    .recap-table.mobile-compact-table td.col-span,
-    .recap-table.mobile-compact-table th.col-peak,
-    .recap-table.mobile-compact-table td.col-peak,
-    .recap-table.mobile-compact-table th.col-at-peak,
-    .recap-table.mobile-compact-table td.col-at-peak {
-        width: 44px;
-    }
-
-    .charts-table.mobile-compact-table .cover-col,
-    .recap-table.mobile-compact-table .cover-col {
-        width: 44px;
-        padding: 3px 6px;
-    }
-
-    .charts-table.mobile-compact-table .cover-col img,
-    .charts-table.mobile-compact-table .cover-col .cover-placeholder,
-    .recap-table.mobile-compact-table .cover-col img,
-    .recap-table.mobile-compact-table .cover-col .cover-placeholder {
-        width: 38px;
-        height: 38px;
-    }
-
-    .charts-table.mobile-compact-table .peak-position,
-    .recap-table.mobile-compact-table .peak-position {
-        font-size: 1rem;
-    }
-
-    .charts-table.mobile-compact-table th.col-title,
-    .charts-table.mobile-compact-table td.col-title,
-    .charts-table.mobile-compact-table th.mobile-name-col,
-    .charts-table.mobile-compact-table td.mobile-name-col,
-    .recap-table.mobile-compact-table th.col-title,
-    .recap-table.mobile-compact-table td.col-title,
-    .recap-table.mobile-compact-table th.mobile-name-col,
-    .recap-table.mobile-compact-table td.mobile-name-col {
-        width: auto;
-        min-width: 0;
-    }
-
-    .chart-run-stats,
-    .recap-run-stats {
+    .chh-tile {
+        padding: 12px;
         gap: 10px;
     }
 
-    .detail-period-history-wrapper {
-        overflow: visible;
-        background: transparent;
-        border: none;
+    .chh-tile-peak .chh-num {
+        font-size: 28px;
     }
 
-    .detail-period-history-wrapper--single {
-        display: block;
-        width: 100%;
-        max-width: none;
-    }
-
-    .detail-period-history-table,
-    .detail-period-history-table thead,
-    .detail-period-history-table tbody {
-        display: block;
-        width: 100%;
-    }
-
-    .detail-period-history-table thead {
+    .chh-times-label {
         display: none;
     }
 
-    .detail-period-history-table tbody {
-        display: grid;
-        gap: 12px;
+    /* Two stats per row on a phone */
+    .chh-tile-stats {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 0;
     }
 
-    .detail-period-history-table--single tbody tr,
-    .detail-period-history-table--list tbody tr {
-        display: grid;
-        grid-template-columns: 40px minmax(0, 1fr);
-        gap: 8px 12px;
-        align-items: center;
-        padding: 14px;
-        border: 1px solid #232633;
-        border-radius: 16px;
-        background: #101118;
+    .chh-tile-stat:nth-child(odd) {
+        padding-left: 0;
+        border-left: none;
     }
 
-    .detail-period-history-table tbody tr td {
-        padding: 0;
-        border: none;
+    .chh-spread-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 10px;
     }
 
-    .detail-period-history-table--single tbody tr td.st-pos,
-    .detail-period-history-table--list tbody tr td.st-pos {
-        grid-column: 1;
-        width: auto;
-        display: flex;
-        justify-content: center;
-        line-height: 1;
-    }
-
-    .detail-period-history-table--single tbody tr td.st-pos {
-        grid-row: 1;
-        align-self: center;
-        align-items: center;
-    }
-
-    .detail-period-history-table--list tbody tr td.st-pos {
-        grid-row: 1 / span 2;
-        align-self: start;
-    }
-
-    .detail-period-history-table--single tbody tr td.st-period {
-        grid-column: 2;
-        grid-row: 1;
-        min-width: 0;
-        align-self: center;
-        font-weight: 600;
-        color: #fff;
-    }
-
-    .detail-period-history-table--list tbody tr td.st-title {
-        grid-column: 2;
-        grid-row: 1;
-        min-width: 0;
-        color: #fff;
-    }
-
-    .detail-period-history-table--list tbody tr td.st-period {
-        grid-column: 2;
+    .chh-spread-bar {
+        grid-column: 1 / -1;
         grid-row: 2;
-        min-width: 0;
+    }
+
+    .chh-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

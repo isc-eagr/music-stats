@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Shared pieces of the detail pages General tab: artist, album, song (styles in css/detail-general.css) -->
+
+<!-- One attribute row in the sidebar profile: label, value and #rank, linking to the filtered catalog table.
+     noun   names what is ranked in the hover text ("#2 among Pop albums"): artists, albums or songs.
+     source says where an inheritable value comes from: null (nothing shown), 'override' (amber Override badge)
+            or any other text, shown as "from <text>".
+     An empty value renders a plain "Not set" row instead of a link. -->
+<th:block th:fragment="rank-row(label, value, rank, href, flagCode, showDot, noun, source)">
+    <a th:if="${value != null and !#strings.isEmpty(value)}" class="ad-row" th:href="${href}" target="_blank"
+       th:title="${rank != null ? label + ': #' + rank + ' among ' + value + ' ' + noun : label}">
+        <span class="ad-row-k"><th:block th:text="${label}">Genre</th:block><span th:if="${source == 'override'}" class="ad-ovr">Override</span><small th:if="${source != null and source != 'override'}" class="ad-from" th:text="'from ' + ${source}">from Artist</small></span>
+        <span class="ad-row-v">
+            <span th:if="${showDot}" class="ad-dot" aria-hidden="true"></span>
+            <img th:if="${flagCode != null}" th:src="@{https://flagcdn.com/w40/{code}.png(code=${flagCode})}" th:alt="${value}" />
+            <span th:text="${value}">Value</span>
+            <span th:if="${rank != null}" class="ad-rank" th:classappend="${rank == 1} ? 'is-gold' : ''" th:text="'#' + ${rank}">#1</span>
+            <svg class="ad-ico ad-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+    </a>
+    <div th:unless="${value != null and !#strings.isEmpty(value)}" class="ad-row">
+        <span class="ad-row-k"><th:block th:text="${label}">Genre</th:block><span th:if="${source == 'override'}" class="ad-ovr">Override</span><small th:if="${source != null and source != 'override'}" class="ad-from" th:text="'from ' + ${source}">from Artist</small></span>
+        <span class="ad-row-v is-empty">Not set</span>
+    </div>
+</th:block>
+
+<!-- Header of the General box (ad-hero): each page puts its plays block on the left (total, primary / legacy split)
+     with this overall standing badge next to the total, and hero-span on the right. -->
+
+<!-- Overall standing badge: #rank among every artist / album / song by total plays.
+     noun is the plural shown under it (artists, albums, songs); href opens that catalog's table. -->
+<a th:fragment="standing(position, total, noun, href)" th:if="${position != null}"
+   class="ad-standing" th:href="${href}" target="_blank"
+   th:title="'Rank #' + ${position} + ' among all ' + ${noun} + ' by total plays'">
+    <span class="ad-standing-n" th:text="'#' + ${position}">#1</span>
+    <span class="ad-standing-tx">
+        <span class="ad-standing-k">Overall</span>
+        <span class="ad-standing-sub" th:text="'of ' + ${#numbers.formatInteger(total != null ? total : 0, 1, 'COMMA')} + ' ' + ${noun}">of 0 artists</span>
+    </span>
+</a>
+
+<!-- Listening span as First play / Last play / Over rows (no title: the rows speak for themselves).
+     Dates cover every play, primary and legacy alike.
+     firstSong / lastSong (anything with id and name) add the song behind each end; null leaves it out. -->
+<div th:fragment="hero-span(first, firstSong, last, lastSong, span)" class="ad-hero-span">
+        <dl class="ad-run-rows">
+            <div><dt>First play</dt><dd><a th:if="${firstSong != null}" th:href="@{'/songs/' + ${firstSong.id}}" th:text="${firstSong.name}" th:title="${firstSong.name}">Song</a><th:block th:text="${first != null ? first : 'N/A'}">N/A</th:block></dd></div>
+            <div><dt>Last play</dt><dd><a th:if="${lastSong != null}" th:href="@{'/songs/' + ${lastSong.id}}" th:text="${lastSong.name}" th:title="${lastSong.name}">Song</a><th:block th:text="${last != null ? last : 'N/A'}">N/A</th:block></dd></div>
+            <div th:if="${span != null}"><dt>Over</dt><dd th:text="${span}">1 year</dd></div>
+        </dl>
+</div>
+
+<!-- Sort chips for the albums and songs sections; one sort at a time, clicking the active chip flips it -->
+<div th:fragment="sort-chips" class="ad-sortbar" role="group" aria-label="Sort">
+    <span class="ad-sortbar-l">Sort by</span>
+    <button type="button" class="ad-sort-chip" data-sort-key="totalplays" data-sort-type="number">Total<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button th:if="${showLegacy != false}" type="button" class="ad-sort-chip" data-sort-key="primaryplays" data-sort-type="number">Primary<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button th:if="${showLegacy != false}" type="button" class="ad-sort-chip" data-sort-key="legacyplays" data-sort-type="number">Legacy<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button type="button" class="ad-sort-chip" data-sort-key="length" data-sort-type="number">Length<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button type="button" class="ad-sort-chip" data-sort-key="releasedate" data-sort-type="date">Released<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button type="button" class="ad-sort-chip" data-sort-key="firstlistened" data-sort-type="date">First listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button type="button" class="ad-sort-chip" data-sort-key="lastlistened" data-sort-type="date">Last listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button type="button" class="ad-sort-chip" data-sort-key="timelistened" data-sort-type="number">Listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+    <button type="button" class="ad-sort-chip" data-sort-key="name" data-sort-type="text">Name<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+</div>
+
+<!-- Sortable column headers (same keys as the sort chips); the active one shows its direction -->
+<th:block th:fragment="sort-headers(nameLabel)">
+    <th class="ad-col-i"><span class="ad-th-btn">#</span></th>
+    <th class="ad-col-name"><button type="button" class="ad-th-btn" data-sort-key="name" data-sort-type="text"><th:block th:text="${nameLabel}">Name</th:block><svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th class="is-num ad-col-total"><button type="button" class="ad-th-btn" data-sort-key="totalplays" data-sort-type="number">Total<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th th:if="${showLegacy != false}" class="is-num hide-mobile ad-col-num"><button type="button" class="ad-th-btn" data-sort-key="primaryplays" data-sort-type="number">Primary<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th th:if="${showLegacy != false}" class="is-num hide-mobile ad-col-num"><button type="button" class="ad-th-btn" data-sort-key="legacyplays" data-sort-type="number">Legacy<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th class="is-num hide-mobile ad-col-num"><button type="button" class="ad-th-btn" data-sort-key="length" data-sort-type="number">Length<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th class="hide-mobile ad-col-date"><button type="button" class="ad-th-btn" data-sort-key="releasedate" data-sort-type="date">Released<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th class="hide-mobile ad-col-date"><button type="button" class="ad-th-btn" data-sort-key="firstlistened" data-sort-type="date">First listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th class="hide-mobile ad-col-date"><button type="button" class="ad-th-btn" data-sort-key="lastlistened" data-sort-type="date">Last listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+    <th class="is-num hide-mobile ad-col-time"><button type="button" class="ad-th-btn" data-sort-key="timelistened" data-sort-type="number">Listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+</th:block>
+
+</body>
+</html>

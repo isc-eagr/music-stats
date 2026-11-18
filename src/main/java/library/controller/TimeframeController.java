@@ -169,13 +169,7 @@ public class TimeframeController {
                 tf.setHasChart(hasChart);
                 tf.setWeekComplete(chartService.isWeekComplete(tf.getPeriodKey()));
                 if (hasChart) {
-                    ChartTopEntryDTO entry = chartEntries.get(tf.getPeriodKey());
-                    if (entry != null) {
-                        tf.setNumberOneSongName(entry.getNumberOneSongName());
-                        tf.setNumberOneAlbumName(entry.getNumberOneAlbumName());
-                        tf.setNumberOneSongGenderId(entry.getNumberOneSongGenderId());
-                        tf.setNumberOneAlbumGenderId(entry.getNumberOneAlbumGenderId());
-                    }
+                    tf.applyChartTopEntry(chartEntries.get(tf.getPeriodKey()));
                 }
             }
         }
@@ -200,13 +194,7 @@ public class TimeframeController {
                 tf.setHasSeasonalChart(hasChart);
                 tf.setSeasonalChartFinalized(finalized);
                 if (finalized) {
-                    ChartTopEntryDTO entry = chartEntries.get(tf.getPeriodKey());
-                    if (entry != null) {
-                        tf.setNumberOneSongName(entry.getNumberOneSongName());
-                        tf.setNumberOneAlbumName(entry.getNumberOneAlbumName());
-                        tf.setNumberOneSongGenderId(entry.getNumberOneSongGenderId());
-                        tf.setNumberOneAlbumGenderId(entry.getNumberOneAlbumGenderId());
-                    }
+                    tf.applyChartTopEntry(chartEntries.get(tf.getPeriodKey()));
                 }
             }
         }
@@ -231,13 +219,7 @@ public class TimeframeController {
                 tf.setHasYearlyChart(hasChart);
                 tf.setYearlyChartFinalized(finalized);
                 if (finalized) {
-                    ChartTopEntryDTO entry = chartEntries.get(tf.getPeriodKey());
-                    if (entry != null) {
-                        tf.setNumberOneSongName(entry.getNumberOneSongName());
-                        tf.setNumberOneAlbumName(entry.getNumberOneAlbumName());
-                        tf.setNumberOneSongGenderId(entry.getNumberOneSongGenderId());
-                        tf.setNumberOneAlbumGenderId(entry.getNumberOneAlbumGenderId());
-                    }
+                    tf.applyChartTopEntry(chartEntries.get(tf.getPeriodKey()));
                 }
             }
         }

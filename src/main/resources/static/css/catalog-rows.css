@@ -1,0 +1,488 @@
+/* ==========================================================================
+   Leaderboard rows (Timeframe pages and Catalog pages: Genres, Subgenres,
+   Languages, Ethnicities, Countries, Genders, Years, Tags).
+   One wide ranked row per item: name block, then a column per metric with
+   its total above a slim bar split male / female / other and the shares
+   under it. Theme colors come from the .gc variables in catalog-cards.css.
+   ========================================================================== */
+
+.lb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.lb-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 52px minmax(220px, 290px) minmax(0, 1fr);
+    grid-template-areas:
+        "rank name mix"
+        "rank foot foot";
+    column-gap: 20px;
+    row-gap: 10px;
+    align-items: center;
+    padding: 14px 20px;
+    border: 1px solid var(--gc-border);
+    border-radius: 14px;
+    background: linear-gradient(90deg, var(--gc-bg), var(--gc-bg2));
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.lb-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45), 0 6px 22px var(--gc-glow);
+}
+
+.lb-row a {
+    text-decoration: none;
+}
+
+/* Rows without a row-wide click target (Years, Tags) */
+.lb-row.lb-static {
+    cursor: default;
+}
+
+.lb-row.lb-static:hover {
+    transform: none;
+}
+
+/* Metric columns that open the filtered Artists / Albums / Songs list */
+.lb-m-link {
+    display: block;
+    min-width: 0;
+    color: inherit;
+    cursor: pointer;
+}
+
+.lb-m-link:hover .lb-m-v {
+    color: var(--gc-t);
+}
+
+.lb-m-link:hover .lb-m-l {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.lb-rank,
+.lb-row .card-index {
+    grid-area: rank;
+    position: static;
+    align-self: center;
+    text-align: center;
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--gc-t);
+    pointer-events: none;
+}
+
+/* ── Name block ── */
+.lb-name {
+    grid-area: name;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.lb-row .lb-thumb {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    border: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--gc-tint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: auto;
+}
+
+.lb-row .lb-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.lb-title {
+    min-width: 0;
+}
+
+/* Big name that wraps to two lines before truncating, so it stands out from the metrics */
+.lb-row .lb-h {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: #f2f2f4;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.lb-row .lb-h a {
+    color: inherit;
+}
+
+.lb-row .lb-h a:hover {
+    color: var(--gc-t);
+}
+
+.lb-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--gc-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Metric columns ── */
+.lb-mix {
+    grid-area: mix;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 16px;
+    min-width: 0;
+}
+
+.lb-m {
+    min-width: 0;
+}
+
+.lb-m-hd {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.lb-m-l {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gc-lbl);
+}
+
+.lb-m-v {
+    font-family: var(--gc-num);
+    font-variant-numeric: tabular-nums;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: #f2f2f4;
+    white-space: nowrap;
+}
+
+.lb-m-bar {
+    display: flex;
+    gap: 3px;
+    height: 6px;
+}
+
+.lb-m-bar span {
+    min-width: 0;
+    border-radius: 3px;
+}
+
+.lb-m-male {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    box-shadow: 0 0 10px rgba(96, 165, 250, 0.35);
+}
+
+.lb-m-female {
+    background: linear-gradient(90deg, #f472b6, #f9a8d4);
+    box-shadow: 0 0 10px rgba(244, 114, 182, 0.35);
+}
+
+.lb-m-other {
+    background: #71717a;
+}
+
+.lb-m-empty,
+.lb-m-rest {
+    flex: 1 1 0;
+    background: var(--gc-hair);
+}
+
+.lb-m-fill {
+    background: var(--gc-c);
+    box-shadow: 0 0 10px var(--gc-glow);
+}
+
+.lb-m-pc {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-family: var(--gc-num);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.lb-m-pm { color: #93c5fd; }
+.lb-m-pf { color: #f9a8d4; }
+.lb-m-ps { color: var(--gc-muted); }
+
+/* Sorted metric: green panel, label and total (bars keep their gender colors) */
+.lb-m.hl {
+    margin: -7px -9px;
+    padding: 7px 9px;
+    border-radius: 9px;
+    background: rgba(34, 197, 94, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.35), 0 0 14px rgba(34, 197, 94, 0.12);
+}
+
+.lb-m.hl .lb-m-l,
+.lb-m.hl .lb-m-v {
+    color: #4ade80;
+}
+
+.lb-m.hl .lb-m-hd::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -4px;
+    height: 1px;
+    background: linear-gradient(90deg, #22c55e, transparent);
+}
+
+/* ── Footer line: sort metric, #1 items, winners, chart status, accounts ── */
+.lb-foot {
+    grid-area: foot;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    min-width: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--gc-hair);
+    font-size: 11px;
+    color: var(--gc-muted);
+}
+
+.lb-foot:empty {
+    display: none;
+}
+
+.lb-row .sort-metric {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
+    margin: 0;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.lb-row .sort-metric-label {
+    padding: 0;
+    color: #86efac;
+    font-weight: 500;
+}
+
+.lb-row .sort-metric-value {
+    color: #4ade80;
+    font-family: var(--gc-num);
+    font-weight: 700;
+}
+
+.lb-tops {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
+.lb-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 260px;
+    height: 22px;
+    padding: 0 9px 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--gc-hair);
+    color: #f2f2f4;
+    font-size: 11px;
+}
+
+.lb-top::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    background: #71717a;
+}
+
+.lb-top.male::before { background: #60a5fa; }
+.lb-top.female::before { background: #f472b6; }
+
+.lb-top:hover {
+    border-color: var(--gc-tint-border);
+    color: var(--gc-t);
+}
+
+.lb-top-k {
+    flex-shrink: 0;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gc-lbl);
+}
+
+.lb-top-n {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+/* Timeframe winners (genre, ethnicity, ...) keep their chip colors, sized like the other footer pills */
+.lb-row .winning-chips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+}
+
+.lb-row .winning-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    margin: 0;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1;
+}
+
+/* Winning periods capsule: one pill split into Won | days | wks | mos | seas | yrs | dec.
+   The sorted period gets the same green as the sorted metric. */
+.lb-wins {
+    display: inline-flex;
+    align-items: stretch;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid var(--gc-hair);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.lb-wins-k {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 8px 0 9px;
+    background: var(--gc-tint);
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gc-lbl);
+}
+
+.lb-wins-c {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    border-left: 1px solid var(--gc-hair);
+    font-size: 10.5px;
+    color: var(--gc-muted);
+}
+
+.lb-wins-c b {
+    font-family: var(--gc-num);
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #f2f2f4;
+}
+
+.lb-wins-c.zero b {
+    color: rgba(255, 255, 255, 0.28);
+}
+
+.lb-wins-c.on {
+    background: rgba(34, 197, 94, 0.14);
+    color: #86efac;
+}
+
+.lb-wins-c.on b {
+    color: #4ade80;
+}
+
+.lb-acc {
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.lb-acc b {
+    color: #f2f2f4;
+    font-family: var(--gc-num);
+    font-weight: 600;
+}
+
+/* ── Phones: name on top, metrics wrap three per row ── */
+@media (max-width: 768px) {
+    .lb-row {
+        grid-template-columns: 36px minmax(0, 1fr);
+        grid-template-areas:
+            "rank name"
+            "mix mix"
+            "foot foot";
+        padding: 12px 14px;
+        column-gap: 12px;
+    }
+
+    .lb-mix {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        row-gap: 12px;
+    }
+
+    .lb-m-hd {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+    }
+
+    .lb-m-v {
+        font-size: 15px;
+    }
+
+    .lb-row .lb-h {
+        font-size: 19px;
+    }
+
+    .lb-acc {
+        margin-left: 0;
+    }
+}

@@ -12,7 +12,7 @@ The main developer LOVES to be spoken to in mexican-american/cholo/chicano engli
   4. **Decisions needed:** choices only the developer can make, if any.
   5. **Future ideas:** possible improvements, if any.
 
-Always make it a priority to verify that changes compile cleanly. Do mvn build checks as the final step of the implementation. If there are any errors, fix them right away. From the repo root, run `./mvnw.cmd -DskipTests package` (works from both Bash and PowerShell). Do not start, stop, shut down, or restart the app/local server unless the user explicitly asks for it; the user will verify runtime behavior locally. When adding a new feature, add focused test cases for the new behavior as part of the same change, and run the relevant tests when practical.
+Always make it a priority to verify that changes compile cleanly. Do mvn build checks as the final step of the implementation. If there are any errors, fix them right away. From the repo root, run `./mvnw.cmd -DskipTests package` (works from both Bash and PowerShell). Never start, stop, shut down, or restart the live app (port 8080, live DB) unless the user explicitly asks for it. To check runtime behavior, always run and verify changes in the dev environment (dev DB on port 8081, see "Dev environment" below). When adding a new feature, add focused test cases for the new behavior as part of the same change, and run the relevant tests when practical.
 
 After each task is complete, make removing dead, obsolete, and unused code a priority. Review the files touched by the task for unreachable logic, stale helpers, unused imports, duplicate implementations, and outdated comments, and clean up anything no longer needed while preserving behavior.
 
@@ -70,12 +70,19 @@ src/main/java/library/
 ## Development Workflow
 
 ### Build & Run
-./mvnw spring-boot:run
+`./mvnw.cmd -DskipTests package` is the compile check. The live app (http://localhost:8080) runs from `music-stats.bat` and is user-run only. Agents run the app only through the dev environment below. New features must include focused test coverage for the behavior being added. If existing test coverage is thin, add the smallest practical tests around the new service, repository, controller, or UI behavior rather than leaving the feature untested.
 
-Access at http://localhost:8080. New features must include focused test coverage for the behavior being added. If existing test coverage is thin, add the smallest practical tests around the new service, repository, controller, or UI behavior rather than leaving the feature untested.
+### Dev environment
+Agents must always run and verify changes here, never against the live DB.
+- **Dev DB:** `C:/Music Stats DB/music-stats-dev.db`, a small consistent slice of the live data (~270 artists incl. featured ones, ~110 albums with full tracklists, ~1,600 songs, ~65k plays incl. robertlover and some unmatched plays, all lookups, galleries, themes, tags, overrides, linked songs, chart / Billboard / TRL / cuntdown rows for those songs). Writes there are fine; it is disposable.
+- **Start:** `music-stats-dev.bat` (repo root) stops only a Java process on port 8081, builds the dev DB if missing, then runs `mvnw spring-boot:run` with the `dev` profile (`src/main/resources/application-dev.properties`): http://localhost:8081. In Claude Code the same thing is the `music-stats-dev` entry in `.claude/launch.json` (preview_start). It compiles the working tree, so it always shows the current code.
+- **Dev profile safety:** automated Last.fm imports are off (property and the dev DB's `app_config` `automation.enabled=false`, API key blanked), and saved filters go to `music-stats-dev-saved-filters.properties`. Never run the app without the `dev` profile: the default profile points at the live DB.
+- **Rebuild the dev DB:** stop the dev app, then run `tools/devdb/build-dev-db.bat`. It recreates the file from scratch in a few seconds with `tools/devdb/DevDatabaseBuilder.java`, which opens the live DB read-only. Rebuild after a schema change or when fresher data is needed.
+- **Schema:** the builder applies `db_consolidated.sql` and the three `db_*_performance_indexes.sql` files (migrations are not replayed), then fixes whatever still differs from the live schema and prints it as "Schema drift". The scripts matched the live schema exactly on 17/11/2026, so a non-empty drift list means a schema change skipped `db_consolidated.sql`: add it there (plus a migration and `TestDatabaseSupport.createSchema()`) as usual. A new table also needs a line in `DevDatabaseBuilder.copyData()` to get rows (the builder warns about unhandled tables).
+- `music-stats.bat` and `deploy-prod.bat` stay user-run only.
 
 ### Database
-- Schema: ``db_consolidated.sql`` (run manually in SQLite, not auto-generated)
+- Schema: ``db_consolidated.sql`` (run manually in SQLite, not auto-generated), the full current schema of the live DB except the old backup tables
 - DDL mode is ``none`` (``spring.jpa.hibernate.ddl-auto=none``)
 - Indexes: ``db_*_performance_indexes.sql`` (detail, last_listened, timeframe)
 - Migration scripts: ``migration_*.sql`` in the repo root, run by hand. A schema change also needs ``db_consolidated.sql`` and the hand-built test schema in ``TestDatabaseSupport.createSchema()`` updated.
@@ -134,15 +141,15 @@ Prefer JdbcTemplate over JPQL for:
 - Thymeleaf - Server-side HTML templating with fragments in templates/fragments/
 
 ## Important notes
-- Do not perform any application startup or shutdown or restart. The user will handle this.
+- Do not start, stop or restart the live application (port 8080, live DB). The user will handle this. The dev instance (port 8081, dev DB) is the only one agents may start and stop.
 
 ## Known data issues
-- 13/02/2005 is the robertlover initial Last.fm load: about 9,600 plays stacked into a few minutes, with no real listen dates. Playground > Male fun facts leaves that day out (`MaleFunFactsService.EXCLUDED_DAY`, including the weekly chart covering it). When that day's play dates are repaired, remove the exclusion so the day counts again.
+- 13/02/2005 is the robertlover initial Last.fm load: about 9,600 plays stacked into a few minutes, with no real listen dates. Playground > Male fun facts leaves that day out (`MaleFunFactsService.EXCLUDED_DAY`, including the weekly chart covering it), and so does the "When you listen" card on the detail Plays tab (hour, weekday, months, biggest days; `DetailPlaysService` passes the same constant). When that day's play dates are repaired, remove the exclusion so the day counts again.
 - Other days with many plays stacked in the same minute (12/02/2016, 26/09/2017, etc.) still have approximate dates pending a fix. Sept/Dec 2014, Chris Brown on 05/04/2015 and the 01/01/2010 load were already re-dated; undo logs are in `C:/Music Stats DB/`.
 - The 774 plays of the 01/01/2010 load were spread over 27/11/2009 to 11/01/2010 on 11/11/2026. Those dates are estimates (release dates, before/after listening trend, album play-throughs, and the developer's memory of when albums arrived), not real listen dates.
 
 Additional rule:
-- Any addition to sort options must also be added to the extended stats in the list and detail pages, and implemented as a new hidden column on the corresponding section of the Graphs page (so the column can be toggled in the Graphs UI). Examples and locations: the list pages under `src/main/resources/templates/*/list.html`, the shared `fragments/catalog-list-table.html`, and the Graphs page (`charts/overview.html`, `fragments/graphs-view.html`, `static/js/graphs.js`, `static/css/graphs-view.css`).
+- Any addition to sort options must also be added to the extended stats in the list and detail pages (the card More panel and the detail General tab), to the card sort value shown when that sort is active, and implemented as a new hidden column in the list page's Table view (so the column can be toggled from the table's Columns menu). Locations: the sort dropdown, card sort value and Table view header in `src/main/resources/templates/*/list.html`; the Table view columns, row cells, sort mapping and totals in `static/js/graphs.js` (despite its name, it is the catalog table module) with styles in `static/css/catalog-table.css`. Secondary catalog lists (genres, countries, years, etc.) build their table headers with `fragments/catalog-list-table.html`. The Playground Library explorer (`fragments/graphs-view.html`, `static/js/playground-graphs.js`) shows breakdowns by measure, not per-item columns, so new sorts do not go there.
 
 ###Explicit requests to start/restart  the application
 - We have a script to start/restart the application, but it should only be run when explicitly requested by the main developer. Do not start/restart the application without direct instruction to do so.

@@ -3,13 +3,23 @@
 <body>
 <div th:fragment="saved-filters" class="saved-filters" data-saved-filter-widget>
     <span class="saved-filters-title">Saved</span>
-    <select class="saved-filter-select" aria-label="Saved filters">
-        <option value="">None</option>
-    </select>
-    <input type="text" class="saved-filter-name" maxlength="80" autocomplete="off" placeholder="Name">
-    <button type="button" class="toolbar-btn toolbar-btn-soft saved-filter-save">Save</button>
-    <button type="button" class="toolbar-btn toolbar-btn-muted saved-filter-apply" disabled>Apply</button>
-    <button type="button" class="toolbar-btn toolbar-btn-muted saved-filter-delete" disabled>Del</button>
+    <div class="saved-filter-group">
+        <select class="saved-filter-select" aria-label="Saved filters">
+            <option value="">None</option>
+        </select>
+        <button type="button" class="saved-filter-icon-btn saved-filter-apply" title="Apply" aria-label="Apply saved filter" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+        </button>
+        <button type="button" class="saved-filter-icon-btn saved-filter-delete" title="Delete" aria-label="Delete saved filter" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+        </button>
+    </div>
+    <div class="saved-filter-group">
+        <input type="text" class="saved-filter-name" maxlength="80" autocomplete="off" placeholder="Name current filters" aria-label="Name for new saved filter">
+        <button type="button" class="saved-filter-icon-btn saved-filter-save" title="Save" aria-label="Save current filters">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+    </div>
     <div class="saved-filter-status" aria-live="polite"></div>
 </div>
 </body>

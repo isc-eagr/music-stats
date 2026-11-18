@@ -7,11 +7,13 @@ package library.dto;
 public class ChartTopEntryDTO {
     
     private String periodKey;
+    private Integer numberOneSongId;
     private String numberOneSongName;
+    private Integer numberOneAlbumId;
     private String numberOneAlbumName;
     private Integer numberOneSongGenderId;
     private Integer numberOneAlbumGenderId;
-    
+
     public ChartTopEntryDTO() {}
     
     public ChartTopEntryDTO(String periodKey) {
@@ -26,6 +28,22 @@ public class ChartTopEntryDTO {
         this.periodKey = periodKey;
     }
     
+    public Integer getNumberOneSongId() {
+        return numberOneSongId;
+    }
+
+    public void setNumberOneSongId(Integer numberOneSongId) {
+        this.numberOneSongId = numberOneSongId;
+    }
+
+    public Integer getNumberOneAlbumId() {
+        return numberOneAlbumId;
+    }
+
+    public void setNumberOneAlbumId(Integer numberOneAlbumId) {
+        this.numberOneAlbumId = numberOneAlbumId;
+    }
+
     public String getNumberOneSongName() {
         return numberOneSongName;
     }

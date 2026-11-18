@@ -1,10 +1,8 @@
 package library.service;
 
 import library.dto.ChartFilterDTO;
-import library.dto.FeaturedArtistCardDTO;
 import library.dto.FeaturedArtistDTO;
 import library.dto.GenderCountDTO;
-import library.dto.PlaysByMonthDTO;
 import library.dto.PlayDTO;
 import library.dto.SongCardDTO;
 import library.dto.SongStatsQuery;
@@ -533,7 +531,7 @@ public class SongService {
             }
             switch (sortField) {
                 case "billboard_peak", "billboard_weeks", "billboard_weeks_at_peak",
-                        "days_listened", "weeks_listened", "months_listened", "years_listened",
+                        "days_listened", "weeks_listened", "months_listened", "years_listened", "consistency",
                         "seasonal_chart_peak",
                         "trl_days", "trl_days_at_peak", "trl_peak",
                         "vatos_cuntdown_days", "vatos_cuntdown_days_at_peak", "vatos_cuntdown_peak",
@@ -632,6 +630,9 @@ public class SongService {
             case "weeks_listened" -> comparingComparable(SongCardDTO::getWeeksListened, desc, false);
             case "months_listened" -> comparingComparable(SongCardDTO::getMonthsListened, desc, false);
             case "years_listened" -> comparingComparable(SongCardDTO::getYearsListened, desc, false);
+            case "consistency" -> comparingComparable(SongCardDTO::getYearsListened, desc, false)
+                .thenComparing(comparingComparable(SongService::firstListenedYear, desc, false))
+                .thenComparing(comparingComparable(SongCardDTO::getPlayCount, desc, false));
             case "track_number" -> comparingComparable(SongCardDTO::getTrackNumber, desc, false);
             case "age_at_release" -> comparingComparable(SongCardDTO::getAgeAtRelease, desc, false);
             case "featured_artist_count" -> comparingComparable(SongCardDTO::getFeaturedArtistCount, desc, false);
@@ -684,6 +685,12 @@ public class SongService {
                                                                                                      boolean desc,
                                                                                                      boolean forceNullsLast) {
         return comparingValues(extractor, java.util.Comparator.naturalOrder(), desc, forceNullsLast);
+    }
+
+    /** Year of the first play, the Consistency sort's share tie-break (same as the SQL substr on first_listened). */
+    private static Integer firstListenedYear(SongCardDTO song) {
+        java.time.LocalDate first = DateFormatUtils.parseDisplayDate(song.getFirstListenedDate());
+        return first != null ? first.getYear() : null;
     }
 
     private java.util.Comparator<SongCardDTO> comparingStrings(Function<SongCardDTO, String> extractor,
@@ -2036,28 +2043,6 @@ public class SongService {
         return count != null ? count : 0;
     }
     
-    // Get plays by month for a song
-    public List<PlaysByMonthDTO> getPlaysByMonthForSong(int songId) {
-        List<Integer> ids = getEffectiveSongIdsForStats(songId);
-        String sql = """
-            SELECT 
-                strftime('%%Y', play_date) as year,
-                strftime('%%m', play_date) as month,
-                COUNT(*) as play_count
-            FROM Play
-            WHERE song_id IN (%s) AND play_date IS NOT NULL
-            GROUP BY strftime('%%Y', play_date), strftime('%%m', play_date)
-            ORDER BY year ASC, month ASC
-            """.formatted(placeholders(ids));
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            PlaysByMonthDTO dto = new PlaysByMonthDTO();
-            dto.setYear(rs.getString("year"));
-            dto.setMonth(rs.getString("month"));
-            dto.setPlayCount(rs.getLong("play_count"));
-            return dto;
-        }, ids.toArray());
-    }
     
     // ============================================
     // Featured Artists Methods
@@ -2118,82 +2103,6 @@ public class SongService {
                 jdbcTemplate.update(insertSql, songId, artistId);
             }
         }
-    }
-    
-    /**
-     * Get featured artist cards for a song (for the Featured Artists tab)
-     * Returns full artist card data sorted alphabetically
-     */
-    public List<FeaturedArtistCardDTO> getFeaturedArtistCardsForSong(int songId) {
-        String sql = """
-            SELECT 
-                a.id,
-                a.name,
-                a.gender_id,
-                g.name as gender_name,
-                a.ethnicity_id,
-                e.name as ethnicity_name,
-                a.genre_id,
-                gr.name as genre_name,
-                a.subgenre_id,
-                sg.name as subgenre_name,
-                a.language_id,
-                l.name as language_name,
-                a.country,
-                (SELECT COUNT(*) FROM Song WHERE artist_id = a.id) as song_count,
-                (SELECT COUNT(*) FROM Album WHERE artist_id = a.id) as album_count,
-                CASE WHEN a.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                COALESCE(plays.play_count, 0) as play_count,
-                COALESCE(plays.time_listened, 0) as time_listened,
-                a.birth_date,
-                a.death_date
-            FROM SongFeaturedArtist sfa
-            INNER JOIN Artist a ON sfa.artist_id = a.id
-            LEFT JOIN Gender g ON a.gender_id = g.id
-            LEFT JOIN Ethnicity e ON a.ethnicity_id = e.id
-            LEFT JOIN Genre gr ON a.genre_id = gr.id
-            LEFT JOIN SubGenre sg ON a.subgenre_id = sg.id
-            LEFT JOIN Language l ON a.language_id = l.id
-            LEFT JOIN (
-                SELECT s.artist_id, COUNT(*) as play_count, 
-                       SUM(COALESCE(s.length_seconds, 0)) as time_listened
-                FROM Play p
-                INNER JOIN Song s ON p.song_id = s.id
-                GROUP BY s.artist_id
-            ) plays ON a.id = plays.artist_id
-            WHERE sfa.song_id = ?
-            ORDER BY a.name
-            """;
-        
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            FeaturedArtistCardDTO dto = new FeaturedArtistCardDTO();
-            dto.setId(rs.getInt("id"));
-            dto.setName(rs.getString("name"));
-            dto.setGenderId(rs.getObject("gender_id") != null ? rs.getInt("gender_id") : null);
-            dto.setGenderName(rs.getString("gender_name"));
-            dto.setEthnicityId(rs.getObject("ethnicity_id") != null ? rs.getInt("ethnicity_id") : null);
-            dto.setEthnicityName(rs.getString("ethnicity_name"));
-            dto.setGenreId(rs.getObject("genre_id") != null ? rs.getInt("genre_id") : null);
-            dto.setGenreName(rs.getString("genre_name"));
-            dto.setSubgenreId(rs.getObject("subgenre_id") != null ? rs.getInt("subgenre_id") : null);
-            dto.setSubgenreName(rs.getString("subgenre_name"));
-            dto.setLanguageId(rs.getObject("language_id") != null ? rs.getInt("language_id") : null);
-            dto.setLanguageName(rs.getString("language_name"));
-            dto.setCountry(rs.getString("country"));
-            dto.setSongCount(rs.getInt("song_count"));
-            dto.setAlbumCount(rs.getInt("album_count"));
-            dto.setHasImage(rs.getInt("has_image") == 1);
-            dto.setPlayCount(rs.getInt("play_count"));
-            long timeListened = rs.getLong("time_listened");
-            dto.setTimeListened(timeListened);
-            dto.setTimeListenedFormatted(TimeFormatUtils.formatTime(timeListened));
-            dto.setFeatureCount(1); // For songs, each featured artist only appears once
-            String birthDateStr = rs.getString("birth_date");
-            dto.setBirthDate(birthDateStr != null ? java.time.LocalDate.parse(birthDateStr) : null);
-            String deathDateStr = rs.getString("death_date");
-            dto.setDeathDate(deathDateStr != null ? java.time.LocalDate.parse(deathDateStr) : null);
-            return dto;
-        }, songId);
     }
     
     // Search songs by artist and song name for API
@@ -2266,7 +2175,7 @@ public class SongService {
                 FROM Play GROUP BY song_id
             ), song_play_counts AS (
                 SELECT s.id, 
-                       ar.gender_id,
+                       COALESCE(s.override_gender_id, ar.gender_id) as gender_id,
                        COALESCE(s.override_genre_id, COALESCE(alb.override_genre_id, ar.genre_id)) as effective_genre_id,
                        COALESCE(s.override_subgenre_id, COALESCE(alb.override_subgenre_id, ar.subgenre_id)) as effective_subgenre_id,
                        ar.ethnicity_id,
@@ -2278,7 +2187,7 @@ public class SongService {
                 INNER JOIN Artist ar ON s.artist_id = ar.id
                 LEFT JOIN Album alb ON s.album_id = alb.id
                 LEFT JOIN play_totals p ON p.song_id = s.id
-                GROUP BY s.id, ar.gender_id, effective_genre_id, effective_subgenre_id, 
+                GROUP BY s.id, gender_id, effective_genre_id, effective_subgenre_id, 
                          ar.ethnicity_id, effective_language_id, ar.country
             ),
             ranked_songs AS (
@@ -2370,6 +2279,11 @@ public class SongService {
     /**
      * Get song's overall position among all songs by play count.
      */
+    public int getSongCount() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM Song", Integer.class);
+        return count != null ? count : 0;
+    }
+
     public Integer getSongOverallPosition(int songId) {
         String sql = """
             SELECT rank FROM (

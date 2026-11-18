@@ -214,8 +214,11 @@ class MusicCatalogRepositoryRegressionTest {
                     "name", "Selena", "includeExtendedStats", true
             ))).getFirst();
             assertThat(artistSummary.daysListened()).isZero();
-            assertThat(artistSummary.songCount()).isZero();
+            assertThat(artistSummary.soloSongCount()).isZero();
             assertThat(artistDetails.daysListened()).isPositive();
+            assertThat(artistDetails.soloSongCount()).isPositive();
+            // Song count is on the list card, so it is loaded even without the extended stats
+            assertThat(artistSummary.songCount()).isEqualTo(3);
             assertThat(artistDetails.songCount()).isEqualTo(3);
 
             AlbumStatsRow albumSummary = db.albumRepository.findAlbumsWithStats(albumQueryWith(mapOf(

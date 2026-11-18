@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Share over time panel above the catalog lists. It charts the top items of the list, in its current sort and
+  filters, against the rest of what those filters match; clicking a band or a legend chip highlights that card or row.
+  catalog: artists, albums, songs, genres, subgenres, languages, ethnicities, genders or countries.
+  measures: comma list offered in the Measure select (plays, time, artists, albums, songs).
+  cardAttr / rowAttr: attribute holding the item key on the cards (#cardView) and table rows (#tableView).
+-->
+
+<!-- Styles; include in <head> -->
+<th:block th:fragment="styles">
+    <link rel="stylesheet" th:href="@{/css/catalog-share-history.css}">
+</th:block>
+
+<!-- Scripts; include once at the end of <body> -->
+<th:block th:fragment="scripts">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+    <script th:src="@{/js/share-chart-core.js}" defer></script>
+    <script th:src="@{/js/catalog-share-history.js}" defer></script>
+</th:block>
+
+<section th:fragment="panel(catalog, measures, cardAttr, rowAttr)" class="share-history" id="shareHistory"
+         th:attr="data-catalog=${catalog},data-measures=${measures},data-card-attr=${cardAttr},data-row-attr=${rowAttr}"
+         aria-labelledby="shareHistoryHeading">
+    <div class="sh-head">
+        <div class="sh-heading">
+            <h2 class="sh-title" id="shareHistoryHeading">Share over time</h2>
+            <span class="sh-subtitle" data-sh="subtitle"></span>
+        </div>
+        <label class="sh-measure">
+            <span class="sh-measure-label">Measure</span>
+            <span class="sh-measure-pill"><select data-sh="measure"></select></span>
+        </label>
+        <button type="button" class="sh-toggle" data-sh="toggle" aria-expanded="true" aria-controls="shareHistoryBody" aria-label="Hide chart">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+    </div>
+    <div class="sh-body" id="shareHistoryBody">
+        <p class="sh-status" data-sh="status" role="status" aria-live="polite">Loading history...</p>
+        <button type="button" class="sh-retry" data-sh="retry" hidden>Retry</button>
+        <div class="sh-chart-wrap" data-sh="wrap" hidden>
+            <canvas data-sh="canvas" role="img" aria-label="Share over time chart. Use the legend buttons below to highlight an item."></canvas>
+            <div class="sh-tooltip" data-sh="tooltip" hidden></div>
+        </div>
+        <div class="sh-legend" data-sh="legend" aria-label="Chart items. Select one to highlight its card or row."></div>
+        <p class="sh-note" data-sh="note"></p>
+        <noscript>Enable JavaScript to load the share history.</noscript>
+    </div>
+</section>
+</body>
+</html>

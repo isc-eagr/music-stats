@@ -1,6 +1,7 @@
 package library;
 
 import library.dto.ChartEntryDTO;
+import library.dto.ChartTopEntryDTO;
 import library.dto.GenderCardDTO;
 import library.dto.GenreCardDTO;
 import library.dto.NumberOneRunDTO;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -170,19 +172,9 @@ class CatalogTimeframeChartRegressionTest {
     }
 
     @Test
-    void chartNumberOneHelpersReturnCountsNamesAndRunsInDisplayDateFormat() {
+    void chartNumberOneRunsUseTheDisplayDateFormat() {
         try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
             ChartService service = chartService(db);
-
-            assertThat(service.getNumberOneSongsCount(1)).isEqualTo(1);
-            assertThat(service.getNumberOneWeeksCount(1)).isEqualTo(1);
-            assertThat(service.getNumberOneSongNames(1)).containsExactly("Bidi Bidi Bom Bom (1 week at #1)");
-
-            assertThat(service.getNumberOneSongsCount(2)).isEqualTo(1);
-            assertThat(service.getNumberOneSongNames(2)).containsExactly("Titi Me Pregunto (1 week at #1)");
-
-            assertThat(service.getNumberOneAlbumsCount(1)).isEqualTo(1);
-            assertThat(service.getNumberOneAlbumNames(1)).containsExactly("Amor Prohibido (1 week at #1)");
 
             List<NumberOneRunDTO> runs = service.getNumberOneRuns("song");
             assertThat(runs).extracting(NumberOneRunDTO::getName)
@@ -195,27 +187,37 @@ class CatalogTimeframeChartRegressionTest {
     }
 
     @Test
-    void chartNumberOneTooltipNamesIncludePluralWeeksAtNumberOne() {
+    void chartTopEntriesCarryIdsSoTimeframeRowsCanTellChartFromPlaysNumberOne() {
         try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
-            db.jdbcTemplate.update("""
-                    INSERT INTO Chart (id, chart_type, period_type, period_key, period_start_date, period_end_date, is_finalized)
-                    VALUES
-                        (8, 'song', 'weekly', '2024-W03', '2024-01-15', '2024-01-21', 1),
-                        (9, 'song', 'weekly', '2024-W04', '2024-01-22', '2024-01-28', 1)
-                    """);
-            db.jdbcTemplate.update("""
-                    INSERT INTO ChartEntry (id, chart_id, position, song_id, album_id, play_count)
-                    VALUES
-                        (9, 8, 1, 2, NULL, 4),
-                        (10, 9, 1, 2, NULL, 5)
-                    """);
-
             ChartService service = chartService(db);
 
-            assertThat(service.getNumberOneSongNames(1))
-                    .contains("No Me Queda Mas (2 weeks at #1)");
-            assertThat(service.getNumberOneFeaturedSongNames(4))
-                    .containsExactly("No Me Queda Mas (by Selena) (2 weeks at #1)");
+            ChartTopEntryDTO week = service.getWeeklyChartTopEntriesBatch(Set.of("2024-W01")).get("2024-W01");
+            assertThat(week.getNumberOneSongId()).isEqualTo(3);
+            assertThat(week.getNumberOneSongName()).isEqualTo("Bad Bunny - Titi Me Pregunto");
+            assertThat(week.getNumberOneAlbumId()).isEqualTo(1);
+            assertThat(week.getNumberOneAlbumName()).isEqualTo("Selena - Amor Prohibido");
+
+            ChartTopEntryDTO spring = service.getFinalizedChartTopEntriesBatch("seasonal", Set.of("2024-Spring")).get("2024-Spring");
+            assertThat(spring.getNumberOneSongId()).isEqualTo(3);
+            assertThat(spring.getNumberOneAlbumId()).isEqualTo(2);
+
+            // Most played song matches the chart #1, most played album does not
+            TimeframeCardDTO card = new TimeframeCardDTO();
+            card.setTopSongId(3);
+            card.setTopAlbumId(1);
+            card.applyChartTopEntry(spring);
+            assertThat(card.isChartSongSameAsTop()).isTrue();
+            assertThat(card.isChartSongDifferentFromTop()).isFalse();
+            assertThat(card.isChartAlbumSameAsTop()).isFalse();
+            assertThat(card.isChartAlbumDifferentFromTop()).isTrue();
+            assertThat(card.getNumberOneAlbumName()).isEqualTo("Bad Bunny - Un Verano Sin Ti");
+
+            // No chart: neither match nor difference is reported
+            TimeframeCardDTO noChart = new TimeframeCardDTO();
+            noChart.setTopSongId(3);
+            noChart.applyChartTopEntry(null);
+            assertThat(noChart.isChartSongSameAsTop()).isFalse();
+            assertThat(noChart.isChartSongDifferentFromTop()).isFalse();
         }
     }
 

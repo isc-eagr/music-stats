@@ -7,6 +7,8 @@
     <link rel="stylesheet" th:href="@{/css/global.css}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <th:block th:replace="~{fragments/share-history :: styles}"></th:block>
+    <th:block th:replace="~{fragments/catalog-row :: row-styles}"></th:block>
     <script th:src="@{/js/list-utils.js}"></script>
 </head>
 <body>
@@ -30,6 +32,7 @@
                             <input type="text" autocomplete="off" name="q" th:value="${searchQuery}" placeholder="Search genders..." oninput="this.form.submit()" id="searchInput">
                         </form>
                     </div>
+                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
                 </div>
 
                 <div class="toolbar-sort-panel">
@@ -60,9 +63,7 @@
                                 <span th:if="${sortDir != 'desc'}">↑</span>
                             </button>
                         </div>
-                    </div>
-                    <div th:replace="~{fragments/saved-filters :: saved-filters}"></div>
-                </div>
+                    </div>                </div>
             </div>
         </div>
         
@@ -81,105 +82,43 @@
         </div>
         
         <!-- Pagination info -->
+        <section th:replace="~{fragments/share-history :: panel('genders', 'plays,time,artists,albums,songs', 'data-id', 'data-filter-value')}"></section>
+
         <div class="pagination-info">
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
         
         <div id="cardView">
         <!-- Gender cards grid -->
-        <div class="catalog-grid">
-            <div th:each="gender : ${genders}" class="catalog-card" style="cursor: pointer;"
-                 th:classappend="${gender.name != null and gender.name.toLowerCase().contains('male') and !gender.name.toLowerCase().contains('female')} ? 'gender-male' : (${gender.name != null and gender.name.toLowerCase().contains('female')} ? 'gender-female' : '')"
-                 th:data-id="${gender.id}"
-                 th:data-name="${gender.name}"
-                 onclick="navigateToGraph(this, 'gender')">
-                <div class="catalog-image">
-                    <div class="catalog-icon" title="Gender"
-                         th:text="${gender.name != null and gender.name.toLowerCase().contains('male') and !gender.name.toLowerCase().contains('female')} ? '♂' : (${gender.name != null and gender.name.toLowerCase().contains('female')} ? '♀' : '⚥')">
-                        ⚥
+        <div class="lb-list"
+             th:with="allArtists=${#aggregates.sum(genders.![artistCount])}, allAlbums=${#aggregates.sum(genders.![albumCount])},
+                      allSongs=${#aggregates.sum(genders.![songCount])}, allPlays=${#aggregates.sum(genders.![playCount])},
+                      allTime=${#aggregates.sum(genders.![timeListened])}">
+            <div th:each="gender, iterStat : ${genders}" class="lb-row gc lb-static" th:attr="data-id=${gender.id}"
+                 th:classappend="${gender.name != null and gender.name.toLowerCase().contains('male') and !gender.name.toLowerCase().contains('female')} ? 'gender-male' : (${gender.name != null and gender.name.toLowerCase().contains('female')} ? 'gender-female' : '')">
+                <span class="lb-rank" th:text="${iterStat.count}">1</span>
+                <div class="lb-name">
+                    <div class="lb-title">
+                        <h3 class="lb-h" th:text="${gender.name}" th:title="${gender.name}">Gender</h3>
                     </div>
                 </div>
-                
-                <div class="catalog-info">
-                    <h3 class="catalog-name" th:text="${gender.name}">Gender Name</h3>
-
-                    <!-- Sort metric display (only for non-visible metrics) -->
-                    <div class="sort-metric" th:if="${sortBy != defaultSortBy and sortBy != 'random' and sortBy != 'plays' and sortBy != 'primary_plays' and sortBy != 'legacy_plays' and sortBy != 'time' and sortBy != 'artists' and sortBy != 'albums' and sortBy != 'songs'}">
-                        <span class="sort-metric-label" th:switch="${sortBy}">
-                            <th:block th:case="'winningdays'">Winning Days:</th:block>
-                            <th:block th:case="'winningweeks'">Winning Weeks:</th:block>
-                            <th:block th:case="'winningmonths'">Winning Months:</th:block>
-                            <th:block th:case="'winningseasons'">Winning Seasons:</th:block>
-                            <th:block th:case="'winningyears'">Winning Years:</th:block>
-                            <th:block th:case="'winningdecades'">Winning Decades:</th:block>
-                        </span>
-                        <span class="sort-metric-value" th:switch="${sortBy}">
-                            <th:block th:case="'winningdays'" th:text="${gender.winningDaysCount}"></th:block>
-                            <th:block th:case="'winningweeks'" th:text="${gender.winningWeeksCount}"></th:block>
-                            <th:block th:case="'winningmonths'" th:text="${gender.winningMonthsCount}"></th:block>
-                            <th:block th:case="'winningseasons'" th:text="${gender.winningSeasonsCount}"></th:block>
-                            <th:block th:case="'winningyears'" th:text="${gender.winningYearsCount}"></th:block>
-                            <th:block th:case="'winningdecades'" th:text="${gender.winningDecadesCount}"></th:block>
-                        </span>
-                    </div>
-                    
-                    <div class="catalog-stats">
-                        <div class="stat" th:classappend="${sortBy == 'artists' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎤</span>
-                            <span class="stat-value" th:text="${gender.artistCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'albums' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">💿</span>
-                            <span class="stat-value" th:text="${gender.albumCount}">0</span>
-                        </div>
-                        <div class="stat" th:classappend="${sortBy == 'songs' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🎵</span>
-                            <span class="stat-value" th:text="${gender.songCount}">0</span>
-                        </div>
-                    </div>
-                    <div class="catalog-stats catalog-stats-plays">
-                        <div class="stat" title="Primary plays" th:classappend="${sortBy == 'primary_plays' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon primary-plays">⏵</span>
-                            <span class="stat-value" th:text="${gender.vatitoPlayCount}">0</span>
-                        </div>
-                        <div class="stat" title="Legacy plays" th:classappend="${sortBy == 'legacy_plays' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon legacy-plays">⏵</span>
-                            <span class="stat-value" th:text="${gender.robertloverPlayCount}">0</span>
-                        </div>
-                        <div class="stat" title="Total plays" th:classappend="${sortBy == 'plays' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon total-plays">⏵</span>
-                            <span class="stat-value" th:text="${gender.playCount}">0</span>
-                        </div>
-                    </div>
-                    <div class="catalog-stats catalog-stats-row2">
-                        <div class="stat" th:classappend="${sortBy == 'time' ? 'sort-highlight' : ''}">
-                            <span class="stat-icon">🕒</span>
-                            <span class="stat-value" th:text="${gender.timeListenedFormatted}">0m</span>
-                        </div>
-                    </div>
-
-                    <!-- Top artist/album/song for this gender -->
-                    <div th:if="${gender.topArtistName != null or gender.topAlbumName != null or gender.topSongName != null}"
-                         class="number-one-info">
-                        <a th:if="${gender.topArtistName != null}"
-                           th:class="${'number-one-item' + (gender.topArtistGenderId == 2 ? ' gender-male' : (gender.topArtistGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/artists/' + ${gender.topArtistId}}" onclick="event.stopPropagation();">
-                            <span class="label">🎤</span>
-                            <span class="name" th:text="${gender.topArtistName}" th:title="${gender.topArtistName}">Artist Name</span>
-                        </a>
-                        <a th:if="${gender.topAlbumName != null}"
-                           th:class="${'number-one-item' + (gender.topAlbumGenderId == 2 ? ' gender-male' : (gender.topAlbumGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/albums/' + ${gender.topAlbumId}}" onclick="event.stopPropagation();">
-                            <span class="label">💿</span>
-                            <span class="name" th:text="${gender.topAlbumArtistName + ' - ' + gender.topAlbumName}" th:title="${gender.topAlbumArtistName + ' - ' + gender.topAlbumName}">Artist - Album</span>
-                        </a>
-                        <a th:if="${gender.topSongName != null}"
-                           th:class="${'number-one-item' + (gender.topSongGenderId == 2 ? ' gender-male' : (gender.topSongGenderId == 1 ? ' gender-female' : ''))}"
-                           th:href="@{'/songs/' + ${gender.topSongId}}" onclick="event.stopPropagation();">
-                            <span class="label">🎵</span>
-                            <span class="name" th:text="${gender.topSongArtistName + ' - ' + gender.topSongName}" th:title="${gender.topSongArtistName + ' - ' + gender.topSongName}">Artist - Song</span>
-                        </a>
-                    </div>
+                <div class="lb-mix">
+                    <a class="lb-m-link" th:href="@{/artists(gender=${gender.id}, genderMode='includes', view='table')}" title="View these artists in table layout">
+                        <div th:replace="~{fragments/catalog-row :: share-metric('Artists', ${#numbers.formatInteger(gender.artistCount, 1, 'COMMA')}, ${gender.artistCount}, ${allArtists}, ${sortBy == 'artists'})}"></div>
+                    </a>
+                    <a class="lb-m-link" th:href="@{/albums(gender=${gender.id}, genderMode='includes', view='table')}" title="View these albums in table layout">
+                        <div th:replace="~{fragments/catalog-row :: share-metric('Albums', ${#numbers.formatInteger(gender.albumCount, 1, 'COMMA')}, ${gender.albumCount}, ${allAlbums}, ${sortBy == 'albums'})}"></div>
+                    </a>
+                    <a class="lb-m-link" th:href="@{/songs(gender=${gender.id}, genderMode='includes', view='table')}" title="View these songs in table layout">
+                        <div th:replace="~{fragments/catalog-row :: share-metric('Songs', ${#numbers.formatInteger(gender.songCount, 1, 'COMMA')}, ${gender.songCount}, ${allSongs}, ${sortBy == 'songs'})}"></div>
+                    </a>
+                    <div th:replace="~{fragments/catalog-row :: share-metric('Plays', ${#numbers.formatInteger(gender.playCount, 1, 'COMMA')}, ${gender.playCount}, ${allPlays}, ${sortBy == 'plays' or sortBy == 'primary_plays' or sortBy == 'legacy_plays'})}"></div>
+                    <div th:replace="~{fragments/catalog-row :: share-metric('Time', ${gender.timeListenedFormatted}, ${gender.timeListened}, ${allTime}, ${sortBy == 'time'})}"></div>
+                </div>
+                <div class="lb-foot">
+                    <span th:replace="~{fragments/catalog-row :: wins(${gender}, ${sortBy})}"></span>
+                    <div th:replace="~{fragments/catalog-row :: tops(${gender})}"></div>
+                    <span th:replace="~{fragments/catalog-row :: accounts(${gender})}"></span>
                 </div>
             </div>
         </div>
@@ -221,11 +160,6 @@
             window.location.href = url.toString();
         }
         
-        function navigateToGraph(element, filterType) {
-            const id = element.getAttribute('data-id');
-            window.location.href = '/songs?' + filterType + '=' + encodeURIComponent(id) + '&' + filterType + 'Mode=includes';
-        }
-
         // Auto-focus search input if there's a search query
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('searchInput');
@@ -235,5 +169,6 @@
             }
         });
     </script>
+    <th:block th:replace="~{fragments/share-history :: scripts}"></th:block>
 </body>
 </html>

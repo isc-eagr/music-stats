@@ -1,3 +1,6 @@
+/* App-wide fonts: Inter for text, Space Grotesk for card numbers (--gc-num) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 /* Base variables and reset */
 :root {
   --bg: #0a0a0a;           /* near black */
@@ -31,8 +34,11 @@ body {
   background: #000000;
   background-attachment: fixed;
   color: var(--text);
-  font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font: 14px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
+
+/* Form controls don't inherit the page font by default */
+button, input, select, textarea { font-family: inherit; }
 
 a { color: var(--primary); text-decoration: none; }
 a:hover { color: var(--primary-strong); text-decoration: underline; }
@@ -766,77 +772,6 @@ select:focus {
     box-shadow: 0 0 0 2px rgba(181, 232, 14, 0.45);
 }
 
-.card-index {
-    position: absolute;
-    bottom: 7px;
-    right: 8px;
-    font-size: 0.7rem;
-    color: #555;
-    line-height: 1;
-    pointer-events: none;
-}
-
-/* Shared stats styles for cards */
-.album-stats,
-.song-stats,
-.artist-stats {
-    display: flex;
-    gap: 10px;
-    font-size: 11px;
-    color: #999;
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.album-stats-plays,
-.song-stats-plays,
-.artist-stats-plays {
-    border-top: none;
-    padding-top: 2px;
-    margin-top: 0;
-}
-
-.album-stats-row2,
-.song-stats-row2,
-.artist-stats-row2 {
-    border-top: none;
-    padding-top: 2px;
-}
-
-.album-stats .stat,
-.song-stats .stat,
-.artist-stats .stat {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.album-stats .stat-icon,
-.song-stats .stat-icon,
-.artist-stats .stat-icon {
-    font-size: 11px;
-}
-
-.album-stats .stat-value,
-.song-stats .stat-value,
-.artist-stats .stat-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: #fff;
-}
-
-.album-stats-plays .stat:not(:first-child) .stat-value,
-.song-stats-plays .stat:not(:first-child) .stat-value,
-.artist-stats-plays .stat:not(:first-child) .stat-value {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.card-summary-stats {
-    display: contents;
-}
-
 /* Shared dates styles for cards */
 .song-dates {
     font-size: 11px;
@@ -879,14 +814,6 @@ select:focus {
     overflow-wrap: anywhere;
 }
 
-/* Highlight for already-visible metrics when sorting */
-.sort-highlight {
-    background: rgba(34, 197, 94, 0.12);
-    border-radius: 4px;
-    padding: 1px 5px;
-    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
-}
-
 /* ============================
    Expandable card stats
    ============================ */
@@ -907,17 +834,6 @@ select:focus {
 
 .card-expand-toggle:hover {
     color: #aaa;
-}
-
-.card-expand-toggle .expand-arrow {
-    display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.card-expand-toggle.expanded .expand-arrow {
-    /* no rotate - plus sign stays as-is */
 }
 
 /* ============================
@@ -989,29 +905,6 @@ select:focus {
 .card-detail-modal-close:hover {
     background: rgba(0, 0, 0, 0.85);
     color: #fff;
-}
-
-/* Card inside modal - horizontal layout, fills height */
-.card-detail-modal-body .artist-card,
-.card-detail-modal-body .album-card,
-.card-detail-modal-body .song-card {
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
-    flex-direction: row;
-    align-items: flex-start;
-    min-height: 100%;
-    height: auto;
-    position: relative;
-    width: 100%;
-}
-
-.card-detail-modal-body .artist-card:hover,
-.card-detail-modal-body .album-card:hover,
-.card-detail-modal-body .song-card:hover {
-    transform: none;
-    box-shadow: none;
 }
 
 /* Image column - fixed width on left, fills full height, no cropping */
@@ -1086,75 +979,14 @@ select:focus {
     aspect-ratio: 2/3;
 }
 
-/* Info column - takes remaining space */
-.card-detail-modal-body .artist-info,
-.card-detail-modal-body .album-info,
-.card-detail-modal-body .song-info {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 55%;
-    padding: 40px 24px 20px 24px; /* Extra top padding for close button */
-    overflow-y: auto;
-}
-
-/* Hide the name and chips at top of info column (duplicate) */
-.card-detail-modal-body .artist-info > a,
-.card-detail-modal-body .album-info > a,
-.card-detail-modal-body .song-info > a,
-.card-detail-modal-body .album-artist,
-.card-detail-modal-body .song-artist,
-.card-detail-modal-body .song-album {
-    display: none;
-}
-
-/* Slightly larger name */
-.card-detail-modal-body .artist-name,
-.card-detail-modal-body .album-name,
-.card-detail-modal-body .song-name {
-    font-size: 1rem;
-    white-space: normal;
-    word-break: break-word;
-}
-
-/* Hide the expand toggle in modal */
-.card-detail-modal-body .card-expand-toggle {
-    display: none !important;
-}
-
-.card-detail-modal-body .card-index {
-    display: none !important;
-}
-
 /* Hide sort-metric in modal (all stats shown in grid) */
 .card-detail-modal-body .sort-metric {
-    display: none !important;
-}
-
-/* Replace icon-based stat rows with a text-based stat list in modal */
-.card-detail-modal-body .artist-stats,
-.card-detail-modal-body .artist-stats-plays,
-.card-detail-modal-body .artist-stats-row2,
-.card-detail-modal-body .album-stats,
-.card-detail-modal-body .album-stats-plays,
-.card-detail-modal-body .album-stats-row2,
-.card-detail-modal-body .song-stats,
-.card-detail-modal-body .song-stats-plays,
-.card-detail-modal-body .song-stats-row2 {
     display: none !important;
 }
 
 /* Text stat list is only visible inside the modal */
 .card-modal-text-stats {
     display: none;
-}
-
-.card-detail-modal-body .card-modal-text-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-bottom: 3px;
 }
 
 /* ── Detail page statistics panel (modal-style label/value rows) ── */
@@ -1225,61 +1057,13 @@ select:focus {
     align-items: start;
 }
 
-.album-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-}
-
+.album-grid,
 .song-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
 .artist-grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
-/* Gender border styling */
-.album-card.gender-male,
-.song-card.gender-male,
-.artist-card.gender-male,
-.catalog-card.gender-male {
-    border-left: 4px solid rgba(59, 130, 246, 0.6);
-    /* Fill top-left corner gap with inset shadow */
-    box-shadow: inset 1px 1px 0 0 rgba(59, 130, 246, 0.6), var(--shadow);
-}
-
-.album-card.gender-female,
-.song-card.gender-female,
-.artist-card.gender-female,
-.catalog-card.gender-female {
-    border-left: 4px solid rgba(236, 72, 153, 0.6);
-    /* Fill top-left corner gap with inset shadow */
-    box-shadow: inset 1px 1px 0 0 rgba(236, 72, 153, 0.6), var(--shadow);
-}
-
-.album-card.gender-male:hover,
-.song-card.gender-male:hover,
-.artist-card.gender-male:hover,
-.catalog-card.gender-male:hover {
-    border-left: 4px solid rgba(59, 130, 246, 0.6);
-    box-shadow: 
-        inset 1px 1px 0 0 rgba(59, 130, 246, 0.6),
-        -10px 0 20px rgba(59, 130, 246, 0.2),
-        10px 0 20px rgba(59, 130, 246, 0.15),
-        0 10px 20px rgba(59, 130, 246, 0.15),
-        0 12px 30px rgba(0,0,0,0.6);
-}
-
-.album-card.gender-female:hover,
-.song-card.gender-female:hover,
-.artist-card.gender-female:hover,
-.catalog-card.gender-female:hover {
-    border-left: 4px solid rgba(236, 72, 153, 0.6);
-    box-shadow: 
-        inset 1px 1px 0 0 rgba(236, 72, 153, 0.6),
-        -10px 0 20px rgba(236, 72, 153, 0.2),
-        10px 0 20px rgba(236, 72, 153, 0.15),
-        0 10px 20px rgba(236, 72, 153, 0.15),
-        0 12px 30px rgba(0,0,0,0.6);
 }
 
 /* Remove underlines from links inside cards */
@@ -1722,9 +1506,7 @@ select:focus {
 
 /* Add padding to content inside detail-content-card (after title) */
 .detail-content-card > .table-wrapper,
-.detail-content-card > .chart-container,
 .detail-content-card > .no-items-message,
-.detail-content-card > .featured-artist-grid,
 .detail-content-card > .item-count {
     padding: 0 16px;
     margin-top: 16px;
@@ -1990,118 +1772,6 @@ select:focus {
    MOBILE CARD LAYOUT
    ============================================ */
 @media (max-width: 768px) {
-    .artist-card, .album-card, .song-card {
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        position: relative;
-        cursor: pointer;
-    }
-
-    .artist-image, .album-image, .song-image {
-        width: 120px;
-        height: auto;
-        flex-shrink: 0;
-    }
-
-    .album-image,
-    .song-image {
-        width: 104px;
-    }
-
-    .artist-info, .album-info, .song-info {
-        flex: 1;
-        min-width: 0;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-self: stretch;
-    }
-
-    .album-info,
-    .song-info {
-        gap: 4px;
-        padding-top: 10px;
-    }
-
-    .album-info > a,
-    .song-info > a,
-    .album-info > .album-artist,
-    .song-info > .song-artist,
-    .song-info > .song-album,
-    .album-info > .card-summary-stats,
-    .song-info > .card-summary-stats,
-    .album-info > .winning-chips,
-    .song-info > .winning-chips,
-    .album-info > .sort-metric,
-    .song-info > .sort-metric,
-    .album-info > .album-stats-row2,
-    .song-info > .song-stats-row2 {
-        width: 100%;
-    }
-
-    .album-info > .card-summary-stats,
-    .song-info > .card-summary-stats {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 6px 10px;
-        margin-top: 4px;
-    }
-
-    .album-info > .card-summary-stats .album-stats,
-    .album-info > .card-summary-stats .album-stats-plays,
-    .song-info > .card-summary-stats .song-stats-plays {
-        margin-top: 0;
-        margin-bottom: 0;
-        padding-top: 0;
-        border-top: none;
-        gap: 8px;
-        flex-wrap: nowrap;
-    }
-
-    .album-info > .card-summary-stats .stat,
-    .song-info > .card-summary-stats .stat {
-        gap: 3px;
-    }
-
-    .album-info > .card-summary-stats .stat-icon,
-    .song-info > .card-summary-stats .stat-icon {
-        font-size: 10px;
-    }
-
-    .album-info > .card-summary-stats .stat-value,
-    .song-info > .card-summary-stats .stat-value {
-        font-size: 13px;
-    }
-
-    .album-info > .winning-chips,
-    .song-info > .winning-chips {
-        margin-top: 2px;
-    }
-
-    .album-info > .album-stats-row2,
-    .song-info > .song-stats-row2 {
-        margin-top: 4px;
-    }
-
-    /* Hide non-essential stats on mobile */
-    .artist-stats:not(.artist-stats-plays):not(.artist-stats-row2),
-    .song-stats:not(.song-stats-plays):not(.song-stats-row2) {
-        display: none;
-    }
-
-    /* Adjust stats layout for horizontal card */
-    .artist-stats-plays, .album-stats-plays, .song-stats-plays,
-    .artist-stats-row2, .album-stats-row2, .song-stats-row2 {
-        margin-top: 6px;
-        margin-bottom: 0;
-        justify-content: flex-start;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
     /* Hide the "More" button on mobile, make the whole card clickable via JS */
     .card-expand-toggle {
         display: none;
@@ -2123,62 +1793,6 @@ select:focus {
     .song-card.mobile-expanded .card-modal-text-stats {
         display: flex;
     }
-
-    /* Hide modal header in mobile expanded view */
-    .artist-card.mobile-expanded .card-modal-text-stats .modal-header,
-    .album-card.mobile-expanded .card-modal-text-stats .modal-header,
-    .song-card.mobile-expanded .card-modal-text-stats .modal-header {
-        display: none;
-    }
-
-    /* Style modal stats in mobile expanded view */
-    .artist-card.mobile-expanded .modal-stat-row,
-    .album-card.mobile-expanded .modal-stat-row,
-    .song-card.mobile-expanded .modal-stat-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.85rem;
-    }
-
-    .artist-card.mobile-expanded .modal-stat-label,
-    .album-card.mobile-expanded .modal-stat-label,
-    .song-card.mobile-expanded .modal-stat-label {
-        color: #9ca3af;
-        font-weight: 400;
-        font-size: 0.8rem;
-    }
-
-    .artist-card.mobile-expanded .modal-stat-value,
-    .album-card.mobile-expanded .modal-stat-value,
-    .song-card.mobile-expanded .modal-stat-value {
-        color: #f3f4f6;
-        font-weight: 700;
-        font-size: 0.85rem;
-        text-align: right;
-    }
-
-    /* Gender-colored values in mobile expanded view */
-    .artist-card.mobile-expanded .modal-section:has(.gender-text-male) .modal-stat-value,
-    .album-card.mobile-expanded .modal-section:has(.gender-text-male) .modal-stat-value,
-    .song-card.mobile-expanded .modal-section:has(.gender-text-male) .modal-stat-value {
-        color: #60a5fa; /* Blue for male */
-    }
-
-    .artist-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value,
-    .album-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value,
-    .song-card.mobile-expanded .modal-section:has(.gender-text-female) .modal-stat-value {
-        color: #f472b6; /* Pink for female */
-    }
-
-    /* Hide the basic info when expanded to avoid duplication */
-    .artist-card.mobile-expanded .artist-stats-plays,
-    .artist-card.mobile-expanded .artist-stats-row2,
-    .album-card.mobile-expanded .album-stats-plays,
-    .album-card.mobile-expanded .album-stats-row2,
-    .song-card.mobile-expanded .song-stats-plays,
-    .song-card.mobile-expanded .song-stats-row2 {
-        display: none;
-    }
 }
 .detail-content-section {
     background: var(--surface);
@@ -2194,11 +1808,6 @@ select:focus {
 
 /* First detail-content-section after detail-right-section gets top margin for spacing */
 .detail-right-section ~ .detail-content-section {
-    margin-top: 24px;
-}
-
-/* Play History section in plays tab gets same gap as General tab sections */
-.plays-tab-content .detail-content-section {
     margin-top: 24px;
 }
 
@@ -3215,200 +2824,6 @@ select:focus {
     gap: 24px;
 }
 
-.featured-artist-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 16px;
-    padding: 8px 0;
-}
-
-.featured-artist-card {
-    background: var(--surface);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.featured-artist-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-/* Gender-based aura effects for featured artist cards */
-.featured-artist-card.gender-male {
-    border-left: 3px solid rgba(59, 130, 246, 0.6);
-}
-
-.featured-artist-card.gender-female {
-    border-left: 3px solid rgba(236, 72, 153, 0.6);
-}
-
-.featured-artist-card.gender-male:hover {
-    box-shadow: 
-        -8px 0 16px rgba(59, 130, 246, 0.2),
-        8px 0 16px rgba(59, 130, 246, 0.15),
-        0 8px 16px rgba(59, 130, 246, 0.15),
-        0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-.featured-artist-card.gender-female:hover {
-    box-shadow: 
-        -8px 0 16px rgba(236, 72, 153, 0.2),
-        8px 0 16px rgba(236, 72, 153, 0.15),
-        0 8px 16px rgba(236, 72, 153, 0.15),
-        0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-.featured-artist-image {
-    display: block;
-    position: relative;
-    aspect-ratio: 2/3;
-    overflow: hidden;
-    text-decoration: none;
-    /* Override inherited gender border from parent container's .item-image-container rules */
-    border-left: none !important;
-    box-shadow: none;
-}
-
-.featured-artist-image:hover {
-    text-decoration: none;
-}
-
-.featured-artist-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.featured-artist-card:hover .featured-artist-image img {
-    transform: scale(1.05);
-}
-
-.featured-artist-image .no-image {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
-    font-size: 36px;
-    color: var(--text-muted);
-    text-decoration: none;
-}
-
-.featured-artist-image .flag-overlay {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 3px;
-    padding: 2px;
-}
-
-.featured-artist-image .flag-overlay img {
-    display: block;
-    width: 18px;
-    height: auto;
-}
-
-/* Feature count badge - matches gender color */
-.feature-count-badge {
-    position: absolute;
-    bottom: 6px;
-    right: 6px;
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 18px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Gender-colored badges */
-.featured-artist-card.gender-male .feature-count-badge {
-    background: rgba(59, 130, 246, 0.7);
-    border-color: rgba(59, 130, 246, 0.4);
-}
-
-.featured-artist-card.gender-female .feature-count-badge {
-    background: rgba(236, 72, 153, 0.7);
-    border-color: rgba(236, 72, 153, 0.4);
-}
-
-.featured-artist-info {
-    padding: 10px;
-}
-
-.featured-artist-name {
-    margin: 0 0 4px 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.featured-artist-info a {
-    text-decoration: none;
-}
-
-.featured-artist-info a:hover {
-    text-decoration: none;
-}
-
-.featured-artist-info a:hover .featured-artist-name {
-    color: var(--primary-strong);
-}
-
-.featured-artist-details {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.featured-artist-metadata {
-    font-size: 11px;
-    color: #888;
-    margin-bottom: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.featured-artist-stats {
-    display: flex;
-    gap: 12px;
-}
-
-.featured-artist-stats .stat {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-}
-
-.featured-artist-stats .stat-icon {
-    font-size: 10px;
-}
-
-.featured-artist-stats .stat-value {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-muted);
-}
-
 /* Empty state message */
 .no-items-message {
     padding: 32px;
@@ -3901,37 +3316,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
     min-width: 0;
 }
 
-.chart-history-content .table .cover-col {
-    width: 66px;
-    padding: 4px 8px;
-}
-
-.chart-history-content .table .cover-col img,
-.chart-history-content .table .cover-col .hover-image-container,
-.chart-history-content .table .cover-col .cover-placeholder {
-    width: 50px;
-    height: 50px;
-    border-radius: 4px;
-}
-
-.chart-history-content .table .cover-col img {
-    display: block;
-    object-fit: cover;
-}
-
-.chart-history-content .table .cover-col .hover-image-container {
-    display: block;
-    overflow: hidden;
-}
-
-.chart-history-content .table .cover-col .cover-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #2a2a2a;
-    color: #666;
-    font-size: 18px;
-}
 
 /* Small screens - tablets and phones */
 @media (max-width: 900px) {
@@ -4061,23 +3445,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         display: block !important;
         margin-left: 0 !important;
         margin-top: 10px;
-    }
-    
-    /* Card grids - 1 column on tablet/mobile */
-    .album-grid,
-    .song-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .artist-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .catalog-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
     }
     
     /* Tables - allow horizontal scroll */
@@ -4218,18 +3585,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         min-width: calc(50% - 4px);
     }
 
-    .chart-history-content .table .cover-col {
-        width: 44px;
-        padding: 3px 6px;
-    }
-
-    .chart-history-content .table .cover-col img,
-    .chart-history-content .table .cover-col .hover-image-container,
-    .chart-history-content .table .cover-col .cover-placeholder {
-        width: 38px;
-        height: 38px;
-    }
-    
     .top-table .cover-col img, .top-table .cover-col .hover-image-container,
     .top-table .cover-col .cover-placeholder {
         width: 36px;
@@ -4425,68 +3780,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         font-size: 20px;
     }
     
-    /* Card grids - 1 column on mobile */
-    .album-grid,
-    .song-grid,
-    .artist-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    
-    .catalog-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    
-    /* Smaller cards */
-    .catalog-info,
-    .album-info,
-    .song-info,
-    .artist-info {
-        padding: 10px;
-    }
-    
-    .catalog-name,
-    .album-name,
-    .song-name,
-    .artist-name {
-        font-size: 14px;
-    }
-    
-    .catalog-stats .stat,
-    .album-stats .stat,
-    .song-stats .stat,
-    .artist-stats .stat {
-        font-size: 11px;
-    }
-
-    .album-image,
-    .song-image {
-        width: 92px;
-    }
-
-    .album-info,
-    .song-info {
-        padding: 8px 10px 10px;
-        gap: 3px;
-    }
-
-    .album-info > .card-summary-stats,
-    .song-info > .card-summary-stats {
-        gap: 4px 8px;
-    }
-
-    .album-info > .card-summary-stats .album-stats,
-    .album-info > .card-summary-stats .album-stats-plays,
-    .song-info > .card-summary-stats .song-stats-plays {
-        gap: 7px;
-    }
-
-    .album-info > .card-summary-stats .stat-value,
-    .song-info > .card-summary-stats .stat-value {
-        font-size: 12px;
-    }
-    
     /* Buttons - larger touch targets */
     .btn,
     .btn-action,
@@ -4552,13 +3845,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         height: 32px;
     }
 
-    .chart-history-content .table .cover-col img,
-    .chart-history-content .table .cover-col .hover-image-container,
-    .chart-history-content .table .cover-col .cover-placeholder {
-        width: 32px;
-        height: 32px;
-    }
-    
     /* MOBILE DETAIL PAGE - phone layout prioritizes title, stats, then chips */
     .detail-sidebar {
         grid-template-columns: max-content minmax(0, 1fr);

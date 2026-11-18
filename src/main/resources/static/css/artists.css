@@ -11,46 +11,86 @@
     text-transform: uppercase;
 }
 
-/* Artist-specific name styling */
-.artist-name {
-    font-size: 18px;
+/* Include Main / Groups / Featured: a segmented control next to Cards/Table,
+   matching its look; each part toggles on its own and shows a lime check when on */
+.scope-toggles {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid #232327;
+    background: #141417;
+}
+
+.scope-toggles-label {
+    padding: 0 8px 0 10px;
+    color: #8b8b94;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.scope-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 0 14px 0 12px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    color: #a1a1aa;
+    font-size: 13px;
     font-weight: 600;
-    margin-top: 6px;
-    margin-bottom: 6px;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color 0.2s;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.18s ease, color 0.18s ease;
 }
 
-/* Featured songs icon color (dark teal) */
-.stat-icon.featured {
-    color: #006d66;
+.scope-toggle:hover {
+    color: #fff;
 }
 
-/* Ensure SVG icons inside .stat-icon size correctly and inherit color */
-.stat-icon svg {
-    width: 16px;
-    height: 16px;
-    display: inline-block;
-    vertical-align: middle;
-}
-.stat-icon svg path {
-    fill: currentColor;
-}
-.artist-list-scope-toggles {
-    margin-left: 14px;
-    padding-left: 14px;
-    border-left: 1px solid rgba(255, 255, 255, 0.14);
+.scope-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
-@media (max-width: 900px) {
-    .artist-list-scope-toggles {
-        width: 100%;
-        margin: 10px 0 0;
-        padding: 10px 0 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.14);
-        border-left: 0;
+.scope-toggle-check {
+    width: 13px;
+    height: 13px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    border: 1.5px solid #52525b;
+}
+
+.scope-toggle:has(input:checked) {
+    background: #2a2a2e;
+    color: #fafafa;
+}
+
+.scope-toggle:has(input:checked) .scope-toggle-check {
+    border: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bef264' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") no-repeat center / 13px;
+}
+
+.scope-toggle:has(input:focus-visible) {
+    outline: 2px solid #bef264;
+    outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+    .catalog-toolbar-heading .scope-toggles {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
+    .scope-toggle {
+        min-height: 30px;
+        padding: 0 10px;
     }
 }

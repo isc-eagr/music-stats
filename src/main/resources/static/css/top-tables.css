@@ -812,12 +812,6 @@
     border-left: 3px solid #2a2a2a;
 }
 
-/* High play count gold highlight */
-.high-plays {
-    color: #fbbf24 !important;
-    text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
-    font-weight: 600;
-}
 
 /* Featured song row highlighting */
 .featured-song-row {
