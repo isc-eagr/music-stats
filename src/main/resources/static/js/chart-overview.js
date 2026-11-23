@@ -854,7 +854,7 @@
     let cardObserver = null;
     function renderCards() {
         const content = document.getElementById('coContent');
-        const hint = state.rows.some(hasCardRun) ? 'Bars show the run, one per ' + unit.toLowerCase() + ', gold at #1. Click the bars for the full run.' : '';
+        const hint = state.rows.some(hasCardRun) ? 'Bars show the run, one per ' + unit.toLowerCase() + ', gold at #1, green at the peak. Click the bars for the full run.' : '';
         content.innerHTML = '<div class="co-table-meta"><span class="co-hint">' + hint + '</span><span class="co-hint" id="coCount"></span></div>'
             + '<div class="chh-grid" id="coCards">' + state.rows.map(cardHtml).join('') + '</div><div class="co-load-row" id="coLoadRow"></div>';
         if (!state.rows.length) content.querySelector('#coCards').innerHTML = '<div class="co-empty">Nothing matches these filters.</div>';

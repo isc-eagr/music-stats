@@ -8,6 +8,7 @@
 .chh {
     --chh-gold: #fbbf24;
     --chh-gold-ink: #1a1205;
+    --chh-peak: #34d399;
     --chh-num: 'Space Grotesk', Inter, system-ui, sans-serif;
     --chh-muted: #a1a1aa;
     --chh-soft: #c7cad1;
@@ -32,6 +33,7 @@
 .chh-scope {
     --chh-gold: #fbbf24;
     --chh-gold-ink: #1a1205;
+    --chh-peak: #34d399;
     --chh-num: 'Space Grotesk', Inter, system-ui, sans-serif;
     --chh-muted: #a1a1aa;
     --chh-soft: #c7cad1;
@@ -575,7 +577,7 @@ a.chh-hit-sub:hover {
     color: var(--chh-muted);
 }
 
-/* Run bars: one bar per chart period, taller is better, gold at #1 */
+/* Run bars: one bar per chart period, taller is better, gold at #1, green at the peak, long gaps labeled with their length */
 .chh-run {
     font: inherit;
     display: block;
@@ -629,17 +631,44 @@ a.chh-hit-sub:hover {
     background: transparent;
 }
 
-/* A long absence: one dotted break instead of an empty bar per period */
+/* The periods at the run's peak position (a #1 peak keeps its gold) */
+.chh-bar.is-peak:not(.chh-band-one),
+.chh-legend i.chh-legend-peak {
+    background: var(--chh-peak);
+}
+
+/* A long absence: one dotted break instead of an empty bar per period, its length on top */
 .chh-gap {
     position: relative;
-    flex: 0 0 9px;
+    flex: 0 0 auto;
+    min-width: 9px;
     align-self: stretch;
     margin: 0 2px;
+    text-align: center;
+}
+
+.chh-gap::before {
+    content: '';
+    position: absolute;
+    top: 13px;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
     background: linear-gradient(rgba(255, 255, 255, 0.38) 50%, transparent 0) center top / 1px 5px repeat-y;
 }
 
+.chh-gap-label {
+    display: block;
+    padding: 0 2px;
+    font-family: var(--chh-num);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 12px;
+    color: var(--chh-soft);
+    white-space: nowrap;
+}
+
 .chh-run-bars.is-dense .chh-gap {
-    flex-basis: 7px;
     margin: 0 1px;
 }
 
@@ -652,19 +681,17 @@ a.chh-hit-sub:hover {
 }
 
 .chh-run-bars.is-large .chh-gap {
-    flex-basis: 30px;
+    min-width: 30px;
     margin: 0 3px;
 }
 
-.chh-gap-label {
-    position: absolute;
-    left: 50%;
-    bottom: -20px;
-    transform: translateX(-50%);
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--chh-muted);
-    white-space: nowrap;
+.chh-run-bars.is-large .chh-gap::before {
+    top: 18px;
+}
+
+.chh-run-bars.is-large .chh-gap-label {
+    font-size: 12px;
+    line-height: 16px;
 }
 
 .chh-hit-foot {

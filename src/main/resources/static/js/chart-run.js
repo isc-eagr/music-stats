@@ -92,16 +92,26 @@
         return node;
     }
 
-    /* One bar per period, taller is better; large adds the gap length labels. */
+    /* Best position of the run, or null when it never charted. */
+    function peakOf(weeks) {
+        var peak = null;
+        (weeks || []).forEach(function (w) {
+            if (charted(w) && (peak === null || w.position < peak)) peak = w.position;
+        });
+        return peak;
+    }
+
+    /* One bar per period, taller is better; the peak periods get their own color and long gaps show their length. */
     function renderBars(container, weeks, scale, unit, large) {
         var segs = segments(weeks);
+        var peak = peakOf(weeks);
         container.textContent = '';
         var chartedCount = segs.filter(function (s) { return s.week; }).length;
         container.classList.toggle('is-dense', !large && chartedCount > 70);
         segs.forEach(function (s) {
             var node = document.createElement('span');
             if (s.week) {
-                node.className = 'chh-bar chh-band-' + band(s.week.position);
+                node.className = 'chh-bar chh-band-' + band(s.week.position) + (s.week.position === peak ? ' is-peak' : '');
                 node.style.height = barHeight(s.week.position, scale);
                 node.title = weekLabel(s.week) + ': #' + s.week.position;
             } else if (s.off) {
@@ -110,9 +120,7 @@
             } else {
                 node.className = 'chh-gap';
                 node.title = gapTitle(s.gap, unit);
-                if (large) {
-                    node.appendChild(el('span', 'chh-gap-label', gapShort(s.gap.length, unit)));
-                }
+                node.appendChild(el('span', 'chh-gap-label', gapShort(s.gap.length, unit)));
             }
             container.appendChild(node);
         });
@@ -270,6 +278,13 @@
             item.appendChild(document.createTextNode(l[1]));
             legend.appendChild(item);
         });
+        var peak = peakOf(chartedWeeks);
+        if (peak > 1) {
+            var peakItem = el('span');
+            peakItem.appendChild(el('i', 'chh-legend-peak'));
+            peakItem.appendChild(document.createTextNode('Peak (#' + peak + ')'));
+            legend.appendChild(peakItem);
+        }
         var gapItem = el('span');
         gapItem.appendChild(el('i', 'chh-legend-gap'));
         gapItem.appendChild(document.createTextNode('Off the chart ' + GAP_MIN + '+ ' + unit));
