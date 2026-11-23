@@ -4,91 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>iTunes Only</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}" />
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <style>
-        .content-card { max-width: 1200px; margin: 24px 0; padding: 20px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
-        .hint { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
-        th { color: var(--text-muted); font-weight: 600; }
-        .track-num { text-align: center; width: 60px; color: var(--text-muted); }
-        .year { text-align: center; width: 60px; color: var(--text-muted); }
-        
-        /* Error message styling */
-        .error-message {
-            background: rgba(220, 53, 69, 0.1);
-            border: 1px solid rgba(220, 53, 69, 0.3);
-            color: #dc3545;
-            padding: 12px 16px;
-            border-radius: 4px;
-            margin-bottom: 16px;
-        }
-        
-        /* Library path info */
-        .library-path {
-            color: var(--text-muted);
-            font-size: 12px;
-            margin-bottom: 12px;
-            font-family: monospace;
-        }
-        
-        /* Clickable links in table */
-        td a { transition: color 0.2s ease; }
-        td a:hover { color: #60a5fa !important; text-decoration: underline !important; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/itunes.css(v=1)}" />
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
-    <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 16px;">
-            <div>
-                <h1 style="margin: 0; font-size: 28px; font-weight: 650;">iTunes Only</h1>
-                <p style="margin: 8px 0 0; color: var(--text-muted); font-size: 14px;">
-                    <span th:text="${totalCount}">0</span> songs in iTunes not found in database
-                </p>
-            </div>
+    <main class="container it-page">
+        <div class="it-head">
+            <span class="it-eyebrow">iTunes</span>
+            <h1>iTunes Only</h1>
+            <p class="it-sub"><b th:text="${totalCount}">0</b> songs in iTunes not found in the database</p>
         </div>
-        
-        <div class="content-card">
-            <!-- Library path info -->
-            <p class="library-path">Library: <span th:text="${libraryPath}">path</span></p>
-            
-            <!-- Error message if any -->
-            <div th:if="${errorMessage}" class="error-message">
+
+        <div class="it-card">
+            <p class="it-path"><span class="it-cap">Library</span><code th:text="${libraryPath}">path</code></p>
+
+            <div th:if="${errorMessage}" class="it-alert is-error" role="alert">
+                <svg class="it-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
                 <span th:text="${errorMessage}">Error</span>
             </div>
-            
-            <p class="hint">Songs found in iTunes Library.xml that do not have an exact match (by artist + song name) in the Music Stats database.</p>
 
-            <div th:if="${unmatchedSongs == null or #lists.isEmpty(unmatchedSongs)}">
-                <p th:if="${errorMessage == null}">No unmatched songs found. All iTunes songs are in the database! 🎉</p>
+            <p class="it-hint">Songs found in iTunes Library.xml that do not have an exact match (by artist + song name) in the Music Stats database.</p>
+
+            <div th:if="${errorMessage == null and (unmatchedSongs == null or #lists.isEmpty(unmatchedSongs))}" class="it-empty">
+                <span class="it-empty-mark"><svg class="it-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <h3>All caught up</h3>
+                <p>Every iTunes song is in the database.</p>
             </div>
 
-            <div th:if="${unmatchedSongs != null and !#lists.isEmpty(unmatchedSongs)}">
-                <table>
+            <div th:if="${unmatchedSongs != null and !#lists.isEmpty(unmatchedSongs)}" class="table-scroll it-table-wrap">
+                <table class="sticky-head it-table">
                     <thead>
                         <tr>
-                            <th class="track-num">#</th>
+                            <th class="it-rank">#</th>
                             <th>Artist</th>
                             <th>Album</th>
                             <th>Song</th>
-                            <th class="year">Year</th>
+                            <th class="it-year">Year</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="song, iter : ${unmatchedSongs}">
-                            <td class="track-num" th:text="${iter.count}">1</td>
+                            <td class="it-rank" th:text="${iter.count}">1</td>
                             <td>
-                                <a th:href="@{/artists(q=${song.artist})}" 
+                                <a th:href="@{/artists(q=${song.artist})}"
                                    th:text="${song.artist != null ? song.artist : '(Unknown Artist)'}"
-                                   target="_blank"
-                                   style="color: inherit; text-decoration: none;">Artist</a>
+                                   target="_blank">Artist</a>
                             </td>
-                            <td th:text="${song.album != null ? song.album : '(No Album)'}">Album</td>
+                            <td th:text="${song.album != null ? song.album : '(No Album)'}" th:classappend="${song.album == null} ? 'is-muted' : ''">Album</td>
                             <td th:text="${song.name}">Song</td>
-                            <td class="year" th:text="${song.year != null ? song.year : '-'}">-</td>
+                            <td class="it-year" th:text="${song.year != null ? song.year : '-'}">-</td>
                         </tr>
                     </tbody>
                 </table>

@@ -1661,50 +1661,130 @@ function isFilterControlActive(control) {
     return (control.value || '').trim() !== '';
 }
 
+/* ---------- Shared filter panel (Artists, Albums, Songs, Timeframes lists) ---------- */
+
+/** Radios are mode pickers (e.g. Image Theme has / doesn't have), not values. */
+function filterItemHasValue(filterItem) {
+    const hasActiveControl = Array.from(filterItem.querySelectorAll('input, select, textarea'))
+        .some(control => control.type !== 'radio' && isFilterControlActive(control));
+    return hasActiveControl || !!filterItem.querySelector('.multi-select-chip, .chip-select-chip');
+}
+
+function setFilterItemExpanded(header, expanded) {
+    if (!header) return;
+    const content = header.nextElementSibling;
+    header.classList.toggle('active', expanded);
+    header.setAttribute('aria-expanded', String(expanded));
+    if (content) content.classList.toggle('expanded', expanded);
+}
+
 function expandFilterItem(filterItem) {
-    if (!filterItem) return;
+    if (filterItem) setFilterItemExpanded(filterItem.querySelector('.filter-item-header'), true);
+}
 
-    const header = filterItem.querySelector('.filter-item-header');
-    const content = header ? header.nextElementSibling : filterItem.querySelector('.filter-item-content');
-    const chevron = header ? header.querySelector('.filter-item-chevron') : null;
+window.toggleFilterItem = function(header) {
+    setFilterItemExpanded(header, !header.classList.contains('active'));
+};
 
-    if (content) content.classList.add('expanded');
-    if (chevron) chevron.classList.add('expanded');
-    if (header) header.classList.add('active');
+/** Marks items that hold a value (lime dot) and updates the "N active" pill in the panel header. */
+function refreshFilterPanelState() {
+    const panel = document.getElementById('filterPanel');
+    if (!panel) return 0;
+
+    let count = 0;
+    panel.querySelectorAll('.filter-item').forEach(filterItem => {
+        const hasValue = filterItemHasValue(filterItem);
+        filterItem.classList.toggle('has-value', hasValue);
+        if (hasValue) count++;
+    });
+
+    const header = panel.querySelector('.filter-header');
+    if (header) {
+        let pill = header.querySelector('.filter-header-count');
+        if (!pill) {
+            pill = document.createElement('span');
+            pill.className = 'filter-header-count';
+            const title = header.querySelector('h3');
+            if (title) title.after(pill); else header.prepend(pill);
+        }
+        pill.textContent = count > 0 ? count + ' active' : '';
+    }
+    return count;
 }
 
 function expandActiveFilterItems() {
     const panel = document.getElementById('filterPanel');
-    if (!panel || panel.style.display !== 'block') return;
-
+    if (!panel) return;
     panel.querySelectorAll('.filter-item').forEach(filterItem => {
-        const hasActiveControl = Array.from(filterItem.querySelectorAll('input, select, textarea')).some(isFilterControlActive);
-        const hasRenderedChip = filterItem.querySelector('.multi-select-chip, .chip-select-chip');
-
-        if (hasActiveControl || hasRenderedChip) {
-            expandFilterItem(filterItem);
-        }
+        if (filterItemHasValue(filterItem)) expandFilterItem(filterItem);
     });
 }
 
-document.addEventListener('click', event => {
-    if (event.target.closest('.filter-toggle')) {
-        window.setTimeout(expandActiveFilterItems, 0);
+function isFilterPanelOpen() {
+    const panel = document.getElementById('filterPanel');
+    return !!panel && panel.style.display === 'block';
+}
+
+window.toggleFilters = function() {
+    const panel = document.getElementById('filterPanel');
+    if (!panel) return;
+    const isMobile = window.innerWidth <= 768;
+
+    if (isFilterPanelOpen()) {
+        panel.style.display = 'none';
+        document.body.style.overflow = '';
+        document.querySelectorAll('.filter-sheet-overlay').forEach(overlay => overlay.remove());
+        return;
+    }
+
+    panel.style.display = 'block';
+    if (isMobile) document.body.style.overflow = 'hidden';
+    const overlay = document.createElement('div');
+    overlay.className = 'filter-sheet-overlay';
+    overlay.addEventListener('click', () => window.toggleFilters());
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+
+    refreshFilterPanelState();
+    expandActiveFilterItems();
+};
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && isFilterPanelOpen()
+            && !document.querySelector('#filterPanel .multi-select-dropdown.show')) {
+        window.toggleFilters();
     }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof window.toggleFilters !== 'function' || window.toggleFilters.__expandsActiveFilters) {
-        return;
+    const panel = document.getElementById('filterPanel');
+    if (!panel) return;
+
+    // Applied filters at page load: badge on every Filters button of the page
+    const appliedCount = refreshFilterPanelState();
+    if (appliedCount > 0) {
+        document.querySelectorAll('.filter-toggle').forEach(button => {
+            button.dataset.count = String(appliedCount);
+        });
     }
 
-    const originalToggleFilters = window.toggleFilters;
-    window.toggleFilters = function() {
-        const result = originalToggleFilters.apply(this, arguments);
-        window.setTimeout(expandActiveFilterItems, 0);
-        return result;
-    };
-    window.toggleFilters.__expandsActiveFilters = true;
+    panel.querySelectorAll('.filter-item-header').forEach(header => {
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('aria-expanded', String(header.classList.contains('active')));
+        header.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                window.toggleFilterItem(header);
+            }
+        });
+    });
+
+    // Live dots while editing; chip changes happen through clicks, so recheck after them too
+    const refreshSoon = () => window.setTimeout(refreshFilterPanelState, 0);
+    panel.addEventListener('input', refreshSoon);
+    panel.addEventListener('change', refreshSoon);
+    panel.addEventListener('click', refreshSoon);
 });
 
 /**
@@ -1747,3 +1827,450 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSidebarSticky();
 });
 
+
+/* Filter chips, multi-select dropdowns and sort controls shared by the Artists, Albums and Songs list pages
+   (the Timeframes list keeps its own variants of some of these, declared later so they win there). */
+function applyFilters() {
+    document.getElementById('filterForm').requestSubmit();
+}
+
+function changeSortBy(level, sortValue) {
+    changeListSort(level, sortValue);
+}
+
+// Hide already-selected options in all multi-select dropdowns
+function hideSelectedDropdownOptions() {
+    document.querySelectorAll('.multi-select-dropdown').forEach(dropdown => {
+        dropdown.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+            const optionElement = checkbox.closest('.multi-select-option');
+            if (optionElement) optionElement.style.display = 'none';
+        });
+    });
+}
+
+function removeAccountChip(event, value) {
+    event.stopPropagation();
+    
+    // Uncheck the checkbox and show option back
+    const dropdown = document.getElementById('accountDropdown');
+    const checkbox = dropdown.querySelector(`input[value="${value}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+        const optionElement = checkbox.closest('.multi-select-option');
+        if (optionElement) optionElement.style.display = '';
+    }
+    
+    // Remove the chip
+    const chipsContainer = document.getElementById('accountChips');
+    const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+    if (chip) chip.remove();
+    
+    // Show placeholder if no chips left
+    const labelElement = chipsContainer.nextElementSibling;
+    if (chipsContainer.children.length === 0) {
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'block';
+        }
+    }
+}
+
+function removeChip(event, filterName, value) {
+    event.stopPropagation();
+    
+    // Uncheck the checkbox and show option back
+    const dropdown = document.getElementById(filterName + 'Dropdown');
+    const checkbox = dropdown.querySelector(`input[value="${value}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+        const optionElement = checkbox.closest('.multi-select-option');
+        if (optionElement) optionElement.style.display = '';
+    }
+    
+    // Remove the chip (find button by data-value, then remove its parent span)
+    const chipsContainer = document.getElementById(filterName + 'Chips');
+    const chipButton = chipsContainer.querySelector(`button[data-value="${value}"]`);
+    if (chipButton && chipButton.parentElement) chipButton.parentElement.remove();
+    
+    // Show placeholder if no chips left
+    const labelElement = chipsContainer.nextElementSibling;
+    if (chipsContainer.children.length === 0) {
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'block';
+        }
+    }
+}
+
+function removeCountryChip(event, value) {
+    event.stopPropagation();
+    
+    // Uncheck the checkbox and show option back
+    const dropdown = document.getElementById('countryDropdown');
+    const checkbox = dropdown.querySelector(`input[value="${value}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+        const optionElement = checkbox.closest('.multi-select-option');
+        if (optionElement) optionElement.style.display = '';
+    }
+    
+    // Remove the chip
+    const chipsContainer = document.getElementById('countryChips');
+    const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+    if (chip) chip.remove();
+    
+    // Show placeholder if no chips left
+    const labelElement = chipsContainer.nextElementSibling;
+    if (chipsContainer.children.length === 0) {
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'block';
+        }
+    }
+}
+
+function removeFilter(...paramNames) {
+    const url = new URL(window.location);
+    paramNames.forEach(paramName => url.searchParams.delete(paramName));
+    window.location.href = url.toString();
+}
+
+function toggleSortDirection(level) {
+    toggleListSortDirection(level);
+}
+
+function updateAccountChips(checkbox) {
+    const chipsContainer = document.getElementById('accountChips');
+    const labelElement = chipsContainer.nextElementSibling;
+    const value = checkbox.value;
+    const displayText = value === 'vatito' ? 'Primary (vatito)' : 'Legacy (robertlover)';
+    const optionElement = checkbox.closest('.multi-select-option');
+    
+    if (checkbox.checked) {
+        // Add chip
+        const chip = document.createElement('span');
+        chip.className = 'multi-select-chip';
+        chip.setAttribute('data-value', value);
+        chip.innerHTML = `
+            <span>${displayText}</span>
+            <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, '${value}')" data-value="${value}">×</button>
+        `;
+        chipsContainer.appendChild(chip);
+        // Hide selected option from dropdown
+        if (optionElement) optionElement.style.display = 'none';
+        
+        // Hide placeholder
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'none';
+        }
+    } else {
+        // Remove chip
+        const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+        if (chip) chip.remove();
+        // Show option back in dropdown
+        if (optionElement) optionElement.style.display = '';
+        
+        // Show placeholder if no chips left
+        if (chipsContainer.children.length === 0) {
+            if (labelElement && labelElement.classList.contains('multi-select-label')) {
+                labelElement.style.display = 'block';
+            }
+        }
+    }
+}
+
+function updateChips(filterName, checkbox) {
+    const chipsContainer = document.getElementById(filterName + 'Chips');
+    const labelElement = chipsContainer.nextElementSibling;
+    const value = checkbox.value;
+    const text = checkbox.parentElement.textContent.trim();
+    const optionElement = checkbox.closest('.multi-select-option');
+    
+    if (checkbox.checked) {
+        // Add chip
+        const chip = document.createElement('span');
+        chip.className = 'multi-select-chip';
+        chip.setAttribute('data-value', value);
+        chip.innerHTML = `
+            <span>${text}</span>
+            <button type="button" class="multi-select-chip-remove" onclick="removeChip(event, '${filterName}', ${value})" data-value="${value}">×</button>
+        `;
+        chipsContainer.appendChild(chip);
+        // Hide selected option from dropdown
+        if (optionElement) optionElement.style.display = 'none';
+    } else {
+        // Remove chip
+        const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+        if (chip) chip.remove();
+        // Show option back in dropdown
+        if (optionElement) optionElement.style.display = '';
+    }
+    
+    // Show/hide placeholder label
+    if (chipsContainer.children.length > 0) {
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'none';
+        }
+    } else {
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'block';
+        }
+    }
+}
+
+function updateCountryChips(checkbox) {
+    const chipsContainer = document.getElementById('countryChips');
+    const labelElement = chipsContainer.nextElementSibling;
+    const value = checkbox.value;
+    const text = checkbox.parentElement.textContent.trim();
+    const optionElement = checkbox.closest('.multi-select-option');
+    
+    if (checkbox.checked) {
+        // Add chip
+        const chip = document.createElement('span');
+        chip.className = 'multi-select-chip';
+        chip.setAttribute('data-value', value);
+        chip.innerHTML = `
+            <span>${text}</span>
+            <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">×</button>
+        `;
+        chipsContainer.appendChild(chip);
+        // Hide selected option from dropdown
+        if (optionElement) optionElement.style.display = 'none';
+    } else {
+        // Remove chip
+        const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
+        if (chip) chip.remove();
+        // Show option back in dropdown
+        if (optionElement) optionElement.style.display = '';
+    }
+    
+    // Show/hide placeholder label
+    if (chipsContainer.children.length > 0) {
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'none';
+        }
+    } else {
+        if (labelElement && labelElement.classList.contains('multi-select-label')) {
+            labelElement.style.display = 'block';
+        }
+    }
+}
+
+/**
+ * Card-view infinite scroll + "Load all" for the Artists, Albums and Songs list pages: fetches the next page,
+ * appends its cards before #scrollSentinel and keeps the counter and Load all button in sync with the Table view.
+ * afterAppend(grid) runs after each batch (e.g. to bind tooltips on the new cards).
+ */
+function initCatalogInfiniteScroll(gridId, cardSelector, afterAppend) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    let currentPage = parseInt(grid.dataset.currentPage, 10);
+    const totalPages = parseInt(grid.dataset.totalPages, 10);
+    const sentinel = document.getElementById('scrollSentinel');
+    const overlay = document.getElementById('infLoadOverlay');
+    const overlayTitle = overlay ? overlay.querySelector('.inf-load-title') : null;
+    const endMsg = document.getElementById('scrollEnd');
+    const loadAllButton = document.getElementById('loadAllResultsButton');
+
+    if (currentPage === 0) {
+        document.querySelectorAll('.pagination').forEach(el => el.style.display = 'none');
+    }
+
+    if (totalPages <= 1 || currentPage >= totalPages - 1) {
+        if (totalPages > 0) endMsg.hidden = false;
+        return;
+    }
+
+    let loading = false;
+    let loadAllInProgress = false;
+    let cardLoadAllCompleted = false;
+    let tableLoadAllCompleted = false;
+
+    function isTableViewActive() {
+        const tableView = document.getElementById('tableView');
+        return tableView && tableView.style.display !== 'none';
+    }
+
+    const observer = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting && !loading) {
+            loadNextPage();
+        }
+    }, { rootMargin: '300px' });
+
+    observer.observe(sentinel);
+
+    function updateCounterText(addedCount) {
+        const infoEl = document.querySelector('.pagination-info span');
+        if (!infoEl) return;
+        const parts = infoEl.textContent.split(' of ');
+        if (parts.length === 2) {
+            const currentEnd = parseInt(parts[0].split(' - ')[1], 10) || 0;
+            infoEl.textContent = parts[0].split(' - ')[0] + ' - ' + (currentEnd + addedCount) + ' of ' + parts[1];
+        }
+    }
+
+    function getVisibleResultCounts() {
+        const infoEl = document.querySelector('.pagination-info span');
+        if (!infoEl) {
+            return { loadedCount: 0, totalCount: 0 };
+        }
+
+        const match = infoEl.textContent.match(/(\d+)\s*-\s*(\d+)\s+of\s+(\d+)/i);
+        if (!match) {
+            return { loadedCount: 0, totalCount: 0 };
+        }
+
+        return {
+            loadedCount: parseInt(match[2], 10) || 0,
+            totalCount: parseInt(match[3], 10) || 0
+        };
+    }
+
+    function formatLoadAllText(loadedCount, totalCount) {
+        if (typeof window.formatLoadAllProgressText === 'function') {
+            return window.formatLoadAllProgressText('Loading all...', loadedCount, totalCount);
+        }
+
+        return totalCount > 0
+            ? 'Loading all... (' + Math.min(loadedCount, totalCount) + '/' + totalCount + ')'
+            : 'Loading all...';
+    }
+
+    function updateOverlayTitle() {
+        if (!overlayTitle) return;
+
+        if (loadAllInProgress) {
+            const progress = getVisibleResultCounts();
+            overlayTitle.textContent = formatLoadAllText(progress.loadedCount, progress.totalCount);
+            return;
+        }
+
+        overlayTitle.textContent = 'Loading more...';
+    }
+
+    function updateLoadAllButton() {
+        if (!loadAllButton) return;
+        if (isTableViewActive()) {
+            const progress = typeof window.getTableViewProgressState === 'function'
+                ? window.getTableViewProgressState()
+                : { loadedCount: 0, totalCount: 0, loading: false, loadAllInProgress: false, allLoaded: false };
+            setLoadAllButtonVisibility(tableLoadAllCompleted || progress.allLoaded);
+            loadAllButton.disabled = progress.loading || progress.loadAllInProgress;
+            loadAllButton.textContent = progress.loadAllInProgress
+                ? formatLoadAllText(progress.loadedCount, progress.totalCount)
+                : 'Load all';
+        } else {
+            setLoadAllButtonVisibility(cardLoadAllCompleted || totalPages <= 1 || currentPage >= totalPages - 1);
+            loadAllButton.disabled = loading || loadAllInProgress;
+            const progress = getVisibleResultCounts();
+            loadAllButton.textContent = loadAllInProgress
+                ? formatLoadAllText(progress.loadedCount, progress.totalCount)
+                : 'Load all';
+        }
+        loadAllButton.style.opacity = loadAllButton.disabled ? '0.65' : '1';
+        loadAllButton.style.cursor = loadAllButton.disabled ? 'wait' : 'pointer';
+        updateOverlayTitle();
+    }
+
+    function setLoadAllButtonVisibility(hidden) {
+        if (!loadAllButton) return;
+        loadAllButton.hidden = hidden;
+        loadAllButton.style.display = hidden ? 'none' : '';
+    }
+
+    function hideLoadAllButtonIfFinished() {
+        if (!loadAllButton) return;
+
+        if (isTableViewActive()) {
+            const progress = typeof window.getTableViewProgressState === 'function'
+                ? window.getTableViewProgressState()
+                : null;
+            if (progress && progress.allLoaded) {
+                tableLoadAllCompleted = true;
+                setLoadAllButtonVisibility(true);
+            }
+            return;
+        }
+
+        if (currentPage >= totalPages - 1) {
+            cardLoadAllCompleted = true;
+            setLoadAllButtonVisibility(true);
+        }
+    }
+
+    async function loadNextPage() {
+        loading = true;
+        updateLoadAllButton();
+        overlay.classList.add('active');
+        currentPage++;
+        let addedCount = 0;
+
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', currentPage);
+            const resp = await fetch(url.toString());
+            if (!resp.ok) throw new Error('Network error');
+            const html = await resp.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newCards = doc.querySelectorAll('#' + gridId + ' ' + cardSelector);
+            addedCount = newCards.length;
+            newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
+            if (afterAppend) afterAppend(grid);
+            updateCounterText(addedCount);
+            updateLoadAllButton();
+        } catch (e) {
+            currentPage--;
+        }
+
+        overlay.classList.remove('active');
+
+        if (currentPage >= totalPages - 1) {
+            observer.disconnect();
+            endMsg.hidden = false;
+        }
+
+        loading = false;
+        updateLoadAllButton();
+        return addedCount > 0;
+    }
+
+    window.loadAllInfiniteResults = async function() {
+        if (loadAllInProgress || loading || currentPage >= totalPages - 1) {
+            return;
+        }
+
+        loadAllInProgress = true;
+        cardLoadAllCompleted = false;
+        observer.disconnect();
+        updateLoadAllButton();
+
+        try {
+            while (currentPage < totalPages - 1) {
+                const advanced = await loadNextPage();
+                if (!advanced) {
+                    break;
+                }
+            }
+        } finally {
+            loadAllInProgress = false;
+            updateLoadAllButton();
+            hideLoadAllButtonIfFinished();
+        }
+    };
+
+    window.loadAllVisibleResults = async function() {
+        if (isTableViewActive()) {
+            if (typeof window.loadAllTableViewResults === 'function') {
+                tableLoadAllCompleted = false;
+                await window.loadAllTableViewResults();
+                hideLoadAllButtonIfFinished();
+            }
+            return;
+        }
+        await window.loadAllInfiniteResults();
+        hideLoadAllButtonIfFinished();
+    };
+
+    window.refreshPageLoadAllButtonState = updateLoadAllButton;
+
+    updateLoadAllButton();
+}

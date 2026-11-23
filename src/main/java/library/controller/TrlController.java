@@ -1,23 +1,13 @@
 package library.controller;
 
-import library.dto.ChartAlbumOverviewRowDTO;
-import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.TrlChartEntryGroupDTO;
-import library.entity.TrlDebut;
-import library.service.AppConfigService;
+import library.service.ChartOverviewService;
 import library.service.TrlService;
-import library.service.OverviewFilterService;
-import library.service.OverviewCacheService;
-import library.util.ChartOverviewSupport;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -25,113 +15,10 @@ import java.util.Map;
 @RequestMapping("/misc/trl")
 public class TrlController {
 
-    private final AppConfigService appConfigService;
     private final TrlService trlService;
-    private final OverviewFilterService overviewFilterService;
-    private final OverviewCacheService overviewCacheService;
 
-    public TrlController(AppConfigService appConfigService, TrlService trlService) {
-        this(appConfigService, trlService, new OverviewFilterService(), new OverviewCacheService());
-    }
-
-    public TrlController(AppConfigService appConfigService, TrlService trlService, OverviewFilterService overviewFilterService) {
-        this(appConfigService, trlService, overviewFilterService, new OverviewCacheService());
-    }
-
-    @Autowired
-    public TrlController(AppConfigService appConfigService, TrlService trlService, OverviewFilterService overviewFilterService,
-                         OverviewCacheService overviewCacheService) {
-        this.appConfigService = appConfigService;
+    public TrlController(TrlService trlService) {
         this.trlService = trlService;
-        this.overviewFilterService = overviewFilterService;
-        this.overviewCacheService = overviewCacheService;
-    }
-
-    @GetMapping
-    public String trlList(
-            @RequestParam(defaultValue = "song") String overviewTab,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String dir,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
-            @RequestParam MultiValueMap<String, String> filterParams,
-            Model model) {
-        String normalizedOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
-        int safePage = Math.max(1, page);
-        int safeSize = normalizeSize(size);
-        String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
-        String normalizedDir = ChartOverviewSupport.normalizeDir(normalizedOverviewTab, dir);
-
-        List<TrlDebut> debuts = List.of();
-        List<ChartAlbumOverviewRowDTO> albumOverviewRows = List.of();
-        List<ChartArtistOverviewRowDTO> artistOverviewRows = List.of();
-        int activeTotalCount;
-
-        if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = ChartOverviewSupport.sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            activeTotalCount = allAlbumRows.size();
-            albumOverviewRows = ChartOverviewSupport.paginateRows(allAlbumRows, safePage, safeSize);
-        } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = ChartOverviewSupport.sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
-            activeTotalCount = allArtistRows.size();
-            artistOverviewRows = ChartOverviewSupport.paginateRows(allArtistRows, safePage, safeSize);
-        } else {
-            List<TrlDebut> allDebuts = sortSongRows(overviewFilterService.filter("trl", "song", trlSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            activeTotalCount = allDebuts.size();
-            debuts = ChartOverviewSupport.paginateRows(allDebuts, safePage, safeSize);
-        }
-
-        model.addAttribute("debuts", debuts);
-        model.addAttribute("albumOverviewRows", albumOverviewRows);
-        model.addAttribute("artistOverviewRows", artistOverviewRows);
-        model.addAttribute("overviewTab", normalizedOverviewTab);
-        model.addAttribute("pageSize", safeSize);
-        model.addAttribute("activeTotalCount", activeTotalCount);
-        model.addAttribute("selectedSort", normalizedSort);
-        model.addAttribute("selectedDir", normalizedDir);
-        model.addAttribute("selectedIncludeFeatured", includeFeatured);
-        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("trl", normalizedOverviewTab));
-        model.addAttribute("currentSection", "trl");
-        return "misc/trl";
-    }
-
-    @GetMapping("/data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> trlData(
-            @RequestParam(defaultValue = "song") String overviewTab,
-            @RequestParam(defaultValue = "2") int page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String dir,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
-            @RequestParam MultiValueMap<String, String> filterParams) {
-        String normalizedOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
-        int safePage = Math.max(1, page);
-        int safeSize = normalizeSize(size);
-        String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
-        String normalizedDir = ChartOverviewSupport.normalizeDir(normalizedOverviewTab, dir);
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
-
-        if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = ChartOverviewSupport.sortAlbumRows(overviewFilterService.filter("trl", "album", trlAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", ChartOverviewSupport.paginateRows(allAlbumRows, safePage, safeSize));
-            result.put("totalCount", allAlbumRows.size());
-            result.put("hasMore", (long) safePage * safeSize < allAlbumRows.size());
-        } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = ChartOverviewSupport.sortArtistRows(overviewFilterService.filter("trl", "artist", trlArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", ChartOverviewSupport.paginateRows(allArtistRows, safePage, safeSize));
-            result.put("totalCount", allArtistRows.size());
-            result.put("hasMore", (long) safePage * safeSize < allArtistRows.size());
-        } else {
-            List<TrlDebut> allDebuts = sortSongRows(overviewFilterService.filter("trl", "song", trlSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", ChartOverviewSupport.paginateRows(allDebuts, safePage, safeSize));
-            result.put("totalCount", allDebuts.size());
-            result.put("hasMore", (long) safePage * safeSize < allDebuts.size());
-        }
-
-        result.put("nextPage", safePage + 1);
-        return ResponseEntity.ok(result);
     }
 
     /** Link a TRL entry to a song in the library. */
@@ -221,14 +108,9 @@ public class TrlController {
         } else if (effectiveDate != null && !effectiveDate.isBlank()) {
             effectiveDate = trlService.findClosestChartDate(effectiveDate);
         }
-        if (effectiveDate != null) {
-            List<Map<String, Object>> countdown = trlService.getCountdownForDate(effectiveDate);
-            model.addAttribute("countdown", countdown);
-            model.addAttribute("fallOffs", trlService.getFallOffsForDate(effectiveDate, countdown));
-            model.addAttribute("selectedDate", effectiveDate);
-        }
+        ChartRecapPage.populate(model, ChartOverviewService.Chart.TRL, "/misc/trl", availableDates, effectiveDate);
         model.addAttribute("currentSection", "trl-recaps");
-        return "misc/trl-recaps";
+        return ChartRecapPage.VIEW;
     }
 
     @GetMapping("/recaps/data")
@@ -239,6 +121,7 @@ public class TrlController {
             return ResponseEntity.ok(Map.of("entries", List.of()));
         }
         List<Map<String, Object>> countdown = trlService.getCountdownForDate(effectiveDate);
+        trlService.applyBreakdownAttributes(countdown);
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("date", effectiveDate);
         result.put("entries", countdown);
@@ -267,67 +150,5 @@ public class TrlController {
             return trlService.getChartRunByNames(artist, song);
         }
         return List.of();
-    }
-
-    private String normalizeSort(String overviewTab, String sort) {
-        if ("album".equals(overviewTab)) {
-            return switch (sort == null ? "" : sort) {
-                case "artist", "album", "songs", "days", "peak", "numberOnes", "atNumberOne", "firstDebut", "lastAppearance" -> sort;
-                default -> "days";
-            };
-        }
-        if ("artist".equals(overviewTab)) {
-            return switch (sort == null ? "" : sort) {
-                case "artist", "songs", "days", "peak", "numberOnes", "atNumberOne", "firstDebut", "lastAppearance" -> sort;
-                default -> "days";
-            };
-        }
-        return switch (sort == null ? "" : sort) {
-            case "days", "actualDays", "peak", "atPeak", "debutDate", "debutPosition", "peakDate", "lastDate", "song", "artist" -> sort;
-            default -> "debutDate";
-        };
-    }
-
-    private List<TrlDebut> sortSongRows(List<TrlDebut> rows, String sort, String dir) {
-        List<TrlDebut> sortedRows = new ArrayList<>(rows);
-        sortedRows.sort(buildSongComparator(sort, dir));
-        return sortedRows;
-    }
-
-    private Comparator<TrlDebut> buildSongComparator(String sort, String dir) {
-        Comparator<TrlDebut> comparator = switch (sort) {
-            case "days" -> Comparator.comparing(TrlDebut::getDaysOnCountdown, Comparator.nullsLast(Integer::compareTo));
-            case "actualDays" -> Comparator.comparing(TrlDebut::getActualDays, Comparator.nullsLast(Integer::compareTo));
-            case "peak" -> Comparator.comparing(TrlDebut::getPeakPosition, Comparator.nullsLast(Integer::compareTo));
-            case "atPeak" -> Comparator.comparing(TrlDebut::getDaysAtPeak, Comparator.nullsLast(Integer::compareTo));
-            case "debutPosition" -> Comparator.comparing(TrlDebut::getDebutPosition, Comparator.nullsLast(Integer::compareTo));
-            case "peakDate" -> Comparator.comparing(TrlDebut::getPeakDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "lastDate" -> Comparator.comparing(TrlDebut::getLastAppearanceDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "song" -> Comparator.comparing(TrlDebut::getSongTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "artist" -> Comparator.comparing(TrlDebut::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            default -> Comparator.comparing(TrlDebut::getDebutDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-        };
-        comparator = comparator
-            .thenComparing(TrlDebut::getDebutDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-            .thenComparing(TrlDebut::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-            .thenComparing(TrlDebut::getSongTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-        return "asc".equals(dir) ? comparator : comparator.reversed();
-    }
-
-    private int normalizeSize(Integer size) {
-        return appConfigService.normalizePageSize(size, appConfigService.getTrlOverviewPageSize(), 25, 200);
-    }
-
-    private List<TrlDebut> trlSongOverviewRows() {
-        return overviewCacheService.get("trl:song", trlService::getAllDebuts);
-    }
-
-    private List<ChartAlbumOverviewRowDTO> trlAlbumOverviewRows() {
-        return overviewCacheService.get("trl:album", () -> trlService.getAlbumOverviewRows(trlSongOverviewRows()));
-    }
-
-    private List<ChartArtistOverviewRowDTO> trlArtistOverviewRows(boolean includeFeatured) {
-        return overviewCacheService.get("trl:artist:" + includeFeatured,
-                () -> trlService.getArtistOverviewRows(trlSongOverviewRows(), includeFeatured));
     }
 }

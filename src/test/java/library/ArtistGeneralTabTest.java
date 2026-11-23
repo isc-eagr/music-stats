@@ -110,19 +110,19 @@ class ArtistGeneralTabTest {
         var doc = org.jsoup.Jsoup.parse(html);
 
         // Rank rows: linked value with #rank (gold for #1), flag when given, plain "Not set" row when empty
-        assertThat(doc.select("#ranks a.ad-row")).hasSize(2);
-        assertThat(doc.select("#ranks a.ad-row").get(0).select(".ad-rank.is-gold").text()).isEqualTo("#1");
-        assertThat(doc.select("#ranks a.ad-row").get(0).attr("href")).isEqualTo("/artists?genre=1&view=table");
-        assertThat(doc.select("#ranks a.ad-row").get(1).select("img").attr("src")).isEqualTo("https://flagcdn.com/w40/mx.png");
-        assertThat(doc.select("#ranks div.ad-row .is-empty").text()).isEqualTo("Not set");
+        assertThat(doc.select("#ranks a.dt-row")).hasSize(2);
+        assertThat(doc.select("#ranks a.dt-row").get(0).select(".dt-rank.is-gold").text()).isEqualTo("#1");
+        assertThat(doc.select("#ranks a.dt-row").get(0).attr("href")).isEqualTo("/artists?genre=1&view=table");
+        assertThat(doc.select("#ranks a.dt-row").get(1).select("img").attr("src")).isEqualTo("https://flagcdn.com/w40/mx.png");
+        assertThat(doc.select("#ranks div.dt-row .is-empty").text()).isEqualTo("Not set");
         // Hover text names what is ranked; the source shows an Override badge or "from X"
-        assertThat(doc.select("#ranks a.ad-row").get(0).attr("title")).isEqualTo("Genre: #1 among Pop artists");
-        assertThat(doc.select("#ranks a.ad-row").get(0).select(".ad-ovr").text()).isEqualTo("Override");
-        assertThat(doc.select("#ranks a.ad-row").get(1).select(".ad-from").text()).isEqualTo("from Selena");
-        assertThat(doc.select("#ranks div.ad-row .ad-ovr, #ranks div.ad-row .ad-from")).isEmpty();
+        assertThat(doc.select("#ranks a.dt-row").get(0).attr("title")).isEqualTo("Genre: #1 among Pop artists");
+        assertThat(doc.select("#ranks a.dt-row").get(0).select(".dt-ovr").text()).isEqualTo("Override");
+        assertThat(doc.select("#ranks a.dt-row").get(1).select(".dt-from").text()).isEqualTo("from Selena");
+        assertThat(doc.select("#ranks div.dt-row .dt-ovr, #ranks div.dt-row .dt-from")).isEmpty();
 
         // One chip and one header per sortable field
-        assertThat(doc.select(".ad-sortbar [data-sort-key]")).extracting(e -> e.attr("data-sort-key"))
+        assertThat(doc.select(".dt-sortbar [data-sort-key]")).extracting(e -> e.attr("data-sort-key"))
                 .containsExactly("totalplays", "primaryplays", "legacyplays", "length", "releasedate",
                         "firstlistened", "lastlistened", "timelistened", "name");
         assertThat(doc.select("thead [data-sort-key]")).hasSize(9);

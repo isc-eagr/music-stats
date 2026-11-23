@@ -20,7 +20,11 @@ public class ChartEntryDTO {
     private boolean albumHasImage;
     private Integer genderId;  // For gender-based row coloring
     private String genreName;  // Effective genre name (with override chain)
-    
+    // Weekly chart breakdown tiles; filled by ChartService.applyBreakdownAttributes (override chain included)
+    private String ethnicityName;
+    private String languageName;
+    private String countryName;
+
     // Calculated stats from comparing with previous charts
     private Integer lastWeekPosition;      // null = new entry, -1 = re-entry
     private Integer lastWeekPlayCount;
@@ -124,6 +128,30 @@ public class ChartEntryDTO {
 
     public String getGenreName() {
         return genreName;
+    }
+
+    public String getEthnicityName() {
+        return ethnicityName;
+    }
+
+    public void setEthnicityName(String ethnicityName) {
+        this.ethnicityName = ethnicityName;
+    }
+
+    public String getLanguageName() {
+        return languageName;
+    }
+
+    public void setLanguageName(String languageName) {
+        this.languageName = languageName;
+    }
+
+    public String getCountryName() {
+        return countryName;
+    }
+
+    public void setCountryName(String countryName) {
+        this.countryName = countryName;
     }
 
     public void setGenreName(String genreName) {

@@ -5,17 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${pageTitle} + ' - Music Stats'">Chart Overview - Music Stats</title>
     <script>document.documentElement.classList.add('js');</script>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <script th:src="@{/js/table-sort.js}" defer></script>
     <th:block th:replace="~{fragments/overview-filters :: styles}"></th:block>
     <style>
-        body.period-weekly {
-            --accent: #3b82f6;
-            --accent-strong: #60a5fa;
-            --accent-soft: rgba(59, 130, 246, 0.14);
-            --accent-border: rgba(96, 165, 250, 0.34);
-        }
         body.period-seasonal {
             --accent: #10b981;
             --accent-strong: #34d399;
@@ -29,9 +22,9 @@
             --accent-border: rgba(168, 85, 247, 0.34);
         }
         .overview-shell {
-            max-width: 1280px;
+            max-width: var(--page-max);
             margin: 0 auto;
-            padding: 0 20px 40px;
+            padding: 0 var(--page-gutter) 40px;
         }
         .overview-hero {
             margin-bottom: 22px;
@@ -102,6 +95,10 @@
             color: #f8fafc;
             border-bottom-color: var(--accent-strong);
             background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+        }
+
+        .overview-wall-link {
+            margin-left: auto;
         }
 
         .overview-toolbar {
@@ -193,7 +190,6 @@
             outline: none;
         }
         .overview-table-wrap {
-            overflow: auto;
             border-radius: 16px;
             border: 1px solid #282830;
             background: #111115;
@@ -224,9 +220,6 @@
             font-weight: 700;
         }
         .overview-table th {
-            position: sticky;
-            top: 0;
-            z-index: 2;
             background: #191a20;
             text-align: left;
             font-size: 0.78rem;
@@ -387,151 +380,6 @@
             color: #9dc5ff;
             font-size: 0.84rem;
         }
-        .overview-expand-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            border: 1px solid #333640;
-            background: #16181d;
-            color: #b7bac3;
-            cursor: pointer;
-            font-size: 1rem;
-            line-height: 1;
-            transition: all 0.15s ease;
-        }
-        .overview-expand-btn:hover {
-            border-color: var(--accent-border);
-            color: #fff;
-        }
-        .overview-expand-btn.expanded {
-            background: var(--accent-soft);
-            border-color: var(--accent-border);
-            color: var(--accent-strong);
-        }
-        .overview-table tbody tr.gender-male .overview-expand-btn.expanded {
-            background: rgba(74, 144, 226, 0.14);
-            border-color: rgba(74, 144, 226, 0.45);
-            color: #93c5fd;
-        }
-        .overview-table tbody tr.gender-female .overview-expand-btn.expanded {
-            background: rgba(217, 74, 138, 0.14);
-            border-color: rgba(217, 74, 138, 0.45);
-            color: #f9a8d4;
-        }
-        .overview-table tbody tr.gender-other .overview-expand-btn.expanded {
-            background: rgba(115, 115, 125, 0.14);
-            border-color: rgba(115, 115, 125, 0.4);
-            color: #d1d5db;
-        }
-        .overview-detail-row {
-            display: none;
-        }
-        .overview-detail-row.visible {
-            display: table-row;
-        }
-        .overview-detail-cell {
-            background: #0f0f0f;
-            padding: 16px 20px !important;
-        }
-        .overview-detail-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-        .overview-detail-stack {
-            display: grid;
-            gap: 16px;
-        }
-        .overview-detail-stat {
-            min-width: 70px;
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid #2a2a2a;
-            background: #1a1a1a;
-            text-align: center;
-        }
-        .overview-detail-label {
-            font-size: 0.74rem;
-            color: #8c8f9a;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-        }
-        .overview-detail-value {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        .overview-chart-run-wrap {
-            display: grid;
-            gap: 8px;
-        }
-        .overview-chart-run-label {
-            font-size: 0.74rem;
-            color: #8c8f9a;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .overview-chart-run-boxes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        .overview-chart-run-box {
-            min-width: 28px;
-            height: 28px;
-            padding: 0 7px;
-            border-radius: 8px;
-            border: 1px solid #3b3d46;
-            background: #25262d;
-            color: #d9dde7;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            font-size: 0.78rem;
-            font-weight: 700;
-        }
-        .overview-chart-run-box.gender-male {
-            background: #2a5c8a;
-            border-color: #3a7cc0;
-            color: #fff;
-        }
-        .overview-chart-run-box.gender-female {
-            background: #8a2a63;
-            border-color: #c04a8d;
-            color: #fff;
-        }
-        .overview-chart-run-box.gender-other {
-            background: #3a3b43;
-            border-color: #555861;
-            color: #e5e7eb;
-        }
-        .overview-chart-run-box:hover {
-            border-color: var(--accent-border);
-            color: #fff;
-        }
-        .overview-chart-run-box.peak-one {
-            background: rgba(245, 158, 11, 0.18);
-            border-color: rgba(251, 191, 36, 0.45);
-            color: #fcd34d;
-        }
-        .overview-chart-run-box.absent {
-            background: #111218;
-            border-color: #262831;
-            color: #636773;
-            cursor: default;
-        }
-        .overview-detail-loading,
-        .overview-detail-error {
-            font-size: 0.84rem;
-        }
-        .overview-detail-loading {
-            color: #8c8f9a;
-        }
-        .overview-detail-error {
-            color: #f87171;
-        }
         .overview-empty {
             padding: 64px 20px;
             text-align: center;
@@ -672,7 +520,7 @@
         }
     </style>
 </head>
-<body class="page-loading" th:classappend="${periodType == 'weekly'} ? 'period-weekly' : (${periodType == 'seasonal'} ? 'period-seasonal' : 'period-yearly')">
+<body class="page-loading" th:classappend="${periodType == 'seasonal'} ? 'period-seasonal' : 'period-yearly'">
     <div class="page-load-overlay" aria-hidden="true">
         <div class="page-load-card">
             <div class="page-load-spinner"></div>
@@ -692,16 +540,19 @@
         <div class="overview-tabs" role="tablist" aria-label="Overview type">
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'song'} ? ' active' : ''"
-                    th:href="${serverInfiniteScrollEnabled and periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='song',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : (${serverInfiniteScrollEnabled and periodType != 'weekly'} ? @{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=song|})"
+                    th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})}"
                >Song Overview</a>
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'album'} ? ' active' : ''"
-                    th:href="${serverInfiniteScrollEnabled and periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='album',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : (${serverInfiniteScrollEnabled and periodType != 'weekly'} ? @{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=album|})"
+                    th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})}"
                >Album Overview</a>
             <a class="overview-tab-link"
                th:classappend="${overviewTab == 'artist'} ? ' active' : ''"
-                    th:href="${serverInfiniteScrollEnabled and periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : (${serverInfiniteScrollEnabled and periodType != 'weekly'} ? @{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})} : @{|/charts/${periodType}/overview?overviewTab=artist|})"
+                    th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery})}"
                >Artist Overview</a>
+            <a class="overview-tab-link overview-wall-link"
+               th:if="${periodType == 'seasonal' or periodType == 'yearly'}"
+               th:href="@{/charts/seasonal/overview(overviewTab=${overviewTab})}" th:text="${overviewTab == 'artist'} ? 'All artists' : 'Season wall'">Season wall</a>
         </div>
 
         <th:block th:replace="~{fragments/overview-filters :: panel}"></th:block>
@@ -709,11 +560,11 @@
             <div class="overview-toolbar-controls">
                 <div class="overview-toolbar-actions">
                     <button type="button" class="overview-control-btn desktop-only" th:if="${overviewTab == 'song'}" onclick="openOverviewSongsPlaylistGenerator()">Generate Playlist</button>
-                    <button type="button" id="weeklyOverviewLoadAllButton" class="overview-control-btn" hidden th:if="${serverInfiniteScrollEnabled and activeTotalCount > pageSize}" onclick="window.loadAllOverviewResults && window.loadAllOverviewResults()">Load all</button>
+                    <button type="button" id="weeklyOverviewLoadAllButton" class="overview-control-btn" hidden th:if="${activeTotalCount > pageSize}" onclick="window.loadAllOverviewResults && window.loadAllOverviewResults()">Load all</button>
                     <a th:if="${overviewTab == 'artist'}"
                        class="overview-control-btn"
                        th:classappend="${selectedIncludeFeatured} ? ' active' : ''"
-                       th:href="${periodType == 'weekly'} ? @{/charts/weekly/overview(overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery},includeFeatured=${!selectedIncludeFeatured})} : (${periodType == 'seasonal'} ? @{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery},includeFeatured=${!selectedIncludeFeatured})} : @{/charts/yearly/overview(overviewTab='artist',includeFeatured=${!selectedIncludeFeatured})})"
+                       th:href="${periodType == 'seasonal'} ? @{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort=${selectedSort},dir=${selectedDir},q=${searchQuery},includeFeatured=${!selectedIncludeFeatured})} : @{/charts/yearly/overview(view='table',overviewTab='artist',includeFeatured=${!selectedIncludeFeatured})}"
                        th:text="${selectedIncludeFeatured} ? 'Featured On' : 'Featured Off'">Featured</a>
                     <div class="overview-artist-thresholds" th:if="${overviewTab == 'artist'}">
                         <label class="overview-artist-threshold-label" for="artistTopSongFilter">
@@ -738,57 +589,34 @@
         </div>
 
         <section th:if="${overviewTab == 'song'}">
-            <div class="overview-table-wrap"
+            <div class="table-scroll overview-table-wrap"
                  th:if="${!songRows.isEmpty()}"
-                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
-                <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="songOverviewTable">
+                 th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
+                <table class="sticky-head overview-table" id="songOverviewTable">
                     <thead>
                         <tr>
                             <th data-no-sort class="overview-index-col">#</th>
                             <th data-no-sort class="overview-image-cell"></th>
-                            <th data-no-sort th:if="${periodType == 'weekly'}"></th>
-                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Artist</span>
+                            <th data-type="text" th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
                             </th>
-                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'song'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Song</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Song</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Song</span>
+                            <th data-type="text" th:classappend="${selectedSort == 'song'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort='song',dir=${selectedSort == 'song' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Song</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel}">Weeks</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Peak</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
                             </th>
-                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Date</span>
+                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='song',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Position</span>
-                            </th>
-                            <th th:if="${periodType == 'weekly'}" class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peakPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='peakPeriod',dir=${selectedSort == 'peakPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak Date</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Peak Date</span>
-                            </th>
-                            <th th:if="${periodType == 'weekly'}" class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'lastPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='song',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Last Date</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='song',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
                             </th>
                         </tr>
                     </thead>
@@ -796,7 +624,7 @@
                         <tr class="overview-filter-row"
                             th:each="entry : ${songRows}"
                             th:classappend="${entry.genderClass != null ? entry.genderClass : ''}"
-                            th:attr="data-song-id=${entry.songId},data-top1=${entry.spanAtTop1},data-top5=${entry.spanAtTop5},data-top10=${entry.spanAtTop10},data-song-title=${entry.songTitle},data-artist-name=${entry.artistName},data-album-name=${entry.albumName}">
+                            th:attr="data-song-id=${entry.songId},data-song-title=${entry.songTitle},data-artist-name=${entry.artistName},data-album-name=${entry.albumName}">
                                 <td class="overview-index-col row-num-col" th:text="${entryStat.count}">1</td>
                                 <td class="overview-image-cell">
                                     <div th:if="${entry.hasImage and entry.albumHasImage}" class="hover-image-container">
@@ -806,9 +634,6 @@
                                     <img th:if="${entry.hasImage and !entry.albumHasImage}" th:src="@{/songs/{id}/image(id=${entry.songId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'song', ${entry.songId})|" class="overview-item-image clickable-image">
                                     <img th:if="${!entry.hasImage and entry.albumHasImage and entry.albumId != null}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" th:onclick="|openChartOverviewImageModal(event, 'album', ${entry.albumId})|" class="overview-item-image clickable-image">
                                     <div th:if="${!entry.hasImage and !entry.albumHasImage}" class="overview-item-placeholder">SONG</div>
-                                </td>
-                                <td class="center" th:if="${periodType == 'weekly'}">
-                                    <button type="button" class="overview-expand-btn" data-colspan="12" onclick="toggleOverviewDetail(this)">+</button>
                                 </td>
                                 <td>
                                     <a class="overview-link-secondary" th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist</a>
@@ -831,72 +656,44 @@
                                     <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.firstAppearanceKey}|}" th:text="${entry.firstAppearanceLabel != null and entry.firstAppearanceLabel.contains(' - ') ? entry.firstAppearanceLabel.substring(entry.firstAppearanceLabel.indexOf(' - ') + 3) : entry.firstAppearanceLabel}">Period</a>
                                 </td>
                                 <td class="center" th:attr="data-value=${entry.debutPosition != null ? entry.debutPosition : 999}" th:text="${entry.debutPosition}">0</td>
-                                <td th:if="${periodType == 'weekly'}" class="center" th:attr="data-value=${entry.peakAppearanceSortValue}">
-                                    <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.peakAppearanceKey}|}" th:text="${entry.peakAppearanceLabel != null and entry.peakAppearanceLabel.contains(' - ') ? entry.peakAppearanceLabel.substring(entry.peakAppearanceLabel.indexOf(' - ') + 3) : entry.peakAppearanceLabel}">Period</a>
-                                </td>
-                                <td th:if="${periodType == 'weekly'}" class="center" th:attr="data-value=${entry.lastAppearanceSortValue}">
-                                    <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.lastAppearanceKey}|}" th:text="${entry.lastAppearanceLabel != null and entry.lastAppearanceLabel.contains(' - ') ? entry.lastAppearanceLabel.substring(entry.lastAppearanceLabel.indexOf(' - ') + 3) : entry.lastAppearanceLabel}">Period</a>
-                                </td>
                             </tr>
                     </tbody>
                 </table>
+                <div id="weeklyOverviewSentinel" style="height:1px;"></div>
             </div>
-            <div th:if="${serverInfiniteScrollEnabled and !songRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
-            <div th:if="${serverInfiniteScrollEnabled and !songRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
+            <div th:if="${!songRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
             <div class="overview-empty" th:if="${songRows.isEmpty()}">No songs match this overview. Try adjusting or resetting your filters.</div>
         </section>
 
         <section th:if="${overviewTab == 'album'}">
-            <div class="overview-table-wrap"
+            <div class="table-scroll overview-table-wrap"
                  th:if="${!albumRows.isEmpty()}"
-                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
-                <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="albumOverviewTable">
+                 th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery}">
+                <table class="sticky-head overview-table" id="albumOverviewTable">
                     <thead>
                         <tr>
                             <th data-no-sort class="overview-index-col">#</th>
                             <th data-no-sort class="overview-image-cell"></th>
-                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Artist</span>
+                            <th data-type="text" th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
                             </th>
-                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Album</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Album</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Album</span>
+                            <th data-type="text" th:classappend="${selectedSort == 'album'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort='album',dir=${selectedSort == 'album' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Album</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel}">Weeks</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel}">Weeks</span></a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Peak</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'peak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort='peak',dir=${selectedSort == 'peak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'atPeak'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort='atPeak',dir=${selectedSort == 'atPeak' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at Peak'">Weeks at Peak</span></a>
                             </th>
-                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Date</span>
+                            <th class="center" data-type="text" data-default-sort="desc" th:classappend="${selectedSort == 'debutPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort='debutPeriod',dir=${selectedSort == 'debutPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Date</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='album',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Debut Position</span>
-                            </th>
-                            <th th:if="${periodType == 'weekly'}" class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'peakPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='peakPeriod',dir=${selectedSort == 'peakPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Peak Date</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Peak Date</span>
-                            </th>
-                            <th th:if="${periodType == 'weekly'}" class="center" data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'lastPeriod'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='album',sort='lastPeriod',dir=${selectedSort == 'lastPeriod' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Last Date</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Last Date</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'debutPosition'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='album',sort='debutPosition',dir=${selectedSort == 'debutPosition' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Debut Position</a>
                             </th>
                         </tr>
                     </thead>
@@ -920,74 +717,50 @@
                                 <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.firstDebutKey}|}" th:text="${entry.firstDebutDate != null and entry.firstDebutDate.contains(' - ') ? entry.firstDebutDate.substring(entry.firstDebutDate.indexOf(' - ') + 3) : entry.firstDebutDate}">Period</a>
                             </td>
                             <td class="center" th:attr="data-value=${entry.debutPosition != null ? entry.debutPosition : 999}" th:text="${entry.debutPosition}">0</td>
-                            <td th:if="${periodType == 'weekly'}" class="center" th:attr="data-value=${entry.peakAppearanceSortValue}">
-                                <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.peakAppearanceKey}|}" th:text="${entry.peakAppearanceDate != null and entry.peakAppearanceDate.contains(' - ') ? entry.peakAppearanceDate.substring(entry.peakAppearanceDate.indexOf(' - ') + 3) : entry.peakAppearanceDate}">Period</a>
-                            </td>
-                            <td th:if="${periodType == 'weekly'}" class="center" th:attr="data-value=${entry.lastAppearanceSortValue}">
-                                <a class="overview-period-link" th:href="@{|/charts/${periodType}/${entry.lastAppearanceKey}|}" th:text="${entry.lastAppearanceDate != null and entry.lastAppearanceDate.contains(' - ') ? entry.lastAppearanceDate.substring(entry.lastAppearanceDate.indexOf(' - ') + 3) : entry.lastAppearanceDate}">Period</a>
-                            </td>
                         </tr>
                     </tbody>
                 </table>
+                <div id="weeklyOverviewSentinel" style="height:1px;"></div>
             </div>
-            <div th:if="${serverInfiniteScrollEnabled and !albumRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
-            <div th:if="${serverInfiniteScrollEnabled and !albumRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
+            <div th:if="${!albumRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
             <div class="overview-empty" th:if="${albumRows.isEmpty()}">No albums match this overview. Try adjusting or resetting your filters.</div>
         </section>
 
         <section th:if="${overviewTab == 'artist'}">
-            <div class="overview-table-wrap"
+            <div class="table-scroll overview-table-wrap"
                  th:if="${!artistRows.isEmpty()}"
-                 th:attr="data-total=${serverInfiniteScrollEnabled ? activeTotalCount : 0},data-page-size=${serverInfiniteScrollEnabled ? pageSize : 0},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery},data-include-featured=${selectedIncludeFeatured}">
-                <table class="overview-table" th:classappend="${!serverInfiniteScrollEnabled} ? ' js-sortable' : ''" id="artistOverviewTable">
+                 th:attr="data-total=${activeTotalCount},data-page-size=${pageSize},data-overview-tab=${overviewTab},data-sort=${selectedSort},data-dir=${selectedDir},data-q=${searchQuery},data-include-featured=${selectedIncludeFeatured}">
+                <table class="sticky-head overview-table" id="artistOverviewTable">
                     <thead>
                         <tr>
                             <th data-no-sort class="overview-index-col">#</th>
                             <th data-no-sort class="overview-image-cell"></th>
-                            <th data-type="text" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Artist</span>
+                            <th data-type="text" th:classappend="${selectedSort == 'artist'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='artist',dir=${selectedSort == 'artist' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Artist</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Songs Charted</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Songs Charted</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Songs Charted</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'songs'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='songs',dir=${selectedSort == 'songs' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Songs Charted</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Song ' + ${unitLabel}">Song Weeks</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Song ' + ${unitLabel}">Song Weeks</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="'Song ' + ${unitLabel}">Song Weeks</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'weeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='weeks',dir=${selectedSort == 'weeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Song ' + ${unitLabel}">Song Weeks</span></a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Songs</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Songs</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">#1 Songs</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'numberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='numberOnes',dir=${selectedSort == 'numberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Songs</a>
                             </th>
-                            <th class="center artist-song-number-one-span-col" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at #1'">Weeks at #1</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at #1'">Weeks at #1</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="${unitLabel} + ' at #1'">Weeks at #1</span>
+                            <th class="center artist-song-number-one-span-col" data-type="number" th:classappend="${selectedSort == 'atNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='atNumberOne',dir=${selectedSort == 'atNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="${unitLabel} + ' at #1'">Weeks at #1</span></a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albums'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albums',dir=${selectedSort == 'albums' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Albums Charted</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='albums',dir=${selectedSort == 'albums' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Albums Charted</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">Albums Charted</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'albums'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='albums',dir=${selectedSort == 'albums' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">Albums Charted</a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albumWeeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albumWeeks',dir=${selectedSort == 'albumWeeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel}">Album Weeks</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='albumWeeks',dir=${selectedSort == 'albumWeeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel}">Album Weeks</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="'Album ' + ${unitLabel}">Album Weeks</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'albumWeeks'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='albumWeeks',dir=${selectedSort == 'albumWeeks' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel}">Album Weeks</span></a>
                             </th>
-                            <th class="center" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albumNumberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albumNumberOnes',dir=${selectedSort == 'albumNumberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Albums</a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='albumNumberOnes',dir=${selectedSort == 'albumNumberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Albums</a>
-                                <span th:unless="${serverInfiniteScrollEnabled}">#1 Albums</span>
+                            <th class="center" data-type="number" th:classappend="${selectedSort == 'albumNumberOnes'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='albumNumberOnes',dir=${selectedSort == 'albumNumberOnes' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}">#1 Albums</a>
                             </th>
-                            <th class="center artist-album-number-one-span-col" data-type="number" th:classappend="${serverInfiniteScrollEnabled and selectedSort == 'albumAtNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
-                                <a th:if="${serverInfiniteScrollEnabled and periodType == 'weekly'}" class="sort-link" th:href="@{/charts/weekly/overview(overviewTab='artist',sort='albumAtNumberOne',dir=${selectedSort == 'albumAtNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel} + ' at #1'">Album Weeks at #1</span></a>
-                                <a th:if="${serverInfiniteScrollEnabled and periodType != 'weekly'}" class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},overviewTab='artist',sort='albumAtNumberOne',dir=${selectedSort == 'albumAtNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel} + ' at #1'">Album Weeks at #1</span></a>
-                                <span th:unless="${serverInfiniteScrollEnabled}" th:text="'Album ' + ${unitLabel} + ' at #1'">Album Weeks at #1</span>
+                            <th class="center artist-album-number-one-span-col" data-type="number" th:classappend="${selectedSort == 'albumAtNumberOne'} ? (${selectedDir == 'asc'} ? ' sorted-asc' : ' sorted-desc') : ''">
+                                <a class="sort-link" th:href="@{/charts/{periodType}/overview(periodType=${periodType},view='table',overviewTab='artist',sort='albumAtNumberOne',dir=${selectedSort == 'albumAtNumberOne' and selectedDir == 'asc' ? 'desc' : 'asc'},q=${searchQuery})}"><span th:text="'Album ' + ${unitLabel} + ' at #1'">Album Weeks at #1</span></a>
                             </th>
                         </tr>
                     </thead>
@@ -995,7 +768,7 @@
                         <tr class="overview-filter-row"
                             th:each="entry : ${artistRows}"
                             th:classappend="${entry.genderClass != null ? entry.genderClass : ''}"
-                            th:with="songPeakFilterName=${periodType == 'weekly' ? 'weeklyChartPeak' : (periodType == 'seasonal' ? 'seasonalChartPeak' : 'yearlyChartPeak')}, albumPeakFilterName=${songPeakFilterName}, songChartedPeakValue=${periodType == 'weekly' ? 20 : (periodType == 'seasonal' ? 35 : 30)}, albumChartedPeakValue=${periodType == 'weekly' ? 10 : (periodType == 'seasonal' ? 5 : 10)}"
+                            th:with="songPeakFilterName=${periodType == 'seasonal' ? 'seasonalChartPeak' : 'yearlyChartPeak'}, albumPeakFilterName=${songPeakFilterName}, songChartedPeakValue=${periodType == 'weekly' ? 20 : (periodType == 'seasonal' ? 35 : 30)}, albumChartedPeakValue=${periodType == 'weekly' ? 10 : (periodType == 'seasonal' ? 5 : 10)}"
                             th:attr="data-artist-id=${entry.resolvedArtistId}">
                             <td class="overview-index-col row-num-col" th:text="${entryStat.count}">1</td>
                             <td class="overview-image-cell">
@@ -1040,9 +813,9 @@
                         </tr>
                     </tbody>
                 </table>
+                <div id="weeklyOverviewSentinel" style="height:1px;"></div>
             </div>
-            <div th:if="${serverInfiniteScrollEnabled and !artistRows.isEmpty()}" id="weeklyOverviewSentinel" style="height:1px;"></div>
-            <div th:if="${serverInfiniteScrollEnabled and !artistRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
+            <div th:if="${!artistRows.isEmpty()}" id="weeklyOverviewLoading" class="overview-loading">Loading...</div>
             <div class="overview-empty" th:if="${artistRows.isEmpty()}">No artists match this overview. Try adjusting or resetting your filters.</div>
         </section>
     </div>
@@ -1054,7 +827,6 @@
         const overviewTab = /*[[${overviewTab}]]*/ 'song';
         const overviewPeriodType = /*[[${periodType}]]*/ 'weekly';
         const overviewPageTitle = /*[[${pageTitle}]]*/ 'Chart Overview';
-        const isServerInfiniteScroll = /*[[${serverInfiniteScrollEnabled}]]*/ false;
         const overviewDataPath = /*[[${overviewDataPath}]]*/ '/charts/weekly/overview/data';
         const weeklyOverviewSort = /*[[${selectedSort}]]*/ '';
         const weeklyOverviewDir = /*[[${selectedDir}]]*/ '';
@@ -1375,27 +1147,16 @@
         function renderWeeklySongRows(entries) {
             return entries.map((entry) => {
                 const genderClass = entry.genderClass ? ` ${entry.genderClass}` : '';
-                const isWeeklyOverview = overviewPeriodType === 'weekly';
                 const weeksHtml = buildNumberOneTooltipTrigger(
                     `<span>${entry.totalChartSpan}</span>`,
                     entry.linkedSongTitles,
                     'Combined song versions:',
                     '🎵'
                 );
-                const detailButtonHtml = isWeeklyOverview
-                    ? `<td class="center"><button type="button" class="overview-expand-btn" data-colspan="12" onclick="toggleOverviewDetail(this)">+</button></td>`
-                    : '';
-                const peakDateHtml = isWeeklyOverview
-                    ? `<td class="center" data-value="${entry.peakAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.peakAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.peakAppearanceLabel))}</a></td>`
-                    : '';
-                const lastDateHtml = isWeeklyOverview
-                    ? `<td class="center" data-value="${entry.lastAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.lastAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.lastAppearanceLabel))}</a></td>`
-                    : '';
                 return `
-                    <tr class="overview-filter-row${genderClass}" data-song-id="${entry.songId}" data-top1="${entry.spanAtTop1}" data-top5="${entry.spanAtTop5}" data-top10="${entry.spanAtTop10}" data-song-title="${escapeWeeklyOverviewHtml(entry.songTitle)}" data-artist-name="${escapeWeeklyOverviewHtml(entry.artistName)}" data-album-name="${escapeWeeklyOverviewHtml(entry.albumName)}">
+                    <tr class="overview-filter-row${genderClass}" data-song-id="${entry.songId}" data-song-title="${escapeWeeklyOverviewHtml(entry.songTitle)}" data-artist-name="${escapeWeeklyOverviewHtml(entry.artistName)}" data-album-name="${escapeWeeklyOverviewHtml(entry.albumName)}">
                         <td class="overview-index-col row-num-col"></td>
                         <td class="overview-image-cell">${buildSongOverviewImageHtml(entry)}</td>
-                        ${detailButtonHtml}
                         <td><a class="overview-link-secondary" href="/artists/${entry.artistId}">${escapeWeeklyOverviewHtml(entry.artistName)}</a></td>
                         <td><a class="overview-link-primary" href="/songs/${entry.songId}">${escapeWeeklyOverviewHtml(entry.songTitle)}</a></td>
                         <td class="center" data-value="${entry.totalChartSpan}">${weeksHtml}</td>
@@ -1403,8 +1164,6 @@
                         <td class="center" data-value="${entry.spanAtPeak}">${entry.spanAtPeak}</td>
                         <td class="center" data-value="${entry.firstAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.firstAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.firstAppearanceLabel))}</a></td>
                         <td class="center" data-value="${entry.debutPosition ?? 999}">${entry.debutPosition ?? ''}</td>
-                        ${peakDateHtml}
-                        ${lastDateHtml}
                     </tr>
                 `;
             }).join('');
@@ -1413,13 +1172,6 @@
         function renderWeeklyAlbumRows(entries) {
             return entries.map((entry) => {
                 const genderClass = entry.genderClass ? ` ${entry.genderClass}` : '';
-                const isWeeklyOverview = overviewPeriodType === 'weekly';
-                const peakDateHtml = isWeeklyOverview
-                    ? `<td class="center" data-value="${entry.peakAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.peakAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.peakAppearanceDate))}</a></td>`
-                    : '';
-                const lastDateHtml = isWeeklyOverview
-                    ? `<td class="center" data-value="${entry.lastAppearanceSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.lastAppearanceKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.lastAppearanceDate))}</a></td>`
-                    : '';
                 return `
                     <tr class="overview-filter-row${genderClass}">
                         <td class="overview-index-col row-num-col"></td>
@@ -1431,8 +1183,6 @@
                         <td class="center" data-value="${entry.spanAtPeak}">${entry.spanAtPeak}</td>
                         <td class="center" data-value="${entry.firstDebutSortValue || ''}"><a class="overview-period-link" href="/charts/${overviewPeriodType}/${entry.firstDebutKey}">${escapeWeeklyOverviewHtml(extractPeriodEndDate(entry.firstDebutDate))}</a></td>
                         <td class="center" data-value="${entry.debutPosition ?? 999}">${entry.debutPosition ?? ''}</td>
-                        ${peakDateHtml}
-                        ${lastDateHtml}
                     </tr>
                 `;
             }).join('');
@@ -1473,94 +1223,6 @@
                     </tr>
                 `;
             }).join('');
-        }
-
-        function getWeeklyOverviewToneClass(row) {
-            if (row.classList.contains('gender-female')) {
-                return 'gender-female';
-            }
-            if (row.classList.contains('gender-male')) {
-                return 'gender-male';
-            }
-            return 'gender-other';
-        }
-
-        function trimOverviewAbsentWeeks(weeks) {
-            let trimStart = 0;
-            while (trimStart < weeks.length && !weeks[trimStart].onChart) {
-                trimStart++;
-            }
-            let trimEnd = weeks.length - 1;
-            while (trimEnd >= trimStart && !weeks[trimEnd].onChart) {
-                trimEnd--;
-            }
-            return trimStart > trimEnd ? [] : weeks.slice(trimStart, trimEnd + 1);
-        }
-
-        function consolidateOverviewAbsentWeeks(weeks) {
-            const trimmedWeeks = trimOverviewAbsentWeeks(weeks);
-            const result = [];
-            let index = 0;
-            while (index < trimmedWeeks.length) {
-                if (trimmedWeeks[index].onChart) {
-                    result.push(trimmedWeeks[index]);
-                    index++;
-                    continue;
-                }
-                let count = 0;
-                while (index < trimmedWeeks.length && !trimmedWeeks[index].onChart) {
-                    count++;
-                    index++;
-                }
-                result.push({ onChart: false, count });
-            }
-            return result;
-        }
-
-        function renderWeeklyOverviewChartRun(data, row) {
-            const consolidatedWeeks = consolidateOverviewAbsentWeeks(data.weeks || []);
-            const toneClass = getWeeklyOverviewToneClass(row);
-            const boxesHtml = consolidatedWeeks.map((week) => {
-                if (!week.onChart) {
-                    return `<span class="overview-chart-run-box absent" title="${week.count} weeks off chart">${week.count}x</span>`;
-                }
-                const boxClass = week.position === 1
-                    ? 'overview-chart-run-box peak-one'
-                    : `overview-chart-run-box ${toneClass}`;
-                const tooltip = week.dateRange || week.periodKey;
-                return `<a href="/charts/weekly/${week.periodKey}" class="${boxClass}" title="${tooltip}">${week.display}</a>`;
-            }).join('');
-
-            return `
-                <div class="overview-chart-run-wrap">
-                    <div class="overview-chart-run-label">Chart-run</div>
-                    <div class="overview-chart-run-boxes">${boxesHtml}</div>
-                </div>
-            `;
-        }
-
-        function renderWeeklyOverviewDetailContent(row, data, loading) {
-            const chartRunHtml = loading
-                ? `
-                    <div class="overview-chart-run-wrap">
-                        <div class="overview-chart-run-label">Chart-run</div>
-                        <div class="overview-detail-loading">Loading chart run...</div>
-                    </div>
-                `
-                : renderWeeklyOverviewChartRun(data, row);
-
-            const top20Value = loading ? '-' : (data.weeksAtTop20 ?? 0);
-            return `
-                <div class="overview-detail-stack">
-                    <div class="overview-detail-grid">
-                        <div class="overview-detail-stat"><div class="overview-detail-label">At #1</div><div class="overview-detail-value">${row.dataset.top1 || '0'}</div></div>
-                        <div class="overview-detail-stat"><div class="overview-detail-label">Top 5</div><div class="overview-detail-value">${row.dataset.top5 || '0'}</div></div>
-                        <div class="overview-detail-stat"><div class="overview-detail-label">Top 10</div><div class="overview-detail-value">${row.dataset.top10 || '0'}</div></div>
-                        <div class="overview-detail-stat"><div class="overview-detail-label">Top 20</div><div class="overview-detail-value">${top20Value}</div></div>
-                    </div>
-                    ${chartRunHtml}
-                </div>
-            `;
         }
 
         function renderWeeklyOverviewRows(entries) {
@@ -1624,9 +1286,6 @@
         }
 
         function setupWeeklySortLinks() {
-            if (!isServerInfiniteScroll) {
-                return;
-            }
             const table = getActiveOverviewTable();
             const headerRow = table?.tHead?.rows?.[0];
             if (!table || !headerRow) {
@@ -1859,7 +1518,7 @@
             const loaded = body.querySelectorAll('.overview-filter-row').length;
             const visible = body.querySelectorAll('.overview-filter-row:not(.overview-hidden)').length;
             const total = Number(container?.dataset?.total || loaded);
-            if (isServerInfiniteScroll && total > loaded) {
+            if (total > loaded) {
                 counter.textContent = `Showing ${visible} of ${loaded} loaded rows (${total} total)`;
                 return;
             }
@@ -1871,9 +1530,6 @@
             updateOverviewResultsCount();
         }
         function setupWeeklyInfiniteScroll() {
-            if (!isServerInfiniteScroll) {
-                return;
-            }
             const container = getActiveOverviewContainer();
             const tbody = getActiveOverviewBody();
             const loadingEl = document.getElementById('weeklyOverviewLoading');
@@ -2004,7 +1660,7 @@
             const loadedRows = body.querySelectorAll('.overview-filter-row').length;
             const totalRows = Number(container?.dataset?.total || loadedRows);
 
-            if (isServerInfiniteScroll && totalRows > loadedRows) {
+            if (totalRows > loadedRows) {
                 try {
                     const url = new URL(`/charts/${overviewPeriodType}/overview/song-export`, window.location.origin);
                     window.overviewFilters.appendTo(url);
@@ -2060,65 +1716,6 @@
             openPlaylistGeneratorModal(songs, defaultName);
         }
 
-        function toggleOverviewDetail(button) {
-            const row = button.closest('tr');
-            if (!row) {
-                return;
-            }
-            const songId = row.dataset.songId;
-            if (!songId) {
-                return;
-            }
-            let detailRow = row.nextElementSibling;
-            if (!detailRow || !detailRow.classList.contains('generated-detail-row')) {
-                detailRow = document.createElement('tr');
-                detailRow.className = 'overview-detail-row detail-row generated-detail-row';
-                const detailCell = document.createElement('td');
-                detailCell.className = 'overview-detail-cell';
-                detailCell.colSpan = Number(button.getAttribute('data-colspan') || '12');
-                detailCell.innerHTML = renderWeeklyOverviewDetailContent(row, {}, true);
-                detailRow.appendChild(detailCell);
-                row.insertAdjacentElement('afterend', detailRow);
-            }
-
-            const isVisible = detailRow.classList.contains('visible');
-            detailRow.classList.toggle('visible', !isVisible);
-            button.classList.toggle('expanded', !isVisible);
-            button.textContent = isVisible ? '+' : '-';
-
-            if (isVisible || detailRow.dataset.loaded || detailRow.dataset.loading) {
-                return;
-            }
-
-            const detailCell = detailRow.querySelector('.overview-detail-cell');
-            detailRow.dataset.loading = '1';
-            requestAnimationFrame(async () => {
-                try {
-                    const response = await fetch(`/charts/song/${songId}/run`);
-                    if (!response.ok) {
-                        throw new Error('Failed to load chart run');
-                    }
-                    const data = await response.json();
-                    detailCell.innerHTML = renderWeeklyOverviewDetailContent(row, data, false);
-                    detailRow.dataset.loaded = '1';
-                } catch (error) {
-                    console.error('Error loading weekly overview chart run:', error);
-                    detailCell.innerHTML = `
-                        <div class="overview-detail-stack">
-                            <div class="overview-detail-grid">
-                                <div class="overview-detail-stat"><div class="overview-detail-label">At #1</div><div class="overview-detail-value">${row.dataset.top1 || '0'}</div></div>
-                                <div class="overview-detail-stat"><div class="overview-detail-label">Top 5</div><div class="overview-detail-value">${row.dataset.top5 || '0'}</div></div>
-                                <div class="overview-detail-stat"><div class="overview-detail-label">Top 10</div><div class="overview-detail-value">${row.dataset.top10 || '0'}</div></div>
-                            </div>
-                            <div class="overview-detail-error">Failed to load chart run.</div>
-                        </div>
-                    `;
-                } finally {
-                    delete detailRow.dataset.loading;
-                }
-            });
-        }
-
         window.addEventListener('load', async () => {
 
 
@@ -2131,22 +1728,6 @@
             await filterOverviewTable();
             initializeOverviewNumberOneTooltips();
             setupWeeklyInfiniteScroll();
-            if (!isServerInfiniteScroll) {
-                const table = getActiveOverviewTable();
-                const headerRow = table?.tHead?.rows?.[0];
-                Array.from(headerRow?.cells || []).forEach((header) => {
-                    if (header.hasAttribute('data-no-sort')) {
-                        return;
-                    }
-                    header.addEventListener('click', () => {
-                        showPageBusyOverlay('Sorting overview', 'Reordering the overview rows...');
-                        requestAnimationFrame(() => requestAnimationFrame(() => {
-                            updateOverviewRowCounters();
-                            hidePageBusyOverlay();
-                        }));
-                    });
-                });
-            }
             document.body.classList.remove('page-loading');
             hidePageBusyOverlay();
         });

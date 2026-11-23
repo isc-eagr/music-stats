@@ -1,0 +1,279 @@
+/* ==========================================================================
+   Image Themes page (templates/themes/list.html). Same look as the redesign:
+   gradient card, uppercase captions with hairlines, pill buttons,
+   Space Grotesk numbers.
+   ========================================================================== */
+
+.tm-page {
+    --tm-c: #a1a1aa;
+    --tm-t: #d4d4d8;
+    --tm-bd: rgba(161, 161, 170, 0.3);
+    --tm-bg: #18181a;
+    --tm-bg2: #121214;
+    --tm-hair: rgba(161, 161, 170, 0.15);
+    --tm-lbl: rgba(212, 212, 216, 0.62);
+    --tm-mut: rgba(212, 212, 216, 0.72);
+    --tm-tintb: rgba(161, 161, 170, 0.4);
+    --tm-ink: #111114;
+    --tm-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+    --tm-ok: #4ade80;
+    --tm-ok-t: #86efac;
+    --tm-red: #f87171;
+    max-width: 760px;
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+/* ── Header ── */
+.tm-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 24px 0 16px;
+}
+
+.tm-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tm-lbl);
+}
+
+.tm-head h1 {
+    margin: 0;
+    font-family: var(--tm-num);
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.tm-sub {
+    margin: 0;
+    max-width: 600px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--tm-mut);
+}
+
+/* ── Card ── */
+.tm-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0 0 24px;
+    padding: 18px 20px 20px;
+    border: 1px solid var(--tm-bd);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--tm-bg) 0%, var(--tm-bg2) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ── Create form ── */
+.tm-create {
+    display: flex;
+    gap: 8px;
+}
+
+.tm-create input {
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f2f2f4;
+    font: 500 13.5px Inter, system-ui, sans-serif;
+}
+
+.tm-create input::placeholder { color: var(--tm-lbl); }
+
+.tm-create input:focus {
+    outline: none;
+    border-color: var(--tm-t);
+    box-shadow: 0 0 0 3px rgba(161, 161, 170, 0.18);
+}
+
+/* ── Buttons ── */
+.tm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: transparent;
+    color: var(--tm-mut);
+    font: 600 12.5px Inter, system-ui, sans-serif;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.tm-btn:hover {
+    color: #fff;
+    border-color: var(--tm-tintb);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tm-btn--primary {
+    height: 38px;
+    border-color: var(--tm-c);
+    background: var(--tm-c);
+    color: var(--tm-ink);
+}
+
+.tm-btn--primary:hover {
+    border-color: var(--tm-t);
+    background: var(--tm-t);
+    color: var(--tm-ink);
+}
+
+.tm-btn--icon { width: 34px; padding: 0; }
+
+.tm-btn--danger:hover {
+    border-color: rgba(248, 113, 113, 0.5);
+    background: rgba(248, 113, 113, 0.14);
+    color: var(--tm-red);
+}
+
+.tm-btn:disabled {
+    opacity: 0.5;
+    cursor: progress;
+}
+
+/* ── Theme rows ── */
+.tm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tm-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 12px 12px 14px;
+    border: 1px solid var(--tm-hair);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.22);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tm-row:hover { border-color: var(--tm-tintb); }
+
+.tm-row.is-active {
+    border-color: rgba(74, 222, 128, 0.45);
+    background: linear-gradient(90deg, rgba(74, 222, 128, 0.09) 0%, rgba(0, 0, 0, 0.22) 60%);
+}
+
+.tm-dot {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--tm-tintb);
+}
+
+.tm-row.is-active .tm-dot {
+    border-color: var(--tm-ok);
+    background: var(--tm-ok);
+    box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.15);
+}
+
+.tm-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.tm-name {
+    font-size: 15px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.tm-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    font-size: 12px;
+    color: var(--tm-mut);
+}
+
+.tm-meta b {
+    font-family: var(--tm-num);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #f2f2f4;
+}
+
+.tm-meta .is-empty { color: var(--tm-lbl); }
+
+.tm-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+}
+
+.tm-active-pill {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    background: rgba(74, 222, 128, 0.12);
+    color: var(--tm-ok-t);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Same width so the Artists buttons line up across rows */
+.tm-activate,
+.tm-active-pill { min-width: 92px; justify-content: center; }
+
+/* Active row: the pill replaces the Set Active button */
+.tm-row.is-active .tm-active-pill { display: inline-flex; }
+.tm-row.is-active .tm-activate { display: none; }
+
+.tm-empty {
+    margin: 0;
+    padding: 20px 0 6px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--tm-mut);
+}
+
+.tm-hint {
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--tm-hair);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--tm-lbl);
+}
+
+.tm-hint strong { color: var(--tm-mut); }
+
+/* ── Phones: actions drop under the name ── */
+@media (max-width: 600px) {
+    .tm-head h1 { font-size: 32px; }
+    .tm-card { padding: 14px; }
+    .tm-row { flex-wrap: wrap; }
+    .tm-info { flex-basis: calc(100% - 26px); }
+    .tm-actions { width: 100%; padding-left: 26px; }
+    .tm-actions .tm-activate,
+    .tm-actions .tm-active-pill { flex: 1; justify-content: center; }
+}

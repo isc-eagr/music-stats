@@ -27,6 +27,7 @@ public class ThemeController {
     public String listThemes(Model model) {
         List<ArtistTheme> themes = themeService.getAllThemes();
         model.addAttribute("themes", themes);
+        model.addAttribute("pictureCounts", themeService.getPictureCountsByTheme());
         model.addAttribute("activeTheme", themeService.getActiveTheme().orElse(null));
         model.addAttribute("currentSection", "themes");
         return "themes/list";

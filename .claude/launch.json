@@ -7,6 +7,20 @@
       "runtimeArgs": ["/c", "C:\\Code\\music-stats\\music-stats-dev.bat"],
       "port": 8081,
       "autoPort": false
+    },
+    {
+      "name": "music-stats-dev-8082",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "C:\\Code\\music-stats\\mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=dev", "-Dspring-boot.run.arguments=--server.port=8082", "-Dspring-boot.run.jvmArguments=--enable-native-access=ALL-UNNAMED"],
+      "port": 8082,
+      "autoPort": false
+    },
+    {
+      "name": "music-stats-dev-8083",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "C:\\Code\\music-stats\\mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=dev", "-Dspring-boot.run.arguments=--server.port=8083", "-Dspring-boot.run.jvmArguments=--enable-native-access=ALL-UNNAMED"],
+      "port": 8083,
+      "autoPort": false
     }
   ]
 }

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${chart.label() + ' Overview - Music Stats'}">Chart Overview - Music Stats</title>
+    <script>document.documentElement.classList.add('js');</script>
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <link rel="stylesheet" th:href="@{/css/catalog-table.css}">
+    <link rel="stylesheet" th:href="@{/css/chart-overview.css}">
+    <link rel="stylesheet" th:href="@{/css/detail-chart-history.css(v=10)}">
+    <th:block th:replace="~{fragments/overview-filters :: styles}"></th:block>
+    <script th:src="@{/js/chart-run.js(v=1)}" defer></script>
+    <script th:src="@{/js/chart-overview.js}" defer></script>
+    <script th:src="@{/js/chart-overview-admin.js}" defer></script>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container co-page" id="chartOverview"
+         th:attr="data-chart=${chart.key()},data-tab=${tab},data-view=${view},data-include-featured=${includeFeatured}">
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title">Chart Overview</h1>
+                    <div class="view-toggle" role="group" aria-label="View" id="coViewToggle">
+                        <th:block th:if="${tab == 'artist'}">
+                            <button type="button" class="view-btn" data-view="leaderboard" th:classappend="${view == 'leaderboard'} ? 'active' : ''">Leaderboard</button>
+                            <button type="button" class="view-btn" data-view="table" th:classappend="${view == 'table'} ? 'active' : ''">Table</button>
+                        </th:block>
+                        <th:block th:unless="${tab == 'artist'}">
+                            <button type="button" class="view-btn" data-view="cards" th:classappend="${view == 'cards'} ? 'active' : ''">Cards</button>
+                            <button type="button" class="view-btn" data-view="table" th:classappend="${view == 'table'} ? 'active' : ''">Table</button>
+                        </th:block>
+                    </div>
+                    <label class="co-toggle" th:if="${tab == 'artist'}">
+                        <input type="checkbox" id="coIncludeFeatured" th:checked="${includeFeatured}"> Count featured songs
+                    </label>
+                </div>
+                <div class="catalog-toolbar-actions">
+                    <a th:if="${chart.key() == 'weekly'}" class="toolbar-btn" href="/charts/weekly">Weekly chart</a>
+                    <a class="toolbar-btn" th:href="@{'/charts/' + ${chart.key()} + '/number-ones'}">Number ones</a>
+                    <a th:if="${chart.key() == 'hot100'}" class="toolbar-btn" href="/misc/billboard-hot-100/recaps">Recaps</a>
+                    <button th:if="${chart.key() == 'hot100' and tab == 'song'}" type="button" class="toolbar-btn desktop-only" data-co-action="import">Incremental refresh</button>
+                    <a th:if="${chart.key() == 'trl'}" class="toolbar-btn" href="/misc/trl/recaps">Recaps</a>
+                    <a th:if="${chart.key() == 'trl' and tab == 'song'}" class="toolbar-btn desktop-only" href="/misc/trl/chart-entries">Chart entries</a>
+                    <button th:if="${chart.key() == 'trl' and tab == 'song'}" type="button" class="toolbar-btn desktop-only" data-co-action="auto-link">Auto-link exact matches</button>
+                    <button th:if="${chart.key() == 'trl' and tab == 'song'}" type="button" class="toolbar-btn desktop-only" data-co-action="normalize-linked">Normalize linked</button>
+                    <a th:if="${chart.key() == 'cuntdown'}" class="toolbar-btn" href="/misc/vatos-cuntdown/recaps">Recaps</a>
+                    <button th:if="${chart.key() == 'cuntdown' and tab == 'song'}" type="button" class="toolbar-btn desktop-only" data-co-action="auto-link">Auto-link exact matches</button>
+                    <button th:if="${chart.key() == 'cuntdown' and tab == 'song'}" type="button" class="toolbar-btn desktop-only" data-co-action="normalize-case">Normalize case</button>
+                    <button th:if="${chart.key() == 'cuntdown' and tab == 'song'}" type="button" class="toolbar-btn desktop-only" data-co-action="merge-mode">Merge entries</button>
+                    <button type="button" class="toolbar-btn" id="coLoadAll" hidden>Load all</button>
+                    <button th:if="${tab == 'song'}" type="button" class="toolbar-btn toolbar-btn-primary desktop-only" id="coPlaylist">Generate playlist</button>
+                </div>
+            </div>
+
+            <!-- Chart menu: one bar like the detail pages' tab menu; Songs / Albums / Artists sit at its right end -->
+            <nav class="co-menubar" aria-label="Chart overview menu">
+                <a th:each="item : ${charts}"
+                   class="co-menu-tab" th:classappend="${'co-tone-' + item.key() + (item == chart ? ' active' : '')}"
+                   th:href="@{/charts/overview(chart=${item.key()},tab=${tab})}"
+                   th:attr="aria-current=${item == chart ? 'page' : null}">
+                    <span class="co-dot"></span><span th:text="${item.label()}">Weekly</span>
+                </a>
+                <span class="co-menu-divider" aria-hidden="true"></span>
+                <a class="co-menu-tab co-tone-seasonal" th:href="@{/charts/seasonal/overview(overviewTab=${tab})}"><span class="co-dot"></span>Seasonal / Yearly</a>
+                <div class="co-menu-side">
+                    <span class="co-menu-label">Show</span>
+                    <a class="co-menu-tab" th:href="@{/charts/overview(chart=${chart.key()},tab='song')}" th:classappend="${tab == 'song'} ? 'active' : ''">Songs</a>
+                    <a class="co-menu-tab" th:href="@{/charts/overview(chart=${chart.key()},tab='album')}" th:classappend="${tab == 'album'} ? 'active' : ''">Albums</a>
+                    <a class="co-menu-tab" th:href="@{/charts/overview(chart=${chart.key()},tab='artist')}" th:classappend="${tab == 'artist'} ? 'active' : ''">Artists</a>
+                </div>
+            </nav>
+
+            <th:block th:replace="~{fragments/overview-filters :: panel}"></th:block>
+            <div class="overview-artist-thresholds" th:if="${tab == 'artist' and chart.key() == 'weekly'}" hidden>
+                <label for="artistTopSongFilter">Top X Songs
+                    <select id="artistTopSongFilter">
+                        <option value="">All Songs</option>
+                        <option th:each="n : ${#numbers.sequence(1, 20)}" th:value="${n}" th:text="${'Top ' + n}"
+                                th:selected="${param.topSong != null and param.topSong[0] == '' + n}">Top 1</option>
+                    </select>
+                </label>
+                <label for="artistTopAlbumFilter">Top X Albums
+                    <select id="artistTopAlbumFilter">
+                        <option value="">All Albums</option>
+                        <option th:each="n : ${#numbers.sequence(1, 10)}" th:value="${n}" th:text="${'Top ' + n}"
+                                th:selected="${param.topAlbum != null and param.topAlbum[0] == '' + n}">Top 1</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="toolbar-sort-panel co-sort" id="coSort">
+                <div class="toolbar-sort-heading">Sort</div>
+                <div class="toolbar-sort-list" id="coSortPills"></div>
+            </div>
+        </div>
+
+        <div class="co-row" id="coGenders"></div>
+        <div id="coSummary"></div>
+        <div id="coContent" aria-live="polite"></div>
+        <div id="coSentinel" aria-hidden="true"></div>
+    </div>
+
+    <div class="co-merge-bar" id="coMergeBar" hidden>
+        <span>Source: <b id="coMergeSource">pick a row</b></span>
+        <span>Targets: <b id="coMergeTargets">none</b></span>
+        <button type="button" class="toolbar-btn toolbar-btn-primary" id="coMergeGo" disabled>Merge</button>
+        <button type="button" class="toolbar-btn" id="coMergeCancel">Cancel</button>
+    </div>
+
+    <div class="co-modal" id="coMatchModal" hidden role="dialog" aria-modal="true" aria-labelledby="coMatchTitle">
+        <div class="co-modal-card">
+            <div class="co-modal-head">
+                <div>
+                    <div class="co-modal-title" id="coMatchTitle">Link to song in Library</div>
+                    <div class="co-hint" id="coMatchSubtitle"></div>
+                </div>
+                <button type="button" class="co-icon-btn" data-co-close aria-label="Close">&times;</button>
+            </div>
+            <input type="search" class="co-modal-input" id="coMatchInput" placeholder="Search song or artist..." autocomplete="off">
+            <div class="co-modal-results" id="coMatchResults"></div>
+            <div class="co-modal-foot" id="coMatchUnlink" hidden>
+                <button type="button" class="co-small-btn" id="coUnlinkBtn">Unlink from TRL chart entries</button>
+            </div>
+        </div>
+    </div>
+
+    <th:block th:if="${tab == 'song'}" th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+    <th:block th:replace="~{fragments/image-modal :: image-modal}"></th:block>
+    <script th:inline="javascript">
+        window.chartOverviewState = /*[(${pageStateJson})]*/ {};
+    </script>
+</body>
+</html>

@@ -38,6 +38,18 @@ public final class TimeFormatUtils {
     }
 
     /**
+     * Formats time in seconds as hours and minutes, never rolling hours up into days.
+     *
+     * @param totalSeconds the total time in seconds
+     * @return formatted string like "1,512h 34m", "3h 05m" or "20m"
+     */
+    public static String formatHoursMinutes(long totalSeconds) {
+        long hours = Math.max(0, totalSeconds) / 3600;
+        long minutes = (Math.max(0, totalSeconds) % 3600) / 60;
+        return hours > 0 ? String.format(java.util.Locale.US, "%,dh %02dm", hours, minutes) : minutes + "m";
+    }
+
+    /**
      * Formats time in seconds to HH:MM:SS format.
      * When the duration is less than 60 minutes, it displays as MM:SS (without hours).
      *

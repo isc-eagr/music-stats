@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Import Plays > Run history: one tab's runs, grouped by day (newest first) -->
+    <th:block th:fragment="runList(logs, emptyText)">
+        <p class="ip-empty-text" th:if="${logs == null or #lists.isEmpty(logs)}" th:text="${emptyText}">No runs logged yet.</p>
+        <th:block th:each="entry, it : ${logs}">
+            <h3 class="ip-day" th:if="${it.index == 0 or logs[it.index - 1].runDay != entry.runDay}" th:text="${entry.runDayLabel}">Today</h3>
+            <div class="ip-run" th:classappend="${'is-' + #strings.toLowerCase(entry.status)}">
+                <b class="ip-num" th:text="${entry.runTime}">21:40</b>
+                <span class="ip-run-dot" aria-hidden="true"></span>
+                <span class="ip-run-text" th:title="${entry.message}">
+                    <th:block th:if="${entry.status != 'ERROR'}">
+                        <b th:text="${'+' + #numbers.formatInteger(entry.importedCount, 1, 'COMMA') + ' plays'}">+6 plays</b>
+                        <th:block th:if="${entry.syncDifference != null}"> · <span th:classappend="${entry.syncDifference != 0} ? 'is-off' : ''"
+                            th:text="${entry.syncDifference == 0 ? 'in sync' : 'Last.fm ' + (entry.syncDifference > 0 ? '+' : '') + entry.syncDifference}">in sync</span></th:block>
+                        <span class="ip-run-msg" th:if="${entry.message != null}" th:text="${' · ' + entry.message}"></span>
+                    </th:block>
+                    <th:block th:if="${entry.status == 'ERROR'}" th:text="${entry.message}">Error message</th:block>
+                </span>
+                <span class="ip-pill"
+                      th:classappend="${entry.status == 'SUCCESS' ? 'is-ok' : (entry.status == 'WARNING' ? 'is-warn' : 'is-error')}"
+                      th:text="${#strings.capitalize(#strings.toLowerCase(entry.status))}">Success</span>
+            </div>
+        </th:block>
+    </th:block>
+</body>
+</html>

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Detail pages: Artist Associations (artist) and Featured Artists (album, song) tabs.
-   Builds on detail-general.css (ad-card, ad-tiles, ad-table, ad-rank...).
+   Builds on detail-general.css (dt-card, dt-tiles, dt-table, dt-rank...).
    Gender colors: is-m blue, is-f pink, is-o gray.
    ========================================================================== */
 
@@ -204,7 +204,7 @@
 }
 
 /* Count chip next to a block title (Collaborators) */
-.as-splits .ad-cap .ad-count {
+.as-splits .dt-cap .dt-count {
     height: 18px;
     font-size: 11px;
     letter-spacing: 0;
@@ -499,7 +499,7 @@
 
 /* ── Tables: every stat keeps its own column, the song column takes what is left, and the wide
       album table scrolls sideways when the column is too narrow (same as the other detail tables) ── */
-.ad-table.as-table.is-wide { min-width: 1180px; }
+.dt-table.as-table.is-wide { min-width: 1180px; }
 .as-table .as-col-name { width: 220px; }
 .as-table .as-col-link { width: 190px; }
 .as-table .as-col-g { width: 82px; }
@@ -711,7 +711,7 @@
     color: #d4d4d8;
 }
 
-/* .ad-tile span is the uppercase tile label; the breakdown spans stay plain text */
+/* .dt-tile span is the uppercase tile label; the breakdown spans stay plain text */
 .as-tile small > span {
     display: inline-flex;
     align-items: center;
@@ -917,7 +917,8 @@
 
 /* ── Phones: tables keep rank, name and the main numbers, no sideways scroll ── */
 @media (max-width: 900px) {
-    .ad-table.as-table {
+    .dt-table.as-table,
+    .dt-table.as-table.is-wide {
         min-width: 0;
     }
 
@@ -927,6 +928,18 @@
 
     .as-table .as-col-name {
         width: auto;
+    }
+
+    .as-table .as-col-sh {
+        width: 120px;
+    }
+
+    .as-table .as-col-g {
+        width: 70px;
+    }
+
+    .as-table .as-col-plays {
+        width: 86px;
     }
 
     .as-body {

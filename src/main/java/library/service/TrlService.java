@@ -6,6 +6,7 @@ import library.dto.ChartArtistOverviewRowDTO;
 import library.dto.TrlChartEntryGroupDTO;
 import library.entity.TrlDebut;
 import library.util.ChartAggregationUtils;
+import library.util.ChartRowAttributes;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -586,6 +587,11 @@ public class TrlService {
             }
             return row;
         }, chartDate, chartDate, chartDate, chartDate);
+    }
+
+    /** Genre / ethnicity / language / country for the recap page's breakdown tiles. */
+    public void applyBreakdownAttributes(List<Map<String, Object>> rows) {
+        ChartRowAttributes.applyToRecapRows(jdbcTemplate, rows);
     }
 
     public List<Map<String, Object>> getFallOffsForDate(String chartDate) {

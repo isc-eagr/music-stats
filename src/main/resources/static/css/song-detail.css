@@ -1,7 +1,7 @@
 /* Song detail page - song-only pieces on top of detail-general.css (General tab redesign) */
 
 /* ── Sidebar cover: name with artist / album links under it ── */
-.song-detail.ad-page .item-name-top.ad-photo-name {
+.song-detail.dt-page .item-name-top.dt-photo-name {
     bottom: 38px;
     flex-wrap: wrap;
 }
@@ -43,7 +43,7 @@
 }
 
 /* ── Profile edit in place ── */
-.song-detail .ad-fb-l.sd-fb-l-row {
+.song-detail .dt-fb-l.sd-fb-l-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -70,7 +70,7 @@
     color: #8b8b93;
 }
 
-.song-detail .ad-edit-actions {
+.song-detail .dt-edit-actions {
     flex-wrap: wrap;
 }
 
@@ -80,7 +80,7 @@
     width: 100%;
 }
 
-.song-detail .ad-fb .chips-input-wrapper {
+.song-detail .dt-fb .chips-input-wrapper {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -258,7 +258,7 @@
     font-weight: 600;
 }
 
-.linked-song-plays b:not(.ad-gold) {
+.linked-song-plays b:not(.dt-gold) {
     color: #f2f2f4;
 }
 
@@ -306,7 +306,7 @@
     justify-content: flex-end;
 }
 
-.linked-song-actions .ad-btn:disabled {
+.linked-song-actions .dt-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
 }

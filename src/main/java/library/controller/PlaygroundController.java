@@ -2,6 +2,9 @@ package library.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import library.dto.ChartFilterDTO;
+import library.dto.ReignPageDTO;
+import library.service.ReignPageBuilder;
+import library.service.TopPlayedTimelineService;
 import library.service.CatalogChartService;
 import library.service.CatalogGraphFilterResolver;
 import library.service.MaleFunFactsService;
@@ -19,8 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.time.LocalDate;
-import java.time.Month;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -30,23 +31,30 @@ public class PlaygroundController {
     private final CatalogChartService catalogChartService;
     private final CatalogGraphFilterResolver catalogGraphFilterResolver;
     private final MaleFunFactsService maleFunFactsService;
+    private final TopPlayedTimelineService reignService;
 
     @Autowired
     public PlaygroundController(PlaygroundService playgroundService, CatalogChartService catalogChartService,
-                                CatalogGraphFilterResolver catalogGraphFilterResolver, MaleFunFactsService maleFunFactsService) {
+                                CatalogGraphFilterResolver catalogGraphFilterResolver, MaleFunFactsService maleFunFactsService,
+                                TopPlayedTimelineService reignService) {
         this.playgroundService = playgroundService;
         this.catalogChartService = catalogChartService;
         this.catalogGraphFilterResolver = catalogGraphFilterResolver;
         this.maleFunFactsService = maleFunFactsService;
+        this.reignService = reignService;
     }
 
     public PlaygroundController(PlaygroundService playgroundService, CatalogChartService catalogChartService,
                                 CatalogGraphFilterResolver catalogGraphFilterResolver) {
-        this(playgroundService, catalogChartService, catalogGraphFilterResolver, null);
+        this(playgroundService, catalogChartService, catalogGraphFilterResolver, null, null);
     }
 
     public PlaygroundController(PlaygroundService playgroundService, MaleFunFactsService maleFunFactsService) {
-        this(playgroundService, null, null, maleFunFactsService);
+        this(playgroundService, null, null, maleFunFactsService, null);
+    }
+
+    public PlaygroundController(PlaygroundService playgroundService, TopPlayedTimelineService reignService) {
+        this(playgroundService, null, null, null, reignService);
     }
 
     public PlaygroundController(PlaygroundService playgroundService) {
@@ -56,19 +64,21 @@ public class PlaygroundController {
     @GetMapping("/playground")
     public String playground(@RequestParam(name = "year", required = false) Integer year,
                              @RequestParam(name = "view", defaultValue = "activity") String view,
-                             @RequestParam(name = "reviewType", defaultValue = "year") String reviewType,
-                             @RequestParam(name = "season", defaultValue = "winter") String season,
-                             @RequestParam(name = "month", required = false) Integer month,
                              @RequestParam(name = "source", defaultValue = "songs") String source,
+                             @RequestParam(name = "reign", defaultValue = "artists") String reign,
                              Model model) {
         if (year != null && (year < 1 || year > 9998)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Year must be between 1 and 9998");
         }
-        if (!List.of("activity", "flashback", "graphs", "male").contains(view)) {
+        if (!List.of("activity", "graphs", "male", "reigns").contains(view)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown Playground tab");
         }
         model.addAttribute("view", view);
         model.addAttribute("currentSection", "playground");
+        if (view.equals("reigns")) {
+            model.addAttribute("r", buildReigns(reign));
+            return "playground";
+        }
         if (view.equals("graphs")) {
             validateGraphSource(source);
             model.addAttribute("graphsSource", source);
@@ -89,32 +99,7 @@ public class PlaygroundController {
         }
         model.addAttribute("years", years);
         model.addAttribute("selectedYear", selectedYear);
-        if (view.equals("activity")) {
-            model.addAttribute("heatmap", playgroundService.getHeatmap(selectedYear));
-        } else {
-            int selectedMonth = month == null
-                    ? (selectedYear == LocalDate.now(ZoneId.of("America/Mexico_City")).getYear()
-                        ? LocalDate.now(ZoneId.of("America/Mexico_City")).getMonthValue() : 1)
-                    : month;
-            if (selectedMonth < 1 || selectedMonth > 12) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Month must be between 1 and 12");
-            }
-            try {
-                model.addAttribute("flashback", playgroundService.getFlashback(reviewType,
-                        selectedYear, season, selectedMonth));
-            } catch (IllegalArgumentException exception) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
-            }
-            model.addAttribute("reviewType", reviewType);
-            model.addAttribute("reviewSeason", season);
-            model.addAttribute("reviewMonth", selectedMonth);
-            model.addAttribute("reviewSeasons", List.of(
-                    new SeasonChoice("Winter", "winter"), new SeasonChoice("Spring", "spring"),
-                    new SeasonChoice("Summer", "summer"), new SeasonChoice("Fall", "fall")));
-            model.addAttribute("monthOptions", java.util.Arrays.stream(Month.values())
-                    .map(value -> new MonthChoice(value.getValue(), value.getDisplayName(java.time.format.TextStyle.FULL,
-                            java.util.Locale.ENGLISH))).toList());
-        }
+        model.addAttribute("heatmap", playgroundService.getHeatmap(selectedYear));
         return "playground";
     }
 
@@ -147,14 +132,35 @@ public class PlaygroundController {
         }
     }
 
-    public String playground(Integer year, String view, String reviewType, String season, Integer month, Model model) {
-        return playground(year, view, reviewType, season, month, "songs", model);
+    /** Reigns used to live at /reign/artists, /reign/songs and /reign/genres; old links land on the Playground tab. */
+    @GetMapping("/reign/{type}")
+    public String oldReignPage(@PathVariable String type) {
+        if (!List.of("artists", "songs", "genres").contains(type)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown reign type");
+        }
+        return "redirect:/playground?view=reigns&reign=" + type;
+    }
+
+    private ReignPageDTO buildReigns(String reign) {
+        LocalDate today = LocalDate.now();
+        return switch (reign) {
+            case "artists" -> ReignPageBuilder.build("artist", "Artist", reignService.getArtistTimeline(), Map.of(), today);
+            case "songs" -> ReignPageBuilder.build("song", "Song", reignService.getSongTimeline(), Map.of(), today);
+            case "genres" -> ReignPageBuilder.build("genre", "Genre", reignService.getGenreTimeline(),
+                    reignService.getGenreGenderShares(), today);
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown reign type");
+        };
+    }
+
+    public String playground(Integer year, String view, Model model) {
+        return playground(year, view, "songs", "artists", model);
+    }
+
+    public String reigns(String reign, Model model) {
+        return playground(null, "reigns", "songs", reign, model);
     }
 
     public String playground(Integer year, Model model) {
-        return playground(year, "activity", "year", "winter", null, model);
+        return playground(year, "activity", model);
     }
-
-    public record SeasonChoice(String label, String value) {}
-    public record MonthChoice(int month, String label) {}
 }

@@ -8,158 +8,180 @@
     <th:block th:fragment="image-modal">
         <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
             <div class="image-modal-content" id="imageModalContent">
-                <button class="image-modal-close" onclick="closeImageModal(event)">&times;</button>
-                <button class="image-modal-nav image-modal-nav-left" id="imageModalPrev" onclick="modalNavigate(-1, event)" style="display: none;">❮</button>
-                <button class="image-modal-nav image-modal-nav-right" id="imageModalNext" onclick="modalNavigate(1, event)" style="display: none;">❯</button>
+                <button type="button" class="image-modal-close" onclick="closeImageModal(event)" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                <button class="image-modal-nav image-modal-nav-left" id="imageModalPrev" onclick="modalNavigate(-1, event)" style="display: none;" aria-label="Previous image"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+                <button class="image-modal-nav image-modal-nav-right" id="imageModalNext" onclick="modalNavigate(1, event)" style="display: none;" aria-label="Next image"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
                 <div class="image-modal-zoom-hint" id="zoomHint">Click to zoom</div>
                 <img id="imageModalImg" class="image-modal-img" src="" alt="Full size image" onclick="toggleImageZoom(event)">
             </div>
         </div>
         
         <style>
+            /* Full size image viewer. Redesign look: blurred backdrop, hairline round buttons, pill hint. */
             .image-modal {
                 display: none;
                 position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.9);
+                inset: 0;
+                background: rgba(0, 0, 0, 0.82);
+                backdrop-filter: blur(8px);
                 z-index: 10000;
                 cursor: pointer;
                 overflow: auto;
             }
-            
+
             .image-modal.show {
                 display: flex;
                 align-items: center;
                 justify-content: center;
             }
-            
+
+            /* Auto margins (not justify/align center) so an image larger than the
+               viewport overflows only right/down and every edge stays scrollable. */
             .image-modal.zoomed {
                 display: flex;
                 align-items: flex-start;
-                justify-content: center;
+                justify-content: flex-start;
                 cursor: default;
-                padding: 40px 0;
+                padding: 40px 20px;
             }
-            
+
+            .image-modal.zoomed .image-modal-content {
+                margin: auto;
+            }
+
             .image-modal-content {
                 position: relative;
                 max-width: 90vw;
                 max-height: 90vh;
                 cursor: default;
             }
-            
+
             .image-modal.zoomed .image-modal-content {
                 max-width: none;
                 max-height: none;
             }
-            
+
+            .image-modal-close,
+            .image-modal-nav {
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                border-radius: 12px;
+                border: 1px solid rgba(161, 161, 170, 0.3);
+                background: rgba(18, 18, 20, 0.72);
+                backdrop-filter: blur(6px);
+                color: rgba(242, 242, 244, 0.85);
+                cursor: pointer;
+                z-index: 10001;
+                user-select: none;
+                transition: opacity 0.2s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+            }
+
+            .image-modal-close svg,
+            .image-modal-nav svg {
+                display: block;
+                width: 18px;
+                height: 18px;
+                margin: auto;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                pointer-events: none;
+            }
+
             .image-modal-close {
                 position: absolute;
-                top: -40px;
+                top: -52px;
                 right: 0;
-                background: transparent;
-                border: none;
+            }
+
+            .image-modal-close:hover,
+            .image-modal-nav:hover {
                 color: #fff;
-                font-size: 32px;
-                cursor: pointer;
-                padding: 0 10px;
-                line-height: 1;
-                opacity: 0.8;
-                transition: opacity 0.2s ease;
-                z-index: 10001;
+                background: rgba(38, 38, 42, 0.9);
+                border-color: rgba(161, 161, 170, 0.55);
             }
-            
-            .image-modal-close:hover {
-                opacity: 1;
-            }
-            
+
             .image-modal-nav {
                 position: absolute;
                 top: 50%;
                 transform: translateY(-50%);
-                background: rgba(0, 0, 0, 0.6);
-                border: none;
-                color: #fff;
-                font-size: 28px;
-                cursor: pointer;
-                padding: 12px 10px;
-                line-height: 1;
+                width: 44px;
+                height: 44px;
+                border-radius: 999px;
                 opacity: 0;
-                transition: opacity 0.2s ease, background 0.2s ease;
-                z-index: 10001;
-                border-radius: 4px;
-                user-select: none;
             }
-            
+
             .image-modal-content:hover .image-modal-nav {
-                opacity: 0.7;
+                opacity: 1;
             }
-            
-            .image-modal-nav:hover {
-                opacity: 1 !important;
-                background: rgba(0, 0, 0, 0.8);
-            }
-            
+
             .image-modal-nav-left {
-                left: 20px;
+                left: 16px;
             }
-            
+
             .image-modal-nav-right {
-                right: 20px;
+                right: 16px;
             }
-            
+
             .image-modal-zoom-hint {
                 position: absolute;
-                bottom: 10px;
+                bottom: 12px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.7);
-                color: #fff;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 13px;
+                padding: 6px 14px;
+                border-radius: 999px;
+                border: 1px solid rgba(161, 161, 170, 0.3);
+                background: rgba(18, 18, 20, 0.72);
+                backdrop-filter: blur(6px);
+                color: rgba(242, 242, 244, 0.85);
+                font: 600 12px Inter, system-ui, sans-serif;
                 pointer-events: none;
                 opacity: 0;
                 transition: opacity 0.3s ease;
                 z-index: 10001;
             }
-            
+
             .image-modal-content:hover .image-modal-zoom-hint {
-                opacity: 0.9;
+                opacity: 1;
             }
-            
+
             .image-modal.zoomed .image-modal-zoom-hint {
                 display: none;
             }
-            
+
             .image-modal-img {
                 max-width: 90vw;
                 max-height: 90vh;
                 object-fit: contain;
-                border-radius: 8px;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+                border-radius: 14px;
+                box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
                 cursor: zoom-in;
                 transition: none;
                 display: block;
             }
-            
+
             .image-modal.zoomed .image-modal-img {
                 max-width: none;
                 max-height: none;
                 cursor: zoom-out;
-                border-radius: 4px;
+                border-radius: 6px;
                 width: auto;
                 height: auto;
             }
-            
+
+            /* Touch screens have no hover: keep the arrows visible */
+            @media (hover: none) {
+                .image-modal-nav { opacity: 1; }
+            }
+
             /* Clickable image hover effect */
             .clickable-image {
                 transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
             }
-            
+
             .clickable-image:hover {
                 transform: scale(1.02);
                 opacity: 0.9;

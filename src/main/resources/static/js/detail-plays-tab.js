@@ -49,7 +49,7 @@
             const b = el('button', 'dp-yp-step');
             b.type = 'button';
             b.setAttribute('aria-label', older ? 'Older' : 'Newer');
-            b.innerHTML = '<svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="' + dir + '"/></svg>';
+            b.innerHTML = '<svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="' + dir + '"/></svg>';
             const target = at + (older ? 1 : -1);
             b.disabled = target < 0 || target >= values.length;
             b.addEventListener('click', () => onPick(values[target]));
@@ -309,8 +309,8 @@
             grid.append(labels, cells);
             const facts = root.querySelector('[data-dp-cal-facts]');
             const fact = (label, value, gold) => {
-                const f = el('span', 'ad-fact' + (gold ? ' is-gold' : ''), label + ' ');
-                f.appendChild(el('b', 'ad-num', value));
+                const f = el('span', 'dt-fact' + (gold ? ' is-gold' : ''), label + ' ');
+                f.appendChild(el('b', 'dt-num', value));
                 return f;
             };
             facts.replaceChildren(
@@ -353,7 +353,7 @@
                 const band = el('span', 'dp-band');
                 band.style.left = (i * 25) + '%';
                 const lab = el('span', null, name + ' ');
-                lab.appendChild(el('b', 'ad-num', share + '%'));
+                lab.appendChild(el('b', 'dt-num', share + '%'));
                 band.appendChild(lab);
                 hoursBox.appendChild(band);
             });
@@ -381,12 +381,12 @@
                 band.style.width = 'calc((100% - 36px) * ' + count + ' / 7 + ' + ((count - 1) * 6) + 'px)';
                 band.title = name + ' · ' + share + '% of plays';
                 const lab = el('span');
-                lab.append(el('em', null, name), el('b', 'ad-num', share + '%'));
+                lab.append(el('em', null, name), el('b', 'dt-num', share + '%'));
                 band.appendChild(lab);
                 return band;
             }), ...week.map((v, i) => {
                 const col = el('div');
-                col.appendChild(el('b', 'ad-num', v ? fmt(v) : ''));
+                col.appendChild(el('b', 'dt-num', v ? fmt(v) : ''));
                 const bar = el('i', v > 0 && i === peakDay ? 'is-best' : '');
                 bar.style.height = (wMax && v ? Math.max(2, Math.round((v / wMax) * 92)) : 0) + 'px';
                 bar.title = WEEKDAY_NAMES[i] + ': ' + fmt(v) + ' plays';
@@ -414,16 +414,16 @@
                 band.style.width = 'calc((100% - 66px) * ' + months.length + ' / 12 + ' + ((months.length - 1) * 6) + 'px)';
                 band.title = name + ' (' + MONTHS[SEASON_SPAN[name][0]] + ' to ' + MONTHS[SEASON_SPAN[name][1]] + ') · ' + share + '% of plays';
                 const lab = el('span');
-                lab.innerHTML = '<svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true">' + icon + '</svg>';
+                lab.innerHTML = '<svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true">' + icon + '</svg>';
                 if (i < SEASONS.length - 1) {
                     lab.appendChild(el('em', null, name));
-                    lab.appendChild(el('b', 'ad-num', share + '%'));
+                    lab.appendChild(el('b', 'dt-num', share + '%'));
                 }
                 band.appendChild(lab);
                 return band;
             }), ...mo.map((v, i) => {
                 const col = el('div');
-                col.appendChild(el('b', 'ad-num', v ? fmt(v) : ''));
+                col.appendChild(el('b', 'dt-num', v ? fmt(v) : ''));
                 const bar = el('i', v > 0 && v === mMax ? 'is-best' : '');
                 bar.style.height = (mMax && v ? Math.max(2, Math.round((v / mMax) * 92)) : 0) + 'px';
                 bar.title = MONTHS[i] + ': ' + fmt(v) + ' plays';
@@ -436,7 +436,7 @@
             const topMax = top.length ? top[0][1] : 1;
             rhythm.querySelector('[data-dp-top-days]').replaceChildren(...top.map(([d, n], i) => {
                 const row = el('div', 'dp-td');
-                row.append(el('span', 'dp-ix ad-num', String(i + 1)), el('span', 'ad-num', display(d)), el('span', 'dp-dim', WEEKDAYS[weekday(d)]));
+                row.append(el('span', 'dp-ix dt-num', String(i + 1)), el('span', 'dt-num', display(d)), el('span', 'dp-dim', WEEKDAYS[weekday(d)]));
                 const what = el('span', 'dp-td-x');
                 if (releaseDays.has(d)) what.appendChild(el('span', 'dp-rel', 'Release · ' + releaseDays.get(d)));
                 const ms = milestones.filter((m) => m.day === d);
@@ -446,7 +446,7 @@
                 const fill = el('i');
                 fill.style.width = Math.round((n / topMax) * 100) + '%';
                 track.appendChild(fill);
-                bx.append(track, el('b', 'ad-num', fmt(n)));
+                bx.append(track, el('b', 'dt-num', fmt(n)));
                 row.append(what, bx);
                 return row;
             }));
@@ -485,15 +485,15 @@
             const draw = (count) => list.replaceChildren(...moves.slice(0, count).map((m) => {
                 const row = el('div', 'dp-mv');
                 const ic = el('span', 'dp-mv-ic ' + (m.up ? 'is-up' : 'is-down'));
-                ic.innerHTML = '<svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (m.up ? 'M12 19V5M6 11l6-6 6 6' : 'M12 5v14M6 13l6 6 6-6') + '"/></svg>';
+                ic.innerHTML = '<svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (m.up ? 'M12 19V5M6 11l6-6 6 6' : 'M12 5v14M6 13l6 6 6-6') + '"/></svg>';
                 const name = el('span', 'dp-mv-n');
                 const dot = el('i');
                 dot.style.background = GENDER_DOT[m.otherGender] || GENDER_DOT.other;
                 const link = el('a', null, m.otherName);
                 link.href = base + m.otherId;
                 name.append(dot, document.createTextNode(m.up ? 'Passed ' : ''), link, document.createTextNode(m.up ? '' : ' moved ahead'));
-                row.append(el('span', 'ad-num dp-mv-d', m.date), ic, name,
-                    el('span', 'ad-num dp-mv-r ' + (m.up ? 'is-up' : 'is-down'), '#' + fmt(m.from) + ' → #' + fmt(m.to)));
+                row.append(el('span', 'dt-num dp-mv-d', m.date), ic, name,
+                    el('span', 'dt-num dp-mv-r ' + (m.up ? 'is-up' : 'is-down'), '#' + fmt(m.from) + ' → #' + fmt(m.to)));
                 return row;
             }));
             draw(MOVES_SHOWN);

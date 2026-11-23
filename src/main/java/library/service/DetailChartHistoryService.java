@@ -46,7 +46,7 @@ public class DetailChartHistoryService {
     record Charts(List<HitCard> weeklySongs, List<HitCard> weeklyAlbums,
                   List<HitCard> bb, List<HitCard> pc, List<HitCard> trl,
                   List<Placement> seasonalSongs, List<Placement> yearlySongs,
-                  List<Placement> seasonalAlbums, List<Placement> yearlyAlbums) {
+                  List<Placement> seasonalAlbums, List<Placement> yearlyAlbums, boolean singleSong) {
     }
 
     /** bb / pc / trl rows may carry owner_id, owner_name and featured_on (the toggle-scoped artist queries). */
@@ -58,7 +58,7 @@ public class DetailChartHistoryService {
         return build(new Charts(weeklyCards(songs), weeklyCards(albums),
                 recapCards(bb, "bb", artistId), recapCards(pc, "pc", artistId), recapCards(trl, "trl", artistId),
                 placements(seasonalSongs, "song"), placements(yearlySongs, "song"),
-                placements(seasonalAlbums, "album"), placements(yearlyAlbums, "album")));
+                placements(seasonalAlbums, "album"), placements(yearlyAlbums, "album"), false));
     }
 
     public ChartHistoryViewDTO forAlbum(int albumId, String albumName, List<ChartHistoryDTO> albumHistory,
@@ -71,7 +71,7 @@ public class DetailChartHistoryService {
         return build(new Charts(albumSongCards(albumSongs, albumId), weeklyCards(albumHistory),
                 recapCards(bb, "bb", null), recapCards(pc, "pc", null), recapCards(trl, "trl", null),
                 placements(seasonalSongs, "song"), placements(yearlySongs, "song"),
-                itemPlacements(seasonalAlbum, albumName, albumHref), itemPlacements(yearlyAlbum, albumName, albumHref)));
+                itemPlacements(seasonalAlbum, albumName, albumHref), itemPlacements(yearlyAlbum, albumName, albumHref), false));
     }
 
     public ChartHistoryViewDTO forSong(int songId, String songName, Integer albumId, List<ChartHistoryDTO> songHistory,
@@ -84,45 +84,48 @@ public class DetailChartHistoryService {
                 songStatsCard(pcStats, "pc", songId, songName, albumId),
                 songStatsCard(trlStats, "trl", songId, songName, albumId),
                 itemPlacements(seasonal, songName, songHref), itemPlacements(yearly, songName, songHref),
-                List.of(), List.of()));
+                List.of(), List.of(), true));
     }
 
     ChartHistoryViewDTO build(Charts c) {
         List<Tile> tiles = new ArrayList<>();
         List<HitCard> weekly = concat(c.weeklySongs(), c.weeklyAlbums());
         if (!weekly.isEmpty()) {
-            tiles.add(cardTile("weekly", "Weekly", "weekly", c.weeklySongs(), c.weeklyAlbums(), "week", "weekly"));
+            tiles.add(cardTile("weekly", "Weekly", "weekly", c.weeklySongs(), c.weeklyAlbums(), "week", "weekly", c.singleSong()));
         }
         List<Placement> seasonal = concat(c.seasonalSongs(), c.seasonalAlbums());
         if (!seasonal.isEmpty()) {
-            tiles.add(placementTile("seasonal", "Seasonal", seasonal, "season"));
+            tiles.add(placementTile("seasonal", "Seasonal", seasonal, "season", c.singleSong()));
         }
         List<Placement> yearly = concat(c.yearlySongs(), c.yearlyAlbums());
         if (!yearly.isEmpty()) {
-            tiles.add(placementTile("yearly", "Yearly", yearly, "year"));
+            tiles.add(placementTile("yearly", "Yearly", yearly, "year", c.singleSong()));
         }
         if (!c.bb().isEmpty()) {
-            tiles.add(cardTile("bb", "Hot 100", "bb", c.bb(), List.of(), "week", "bb"));
+            tiles.add(cardTile("bb", "Hot 100", "bb", c.bb(), List.of(), "week", "bb", c.singleSong()));
         }
         if (!c.pc().isEmpty()) {
-            tiles.add(cardTile("pc", "Vato's Cuntdown", "pc", c.pc(), List.of(), "day", "pc"));
+            tiles.add(cardTile("pc", "Vato's Cuntdown", "pc", c.pc(), List.of(), "day", "pc", c.singleSong()));
         }
         if (!c.trl().isEmpty()) {
-            tiles.add(cardTile("trl", "TRL", "trl", c.trl(), List.of(), "day", "trl"));
+            tiles.add(cardTile("trl", "TRL", "trl", c.trl(), List.of(), "day", "trl", c.singleSong()));
         }
 
+        // No "Where they peaked" spread on the song page: every bar would be a single entry.
         List<SpreadRow> spread = new ArrayList<>();
-        addSpread(spread, "Weekly songs", "weekly", c.weeklySongs());
-        addSpread(spread, "Weekly albums", "weekly", c.weeklyAlbums());
-        addSpread(spread, "Hot 100", "bb", c.bb());
-        addSpread(spread, "Vato's Cuntdown", "pc", c.pc());
-        addSpread(spread, "TRL", "trl", c.trl());
-
         List<SpreadRow> periodSpread = new ArrayList<>();
-        addPeriodSpread(periodSpread, "Seasonal songs", c.seasonalSongs());
-        addPeriodSpread(periodSpread, "Seasonal albums", c.seasonalAlbums());
-        addPeriodSpread(periodSpread, "Yearly songs", c.yearlySongs());
-        addPeriodSpread(periodSpread, "Yearly albums", c.yearlyAlbums());
+        if (!c.singleSong()) {
+            addSpread(spread, "Weekly songs", "weekly", c.weeklySongs());
+            addSpread(spread, "Weekly albums", "weekly", c.weeklyAlbums());
+            addSpread(spread, "Hot 100", "bb", c.bb());
+            addSpread(spread, "Vato's Cuntdown", "pc", c.pc());
+            addSpread(spread, "TRL", "trl", c.trl());
+
+            addPeriodSpread(periodSpread, "Seasonal songs", c.seasonalSongs());
+            addPeriodSpread(periodSpread, "Seasonal albums", c.seasonalAlbums());
+            addPeriodSpread(periodSpread, "Yearly songs", c.yearlySongs());
+            addPeriodSpread(periodSpread, "Yearly albums", c.yearlyAlbums());
+        }
 
         List<HitSection> sections = new ArrayList<>();
         if (!weekly.isEmpty()) {
@@ -143,31 +146,35 @@ public class DetailChartHistoryService {
     /**
      * Run chart tile: best peak with the weeks (or days) spent there across every entry that reached it,
      * then songs / albums, total time on the chart and how many entries hit #1 (top 10 when none did).
+     * singleSong (song page): only the time on the chart, since the counts would always read 1.
      */
     private Tile cardTile(String key, String name, String tone, List<HitCard> songs, List<HitCard> albums,
-                          String timeUnit, String target) {
+                          String timeUnit, String target, boolean singleSong) {
         List<HitCard> cards = concat(songs, albums);
         int best = cards.stream().mapToInt(HitCard::peak).min().orElse(0);
         int atBest = cards.stream().filter(card -> card.peak() == best).mapToInt(card -> intOr(card.atPeak())).sum();
         List<TileStat> stats = new ArrayList<>();
-        if (!songs.isEmpty()) stats.add(new TileStat(number(songs.size()), plural(songs.size(), "song")));
-        if (!albums.isEmpty()) stats.add(new TileStat(number(albums.size()), plural(albums.size(), "album")));
+        if (!singleSong && !songs.isEmpty()) stats.add(new TileStat(number(songs.size()), plural(songs.size(), "song")));
+        if (!singleSong && !albums.isEmpty()) stats.add(new TileStat(number(albums.size()), plural(albums.size(), "album")));
         int time = cards.stream().mapToInt(HitCard::total).sum();
         stats.add(new TileStat(number(time), plural(time, timeUnit)));
-        stats.add(hitsStat(cards.stream().map(HitCard::peak).toList()));
+        if (!singleSong) stats.add(hitsStat(cards.stream().map(HitCard::peak).toList()));
         return new Tile(key, name, tone, best, atBest, plural(atBest, timeUnit) + " at #" + best, stats, target);
     }
 
-    /** Seasonal / yearly tile: best placement with how many times it was reached, periods, entries, #1s. */
-    private Tile placementTile(String key, String name, List<Placement> placements, String periodUnit) {
+    /**
+     * Seasonal / yearly tile: best placement with how many times it was reached, periods, entries, #1s.
+     * singleSong (song page): no entries count, since it always equals the periods.
+     */
+    private Tile placementTile(String key, String name, List<Placement> placements, String periodUnit, boolean singleSong) {
         int best = placements.stream().mapToInt(Placement::position).min().orElse(0);
         int atBest = (int) placements.stream().filter(p -> p.position() == best).count();
         Set<String> periods = new HashSet<>();
         placements.forEach(p -> periods.add(p.periodKey()));
-        List<TileStat> stats = List.of(
-                new TileStat(number(periods.size()), plural(periods.size(), periodUnit)),
-                new TileStat(number(placements.size()), plural(placements.size(), "entry")),
-                hitsStat(placements.stream().map(Placement::position).toList()));
+        List<TileStat> stats = new ArrayList<>();
+        stats.add(new TileStat(number(periods.size()), plural(periods.size(), periodUnit)));
+        if (!singleSong) stats.add(new TileStat(number(placements.size()), plural(placements.size(), "entry")));
+        stats.add(hitsStat(placements.stream().map(Placement::position).toList()));
         return new Tile(key, name, "weekly", best, atBest, plural(atBest, "time") + " at #" + best, stats, "calendar");
     }
 

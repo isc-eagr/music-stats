@@ -1,6 +1,6 @@
 /*
- * Share over time panel above the catalog lists (fragments/share-history.html).
- * Cumulative monthly share of the list's top items against the rest of what its filters match.
+ * Share over time panel above the Catalogs list pages (Genres, Languages, Countries...; fragments/share-history.html).
+ * Cumulative monthly share of the listed items' top 10 against the rest of what the list's search matches.
  * Clicking a band or a legend chip focuses that item and highlights its card or row; hovering a card
  * or row lights up its band.
  */
@@ -13,30 +13,20 @@
     const catalog = root.dataset.catalog;
     const cardAttr = root.dataset.cardAttr;
     const rowAttr = root.dataset.rowAttr;
-    const body = root.querySelector('.sh-body');
-    const STORE_KEY = `shareHistory:${catalog}`;
+    const settings = ShareChartCore.store(`shareHistory:${catalog}`);
     const REST = '__rest';
     const ITEMS = 10;
-    const PRIMARY = ['artists', 'albums', 'songs'].includes(catalog);
-    // Lookup catalogs (genres, languages...) are small: fetch every listed item and chart the top ones by value.
-    // Artists, albums and songs chart the first items of the list, in its own sort.
-    const RANKED = !PRIMARY;
+    // The lists are small: fetch every listed item, chart the top ones by value and fold the others into the rest.
     const MAX_KEYS = 100;
-    // A handful of albums or songs is a sliver of everything, so they are compared with each other instead.
-    const SHARE_OF_SHOWN = catalog === 'albums' || catalog === 'songs';
     const MEASURES = { plays: 'Plays', time: 'Play time', artists: 'Artists', albums: 'Albums', songs: 'Songs' };
 
-    // Muted colors that sit with the dark cards. Artists, albums and songs are tinted by gender:
-    // blues for male, rose for female, sand for everything else.
+    // Muted colors that sit with the dark cards.
     const PALETTE = ['#5b8fb9', '#c9a04a', '#4f9a7f', '#b0739a', '#a39a5c', '#c07a52',
         '#7f78c4', '#4f9fa1', '#c46f86', '#7f9a4a', '#9a826a', '#5a72b0'];
     const OTHER_GENDER_PALETTE = ['#8b7fc0', '#b9925a', '#5b9c94', '#8f9a5a'];
     const GENDER_COLORS = { male: '#5a8dcc', female: '#c96a98' };
-    const RAMPS = { male: [214, 48], female: [332, 44], other: [36, 42] };
-    const RAMP_LIGHTNESS = [52, 38, 63, 45, 57, 33, 67, 41, 55, 60];
     const REST_COLOR = [63, 63, 70];
     const TEXT = 'rgba(212, 212, 216, 0.5)';
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     let data = null;
     let chart = null;
@@ -44,29 +34,12 @@
     let focusKey = null;
     let colors = new Map();
 
-    /* ---------- Remembered per catalog in this browser ---------- */
-
-    function readStore() {
-        try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch { return {}; }
-    }
-
-    function writeStore(patch) {
-        try { localStorage.setItem(STORE_KEY, JSON.stringify({ ...readStore(), ...patch })); } catch { /* storage off */ }
-    }
-
-    function setCollapsed(collapsed) {
-        root.classList.toggle('is-collapsed', collapsed);
-        sh('toggle').setAttribute('aria-expanded', String(!collapsed));
-        sh('toggle').setAttribute('aria-label', collapsed ? 'Show chart' : 'Hide chart');
-        body.hidden = collapsed;
-    }
-
     /* ---------- Formatting ---------- */
 
     const measure = () => sh('measure').value;
     const number = value => Math.round(value).toLocaleString();
     const displayDate = date => date.split('-').reverse().join('/');
-    const restName = () => data?.filtered ? 'Rest of these filters' : 'Everything else';
+    const restName = () => data?.filtered ? 'Rest of this search' : 'Everything else';
 
     function amount(value) {
         if (measure() === 'time') return `${Math.floor(value / 3600).toLocaleString()}h ${Math.floor(value % 3600 / 60)}m`;
@@ -92,16 +65,13 @@
 
     function assignColors() {
         colors = new Map([[REST, REST_COLOR]]);
-        const used = { male: 0, female: 0, other: 0 };
+        let otherGenders = 0;
         data.series.forEach((series, index) => {
-            const kind = series.genderId === 2 ? 'male' : series.genderId === 1 ? 'female' : 'other';
             if (catalog === 'genders') {
-                colors.set(series.key, kind === 'other'
-                    ? hexRgb(OTHER_GENDER_PALETTE[used.other++ % OTHER_GENDER_PALETTE.length]) : hexRgb(GENDER_COLORS[kind]));
-            } else if (PRIMARY) {
-                const [hue, saturation] = RAMPS[kind];
-                const n = used[kind]++;
-                colors.set(series.key, hslRgb(hue + (n % 2 ? -6 : 4), saturation, RAMP_LIGHTNESS[n % RAMP_LIGHTNESS.length]));
+                // Genders keep the app's male blue and female pink, muted.
+                colors.set(series.key, series.genderId === 2 ? hexRgb(GENDER_COLORS.male)
+                    : series.genderId === 1 ? hexRgb(GENDER_COLORS.female)
+                    : hexRgb(OTHER_GENDER_PALETTE[otherGenders++ % OTHER_GENDER_PALETTE.length]));
             } else {
                 colors.set(series.key, index < PALETTE.length ? hexRgb(PALETTE[index])
                     : hslRgb((index * 137.508) % 360, 38, 52));
@@ -122,11 +92,10 @@
     /* ---------- Data ---------- */
 
     function listKeys() {
-        const limit = RANKED ? MAX_KEYS : ITEMS;
         const keys = [];
         const collect = (scope, attr) => document.querySelectorAll(`${scope} [${attr}]`).forEach(element => {
             const key = element.getAttribute(attr);
-            if (key && !keys.includes(key) && keys.length < limit) keys.push(key);
+            if (key && !keys.includes(key) && keys.length < MAX_KEYS) keys.push(key);
         });
         collect('#cardView', cardAttr);
         if (!keys.length) collect('#tableView', rowAttr);
@@ -155,11 +124,11 @@
         sh('legend').replaceChildren();
         sh('note').textContent = '';
         const keys = listKeys();
-        // An empty list (e.g. filters that match nothing) has nothing to chart.
+        // An empty list (e.g. a search that matches nothing) has nothing to chart.
         root.hidden = !keys.length;
         if (!keys.length) return;
         status('Loading history...');
-        // The page's own query string carries its filters, so "everything" means everything they match.
+        // The page's own query string carries its search, so "everything" means everything it matches.
         const params = new URLSearchParams({ catalog, measure: measure(), filters: window.location.search.replace(/^\?/, '') });
         keys.forEach(key => params.append('key', key));
         try {
@@ -177,10 +146,9 @@
         }
     }
 
-    // Items with data; ranked catalogs keep the top ones and fold the others into the rest.
+    // The top items by their latest value; the others fold into the rest.
     function pickItems() {
         const items = data.series.filter(series => series.values.some(value => value > 0));
-        if (!RANKED) return { items, rest: data.rest };
         const ranked = [...items].sort((a, b) => b.values.at(-1) - a.values.at(-1) || a.name.localeCompare(b.name));
         const others = ranked.slice(ITEMS);
         return {
@@ -192,7 +160,6 @@
     // Highest share of everything each item ever reached.
     function findPeaks() {
         const peaks = new Map();
-        if (SHARE_OF_SHOWN) return peaks;
         data.series.forEach(series => data.periods.forEach((period, i) => {
             const total = data.totals[i];
             const value = series.values[i];
@@ -210,19 +177,17 @@
         sh('wrap').hidden = true;
         if (!data) return;
         const { items, rest } = pickItems();
-        const versus = SHARE_OF_SHOWN ? ', against each other'
-            : ` vs ${data.filtered ? 'the rest of these filters' : 'everything else'}`;
-        sh('subtitle').textContent = (RANKED ? `Top ${items.length} by ${MEASURES[measure()].toLowerCase()}` : `First ${items.length} of this list`) + versus;
+        sh('subtitle').textContent = `Top ${items.length} by ${MEASURES[measure()].toLowerCase()}`
+            + ` vs ${data.filtered ? 'the rest of this search' : 'everything else'}`;
         if (!data.periods.length || !data.totals.some(total => total > 0) || !items.length) {
             status('No data for these items yet.');
             sh('note').textContent = '';
             return;
         }
-        const showRest = !SHARE_OF_SHOWN && rest.some(value => value > 0);
+        const showRest = rest.some(value => value > 0);
         const series = showRest ? [...items, { key: REST, name: restName(), values: rest }] : items;
         if (!items.some(item => item.key === focusKey)) focusKey = null;
-        const shownTotals = data.periods.map((_, i) => items.reduce((sum, item) => sum + item.values[i], 0));
-        const denominator = i => SHARE_OF_SHOWN ? shownTotals[i] : data.totals[i];
+        const denominator = i => data.totals[i];
         const shares = series.map(item => item.values.map((value, i) => denominator(i) > 0 ? 100 * value / denominator(i) : null));
         renderNote();
         renderLegend(series, shares);
@@ -297,9 +262,7 @@
 
     function renderNote() {
         const notes = ['Cumulative, month by month.'];
-        notes.push(RANKED ? 'Items come from the list\'s current filters.' : 'Items follow the list\'s current sort and filters.');
-        if (!SHARE_OF_SHOWN) notes.push(`Shares are out of ${data.filtered ? 'everything matching those filters' : 'your whole library'}; diamonds mark each item's peak.`);
-        if (catalog === 'artists') notes.push('Artist plays count songs where they are the main artist, so shares never overlap.');
+        notes.push(`Shares are out of ${data.filtered ? 'the items matching your search' : 'your whole library'}; diamonds mark each item's peak.`);
         sh('note').textContent = notes.join(' ');
     }
 
@@ -331,8 +294,8 @@
             const current = shares[datasetIndex][last];
             value.textContent = current == null ? '' : `${current.toFixed(1)}%`;
             chip.append(swatch, name, value);
-            chip.title = [item.name + (item.subtitle ? ` - ${item.subtitle}` : ''),
-                isRest ? (data.filtered ? 'Everything else matching the filters' : 'Everything outside these items')
+            chip.title = [item.name,
+                isRest ? (data.filtered ? 'The other items matching your search' : 'Everything outside these items')
                     : 'Click to highlight its card or row'].join('\n');
             legend.append(chip);
         });
@@ -376,9 +339,8 @@
         swatch.className = 'sh-swatch';
         swatch.style.backgroundColor = rgba(item.key);
         name.prepend(swatch);
-        if (item.subtitle) line('sh-tooltip-sub', item.subtitle);
         const share = base > 0 ? `${(100 * value / base).toFixed(2)}%` : '';
-        line('sh-tooltip-value', `${amount(value)}${share ? ` · ${share} ${SHARE_OF_SHOWN ? 'of the shown items' : data.filtered ? 'of the filtered list' : 'of everything'}` : ''}`);
+        line('sh-tooltip-value', `${amount(value)}${share ? ` · ${share} ${data.filtered ? 'of this search' : 'of everything'}` : ''}`);
         if (i > 0) {
             const previousBase = denominator(i - 1);
             const change = value - item.values[i - 1];
@@ -396,7 +358,7 @@
                 part(pp, `${pp > 0 ? '+' : pp < 0 ? '-' : ''}${Math.abs(pp).toFixed(2)} pp`);
             }
         }
-        if (item.key !== REST) line('sh-tooltip-hint', `Click to highlight its ${tableVisible() ? 'row' : 'card'}`);
+        if (item.key !== REST) line('sh-tooltip-hint', `Click to highlight its ${ShareChartCore.tableVisible() ? 'row' : 'card'}`);
         element.hidden = false;
         const wrap = sh('wrap');
         const left = Math.min(Math.max(tooltip.caretX, element.offsetWidth / 2 + 4), wrap.clientWidth - element.offsetWidth / 2 - 4);
@@ -430,74 +392,39 @@
         chart.update('none');
     }
 
-    function tableVisible() {
-        const table = document.getElementById('tableView');
-        return Boolean(table) && table.style.display !== 'none';
-    }
-
     function select(key) {
         setFocus(key);
-        const scope = document.getElementById(tableVisible() ? 'tableView' : 'cardView');
-        const attr = tableVisible() ? rowAttr : cardAttr;
+        const scope = document.getElementById(ShareChartCore.tableVisible() ? 'tableView' : 'cardView');
+        const attr = ShareChartCore.tableVisible() ? rowAttr : cardAttr;
         const target = scope?.querySelector(`[${attr}="${CSS.escape(key)}"]`);
         if (!target) {
             status('That item is not on screen yet. Scroll the list to load it.');
             return;
         }
         status('');
-        target.style.setProperty('--share-glow', (colors.get(key) || REST_COLOR).join(', '));
-        target.classList.remove('share-glow');
-        void target.offsetWidth;
-        target.classList.add('share-glow');
-        clearTimeout(target.shareGlowTimer);
-        target.shareGlowTimer = setTimeout(() => target.classList.remove('share-glow'), 3200);
-        target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
-    }
-
-    // Hovering a card or table row lights up its band, when that item is in the chart.
-    function bindListHover(scopeId, attr) {
-        const scope = document.getElementById(scopeId);
-        if (!scope) return;
-        let hovered = null;
-        scope.addEventListener('mouseover', event => {
-            const item = event.target.closest(`[${attr}]`);
-            const key = item && scope.contains(item) ? item.getAttribute(attr) : null;
-            if (key === hovered) return;
-            hovered = key;
-            previewFocus(chart?.data.datasets.some(dataset => dataset.key === key) ? key : null);
-        });
-        scope.addEventListener('mouseleave', () => {
-            hovered = null;
-            previewFocus(null);
-        });
+        ShareChartCore.glow(target, (colors.get(key) || REST_COLOR).join(', '));
     }
 
     /* ---------- Wiring ---------- */
 
     (root.dataset.measures || 'plays,time').split(',').forEach(value =>
         sh('measure').append(new Option(MEASURES[value] || value, value)));
-    const saved = readStore();
-    if ([...sh('measure').options].some(option => option.value === saved.measure)) sh('measure').value = saved.measure;
-    // Phones start collapsed so the list stays in reach; the choice is remembered once toggled.
-    setCollapsed(typeof saved.collapsed === 'boolean' ? saved.collapsed
-        : window.matchMedia?.('(max-width: 768px)').matches === true);
+    const savedMeasure = settings.read().measure;
+    if ([...sh('measure').options].some(option => option.value === savedMeasure)) sh('measure').value = savedMeasure;
+    const collapsed = ShareChartCore.collapsible(root, settings, () => { if (!data) load(); });
 
     sh('measure').addEventListener('change', () => {
-        writeStore({ measure: measure() });
+        settings.write({ measure: measure() });
         load();
     });
     sh('retry').addEventListener('click', load);
-    sh('toggle').addEventListener('click', () => {
-        const collapsed = !root.classList.contains('is-collapsed');
-        setCollapsed(collapsed);
-        writeStore({ collapsed });
-        if (!collapsed && !data) load();
-    });
     root.addEventListener('keydown', event => {
         if (event.key === 'Escape' && focusKey) setFocus(null);
     });
     sh('canvas').addEventListener('mouseleave', hideTooltip);
-    bindListHover('cardView', cardAttr);
-    bindListHover('tableView', rowAttr);
-    if (!root.classList.contains('is-collapsed')) load();
+    // Hovering a card or table row lights up its band, when that item is in the chart.
+    const hoverBand = key => previewFocus(chart?.data.datasets.some(dataset => dataset.key === key) ? key : null);
+    ShareChartCore.bindListHover('cardView', cardAttr, hoverBand);
+    ShareChartCore.bindListHover('tableView', rowAttr, hoverBand);
+    if (!collapsed) load();
 })();

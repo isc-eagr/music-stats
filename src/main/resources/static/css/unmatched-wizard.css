@@ -1,0 +1,970 @@
+/* ==========================================================================
+   Unmatched plays: Create wizard, Match modal and the Unmatched list modal
+   (fragments/unmatched-plays-modal.html). Same look as the detail page
+   redesign (detail-general.css): gradient card, uppercase captions with a
+   hairline, boxed fields, pill buttons. Gray by default; the Create wizard
+   turns blue / pink once the chosen artist's gender is known.
+   ========================================================================== */
+
+/* Host pages (Unmatched Plays, Insert Plays) rely on this for their own disabled buttons */
+.btn:disabled, .btn-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ── Theme tokens ── */
+.unmatched-modal-content {
+    --uw-c: #a1a1aa;
+    --uw-t: #d4d4d8;
+    --uw-rgb: 161, 161, 170;
+    --uw-bd: rgba(161, 161, 170, 0.3);
+    --uw-bg: #18181a;
+    --uw-bg2: #121214;
+    --uw-hair: rgba(161, 161, 170, 0.15);
+    --uw-lbl: rgba(212, 212, 216, 0.62);
+    --uw-mut: rgba(212, 212, 216, 0.72);
+    --uw-tint: rgba(161, 161, 170, 0.1);
+    --uw-tintb: rgba(161, 161, 170, 0.4);
+    --uw-ink: #111114;
+    --uw-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+    --uw-m: #60a5fa;
+    --uw-f: #f472b6;
+}
+
+.unmatched-modal-content.gender-male {
+    --uw-c: #60a5fa;
+    --uw-t: #93c5fd;
+    --uw-rgb: 96, 165, 250;
+    --uw-bd: rgba(96, 165, 250, 0.34);
+    --uw-bg: #131922;
+    --uw-bg2: #0f131a;
+    --uw-hair: rgba(96, 165, 250, 0.16);
+    --uw-lbl: rgba(147, 197, 253, 0.68);
+    --uw-mut: rgba(147, 197, 253, 0.76);
+    --uw-tint: rgba(96, 165, 250, 0.12);
+    --uw-tintb: rgba(96, 165, 250, 0.45);
+    --uw-ink: #08111f;
+}
+
+.unmatched-modal-content.gender-female {
+    --uw-c: #f472b6;
+    --uw-t: #f9a8d4;
+    --uw-rgb: 244, 114, 182;
+    --uw-bd: rgba(244, 114, 182, 0.34);
+    --uw-bg: #1c141a;
+    --uw-bg2: #150f13;
+    --uw-hair: rgba(244, 114, 182, 0.16);
+    --uw-lbl: rgba(249, 168, 212, 0.68);
+    --uw-mut: rgba(249, 168, 212, 0.76);
+    --uw-tint: rgba(244, 114, 182, 0.12);
+    --uw-tintb: rgba(244, 114, 182, 0.45);
+    --uw-ink: #1f0915;
+}
+
+/* ── Modal shell ── */
+.unmatched-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+}
+
+.unmatched-modal.active { display: flex; }
+
+.unmatched-modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 900px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    border: 1px solid var(--uw-bd);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--uw-bg) 0%, var(--uw-bg2) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+    scrollbar-width: thin;
+    scrollbar-color: var(--uw-tintb) transparent;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.unmatched-modal-content--wide { max-width: 1000px; }
+
+.unmatched-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px 10px;
+    border-bottom: 1px solid var(--uw-hair);
+}
+
+.uw-head-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.uw-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--uw-lbl);
+}
+
+.unmatched-modal-header h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #f2f2f4;
+}
+
+.unmatched-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 9px;
+    border: 1px solid var(--uw-hair);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--uw-mut);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.unmatched-modal-close:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--uw-tintb);
+}
+
+.unmatched-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 18px 14px;
+}
+
+.unmatched-modal-footer {
+    display: flex;
+    gap: 8px;
+    padding: 10px 18px 12px;
+    border-top: 1px solid var(--uw-hair);
+    justify-content: flex-end;
+}
+
+.uw-num {
+    font-family: var(--uw-num);
+    font-variant-numeric: tabular-nums;
+}
+
+.uw-hint {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--uw-mut);
+}
+
+.uw-hint strong { color: #f2f2f4; }
+
+/* Caption with a hairline, like .dt-cap */
+.uw-cap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--uw-lbl);
+}
+
+.uw-cap::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--uw-hair);
+}
+
+/* ── Buttons ── */
+.uw-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 13px;
+    border-radius: 9px;
+    border: 1px solid var(--uw-hair);
+    background: rgba(255, 255, 255, 0.04);
+    color: #f2f2f4;
+    font: 600 12.5px Inter, system-ui, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.uw-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--uw-tintb);
+}
+
+.uw-btn--primary {
+    background: var(--uw-c);
+    border-color: var(--uw-c);
+    color: var(--uw-ink);
+}
+
+.uw-btn--primary:hover {
+    background: var(--uw-t);
+    border-color: var(--uw-t);
+}
+
+.uw-btn--ghost {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.14);
+    color: var(--uw-mut);
+}
+
+.uw-btn--ghost:hover { color: #fff; }
+
+.uw-btn--sm {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.uw-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Buttons rendered by the list script and the duplicate confirmation keep their .btn classes */
+.unmatched-modal .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--uw-hair);
+    background: rgba(255, 255, 255, 0.04);
+    color: #f2f2f4;
+    box-shadow: none;
+    font: 600 12.5px Inter, system-ui, sans-serif;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.unmatched-modal .btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--uw-tintb);
+}
+
+.unmatched-modal .btn.btn-action {
+    background: var(--uw-c);
+    border-color: var(--uw-c);
+    color: var(--uw-ink);
+}
+
+.unmatched-modal .btn.btn-action:hover {
+    background: var(--uw-t);
+    border-color: var(--uw-t);
+}
+
+/* ── Stepper (styled like the detail tab bar) ── */
+.wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+    padding: 3px;
+    border: 1px solid var(--uw-hair);
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.wizard-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px 10px;
+    border-radius: 8px;
+    color: var(--uw-mut);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.wizard-step-number {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    font: 700 11px var(--uw-num);
+    color: inherit;
+}
+
+.uw-step-check {
+    display: none;
+    width: 14px;
+    height: 14px;
+}
+
+.uw-step-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.uw-step-k {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.uw-step-l {
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.wizard-step.active {
+    color: #fff;
+    background: rgba(var(--uw-rgb), 0.22);
+    box-shadow: inset 0 0 0 1px var(--uw-tintb);
+}
+
+.wizard-step.active .wizard-step-number {
+    border-color: var(--uw-c);
+    background: var(--uw-c);
+    color: var(--uw-ink);
+}
+
+.wizard-step.completed { color: var(--uw-t); }
+
+.wizard-step.completed .wizard-step-number {
+    border-color: var(--uw-tintb);
+    background: var(--uw-tint);
+    color: var(--uw-t);
+}
+
+.wizard-step.completed .uw-step-n { display: none; }
+.wizard-step.completed .uw-step-check { display: block; }
+
+/* ── The play being processed ── */
+.uw-play {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    border: 1px solid var(--uw-hair);
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.uw-play--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.uw-play-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    padding: 5px 12px;
+    border-left: 1px solid var(--uw-hair);
+}
+
+.uw-play-cell:first-child { border-left: 0; }
+
+.uw-play-l {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--uw-lbl);
+}
+
+.uw-play-v {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f2f2f4;
+    overflow-wrap: anywhere;
+}
+
+.uw-play-count {
+    align-items: flex-end;
+    min-width: 64px;
+}
+
+.uw-play-count .uw-play-v {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--uw-t);
+}
+
+/* ── Step sections ── */
+.wizard-section { display: none; }
+
+.wizard-section.active {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.uw-sec-head {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.uw-sec-head h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f2f2f4;
+}
+
+/* Picked artist / album carried over from the previous steps */
+.uw-context {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.uw-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--uw-tintb);
+    background: var(--uw-tint);
+    font-size: 12px;
+    color: var(--uw-t);
+}
+
+.uw-chip-l {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--uw-lbl);
+}
+
+.uw-chip strong {
+    min-width: 0;
+    font-weight: 600;
+    color: #f2f2f4;
+    overflow-wrap: anywhere;
+}
+
+/* ── Fields ── */
+.uw-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.uw-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--uw-mut);
+}
+
+.uw-g2, .uw-g3 {
+    display: grid;
+    gap: 8px;
+}
+
+.uw-g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.uw-g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Boxed field: label sits inside the box (like .dt-fb) */
+.uw-fb {
+    display: block;
+    min-width: 0;
+    padding: 5px 8px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.uw-fb:focus-within { border-color: var(--uw-tintb); }
+
+.uw-fb-l {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--uw-mut);
+}
+
+.uw-req { color: var(--uw-t); }
+
+.uw-opt {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #8b8b93;
+}
+
+.unmatched-modal input[type="text"],
+.unmatched-modal input[type="number"],
+.unmatched-modal select {
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    padding: 0 10px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f2f2f4;
+    font: 600 13px Inter, system-ui, sans-serif;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.unmatched-modal input::placeholder {
+    color: rgba(212, 212, 216, 0.4);
+    font-weight: 500;
+}
+
+.unmatched-modal input[type="text"]:focus,
+.unmatched-modal input[type="number"]:focus,
+.unmatched-modal select:focus {
+    outline: none;
+    border-color: var(--uw-c);
+    box-shadow: 0 0 0 3px rgba(var(--uw-rgb), 0.18);
+}
+
+.uw-inline {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.uw-inline > input { flex: 1; }
+
+/* Value just filled in by Local iTunes / Fetch external */
+.unmatched-modal .wizard-field-highlight {
+    border-color: var(--uw-c) !important;
+    box-shadow: 0 0 0 3px var(--uw-tintb) !important;
+}
+
+/* ── Search ── */
+.search-row {
+    display: flex;
+    gap: 8px;
+}
+
+.uw-search-input {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.uw-search-input .uw-ico {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--uw-lbl);
+    pointer-events: none;
+}
+
+.unmatched-modal .uw-search-input input[type="text"] { padding-left: 34px; }
+
+.search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 3px;
+    border: 1px solid var(--uw-hair);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.22);
+    scrollbar-width: thin;
+    scrollbar-color: var(--uw-tintb) transparent;
+}
+
+.search-results--tall { max-height: 400px; }
+
+.search-result-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.search-result-item:hover { background: rgba(255, 255, 255, 0.05); }
+.search-result-item:active { transform: scale(0.98); }
+
+.search-result-item.selected {
+    background: rgba(var(--uw-rgb), 0.16);
+    border-color: var(--uw-tintb);
+}
+
+/* Gender dot on artist results */
+.uw-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: #71717a;
+}
+
+.search-result-item.gender-male .uw-dot { background: var(--uw-m); }
+.search-result-item.gender-female .uw-dot { background: var(--uw-f); }
+
+.uw-result-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.result-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.result-meta {
+    margin-top: 0;
+    font-size: 11px;
+    color: #8b8b93;
+}
+
+.uw-result-check {
+    display: none;
+    color: var(--uw-c);
+}
+
+.search-result-item.selected .uw-result-check { display: block; }
+
+.no-results {
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 13px;
+    color: #8b8b93;
+}
+
+/* ── Create new artist / album ── */
+.create-new-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.create-new-option:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--uw-tintb);
+}
+
+.create-new-option.selected {
+    border-style: solid;
+    border-color: var(--uw-tintb);
+    background: var(--uw-tint);
+}
+
+.uw-plus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    border: 1px solid var(--uw-hair);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--uw-t);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.create-new-option.selected .uw-plus {
+    border-color: var(--uw-c);
+    background: var(--uw-c);
+    color: var(--uw-ink);
+}
+
+.uw-create-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.wizard-create-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.uw-create-sub {
+    margin-top: 0;
+    font-size: 11px;
+    color: #8b8b93;
+}
+
+.uw-create-badge {
+    display: none;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--uw-c);
+    color: var(--uw-ink);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.create-new-option.selected .uw-create-badge { display: inline-block; }
+
+.wizard-create-panel {
+    padding: 9px 10px 10px;
+    border: 1px solid var(--uw-hair);
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.wizard-create-panel > * + * { margin-top: 7px; }
+
+/* Lookups (Local iTunes / External) */
+.uw-fetch {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.uw-fetch-row {
+    display: flex;
+    gap: 8px;
+}
+
+.uw-fetch-row .uw-btn { flex: 1; }
+
+.uw-status {
+    min-height: 0;
+    font-size: 12px;
+    text-align: center;
+    color: #8b8b93;
+}
+
+.uw-status:empty { display: none; }
+
+/* Artwork picked from an external source */
+.uw-preview-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 6px;
+    border: 1px solid var(--uw-hair);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.wizard-preview-image {
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--uw-tintb);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+    object-fit: cover;
+}
+
+.uw-preview--album .wizard-preview-image { max-width: 110px; max-height: 110px; }
+.uw-preview--song .wizard-preview-image { max-width: 80px; max-height: 80px; }
+
+.uw-check-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--uw-t);
+    cursor: pointer;
+}
+
+.uw-check-label input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--uw-c);
+    cursor: pointer;
+}
+
+/* Duplicate song warning (fragments/song-creation-confirmation.html) */
+.unmatched-modal .song-duplicate-confirmation {
+    margin-top: 0;
+    padding: 9px 12px;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 11px;
+    background: rgba(251, 191, 36, 0.08);
+    color: #fcd34d;
+    font-size: 13px;
+}
+
+.unmatched-modal .song-duplicate-confirmation[hidden] { display: none; }
+
+/* ── Step navigation ── */
+.wizard-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--uw-hair);
+}
+
+/* ── Loading overlays ── */
+.wizard-loading-overlay,
+.match-loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 100;
+    border-radius: 18px;
+    background: rgba(10, 10, 12, 0.82);
+    backdrop-filter: blur(4px);
+}
+
+.wizard-loading-overlay.active,
+.match-loading-overlay.active { display: flex; }
+
+.wizard-spinner {
+    width: 38px;
+    height: 38px;
+    border: 3px solid rgba(255, 255, 255, 0.08);
+    border-top-color: var(--uw-c);
+    border-radius: 50%;
+    animation: wizard-spin 0.8s linear infinite;
+}
+
+.wizard-loading-text,
+.match-loading-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--uw-t);
+}
+
+@keyframes wizard-spin { to { transform: rotate(360deg); } }
+
+/* Small spinner: inline searches and the Local iTunes button while fetching */
+.uw-spin,
+.wizard-inline-loading::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    border-top-color: var(--uw-c);
+    border-radius: 50%;
+    animation: wizard-spin 0.8s linear infinite;
+}
+
+.wizard-inline-loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 12px;
+    font-size: 13px;
+    color: var(--uw-mut);
+}
+
+.wizard-inline-loading.active { display: flex; }
+
+/* ── Unmatched list modal table ── */
+.unmatched-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.unmatched-table th,
+.unmatched-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--uw-hair);
+    text-align: left;
+    font-size: 13px;
+}
+
+.unmatched-table th {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--uw-lbl);
+    background: var(--uw-bg, #18181a);
+}
+
+.unmatched-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+.unmatched-table .count {
+    text-align: right;
+    font-family: var(--uw-num);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Insert Plays has a page-level .actions flex row; keep these as plain table cells */
+.unmatched-table .actions {
+    display: table-cell;
+    margin: 0;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.unmatched-table .actions .btn { margin: 0 2px; }
+
+/* ── Phones ── */
+@media (max-width: 640px) {
+    .unmatched-modal { padding: 8px; }
+    .unmatched-modal-content { max-height: calc(100vh - 16px); border-radius: 16px; }
+    .unmatched-modal-header { padding: 10px 12px 8px; }
+    .unmatched-modal-body { padding: 10px 12px 12px; }
+    .unmatched-modal-footer { padding: 8px 12px 10px; }
+    .uw-step-k { display: none; }
+    .wizard-step { gap: 6px; padding: 5px 6px; }
+    .uw-play, .uw-play--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .uw-play-cell:nth-child(odd) { border-left: 0; }
+    .uw-play-cell:nth-child(n+3) { border-top: 1px solid var(--uw-hair); }
+    .uw-play-count { align-items: flex-start; }
+    .uw-g2, .uw-g3 { grid-template-columns: minmax(0, 1fr); }
+    .uw-fetch-row { flex-direction: column; }
+}

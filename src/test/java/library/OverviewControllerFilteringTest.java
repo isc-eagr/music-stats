@@ -1,9 +1,8 @@
 package library;
 
 import library.controller.ChartsController;
-import library.controller.BillboardHot100Controller;
-import library.controller.PcController;
-import library.controller.TrlController;
+import library.controller.ChartOverviewController;
+import library.controller.ChartOverviewRedirectController;
 import library.dto.ChartSongOverviewRowDTO;
 import library.dto.BillboardHot100OverviewRowDTO;
 import library.dto.PcOverviewRowDTO;
@@ -24,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class OverviewControllerFilteringTest {
     @ParameterizedTest
-    @ValueSource(strings = {"weekly", "seasonal", "yearly"})
+    @ValueSource(strings = {"seasonal", "yearly"})
     void namedFiltersReachInitialPageDataAndPlaylistExport(String source) throws Exception {
         var config = config();
         var service = mock(ChartService.class);
@@ -35,7 +34,7 @@ class OverviewControllerFilteringTest {
         var controller = new ChartsController(service, config, mock(BillboardHot100Service.class), mock(PcService.class), mock(TrlService.class));
         var mvc = MockMvcBuilders.standaloneSetup(controller).build();
         String path = "/charts/" + source + "/overview";
-        var page = mvc.perform(get(path).param("totalChartSpan", "2").param("totalChartSpanMode", "gte")
+        var page = mvc.perform(get(path).param("view", "table").param("totalChartSpan", "2").param("totalChartSpanMode", "gte")
                         .param("sort", "song").param("dir", "asc"))
                 .andExpect(status().isOk()).andExpect(model().attribute("activeTotalCount", 2)).andReturn();
         assertThat(page.getModelAndView().getModel().get("songRows")).isEqualTo(List.of(second));
@@ -60,49 +59,53 @@ class OverviewControllerFilteringTest {
         var other = new PcOverviewRowDTO(); other.setSongTitle("Other");
         var match = new PcOverviewRowDTO(); match.setSongTitle("Needle");
         when(service.getOverviewRows()).thenReturn(List.of(other, match));
-        var mvc = MockMvcBuilders.standaloneSetup(new PcController(config(), service)).build();
-        var result = mvc.perform(get("/misc/vatos-cuntdown").param("q", "needle"))
-                .andExpect(status().isOk()).andExpect(model().attribute("activeTotalCount", 1)).andReturn();
-        assertThat(result.getModelAndView().getModel().get("entries")).isEqualTo(List.of(match));
-        mvc.perform(get("/misc/vatos-cuntdown/data").param("q", "needle").param("page", "1"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.entries[0].songTitle").value("Needle"))
+        var mvc = overview(mock(TrlService.class), service, mock(BillboardHot100Service.class));
+        mvc.perform(get("/charts/overview/data").param("chart", "cuntdown").param("q", "needle").param("page", "0"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.rows[0].title").value("Needle"))
                 .andExpect(jsonPath("$.totalCount").value(1));
     }
 
     @Test
-    void hallOfFameFilterReachesBothTrlRoutes() throws Exception {
+    void hallOfFameFilterReachesTheTrlOverview() throws Exception {
         var service = mock(TrlService.class);
         var active = new TrlDebut(); active.setSongTitle("Active");
         var retired = new TrlDebut(); retired.setSongTitle("Retired"); retired.setRetired(true);
         when(service.getAllDebuts()).thenReturn(List.of(active, retired));
-        var mvc = MockMvcBuilders.standaloneSetup(new TrlController(config(), service)).build();
-        var result = mvc.perform(get("/misc/trl").param("retired", "true"))
-                .andExpect(status().isOk()).andExpect(model().attribute("activeTotalCount", 1)).andReturn();
-        assertThat(result.getModelAndView().getModel().get("debuts")).isEqualTo(List.of(retired));
-        mvc.perform(get("/misc/trl/data").param("retired", "true").param("page", "1"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.entries[0].songTitle").value("Retired"))
+        var mvc = overview(service, mock(PcService.class), mock(BillboardHot100Service.class));
+        mvc.perform(get("/charts/overview/data").param("chart", "trl").param("retired", "true"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.rows[0].title").value("Retired"))
+                .andExpect(jsonPath("$.rows[0].retired").value(true))
                 .andExpect(jsonPath("$.totalCount").value(1));
     }
 
     @Test
-    void billboardNamedFiltersReachInitialAndDataRoutes() throws Exception {
+    void billboardNamedFiltersReachTheOverviewData() throws Exception {
         var service = mock(BillboardHot100Service.class);
         var first = new BillboardHot100OverviewRowDTO();
         first.setSongTitle("First"); first.setResolvedArtistId(1); first.setWeeksOnChart(4);
         var second = new BillboardHot100OverviewRowDTO();
         second.setSongTitle("Second"); second.setResolvedArtistId(2); second.setWeeksOnChart(8);
         when(service.getAllOverviewRows()).thenReturn(List.of(first, second));
-        when(service.sortOverviewRows(anyList(), anyString(), anyString()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        var mvc = MockMvcBuilders.standaloneSetup(new BillboardHot100Controller(config(), service)).build();
-
-        mvc.perform(get("/misc/billboard-hot-100").param("artist", "2"))
-                .andExpect(status().isOk()).andExpect(model().attribute("resultTotal", 1))
-                .andExpect(model().attribute("entries", List.of(second)));
-        mvc.perform(get("/misc/billboard-hot-100/data").param("artist", "2").param("page", "1"))
+        var mvc = overview(mock(TrlService.class), mock(PcService.class), service);
+        mvc.perform(get("/charts/overview/data").param("chart", "hot100").param("artist", "2"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalCount").value(1))
-                .andExpect(jsonPath("$.entries[0].songTitle").value("Second"));
+                .andExpect(jsonPath("$.rows[0].title").value("Second"));
         verify(service).getAllOverviewRows();
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"/charts/weekly/overview,weekly", "/misc/trl,trl", "/misc/vatos-cuntdown,cuntdown",
+            "/misc/pc,cuntdown", "/misc/billboard-hot-100,hot100"})
+    void oldOverviewUrlsRedirectToTheSharedPage(String path, String chart) throws Exception {
+        var mvc = MockMvcBuilders.standaloneSetup(new ChartOverviewRedirectController()).build();
+        mvc.perform(get(path).param("overviewTab", "artist").param("q", "bad bunny").param("sort", "days"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/charts/overview?chart=" + chart + "&tab=artist&q=bad%20bunny"));
+    }
+
+    private org.springframework.test.web.servlet.MockMvc overview(TrlService trl, PcService pc, BillboardHot100Service billboard) {
+        var service = new ChartOverviewService(mock(ChartService.class), trl, pc, billboard, new OverviewFilterService(), new OverviewCacheService());
+        return MockMvcBuilders.standaloneSetup(new ChartOverviewController(service, new OverviewFilterService(), config())).build();
     }
 
     private AppConfigService config() {

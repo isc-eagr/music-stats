@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 public class AlbumService {
@@ -1359,22 +1358,22 @@ public class AlbumService {
                        play_count,
                        first_play,
                        CASE WHEN gender_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as gender_rank,
                        CASE WHEN effective_genre_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY effective_genre_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY effective_genre_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as genre_rank,
                        CASE WHEN effective_subgenre_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY effective_subgenre_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY effective_subgenre_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as subgenre_rank,
                        CASE WHEN ethnicity_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as ethnicity_rank,
                        CASE WHEN effective_language_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY effective_language_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY effective_language_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as language_rank,
                        CASE WHEN country IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as country_rank
                 FROM album_play_counts
             )
@@ -1411,7 +1410,7 @@ public class AlbumService {
         String sql = """
             SELECT rank FROM (
                 SELECT alb.id, 
-                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC, alb.id ASC) as rank
                 FROM Album alb
                 LEFT JOIN Song s ON s.album_id = alb.id
                 LEFT JOIN Play p ON p.song_id = s.id
@@ -1443,7 +1442,7 @@ public class AlbumService {
                        strftime('%Y', alb.release_date) as release_year,
                        ROW_NUMBER() OVER (
                            PARTITION BY strftime('%Y', alb.release_date) 
-                           ORDER BY COALESCE(COUNT(p.id), 0) DESC
+                           ORDER BY COALESCE(COUNT(p.id), 0) DESC, alb.id ASC
                        ) as rank
                 FROM Album alb
                 LEFT JOIN Song s ON s.album_id = alb.id
@@ -1486,7 +1485,7 @@ public class AlbumService {
             SELECT rank FROM (
                 SELECT alb.id,
                        alb.artist_id,
-                       ROW_NUMBER() OVER (PARTITION BY alb.artist_id ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (PARTITION BY alb.artist_id ORDER BY COALESCE(COUNT(p.id), 0) DESC, alb.id ASC) as rank
                 FROM Album alb
                 LEFT JOIN Song s ON s.album_id = alb.id
                 LEFT JOIN Play p ON p.song_id = s.id
@@ -1510,7 +1509,7 @@ public class AlbumService {
         String sql = """
             SELECT rank FROM (
                 SELECT alb.id, 
-                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC, alb.id ASC) as rank
                 FROM Album alb
                 INNER JOIN Artist ar ON alb.artist_id = ar.id
                 INNER JOIN Genre g ON COALESCE(alb.override_genre_id, ar.genre_id) = g.id

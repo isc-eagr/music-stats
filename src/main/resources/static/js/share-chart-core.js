@@ -1,9 +1,10 @@
 /*
- * Helpers shared by the stacked share charts: Playground > Breakdown over time (breakdown-history.js)
- * and the Share over time panel above the catalog lists (catalog-share-history.js).
+ * Helpers shared by the charts built on Chart.js: Playground > Breakdown over time (breakdown-history.js),
+ * the Share over time panel (catalog-share-history.js) and the gender bars per year (catalog-year-bars.js).
  */
 window.ShareChartCore = (() => {
     'use strict';
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     // Area hit testing uses the actual filled band at the pointer's x coordinate.
     // Nearest-point mode alone can select the adjacent band instead of the hovered one.
@@ -45,5 +46,78 @@ window.ShareChartCore = (() => {
         return Math.ceil(value / step) * step;
     }
 
-    return { registerSectionMode, niceCeiling };
+    /** Per-viewer settings in localStorage; reads fall back to {} when storage is off. */
+    function store(key) {
+        const read = () => {
+            try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch { return {}; }
+        };
+        return {
+            read,
+            write(patch) {
+                try { localStorage.setItem(key, JSON.stringify({ ...read(), ...patch })); } catch { /* storage off */ }
+            }
+        };
+    }
+
+    /**
+     * Collapse button of a list chart panel (.is-collapsed on root, [data-sh="toggle"] button, .sh-body).
+     * Phones start collapsed so the list stays in reach; the choice is remembered once toggled.
+     * onExpand runs whenever the panel opens. Returns whether it starts collapsed.
+     */
+    function collapsible(root, settings, onExpand) {
+        const toggle = root.querySelector('[data-sh="toggle"]');
+        const body = root.querySelector('.sh-body');
+        const set = collapsed => {
+            root.classList.toggle('is-collapsed', collapsed);
+            toggle.setAttribute('aria-expanded', String(!collapsed));
+            toggle.setAttribute('aria-label', collapsed ? 'Show chart' : 'Hide chart');
+            body.hidden = collapsed;
+        };
+        const saved = settings.read().collapsed;
+        set(typeof saved === 'boolean' ? saved : window.matchMedia?.('(max-width: 768px)').matches === true);
+        toggle.addEventListener('click', () => {
+            const collapsed = !root.classList.contains('is-collapsed');
+            set(collapsed);
+            settings.write({ collapsed });
+            if (!collapsed) onExpand();
+        });
+        return root.classList.contains('is-collapsed');
+    }
+
+    /** Scrolls to a card or table row and makes it glow twice in the given "r, g, b" color. */
+    function glow(target, rgb) {
+        target.style.setProperty('--share-glow', rgb);
+        target.classList.remove('share-glow');
+        void target.offsetWidth;
+        target.classList.add('share-glow');
+        clearTimeout(target.shareGlowTimer);
+        target.shareGlowTimer = setTimeout(() => target.classList.remove('share-glow'), 3200);
+        target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+    }
+
+    /** Calls onKey with the hovered card's or row's key (the value of attr), and null when the pointer leaves. */
+    function bindListHover(scopeId, attr, onKey) {
+        const scope = document.getElementById(scopeId);
+        if (!scope) return;
+        let hovered = null;
+        scope.addEventListener('mouseover', event => {
+            const item = event.target.closest(`[${attr}]`);
+            const key = item && scope.contains(item) ? item.getAttribute(attr) : null;
+            if (key === hovered) return;
+            hovered = key;
+            onKey(key);
+        });
+        scope.addEventListener('mouseleave', () => {
+            hovered = null;
+            onKey(null);
+        });
+    }
+
+    /** True while the list shows its Table view instead of the cards. */
+    function tableVisible() {
+        const table = document.getElementById('tableView');
+        return Boolean(table) && table.style.display !== 'none';
+    }
+
+    return { registerSectionMode, niceCeiling, store, collapsible, glow, bindListHover, tableVisible };
 })();

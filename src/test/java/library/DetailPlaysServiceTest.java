@@ -195,8 +195,8 @@ class DetailPlaysServiceTest {
         assertThat(document.select(".dp").attr("data-rank-moves-url")).isEqualTo("/artists/1/rank-moves");
         assertThat(document.select(".dp-lr[data-dp-year]")).hasSize(2);
         assertThat(document.select(".dp-lr-head").text()).contains("Female rk", "Top song");
-        assertThat(document.select(".dp-lr[data-dp-year=2024] .ad-rank").eachText()).containsExactly("#120", "#3");
-        assertThat(document.select(".dp-lr[data-dp-year=2024] .ad-rank.is-far")).hasSize(1);
+        assertThat(document.select(".dp-lr[data-dp-year=2024] .dt-rank").eachText()).containsExactly("#120", "#3");
+        assertThat(document.select(".dp-lr[data-dp-year=2024] .dt-rank.is-far")).hasSize(1);
         // Every year starts closed
         assertThat(document.select(".dp-panel[data-dp-panel]")).hasSize(2).allMatch(panel -> panel.hasAttr("hidden"));
         assertThat(document.select(".dp-lr.is-open")).isEmpty();

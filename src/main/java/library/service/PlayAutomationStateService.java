@@ -5,11 +5,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +29,6 @@ public class PlayAutomationStateService {
 
     @PostConstruct
     public void initializeStateTable() {
-        int configuredIntervalMinutes = appConfigService.getAutomationConfig().intervalMinutes();
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS play_import_automation_state (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -48,11 +46,8 @@ public class PlayAutomationStateService {
                 """);
         ensureColumnExists("play_import_automation_state", "run_interval_minutes", "run_interval_minutes INTEGER NOT NULL DEFAULT 10");
         ensureColumnExists("play_import_automation_state", "last_attempt_epoch_millis", "last_attempt_epoch_millis INTEGER NOT NULL DEFAULT 0");
-            jdbcTemplate.update("INSERT OR IGNORE INTO play_import_automation_state (id, run_interval_minutes) VALUES (1, ?)", configuredIntervalMinutes);
-        jdbcTemplate.update(
-                "UPDATE play_import_automation_state SET run_interval_minutes = ? WHERE id = 1 AND (run_interval_minutes IS NULL OR run_interval_minutes < 1)",
-                configuredIntervalMinutes
-        );
+        // run_interval_minutes is legacy: the interval lives in app_config (automation.intervalSeconds)
+        jdbcTemplate.update("INSERT OR IGNORE INTO play_import_automation_state (id) VALUES (1)");
 
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS play_import_automation_log (
@@ -65,9 +60,11 @@ public class PlayAutomationStateService {
                     imported_count INTEGER NOT NULL DEFAULT 0,
                     unmatched_count INTEGER NOT NULL DEFAULT 0,
                     lastfm_playcount INTEGER,
-                    local_playcount INTEGER
+                    local_playcount INTEGER,
+                    interval_seconds INTEGER
                 )
                 """);
+        ensureColumnExists("play_import_automation_log", "interval_seconds", "interval_seconds INTEGER");
     }
 
     public void recordAttempt() {
@@ -141,8 +138,8 @@ public class PlayAutomationStateService {
         );
     }
 
-    public int getRunIntervalMinutes() {
-        return appConfigService.getAutomationConfig().intervalMinutes();
+    public int getRunIntervalSeconds() {
+        return appConfigService.getAutomationConfig().intervalSeconds();
     }
 
     public long getLastAttemptEpochMillis() {
@@ -152,13 +149,15 @@ public class PlayAutomationStateService {
 
     public void appendRunLog(String status, String message, int importedCount, int unmatchedCount, PlayService.ValidationResult validation) {
         StateRow row = loadStateRow();
+        int intervalSeconds = getRunIntervalSeconds();
         jdbcTemplate.update(
-                "INSERT INTO play_import_automation_log (run_started_at, run_finished_at, status, message, interval_minutes, imported_count, unmatched_count, lastfm_playcount, local_playcount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO play_import_automation_log (run_started_at, run_finished_at, status, message, interval_minutes, interval_seconds, imported_count, unmatched_count, lastfm_playcount, local_playcount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 row.lastAttemptAt() != null && !row.lastAttemptAt().isBlank() ? row.lastAttemptAt() : currentTimestampText(),
                 currentTimestampText(),
                 status,
                 truncateMessage(message),
-                getRunIntervalMinutes(),
+                intervalSeconds / 60,
+                intervalSeconds,
                 Math.max(0, importedCount),
                 Math.max(0, unmatchedCount),
                 validation != null ? validation.lastfmPlaycount : null,
@@ -187,47 +186,99 @@ public class PlayAutomationStateService {
 
     public ImportPageState getImportPageState() {
         StateRow row = loadStateRow();
-        int importLogLimit = appConfigService.getAutomationConfig().importLogLimit();
+        AppConfigService.AutomationConfig config = appConfigService.getAutomationConfig();
+        int importLogLimit = config.importLogLimit();
         return new ImportPageState(
-                getRunIntervalMinutes(),
+                getRunIntervalSeconds(),
                 row.lastAttemptAt(),
                 row.lastSuccessAt(),
                 row.lastIssueAt(),
             importLogLimit,
-            getRecentRunLogs(importLogLimit)
+            getRecentSuccessLogs(importLogLimit),
+            getRecentErrorLogs(importLogLimit),
+            getLatestSyncCheck(),
+            describeNextRun(config, Math.max(0L, row.lastAttemptEpochMillis()), LocalDateTime.now(ZoneId.systemDefault()))
         );
     }
 
-    public List<AutomationRunLogEntry> getRecentRunLogs(int limit) {
-        int safeLimit = Math.max(AppConfigService.MIN_AUTOMATION_IMPORT_LOG_LIMIT, Math.min(limit, AppConfigService.MAX_AUTOMATION_IMPORT_LOG_LIMIT));
+    /**
+     * Most recent Last.fm vs local play count comparison from any logged run (success, warning or error),
+     * or null when no run has recorded one yet.
+     */
+    public SyncCheck getLatestSyncCheck() {
+        List<SyncCheck> rows = jdbcTemplate.query(
+                "SELECT lastfm_playcount, local_playcount, run_finished_at FROM play_import_automation_log "
+                        + "WHERE lastfm_playcount IS NOT NULL AND local_playcount IS NOT NULL ORDER BY id DESC LIMIT 1",
+                (rs, rowNum) -> new SyncCheck(rs.getInt("lastfm_playcount"), rs.getInt("local_playcount"), rs.getString("run_finished_at")));
+        return rows.isEmpty() ? null : rows.get(0);
+    }
 
-        List<AutomationRunLogEntry> successLogs = queryRecentRunLogs(
-            "WHERE status = 'SUCCESS' AND imported_count > 0",
-            safeLimit
-        );
-        int remainingLimit = Math.max(0, safeLimit - successLogs.size());
-        List<AutomationRunLogEntry> errorLogs = remainingLimit > 0
-            ? queryRecentRunLogs("WHERE status = 'ERROR'", remainingLimit)
-            : List.of();
+    /**
+     * When the scheduler will next import, mirroring AutomatedPlayImportService: a run fires once the interval has
+     * passed since the last attempt, but only while the current hour is inside the start..end window (inclusive).
+     * Returns null when automation is off; "Any moment" when a run is already due inside the window.
+     */
+    static String describeNextRun(AppConfigService.AutomationConfig config, long lastAttemptEpochMillis, LocalDateTime now) {
+        if (config == null || !config.enabled()) {
+            return null;
+        }
+        int startHour = Math.min(config.startHour(), config.endHour());
+        int endHour = Math.max(config.startHour(), config.endHour());
 
-        List<AutomationRunLogEntry> combined = new ArrayList<>(successLogs.size() + errorLogs.size());
-        combined.addAll(successLogs);
-        combined.addAll(errorLogs);
-        combined.sort(Comparator.comparingLong(AutomationRunLogEntry::getLogId).reversed());
-        return combined;
+        LocalDateTime due = lastAttemptEpochMillis > 0L
+                ? LocalDateTime.ofInstant(Instant.ofEpochMilli(lastAttemptEpochMillis), ZoneId.systemDefault()).plusSeconds(config.intervalSeconds())
+                : now;
+        if (due.isBefore(now)) {
+            due = now;
+        }
+
+        LocalDateTime next;
+        if (due.getHour() < startHour) {
+            next = due.toLocalDate().atTime(startHour, 0);
+        } else if (due.getHour() > endHour) {
+            next = due.toLocalDate().plusDays(1).atTime(startHour, 0);
+        } else {
+            next = due;
+        }
+
+        if (!next.isAfter(now)) {
+            return "Any moment";
+        }
+        String time = next.format(DateTimeFormatter.ofPattern("HH:mm"));
+        if (next.toLocalDate().equals(now.toLocalDate())) {
+            return time;
+        }
+        if (next.toLocalDate().equals(now.toLocalDate().plusDays(1))) {
+            return "Tomorrow " + time;
+        }
+        return next.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
+
+    /** Latest successful runs that imported at least one play, newest first (Run history > Successes). */
+    public List<AutomationRunLogEntry> getRecentSuccessLogs(int limit) {
+        return queryRecentRunLogs("WHERE status = 'SUCCESS' AND imported_count > 0", clampLogLimit(limit));
+    }
+
+    /** Latest failed runs plus runs still out of sync after recovery, newest first (Run history > Errors). */
+    public List<AutomationRunLogEntry> getRecentErrorLogs(int limit) {
+        return queryRecentRunLogs("WHERE status IN ('ERROR', 'WARNING')", clampLogLimit(limit));
+    }
+
+    private static int clampLogLimit(int limit) {
+        return Math.max(AppConfigService.MIN_AUTOMATION_IMPORT_LOG_LIMIT, Math.min(limit, AppConfigService.MAX_AUTOMATION_IMPORT_LOG_LIMIT));
     }
 
         private List<AutomationRunLogEntry> queryRecentRunLogs(String whereClause, int limit) {
         int safeLimit = Math.max(1, limit);
         return jdbcTemplate.query(
-            "SELECT id, run_started_at, run_finished_at, status, message, interval_minutes, imported_count, unmatched_count, lastfm_playcount, local_playcount FROM play_import_automation_log " + whereClause + " ORDER BY id DESC LIMIT " + safeLimit,
+            "SELECT id, run_started_at, run_finished_at, status, message, COALESCE(interval_seconds, interval_minutes * 60) AS interval_seconds, imported_count, unmatched_count, lastfm_playcount, local_playcount FROM play_import_automation_log " + whereClause + " ORDER BY id DESC LIMIT " + safeLimit,
             (rs, rowNum) -> new AutomationRunLogEntry(
                 rs.getLong("id"),
                 rs.getString("run_started_at"),
                 rs.getString("run_finished_at"),
                 rs.getString("status"),
                 rs.getString("message"),
-                rs.getInt("interval_minutes"),
+                rs.getInt("interval_seconds"),
                 rs.getInt("imported_count"),
                 rs.getInt("unmatched_count"),
                 getNullableInteger(rs.getObject("lastfm_playcount")),
@@ -238,7 +289,7 @@ public class PlayAutomationStateService {
 
     private StateRow loadStateRow() {
         return jdbcTemplate.queryForObject(
-                "SELECT unmatched_banner_active, unmatched_count, imported_since_seen, sync_issue_active, sync_issue_message, last_attempt_at, last_success_at, last_issue_at, run_interval_minutes, last_attempt_epoch_millis FROM play_import_automation_state WHERE id = 1",
+                "SELECT unmatched_banner_active, unmatched_count, imported_since_seen, sync_issue_active, sync_issue_message, last_attempt_at, last_success_at, last_issue_at, last_attempt_epoch_millis FROM play_import_automation_state WHERE id = 1",
                 (rs, rowNum) -> new StateRow(
                         rs.getInt("unmatched_banner_active") == 1,
                         rs.getInt("unmatched_count"),
@@ -248,7 +299,6 @@ public class PlayAutomationStateService {
                         rs.getString("last_attempt_at"),
                         rs.getString("last_success_at"),
                         rs.getString("last_issue_at"),
-                        rs.getInt("run_interval_minutes"),
                         rs.getLong("last_attempt_epoch_millis")
                 )
         );
@@ -310,29 +360,44 @@ public class PlayAutomationStateService {
             String lastAttemptAt,
             String lastSuccessAt,
             String lastIssueAt,
-            int runIntervalMinutes,
             long lastAttemptEpochMillis) {
     }
 
     public static final class ImportPageState {
-        private final int runIntervalMinutes;
+        private final int runIntervalSeconds;
         private final String lastAttemptAt;
         private final String lastSuccessAt;
         private final String lastIssueAt;
         private final int importLogLimit;
-        private final List<AutomationRunLogEntry> recentLogs;
+        private final List<AutomationRunLogEntry> successLogs;
+        private final List<AutomationRunLogEntry> errorLogs;
+        private final SyncCheck latestSyncCheck;
+        private final String nextRunLabel;
 
-        public ImportPageState(int runIntervalMinutes, String lastAttemptAt, String lastSuccessAt, String lastIssueAt, int importLogLimit, List<AutomationRunLogEntry> recentLogs) {
-            this.runIntervalMinutes = runIntervalMinutes;
+        public ImportPageState(int runIntervalSeconds, String lastAttemptAt, String lastSuccessAt, String lastIssueAt, int importLogLimit,
+                               List<AutomationRunLogEntry> successLogs, List<AutomationRunLogEntry> errorLogs,
+                               SyncCheck latestSyncCheck, String nextRunLabel) {
+            this.runIntervalSeconds = runIntervalSeconds;
             this.lastAttemptAt = lastAttemptAt;
             this.lastSuccessAt = lastSuccessAt;
             this.lastIssueAt = lastIssueAt;
             this.importLogLimit = importLogLimit;
-            this.recentLogs = recentLogs;
+            this.successLogs = successLogs;
+            this.errorLogs = errorLogs;
+            this.latestSyncCheck = latestSyncCheck;
+            this.nextRunLabel = nextRunLabel;
         }
 
-        public int getRunIntervalMinutes() {
-            return runIntervalMinutes;
+        public SyncCheck getLatestSyncCheck() {
+            return latestSyncCheck;
+        }
+
+        public String getNextRunLabel() {
+            return nextRunLabel;
+        }
+
+        public String getRunIntervalLabel() {
+            return AppConfigService.formatInterval(runIntervalSeconds);
         }
 
         public String getLastAttemptAt() {
@@ -351,8 +416,12 @@ public class PlayAutomationStateService {
             return importLogLimit;
         }
 
-        public List<AutomationRunLogEntry> getRecentLogs() {
-            return recentLogs;
+        public List<AutomationRunLogEntry> getSuccessLogs() {
+            return successLogs;
+        }
+
+        public List<AutomationRunLogEntry> getErrorLogs() {
+            return errorLogs;
         }
     }
 
@@ -362,19 +431,19 @@ public class PlayAutomationStateService {
         private final String runFinishedAt;
         private final String status;
         private final String message;
-        private final int intervalMinutes;
+        private final int intervalSeconds;
         private final int importedCount;
         private final int unmatchedCount;
         private final Integer lastfmPlaycount;
         private final Integer localPlaycount;
 
-        public AutomationRunLogEntry(long logId, String runStartedAt, String runFinishedAt, String status, String message, int intervalMinutes, int importedCount, int unmatchedCount, Integer lastfmPlaycount, Integer localPlaycount) {
+        public AutomationRunLogEntry(long logId, String runStartedAt, String runFinishedAt, String status, String message, int intervalSeconds, int importedCount, int unmatchedCount, Integer lastfmPlaycount, Integer localPlaycount) {
             this.logId = logId;
             this.runStartedAt = runStartedAt;
             this.runFinishedAt = runFinishedAt;
             this.status = status;
             this.message = message;
-            this.intervalMinutes = intervalMinutes;
+            this.intervalSeconds = intervalSeconds;
             this.importedCount = importedCount;
             this.unmatchedCount = unmatchedCount;
             this.lastfmPlaycount = lastfmPlaycount;
@@ -401,8 +470,8 @@ public class PlayAutomationStateService {
             return message;
         }
 
-        public int getIntervalMinutes() {
-            return intervalMinutes;
+        public String getIntervalLabel() {
+            return AppConfigService.formatInterval(intervalSeconds);
         }
 
         public int getImportedCount() {
@@ -419,6 +488,51 @@ public class PlayAutomationStateService {
 
         public Integer getLocalPlaycount() {
             return localPlaycount;
+        }
+
+        /** Run date (dd/MM/yyyy) from the stored "dd/MM/yyyy HH:mm:ss" start time, used to group the Run history by day. */
+        public String getRunDay() {
+            return runStartedAt != null && runStartedAt.length() >= 10 ? runStartedAt.substring(0, 10) : "";
+        }
+
+        /** Run start time as HH:mm. */
+        public String getRunTime() {
+            return runStartedAt != null && runStartedAt.length() >= 16 ? runStartedAt.substring(11, 16) : "";
+        }
+
+        /** "Today · 22/11/2026", "Yesterday · 21/11/2026" or just the date. */
+        public String getRunDayLabel() {
+            return dayLabel(getRunDay(), LocalDate.now(ZoneId.systemDefault()));
+        }
+
+        static String dayLabel(String day, LocalDate today) {
+            if (day == null || day.isEmpty()) {
+                return "";
+            }
+            DateTimeFormatter dayFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            if (day.equals(today.format(dayFormat))) {
+                return "Today · " + day;
+            }
+            if (day.equals(today.minusDays(1).format(dayFormat))) {
+                return "Yesterday · " + day;
+            }
+            return day;
+        }
+
+        /** Last.fm minus local play count for this run, or null when the run did not compare them. */
+        public Integer getSyncDifference() {
+            return lastfmPlaycount != null && localPlaycount != null ? lastfmPlaycount - localPlaycount : null;
+        }
+    }
+
+    /** One Last.fm vs local play count comparison from the run log. */
+    public record SyncCheck(int lastfmPlaycount, int localPlaycount, String checkedAt) {
+        public boolean isInSync() {
+            return lastfmPlaycount == localPlaycount;
+        }
+
+        public int getDifference() {
+            return lastfmPlaycount - localPlaycount;
         }
     }
 

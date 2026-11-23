@@ -4,7 +4,6 @@
 /* Base variables and reset */
 :root {
   --bg: #0a0a0a;           /* near black */
-  --bg-soft: #111111;      /* deep black */
   --surface: #171717;      /* neutral-900 */
   --surface-2: #262626;    /* neutral-800 */
   --text: #e5e5e5;         /* neutral-200 */
@@ -12,14 +11,31 @@
   --primary: #d4d4d4;      /* neutral-300 for links */
   --primary-strong: #f5f5f5; /* neutral-100 for buttons */
   --accent: #a3a3a3;       /* subtle accent */
-  --success: #22c55e;      /* keep readable green */
   --slate: #475569;        /* slate neutral for buttons */
   --slate-hover: #5a6b7a;  /* slate hover state */
   --radius: 10px;
   --shadow: 0 10px 20px rgba(0,0,0,0.45);
+  /* One page frame for every screen: same max width and side gutter everywhere */
+  --page-max: 1800px;
+  --page-gutter: 32px;
 }
+@media (max-width: 768px) { :root { --page-gutter: 16px; } }
+@media (max-width: 480px) { :root { --page-gutter: 12px; } }
 
 * { box-sizing: border-box; }
+
+/* Inline stroke (line) icons. Every page keeps its own prefix for size or colour tweaks in its stylesheet. */
+.dt-ico, .hm-ico, .ip-ico, .it-ico, .tm-ico, .tce-ico, .um-ico, .uw-ico, .fm-ico, .plg-ico {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.fm-ico, .plg-ico { pointer-events: none; }
 
 html {
   margin: 0;
@@ -44,55 +60,9 @@ a { color: var(--primary); text-decoration: none; }
 a:hover { color: var(--primary-strong); text-decoration: underline; }
 
 .container {
-  max-width: 1800px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 16px 32px;
-}
-
-/* Top bar */
-.topbar {
-  background: linear-gradient(90deg, rgba(245,245,245,0.05), rgba(163,163,163,0.05));
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  backdrop-filter: blur(6px);
-}
-.page-title {
-  margin: 8px 0 0;
-  font-size: 28px;
-  font-weight: 650;
-}
-.breadcrumbs {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-.breadcrumbs .sep { margin: 0 6px; color: var(--text-muted); }
-
-/* Filters */
-.field { display: grid; gap: 6px; }
-.field span { font-size: 12px; color: var(--text-muted); }
-.field input[type="text"],
-.field input[type="number"] {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--surface-2);
-  color: var(--text);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
-}
-
-.field input[type="text"]:hover,
-.field input[type="number"]:hover {
-  border-color: rgba(255,255,255,0.12);
-}
-
-.field input[type="text"]:focus,
-.field input[type="number"]:focus {
-  outline: none;
-  border-color: rgba(255,255,255,0.18);
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
-}
-
-.field input::placeholder {
-  color: rgba(255,255,255,0.3);
+  padding: 16px var(--page-gutter);
 }
 
 /* Dropdowns/Selects */
@@ -115,14 +85,6 @@ select:focus {
   outline: none;
   border-color: rgba(255,255,255,0.18);
   box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
-}
-
-/* Single indicator diamond icon for songs that are singles */
-.single-indicator {
-  font-size: 0.75em;
-  margin-left: 6px;
-  vertical-align: middle;
-  opacity: 0.9;
 }
 
 /* Buttons */
@@ -158,27 +120,6 @@ select:focus {
   background-color: #3d6b1f;
   border-color: #4d8028;
   box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
-}
-
-/* Negative action buttons - dark red theme for Delete, etc. */
-.btn-negative {
-  padding: 10px 18px;
-  min-height: 40px;
-  background-color: #5c1a1a;
-  color: white;
-  border: 1px solid #7a2424;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(92, 26, 26, 0.3);
-}
-
-.btn-negative:hover {
-  background-color: #7a2424;
-  border-color: #9a2e2e;
-  box-shadow: 0 4px 8px rgba(92, 26, 26, 0.4);
 }
 
 /* Primary button - green for positive actions */
@@ -251,46 +192,31 @@ select:focus {
   transform: scale(0.95);
 }
 
-/* Page size controls */
-.page-size-section {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* Floating table headers (see "Tables" in AGENTS.md).
+   Every data table keeps its header on screen while scrolling: the wrapper gets
+   .table-scroll (a scroll box capped to the window height, so the header can stick
+   inside it even when the table scrolls sideways) and the table gets .sticky-head
+   (the whole thead sticks, so multi-row headers stay stacked). js/table-scroll.js
+   (loaded by the nav fragment) adds .is-page-scroll when the table fits the width:
+   overflow: clip keeps the rounded corners without creating a scroll box, so the
+   header sticks to the window instead. Header cells need an opaque background. */
+.table-scroll {
+  max-height: calc(100vh - 120px);
+  max-height: calc(100dvh - 120px);
+  overflow: auto;
 }
-
-.page-size-section label {
-  margin: 0;
-  color: var(--text);
-  font-weight: 600;
-  font-size: 14px;
+.table-scroll.is-page-scroll {
+  max-height: none !important;
+  overflow: clip !important;
 }
-
-.page-size-section input[type="number"] {
-  width: 70px;
-  padding: 6px 8px;
-  background: var(--surface-2);
-  color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
-  font-size: 14px;
-  text-align: center;
+.sticky-head > thead {
+  position: sticky;
+  top: 0;
+  z-index: 4;
 }
-
-.page-size-section input[type="number"]:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.page-size-section input[type="number"]:focus {
-  outline: none;
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
-}
-
-/* Groups and charts */
-.section-title { margin: 24px 0 8px; font-size: 18px; }
 
 /* Tables */
-.table-wrapper { overflow-x: auto; border-radius: var(--radius); }
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -398,20 +324,6 @@ select:focus {
 .linked-song-tooltip-item-source {
     display: none;
 }
-
-/* Shared multi-select dropdown styles */
-.multi-select-container { position: relative; }
-.multi-select-display {
-  padding: 8px 12px; background-color: #0a0a0a; border: 1px solid #333333; border-radius: 6px;
-  color: #e5e7eb; font-size: 14px; cursor: pointer; display: flex; flex-wrap: wrap; gap: 6px;
-  min-height: 38px; align-items: center; transition: border-color 0.2s;
-}
-.multi-select-display:hover { border-color: #666666; }
-.multi-select-label { flex: 1; color: #999999; }
-.multi-select-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.multi-select-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background-color: #2a2a2a; border: 1px solid #404040; border-radius: 12px; font-size: 12px; color: #e5e7eb; }
-.multi-select-chip-remove { background: none; border: none; color: #999999; cursor: pointer; padding: 0; width: 14px; height: 14px; font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center; }
-.multi-select-chip-remove:hover { color: #ffffff; }
 
 /* ============================================
    CHIP SELECT COMPONENT
@@ -585,9 +497,9 @@ select:focus {
 
 /* Wide container for detail pages */
 .container-wide {
-    max-width: 1800px;
+    max-width: var(--page-max);
     margin: 0 auto;
-    padding: 20px 20px 20px 60px;
+    padding: 20px var(--page-gutter);
 }
 
 /* Gender-based visual effects - applied to main image container only, NOT featured artist cards */
@@ -616,55 +528,17 @@ select:focus {
 }
 
 /* Panel card & section backgrounds */
-.container-wide.gender-male .detail-content-card,
-.container.gender-male .detail-content-card,
 .container-wide.gender-male .detail-content-section,
 .container.gender-male .detail-content-section {
     background: #0c1828;
     border-color: rgba(59, 130, 246, 0.25);
     border-left: 3px solid rgba(59, 130, 246, 0.55);
 }
-.container-wide.gender-female .detail-content-card,
-.container.gender-female .detail-content-card,
 .container-wide.gender-female .detail-content-section,
 .container.gender-female .detail-content-section {
     background: #1a0915;
     border-color: rgba(236, 72, 153, 0.25);
     border-left: 3px solid rgba(236, 72, 153, 0.55);
-}
-
-/* Section header strip inside each card */
-.container-wide.gender-male .section-header,
-.container.gender-male .section-header,
-.container-wide.gender-male .detail-content-section > .section-title,
-.container.gender-male .detail-content-section > .section-title {
-    background: rgba(59, 130, 246, 0.1);
-    border-bottom-color: rgba(59, 130, 246, 0.2);
-}
-.container-wide.gender-female .section-header,
-.container.gender-female .section-header,
-.container-wide.gender-female .detail-content-section > .section-title,
-.container.gender-female .detail-content-section > .section-title {
-    background: rgba(236, 72, 153, 0.1);
-    border-bottom-color: rgba(236, 72, 153, 0.2);
-}
-
-/* Section title label color */
-.container-wide.gender-male .section-header .section-title,
-.container.gender-male .section-header .section-title,
-.container-wide.gender-male .detail-content-card > .section-title,
-.container.gender-male .detail-content-card > .section-title,
-.container-wide.gender-male .detail-content-section .section-title,
-.container.gender-male .detail-content-section .section-title {
-    color: #93c5fd;
-}
-.container-wide.gender-female .section-header .section-title,
-.container.gender-female .section-header .section-title,
-.container-wide.gender-female .detail-content-card > .section-title,
-.container.gender-female .detail-content-card > .section-title,
-.container-wide.gender-female .detail-content-section .section-title,
-.container.gender-female .detail-content-section .section-title {
-    color: #f9a8d4;
 }
 
 /* ── End gender coloring ────────────────────────────────────────────────── */
@@ -770,18 +644,6 @@ select:focus {
 .play-breakdown-tooltip-trigger:focus-visible {
     border-radius: 3px;
     box-shadow: 0 0 0 2px rgba(181, 232, 14, 0.45);
-}
-
-/* Shared dates styles for cards */
-.song-dates {
-    font-size: 11px;
-    color: #777;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
 }
 
 /* Sort metric display for cards */
@@ -989,64 +851,6 @@ select:focus {
     display: none;
 }
 
-/* ── Detail page statistics panel (modal-style label/value rows) ── */
-.detail-stats-panel {
-    padding: 14px 16px;
-}
-
-.detail-stats-panel .ds-section {
-    margin-bottom: 6px;
-}
-
-.detail-stats-panel .ds-section-title {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #aaa;
-    margin: 0 0 6px 0;
-}
-
-.detail-stats-panel .ds-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 3px;
-    font-size: 0.875rem;
-}
-
-.detail-stats-panel .ds-label {
-    color: #9ca3af;
-}
-
-.detail-stats-panel .ds-value {
-    color: #e5e7eb;
-    font-weight: 600;
-    text-align: right;
-}
-
-/* Gender-colored values in Statistics panel */
-.artist-detail.gender-male .detail-stats-panel .ds-value,
-.song-detail.gender-male .detail-stats-panel .ds-value {
-    color: #60a5fa; /* Blue for male */
-}
-
-.artist-detail.gender-female .detail-stats-panel .ds-value,
-.song-detail.gender-female .detail-stats-panel .ds-value {
-    color: #f472b6; /* Pink for female */
-}
-
-.detail-stats-panel .ds-separator {
-    height: 1px;
-    background: rgba(255,255,255,0.08);
-    margin: 10px 0;
-    width: 100%;
-}
-
-.detail-stats-panel .ds-total {
-    color: #6b7280;
-    font-weight: 400;
-}
-
 /* Shared grid styles for item grids */
 .album-grid,
 .song-grid,
@@ -1098,10 +902,6 @@ select:focus {
 }
 
 /* Name overlay above image */
-.item-name-overlay {
-    padding: 16px 0 12px 0;
-    margin-bottom: 8px;
-}
 
 .item-name-top {
     font-size: 24px;
@@ -1250,17 +1050,6 @@ select:focus {
     border-color: #5c9aff;
 }
 
-.btn-fetch-external-edit {
-    background-color: #2d3a50 !important;
-    color: #8ab4f8 !important;
-    border: 1px solid #4285f4 !important;
-}
-
-.btn-fetch-external-edit:hover {
-    background-color: #4285f4 !important;
-    color: #fff !important;
-}
-
 .btn-remove-image {
     padding: 8px 12px;
     background-color: #7f1d1d;
@@ -1277,24 +1066,6 @@ select:focus {
     background-color: #991b1b;
     color: #ffffff;
     border-color: #b91c1c;
-}
-
-.btn-view-samples {
-    padding: 8px 12px;
-    background-color: #4a2d5f;
-    color: #d4a5ff;
-    border: 1px solid #6b4a8f;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.btn-view-samples:hover {
-    background-color: #6b4a8f;
-    color: #ffffff;
-    border-color: #8f63bf;
 }
 
 /* Gallery Navigation Styles */
@@ -1417,31 +1188,12 @@ select:focus {
 }
 
 /* Stats below image */
-.item-stats {
-    display: flex;
-    gap: 15px;
-    font-size: 14px;
-    margin-top: 8px;
-}
 
 .stat {
     display: flex;
     align-items: center;
     gap: 6px;
     color: #cbd5e0;
-}
-
-.stat-icon {
-    font-size: 16px;
-}
-
-.stat .stat-value {
-    font-weight: 600;
-}
-
-/* Ranking chips section - prevent from affecting grid layout */
-.ranking-chips-section {
-    margin-bottom: -20px; /* Pull up to compensate for its space */
 }
 
 /* ============================================
@@ -1456,190 +1208,6 @@ select:focus {
     gap: 16px;
     grid-column: 2;
     grid-row: 2;
-}
-
-/* Unified info card */
-.detail-content-card {
-    background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    overflow: hidden;
-    margin-top: 24px;
-}
-
-.detail-right-section .detail-content-card:first-child {
-    margin-top: 0;
-}
-
-/* Card header with title and actions */
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
-}
-
-.section-header .section-title {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #ffffff;
-}
-
-/* Apply section header styling to section-title inside detail-content-card */
-.detail-content-card > .section-title {
-    margin: 0;
-    padding: 12px 16px 16px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #ffffff;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
-    display: block;
-}
-
-/* Add padding to content inside detail-content-card (after title) */
-.detail-content-card > .table-wrapper,
-.detail-content-card > .no-items-message,
-.detail-content-card > .item-count {
-    padding: 0 16px;
-    margin-top: 16px;
-}
-
-/* Add margin to first element after title for spacing */
-.detail-content-card > .section-title + * {
-    margin-top: 16px !important;
-}
-
-.edit-button-container {
-    display: flex;
-    gap: 8px;
-}
-
-.edit-button-container .btn-action,
-.edit-button-container .btn-negative,
-.edit-button-container .btn-view-samples {
-    padding: 6px 14px;
-    font-size: 12px;
-    border-radius: 6px;
-}
-
-/* ---- STATISTICS SECTION (Redesigned) ---- */
-
-/* ---- GENERAL/ATTRIBUTES SECTION (Redesigned) ---- */
-
-/* Form container */
-.form-section {
-    padding: 0;
-}
-
-/* Clean attributes layout */
-.attributes-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0;
-}
-
-.attributes-grid .form-group {
-    padding: 10px 16px;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    border-right: 1px solid rgba(255,255,255,0.04);
-    background: transparent;
-    transition: background 0.15s ease;
-}
-
-.attributes-grid .form-group:nth-child(2n) {
-    border-right: none;
-}
-
-.attributes-grid .form-group:hover {
-    background: rgba(255,255,255,0.015);
-}
-
-/* Full width fields span both columns */
-.attributes-grid .form-group.form-group-full-width {
-    grid-column: 1 / -1;
-    border-right: none;
-}
-
-/* Checkbox fields - inline layout */
-.attributes-grid .form-group.form-group-checkbox {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.attributes-grid .form-group.form-group-checkbox label.field-label,
-.attributes-grid .form-group.form-group-checkbox > label:first-child {
-    flex: 1;
-    margin: 0;
-    font-size: 10px;
-    font-weight: 600;
-    color: #9ca3af;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-}
-
-/* Labels - visible with subtle accent */
-.attributes-grid .form-group label,
-.attributes-grid .form-group .field-label {
-    display: block;
-    font-size: 10px;
-    color: #9ca3af;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin: 0;
-}
-
-/* Values - clean and readable */
-.attribute-text {
-    display: block;
-    font-size: 14px;
-    font-weight: 500;
-    color: #ffffff;
-    padding: 0;
-    background: transparent;
-    border: none;
-    line-height: 1.3;
-}
-
-/* Override indicator */
-.attribute-text.attribute-inherited {
-    color: #e5e5e5;
-}
-
-.attribute-text.attribute-overridden {
-    color: #f59e0b;
-}
-
-.attribute-text.attribute-overridden::before {
-    content: '◆';
-    font-size: 7px;
-    margin-right: 6px;
-    vertical-align: middle;
-    opacity: 0.7;
-}
-
-/* Checkbox values */
-.attribute-text.checkbox-yes {
-    color: #22c55e;
-    font-weight: 600;
-}
-
-.attribute-text.checkbox-no {
-    color: #3a3a3a;
 }
 
 /* ---- FORM INPUTS (Edit Mode) ---- */
@@ -1737,36 +1305,9 @@ select:focus {
     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
 }
 
-/* Form actions */
-.form-actions {
-    display: flex;
-    gap: 12px;
-    padding: 16px 20px;
-    background: rgba(0,0,0,0.15);
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-/* Name field emphasis */
-.name-field-group {
-    background: rgba(255,255,255,0.02) !important;
-}
-
-/* ---- RESPONSIVE for new design ---- */
-@media (max-width: 768px) {
-    .attributes-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .attributes-grid .form-group {
-        border-right: none;
-    }
-}
-
 /* ============================================
    END: Detail Page Info Sections
    ============================================ */
-
-/* Content section below (songs, albums, etc.) */
 
 /* ============================================
    MOBILE CARD LAYOUT
@@ -1816,19 +1357,6 @@ select:focus {
     margin-top: 20px;
 }
 
-/* Section title styled like section-header */
-.detail-content-section .section-title {
-    margin: 0;
-    padding: 12px 16px 16px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #ffffff;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
-}
-
 /* Add padding to content inside detail-content-section */
 .detail-content-section > .pagination {
     padding: 12px 16px;
@@ -1837,11 +1365,6 @@ select:focus {
 
 .detail-content-section > .top-table-container {
     padding: 16px 16px;
-    margin: 16px 0 0 0;
-}
-
-.detail-content-section > .no-items-message {
-    padding: 16px;
     margin: 16px 0 0 0;
 }
 
@@ -1870,18 +1393,10 @@ select:focus {
         /* Use auto placement so multiple sections stack instead of overlapping */
         grid-row: auto; /* Removed explicit grid-row: 3 */
     }
-    
-    .attributes-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
 }
 
 @media (max-width: 640px) {
     .detail-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .attributes-grid {
         grid-template-columns: 1fr;
     }
     
@@ -1891,25 +1406,6 @@ select:focus {
 }
 
 /* End of Detail Page Layout Components */
-.multi-select-arrow { color: #999999; font-size: 10px; transition: transform 0.2s; margin-left: auto; }
-.filter-item .multi-select-dropdown {
-  display: none; position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
-  background-color: #1a1a0a; border: 1px solid #333333; border-radius: 6px; max-height: 300px;
-  overflow-y: auto; z-index: 200000; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-}
-.multi-select-dropdown.show { display: block !important; }
-.multi-select-dropdown.above { top: auto; bottom: 100%; margin-top: 0; margin-bottom: 4px; }
-.multi-select-option { padding: 8px 12px; cursor: pointer; transition: background-color 0.2s; }
-.multi-select-option:hover { background-color: #2a2a2a; }
-.multi-select-option label { display: flex; align-items: center; gap: 0; cursor: pointer; color: #e5e7eb; width: 100%; margin: 0; }
-/* Hide checkboxes in dropdown options - they remain functional but invisible */
-.multi-select-option input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-.multi-select-dropdown::-webkit-scrollbar { width: 8px; }
-.multi-select-dropdown::-webkit-scrollbar-track { background: #0a0a0a; }
-.multi-select-dropdown::-webkit-scrollbar-thumb { background: #333333; border-radius: 4px; }
-.multi-select-dropdown::-webkit-scrollbar-thumb:hover { background: #444444; }
-/* End shared multi-select styles */
-#subgenreDropdown.show { outline: 2px solid var(--slate); }
 /* Navigation: moved from fragments/navigation.html to global.css
    This keeps all layout variables and site-wide styles in one place.
 */
@@ -2056,6 +1552,77 @@ select:focus {
 .app-nav-link-discreet:hover {
   color: #9a9a9a;
   background-color: rgba(255,255,255,0.02);
+}
+
+/* Tools: shown inline while the whole bar fits; the toggle only appears in the folded layout below */
+.app-nav-tools-toggle {
+  display: none;
+}
+
+.app-nav-tools-menu {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Below this width brand + links + search + the 7 tool links no longer fit in one row,
+   so the tool links fold into a "Tools" dropdown (same behavior as Catalogs / Charts) */
+@media (min-width: 901px) and (max-width: 1760px) {
+  .app-nav-utilities .app-nav-tools-toggle {
+    display: block;
+  }
+
+  .app-nav-utilities .app-nav-tools-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    min-width: 180px;
+    padding: 8px 0;
+    background-color: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+  }
+
+  .app-nav-utilities:hover .app-nav-tools-menu,
+  .app-nav-utilities.touch-open .app-nav-tools-menu {
+    display: flex;
+  }
+
+  .app-nav-tools-menu .app-nav-link-discreet {
+    padding: 10px 16px;
+    border-radius: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .app-nav-tools-menu .app-nav-link-discreet:hover {
+    color: var(--text);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .app-nav-tools-menu .app-nav-link-discreet.active {
+    color: var(--text);
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Touch screens: the folded Tools menu opens on tap only, like the other dropdowns */
+@media (pointer: coarse) and (min-width: 901px) and (max-width: 1760px) {
+  .app-nav-utilities:hover .app-nav-tools-menu {
+    display: none;
+  }
+
+  .app-nav-utilities.touch-open .app-nav-tools-menu {
+    display: flex;
+  }
 }
 
 .app-nav-search {
@@ -2413,8 +1980,7 @@ select:focus {
   }
 }
 
-.search-bar button,
-.filter-toggle {
+.search-bar button {
   padding: 10px 20px;
   background-color: #2d5016;
   color: white;
@@ -2427,101 +1993,10 @@ select:focus {
   transition: all 0.2s;
 }
 
-.search-bar button:hover,
-.filter-toggle:hover {
+.search-bar button:hover {
   background-color: #3d6b1f;
   border-color: #4d8028;
   box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
-}
-
-/* Active filters chips */
-.active-filters {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 0;
-  margin-bottom: 15px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #333333 #0a0a0a;
-}
-
-.active-filters::-webkit-scrollbar {
-  height: 6px;
-}
-
-.active-filters::-webkit-scrollbar-track {
-  background: #0a0a0a;
-}
-
-.active-filters::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 3px;
-}
-
-.filter-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background-color: #2a2a2a;
-  border: 1px solid #404040;
-  border-radius: 16px;
-  font-size: 13px;
-  color: #e5e7eb;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.filter-chip:hover {
-  background-color: #3a3a3a;
-}
-
-.filter-chip-label {
-  font-weight: 500;
-}
-
-.filter-chip-value {
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 1.05em;
-}
-
-.filter-chip-remove {
-  background: none;
-  border: none;
-  color: #999999;
-  cursor: pointer;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.filter-chip-remove:hover {
-  color: #ffffff;
-}
-
-.clear-all-filters {
-  padding: 6px 12px;
-  background-color: #dc2626;
-  border: 1px solid #dc2626;
-  border-radius: 16px;
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.clear-all-filters:hover {
-  background-color: #b91c1c;
-  border-color: #b91c1c;
-  color: white;
 }
 
 /* Pagination info */
@@ -2582,235 +2057,12 @@ select:focus {
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Filter panel (sidebar) */
-.filter-section {
-  position: relative;
-}
-
-.filters {
-  display: none;
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 400px;
-  background-color: #0a0a0a;
-  border-left: 1px solid #2a2a2a;
-  z-index: 1000;
-  overflow-y: auto;
-  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.9);
-}
-
-.filter-header {
-  padding: 20px;
-  border-bottom: 1px solid #2a2a2a;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  background-color: #0a0a0a;
-  z-index: 10;
-}
-
-.filter-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #ffffff;
-}
-
-.filter-close {
-  background: none;
-  border: none;
-  color: #999999;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-.filter-close:hover {
-  color: #ffffff;
-}
-
-.filter-content {
-  padding: 20px;
-}
-
-.filter-item {
-  margin-bottom: 15px;
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  overflow: visible;
-  background-color: #1a1a1a;
-  position: relative;
-}
-
-.filter-item-header {
-  padding: 12px 15px;
-  cursor: pointer;
-}
-
-.filter-item-title {
-  font-size: 14px;
-  color: #e5e7eb;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-item-title::before {
-  content: '';
-  display: inline-block;
-  width: 0;
-  height: 0;
-  border-left: 5px solid #666666;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  transition: transform 0.2s;
-}
-
-.filter-item-header.active .filter-item-title::before {
-  transform: rotate(90deg);
-}
-
-.filter-item-chevron {
-  display: none;
-}
-
-.filter-item-chevron.expanded {
-  display: none;
-}
-
-.filter-item-content {
-  display: none;
-  padding: 15px;
-  border-top: 1px solid #2a2a2a;
-}
-
-.filter-item-content.expanded {
-  display: block;
-}
-
-.filter-modifiers {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.filter-modifier {
-  padding: 6px 12px;
-  background-color: #0a0a0a;
-  color: #999999;
-  border: 1px solid #333333;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.filter-modifier:hover {
-  background-color: #2a2a2a;
-  color: #e7e7eb;
-}
-
-.filter-modifier.active {
-  background-color: #2a2a2a;
-  color: #ffffff;
-  border-color: #404040;
-}
-
-.filter-note {
-  font-size: 12px;
-  color: #999999;
-  margin-top: 12px;
-  padding: 8px 12px;
-  background-color: rgba(255, 255, 255, 0.02);
-  border-left: 2px solid #404040;
-  border-radius: 4px;
-  line-height: 1.4;
-}
-
-.filter-actions {
-  padding: 20px;
-  border-top: 1px solid #2a2a2a;
-  display: flex;
-  gap: 10px;
-  position: sticky;
-  bottom: 0;
-  background-color: #0a0a0a;
-}
-
-.filter-actions button {
-  flex: 1;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-/* Alternative button names used in some templates */
-.btn-clear {
-  flex: 1;
-  padding: 10px;
-  min-height: 40px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: var(--slate);
-  color: white;
-  border: 1px solid #5a6b7a;
-}
-
-.btn-clear:hover {
-  background-color: var(--slate-hover);
-  border-color: #6b7b8a;
-}
-
-.btn-apply {
-  flex: 1;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: #2d5016 !important;
-  color: white !important;
-  border: 1px solid #3d6b1f !important;
-  box-shadow: 0 2px 4px rgba(45, 80, 22, 0.3);
-}
-
-.btn-apply:hover {
-  background-color: #3d6b1f !important;
-  border-color: #4d8028 !important;
-  box-shadow: 0 4px 8px rgba(45, 80, 22, 0.4);
-}
-
 /* Album cover thumbnail column */
 .cover-col { width: 68px; padding: 8px 12px; }
 
 /* Data section styling for main page */
 .data-section {
     margin-bottom: 32px;
-}
-
-/* Metadata links in list cards - use neutral styling like detail pages */
-.metadata-link {
-    color: #e5e7eb;
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.metadata-link:hover {
-    color: #ffffff;
-    text-decoration: none;
 }
 
 /* ==========================================
@@ -2824,43 +2076,9 @@ select:focus {
     gap: 24px;
 }
 
-/* Empty state message */
-.no-items-message {
-    padding: 32px;
-    text-align: center;
-    color: var(--text-muted);
-}
-
-.no-items-message p {
-    margin: 0;
-    font-size: 14px;
-}
-
-/* Item count in section title */
-.item-count {
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--text-muted);
-}
-
 /* ==========================================
    PLAY COUNT ICONS (Primary / Legacy / Total)
    ========================================== */
-
-/* Primary plays icon - light blue for current account (vatito) */
-.stat-icon.primary-plays {
-    color: #38bdf8; /* sky-400 - light blue */
-}
-
-/* Legacy plays icon - amber color for legacy account (robertlover) */
-.stat-icon.legacy-plays {
-    color: #f59e0b; /* amber-500 */
-}
-
-/* Total plays icon - green for combined total */
-.stat-icon.total-plays {
-    color: #22c55e; /* green-500 */
-}
 
 /* ==========================================
    SONG IMAGE HOVER EFFECT
@@ -3052,14 +2270,6 @@ input.flatpickr-input {
 input.flatpickr-input:focus {
     border-color: var(--slate) !important;
     outline: none !important;
-}
-
-/* Golden play count styling for high play counts */
-.golden-plays {
-    color: #fbbf24 !important;
-    font-weight: 700;
-    font-size: 1.1em;
-    text-shadow: 0 0 10px rgba(251, 191, 36, 0.7), 0 0 20px rgba(251, 191, 36, 0.5), 0 0 30px rgba(251, 191, 36, 0.3);
 }
 
 /* Searchable Select Component */
@@ -3316,7 +2526,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
     min-width: 0;
 }
 
-
 /* Small screens - tablets and phones */
 @media (max-width: 900px) {
     .desktop-only {
@@ -3433,24 +2642,11 @@ body.gender-other .mobile-row-expand-btn.expanded,
         min-width: 100%;
     }
     
-    /* Filter panel - full width on mobile */
-    .filters {
-        width: 100%;
-        left: 0;
-    }
-    
     /* Sort and page controls - stack better */
-    .sort-by-section,
-    .page-size-section {
+    .sort-by-section {
         display: block !important;
         margin-left: 0 !important;
         margin-top: 10px;
-    }
-    
-    /* Tables - allow horizontal scroll */
-    .table-wrapper {
-        margin: 0 -16px;
-        padding: 0 16px;
     }
     
     /* Detail page layout */
@@ -3464,12 +2660,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         grid-column: 1;
         max-width: 280px;
         margin: 0 auto 24px;
-    }
-    
-    /* Title with extra space on mobile to prevent tab overlap */
-    .item-name-overlay {
-        margin-bottom: 16px;
-        margin-top: 12px;
     }
     
     /* Detail tabs - single column on mobile */
@@ -3488,41 +2678,11 @@ body.gender-other .mobile-row-expand-btn.expanded,
         margin-bottom: 24px;
     }
     
-    .detail-content-card {
-        padding: 20px;
-    }
-    
     /* Detail content sections - stack on mobile */
     .detail-content-section {
         grid-column: 1 !important;
         grid-row: auto !important;
         margin-bottom: 24px;
-    }
-    
-    /* Stats grid - single column on mobile */
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    .stat-value {
-        font-size: 20px;
-    }
-    
-    /* Attributes grid - single column on mobile */
-    .attributes-grid {
-        grid-template-columns: 1fr !important;
-    }
-    
-    /* Item stats row on sidebar */
-    .item-stats {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    /* Section titles */
-    .section-title {
-        font-size: 16px;
     }
     
     /* Table mobile improvements - hide less important columns */
@@ -3554,14 +2714,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         min-width: 0;
     }
 
-    .top-table.mobile-compact-table th.mobile-name-col,
-    .top-table.mobile-compact-table td.mobile-name-col,
-    .table.mobile-compact-table th.mobile-name-col,
-    .table.mobile-compact-table td.mobile-name-col {
-        white-space: normal;
-        overflow-wrap: anywhere;
-    }
-
     .top-table.mobile-compact-table .mobile-table-detail-cell,
     .table.mobile-compact-table .mobile-table-detail-cell {
         white-space: normal;
@@ -3585,8 +2737,8 @@ body.gender-other .mobile-row-expand-btn.expanded,
         min-width: calc(50% - 4px);
     }
 
-    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
-    .top-table .cover-col .cover-placeholder {
+    .top-table .cover-col img,
+    .top-table .cover-col .hover-image-container {
         width: 36px;
         height: 36px;
     }
@@ -3637,13 +2789,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         aspect-ratio: 2/3 !important;
     }
 
-    .detail-sidebar .item-name-overlay {
-        grid-column: 2;
-        padding: 2px 0 0;
-        margin: 0;
-        min-width: 0;
-    }
-
     .detail-sidebar .item-name-top {
         font-size: clamp(20px, 4.4vw, 28px);
         line-height: 1.08;
@@ -3654,66 +2799,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
     .detail-sidebar .item-name-top .itunes-badge {
         margin-right: 8px;
         transform: translateY(-1px);
-    }
-
-    .detail-sidebar .song-metadata,
-    .detail-sidebar .album-metadata {
-        margin-top: 8px !important;
-        font-size: 13px !important;
-        line-height: 1.45 !important;
-        color: #cbd5e1 !important;
-    }
-
-    .detail-sidebar > .item-stats {
-        grid-column: 2;
-        margin: 0;
-        padding: 0;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        align-items: center;
-        font-size: 10px;
-        background: transparent;
-        border: none;
-        min-width: 0;
-    }
-
-    .detail-sidebar > .item-stats .stat {
-        min-width: 0;
-        gap: 6px;
-    }
-
-    .detail-sidebar > .item-stats .stat-icon {
-        font-size: 13px;
-    }
-
-    .detail-sidebar > .winning-chips,
-    .detail-sidebar > .ranking-chips-section {
-        grid-column: 1 / -1;
-        width: 100%;
-        margin: 4px 0 0 !important;
-        padding: 0 !important;
-        text-align: left;
-    }
-
-    .detail-sidebar > .ranking-chips-section .winning-chips,
-    .detail-sidebar > .winning-chips {
-        gap: 8px;
-        margin-bottom: 0;
-    }
-
-    .detail-sidebar .winning-chip {
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-        padding: 5px 10px;
-        font-size: 10px;
-        line-height: 1.3;
-        white-space: normal;
-    }
-
-    .detail-sidebar .chip-group-separator {
-        margin: 4px 0 2px;
     }
     
     /* Image upload overlay - compact on mobile */
@@ -3730,30 +2815,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         font-size: 11px;
     }
     
-    /* Section header - stack title and buttons on mobile */
-    .section-header {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-    
-    .section-header .section-title {
-        font-size: 12px;
-        letter-spacing: 1px;
-    }
-    
-    .edit-button-container {
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    
-    .edit-button-container .btn-action,
-    .edit-button-container .btn-negative,
-    .edit-button-container .btn-view-samples {
-        padding: 8px 12px;
-        font-size: 12px;
-        min-height: 36px;
-    }
-    
     /* Form groups - more compact on mobile */
     .form-group {
         padding: 8px 12px;
@@ -3761,10 +2822,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
     
     .form-group label {
         font-size: 11px;
-    }
-    
-    .attribute-text {
-        font-size: 14px;
     }
 }
 
@@ -3810,19 +2867,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         width: 100%;
     }
     
-    /* Detail content cards - even more compact */
-    .detail-content-card {
-        padding: 16px;
-    }
-    
-    .stat-value {
-        font-size: 18px;
-    }
-    
-    .stat-label {
-        font-size: 11px;
-    }
-    
     /* Tables - compact mode */
     .table th,
     .table td {
@@ -3839,8 +2883,8 @@ body.gender-other .mobile-row-expand-btn.expanded,
         padding: 6px 4px;
     }
     
-    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
-    .top-table .cover-col .cover-placeholder {
+    .top-table .cover-col img,
+    .top-table .cover-col .hover-image-container {
         width: 32px;
         height: 32px;
     }
@@ -3867,49 +2911,10 @@ body.gender-other .mobile-row-expand-btn.expanded,
         aspect-ratio: 2/3 !important;
     }
 
-    .detail-sidebar .item-name-overlay {
-        align-self: start;
-    }
-
     .detail-sidebar .item-name-top {
         font-size: 18px;
         line-height: 1.12;
         margin-bottom: 4px;
-    }
-
-    .detail-sidebar .song-metadata,
-    .detail-sidebar .album-metadata {
-        margin-top: 6px !important;
-        font-size: 12px !important;
-    }
-
-    .detail-sidebar > .winning-chips,
-    .detail-sidebar > .ranking-chips-section {
-        grid-column: 1 / -1;
-    }
-
-    .detail-sidebar > .item-stats {
-        grid-column: 2;
-        padding: 0;
-        gap: 8px;
-        font-size: 10px;
-    }
-
-    .detail-sidebar > .item-stats .stat {
-        gap: 4px;
-    }
-
-    .detail-sidebar > .item-stats .stat-icon {
-        font-size: 12px;
-    }
-
-    .detail-sidebar .winning-chip {
-        font-size: 9px;
-        padding: 4px 8px;
-    }
-
-    .detail-sidebar .chip-group-separator {
-        margin: 3px 0 1px;
     }
     
     /* Hide image upload overlay on very small screens - tap image to edit */
@@ -3942,48 +2947,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         right: 4px;
     }
     
-    /* Section header - fully stacked on phone */
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 12px;
-        gap: 8px;
-    }
-    
-    .section-header .section-title {
-        font-size: 11px;
-    }
-    
-    .edit-button-container {
-        width: 100%;
-        justify-content: flex-start;
-    }
-    
-    .edit-button-container .btn-action,
-    .edit-button-container .btn-negative,
-    .edit-button-container .btn-view-samples {
-        flex: 1;
-        max-width: 100px;
-        padding: 8px 10px;
-        font-size: 11px;
-        min-height: 38px;
-    }
-    
-    /* Detail content cards - tighter padding */
-    .detail-content-card {
-        border-radius: 10px;
-    }
-    
-    .detail-content-card > .section-title,
-    .detail-content-card > .section-header {
-        border-radius: 10px 10px 0 0;
-    }
-    
-    /* Form sections more compact */
-    .form-section {
-        padding: 8px !important;
-    }
-    
     .form-group {
         padding: 6px 10px;
     }
@@ -3993,24 +2956,10 @@ body.gender-other .mobile-row-expand-btn.expanded,
         margin-bottom: 2px;
     }
     
-    .attribute-text {
-        font-size: 13px;
-    }
-    
     /* Pagination - very compact */
     .pagination .page-btn {
         padding: 6px 10px;
         min-height: 36px;
-    }
-    
-    /* Active filters - horizontal scroll indicator */
-    .active-filters {
-        padding-bottom: 16px;
-    }
-    
-    /* Filter panel header */
-    .filter-header h3 {
-        font-size: 16px;
     }
     
     /* Modal adjustments */
@@ -4030,17 +2979,6 @@ body.gender-other .mobile-row-expand-btn.expanded,
         align-items: center;
     }
 
-    .filter-modifier {
-        min-height: 40px;
-        padding: 10px 14px;
-    }
-    
-    .filter-item-header {
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-    }
-    
     /* Checkbox and radio - larger */
     input[type="checkbox"],
     input[type="radio"] {
@@ -4066,25 +3004,5 @@ body.gender-other .mobile-row-expand-btn.expanded,
     }
 }
 
-
-
-
 /* Inline flag next to names inside featured cards */
-.inline-flag {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 15px;
-    border-radius: 2px;
-    overflow: hidden;
-    margin-right: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    flex-shrink: 0;
-}
-.inline-flag img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+

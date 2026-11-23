@@ -43,6 +43,11 @@ public class OverviewCacheService {
         return new ArrayList<>((List<T>) entry.rows());
     }
 
+    /** Drops every entry whose key starts with the prefix, so the next read reloads it (after a link, merge or import). */
+    public void invalidate(String prefix) {
+        entries.keySet().removeIf(key -> key.startsWith(prefix));
+    }
+
     private record CacheEntry(long createdAtNanos, List<?> rows) {
     }
 }

@@ -1,0 +1,281 @@
+/* ==========================================================================
+   TRL Chart Entries (templates/misc/trl-chart-entries.html). Same look as the
+   redesign: gradient card, uppercase captions, pill buttons, Space Grotesk
+   numbers. Source rows are green, Target rows orange.
+   ========================================================================== */
+
+.tce-page {
+    --tce-c: #a1a1aa;
+    --tce-t: #d4d4d8;
+    --tce-bd: rgba(161, 161, 170, 0.3);
+    --tce-bg: #18181a;
+    --tce-bg2: #121214;
+    --tce-hair: rgba(161, 161, 170, 0.15);
+    --tce-lbl: rgba(212, 212, 216, 0.62);
+    --tce-mut: rgba(212, 212, 216, 0.72);
+    --tce-tintb: rgba(161, 161, 170, 0.4);
+    --tce-ink: #111114;
+    --tce-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+    --tce-src: #4ade80;
+    --tce-src-t: #86efac;
+    --tce-tgt: #fb923c;
+    --tce-tgt-t: #fdba74;
+    padding-bottom: 96px;
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+/* ── Header ── */
+.tce-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 24px 0 16px;
+}
+
+.tce-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tce-lbl);
+}
+
+.tce-crumbs a { color: inherit; }
+.tce-crumbs a:hover { color: #fff; text-decoration: none; }
+
+.tce-head h1 {
+    margin: 0;
+    font-family: var(--tce-num);
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.tce-sub {
+    margin: 0;
+    font-size: 13px;
+    color: var(--tce-mut);
+}
+
+.tce-sub b {
+    font-family: var(--tce-num);
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #f2f2f4;
+}
+
+/* ── Card ── */
+.tce-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 20px 20px;
+    border: 1px solid var(--tce-bd);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--tce-bg) 0%, var(--tce-bg2) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ── Toolbar ── */
+.tce-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.tce-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 220px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--tce-hair);
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--tce-lbl);
+    transition: border-color 0.15s ease;
+}
+
+.tce-search:focus-within { border-color: var(--tce-tintb); }
+
+.tce-search input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    color: #f2f2f4;
+    font: 500 13px Inter, system-ui, sans-serif;
+    outline: none;
+}
+
+.tce-search input::placeholder { color: var(--tce-lbl); }
+
+.tce-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 11px;
+    border: 1px solid var(--tce-hair);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--tce-mut);
+    font: 600 13px Inter, system-ui, sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.tce-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--tce-tintb);
+}
+
+/* ── Selection bar ── */
+.tce-selection {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 22px;
+    padding: 11px 14px;
+    border: 1px solid var(--tce-hair);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.22);
+    font-size: 13px;
+    color: var(--tce-mut);
+}
+
+.tce-selection.visible { display: flex; }
+
+.tce-sel {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.tce-sel-value { color: #f2f2f4; font-weight: 600; }
+
+/* ── Role pills ── */
+.tce-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--tce-hair);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.tce-pill.source { border-color: rgba(74, 222, 128, 0.35); background: rgba(74, 222, 128, 0.12); color: var(--tce-src-t); }
+.tce-pill.target { border-color: rgba(251, 146, 60, 0.35); background: rgba(251, 146, 60, 0.12); color: var(--tce-tgt-t); }
+
+/* ── Table ── */
+.tce-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tce-table th,
+.tce-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--tce-hair);
+    text-align: left;
+    vertical-align: middle;
+    font-size: 13px;
+}
+
+.tce-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--tce-bg);
+    box-shadow: inset 0 -1px 0 var(--tce-hair);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--tce-lbl);
+    white-space: nowrap;
+}
+
+.tce-table .center { text-align: center; }
+.tce-table .tce-role { width: 100px; }
+
+.tce-table .tce-count {
+    width: 120px;
+    font-family: var(--tce-num);
+    font-variant-numeric: tabular-nums;
+    color: var(--tce-mut);
+}
+
+.tce-table tbody tr[data-artist] {
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.tce-table tbody tr[data-artist]:hover { background: rgba(255, 255, 255, 0.03); }
+
+.tce-table tbody tr.ce-source { background: rgba(74, 222, 128, 0.08); }
+.tce-table tbody tr.ce-source:hover { background: rgba(74, 222, 128, 0.12); }
+.tce-table tbody tr.ce-source td:first-child { box-shadow: inset 3px 0 0 var(--tce-src); }
+
+.tce-table tbody tr.ce-target { background: rgba(251, 146, 60, 0.08); }
+.tce-table tbody tr.ce-target:hover { background: rgba(251, 146, 60, 0.12); }
+.tce-table tbody tr.ce-target td:first-child { box-shadow: inset 3px 0 0 var(--tce-tgt); }
+
+.tce-table tbody tr.ce-hidden { display: none; }
+
+.tce-empty {
+    padding: 36px 16px;
+    text-align: center;
+    color: var(--tce-mut);
+}
+
+/* ── Floating merge button ── */
+.tce-merge {
+    display: none;
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    z-index: 1000;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 13px;
+    border: 1px solid var(--tce-c);
+    background: var(--tce-c);
+    color: var(--tce-ink);
+    font: 700 13.5px Inter, system-ui, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.tce-merge:hover { background: var(--tce-t); border-color: var(--tce-t); }
+
+@media (max-width: 1100px) {
+    .tce-table-wrap { overflow-x: auto; }
+}
+
+@media (max-width: 768px) {
+    .tce-head h1 { font-size: 32px; }
+    .tce-card { padding: 14px; }
+    .tce-search { min-width: 0; width: 100%; }
+    .tce-merge { right: 16px; bottom: 16px; }
+}

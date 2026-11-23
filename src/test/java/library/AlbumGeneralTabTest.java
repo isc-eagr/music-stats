@@ -113,32 +113,32 @@ class AlbumGeneralTabTest {
         String html = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
         Document detail = Jsoup.parse(html);
 
-        Element page = detail.selectFirst("div.container-wide.album-detail.ad-page");
+        Element page = detail.selectFirst("div.container-wide.album-detail.dt-page");
         assertThat(page).isNotNull();
-        assertThat(page.selectFirst("> .detail-grid > aside.detail-sidebar.ad-card#albumSidebar")).isNotNull();
-        Element main = page.selectFirst("> .detail-grid > div.ad-main");
+        assertThat(page.selectFirst("> .detail-grid > aside.detail-sidebar.dt-card#albumSidebar")).isNotNull();
+        Element main = page.selectFirst("> .detail-grid > div.dt-main");
         assertThat(main).isNotNull();
         for (String id : List.of("generalSectionContent", "albumSongs", "playsTabContent", "featuredTabContent", "chartHistoryTabContent")) {
-            assertThat(main.getElementById(id)).describedAs(id + " inside .ad-main").isNotNull();
+            assertThat(main.getElementById(id)).describedAs(id + " inside .dt-main").isNotNull();
         }
 
         // Profile edits in place inside the sidebar card, keeping the form action and field names
         Element sidebar = detail.getElementById("albumSidebar");
-        Element form = sidebar.selectFirst("form#albumForm.ad-profile-edit");
+        Element form = sidebar.selectFirst("form#albumForm.dt-profile-edit");
         assertThat(form).isNotNull();
         assertThat(form.attr("method")).isEqualTo("post");
         assertThat(form.attr("th:action")).isEqualTo("@{'/albums/' + ${album.id}}");
         for (String field : List.of("name", "releaseDate", "overrideGenreId", "overrideSubgenreId",
                 "overrideLanguageId", "organized", "tags")) {
-            assertThat(form.select(".ad-fb[data-field=" + field + "]")).describedAs("field box for " + field).hasSize(1);
+            assertThat(form.select(".dt-fb[data-field=" + field + "]")).describedAs("field box for " + field).hasSize(1);
         }
         for (String name : List.of("artistId", "name", "releaseDate", "overrideGenreId", "overrideSubgenreId",
                 "overrideLanguageId", "organized")) {
             assertThat(form.select("[name=" + name + "]")).describedAs("form field " + name).hasSize(1);
         }
-        assertThat(form.select(".ad-fb[data-field=organized] .ad-switch input[type=checkbox]")).hasSize(1);
+        assertThat(form.select(".dt-fb[data-field=organized] .dt-switch input[type=checkbox]")).hasSize(1);
         assertThat(form.select("#overrideLanguageId option[value='']").attr("th:text")).contains("inheritedLanguageName");
-        assertThat(sidebar.select("#deleteBtn.ad-menu-item")).hasSize(1);
+        assertThat(sidebar.select("#deleteBtn.dt-menu-item")).hasSize(1);
         assertThat(sidebar.select("#profileMenu")).hasSize(1);
         // Overridable rows tell the shared rank row where the value comes from
         assertThat(html).contains("${album.overrideGenreId != null ? 'override' : artistName}")
@@ -151,33 +151,24 @@ class AlbumGeneralTabTest {
 
         // Tracklist: header-only single-key sort, no chips, no mini bars, every row sortable
         Element songs = detail.getElementById("albumSongs");
-        assertThat(songs.classNames()).contains("ad-card", "ad-section", "general-tab-section");
-        assertThat(songs.select("table.ad-table")).hasSize(1);
+        assertThat(songs.classNames()).contains("dt-card", "dt-section", "general-tab-section");
+        assertThat(songs.select("table.dt-table")).hasSize(1);
         assertThat(songs.select("[data-sort-container]")).hasSize(1);
         assertThat(songs.select("tr[data-sort-item]")).hasSize(1);
-        assertThat(songs.select(".ad-sortbar, .ad-sort-chip, .ad-mb")).isEmpty();
+        assertThat(songs.select(".dt-sortbar, .dt-sort-chip, .dt-mb")).isEmpty();
         assertThat(songs.select("th [data-sort-key]").eachAttr("data-sort-key")).containsExactly(
                 "tracknumber", "name", "totalplays", "primaryplays", "legacyplays", "length",
                 "releasedate", "firstlistened", "lastlistened", "timelistened");
         assertThat(songs.select("button.mobile-row-expand-btn")).hasSize(1);
         assertThat(html).contains("/js/detail-sort.js(v=2)")
-                .contains("initDetailSort('albumSongs', { defaultKey: 'tracknumber', defaultDir: 'asc' })")
-                .doesNotContain("initTopTableSort")
-                .doesNotContain("top-table-sort.js");
+                .contains("initDetailSort('albumSongs', { defaultKey: 'tracknumber', defaultDir: 'asc' })");
 
         // Stats card with the plays split and medal year tiles; the #1 crowns moved to Chart History
-        Element stats = detail.selectFirst("#generalSectionContent section.ad-card.ad-stats");
+        Element stats = detail.selectFirst("#generalSectionContent section.dt-card.dt-stats");
         assertThat(stats).isNotNull();
-        assertThat(stats.select(".ad-share-legend [th:each]")).isNotEmpty();
+        assertThat(stats.select(".dt-share-legend [th:each]")).isNotEmpty();
         assertThat(html).contains("is-medal is-gold").contains("is-medal is-silver").contains("is-medal is-bronze")
-                .doesNotContain("ad-crown").doesNotContain("numberOne");
-
-        // Old ranking chips, General/Statistics cards and their leftovers are gone
-        assertThat(html).doesNotContain("winning-chip")
-                .doesNotContain("detail-stats-panel")
-                .doesNotContain("attribute-text")
-                .doesNotContain("formActions")
-                .doesNotContain("golden-plays");
+                .doesNotContain("dt-crown").doesNotContain("numberOne");
 
         // Shared detail styles load last, then the album-only sheet
         List<String> sheets = detail.select("link[rel=stylesheet]").eachAttr("th:href");

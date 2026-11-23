@@ -3,22 +3,13 @@ package library;
 import library.service.CatalogDetailService;
 import library.service.CatalogDetailService.Detail;
 import library.service.CatalogDetailService.Dimension;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.context.IExpressionContext;
-import org.thymeleaf.linkbuilder.StandardLinkBuilder;
-import org.thymeleaf.spring6.SpringTemplateEngine;
-import org.thymeleaf.templateresolver.StringTemplateResolver;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Locale;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -128,6 +119,17 @@ class CatalogDetailServiceTest {
     }
 
     @Test
+    void yearPillValuesStayShort() {
+        assertThat(CatalogDetailService.compactCount(999)).isEqualTo("999");
+        assertThat(CatalogDetailService.compactCount(1000)).isEqualTo("1k");
+        assertThat(CatalogDetailService.compactCount(1250)).isEqualTo("1.3k");
+        assertThat(CatalogDetailService.compactCount(12400)).isEqualTo("12k");
+        assertThat(CatalogDetailService.compactTime(1800)).isEqualTo("30m");
+        assertThat(CatalogDetailService.compactTime(5 * 3600 + 1200)).isEqualTo("5h");
+        assertThat(CatalogDetailService.compactTime(1500L * 3600)).isEqualTo("63d");
+    }
+
+    @Test
     void yearsCarryTheRankAmongPeersAndPeersAreRankedTwoWays() {
         Detail d = service.build(Dimension.GENRE, "1").orElseThrow();
         assertThat(d.years()).hasSize(20);
@@ -136,6 +138,12 @@ class CatalogDetailServiceTest {
         assertThat(d.years().get(18).year()).isEqualTo(2023);
         assertThat(d.years().get(18).rank()).isEqualTo(1);
         assertThat(d.years().get(19).rank()).isEqualTo(2);
+        // Time has its own yearly rank and value, so the Time toggle changes the pills too
+        assertThat(d.years().get(18).plays()).isEqualTo("3");
+        assertThat(d.years().get(18).playsTitle()).endsWith("· 3 plays");
+        assertThat(d.years().get(18).timeRank()).isNotNull();
+        assertThat(d.years().get(18).timeTitle()).endsWith("listened");
+        assertThat(d.years().get(1).timeRank()).isNull();
         assertThat(d.playsStream().male()).startsWith("M").endsWith("Z");
         assertThat(d.playsStream().note()).isEqualTo("Peak year 2023 with 3 plays");
         assertThat(d.byPlays()).extracting(CatalogDetailService.PeerRow::name).containsExactly("Reggaeton", "Pop");
@@ -143,6 +151,17 @@ class CatalogDetailServiceTest {
         // Pop is 4 of 5 male plays (80%) against Reggaeton's 57%
         assertThat(d.byMale()).extracting(CatalogDetailService.PeerRow::name).containsExactly("Pop", "Reggaeton");
         assertThat(d.byMale().get(1).rank()).isEqualTo(2);
+    }
+
+    @Test
+    void globalRhythmCountsEveryPlayIncludingUnmatchedOnes() {
+        jdbc.update("INSERT INTO Play (play_date, song_id, account) VALUES ('2024-06-10 09:30', NULL, 'vatito')"); // Monday, unmatched
+        var r = service.globalRhythm();
+        assertThat(r.hourNote()).isEqualTo("Peak hour 09:00 · 50.0% of plays");
+        assertThat(r.weekBands()).extracting(CatalogDetailService.Band::share).containsExactly(75, 25);
+        assertThat(r.weekNote()).isEqualTo("Peak day Friday · 41.7% of plays");
+        assertThat(r.monthNote()).isEqualTo("Peak month March · 33.3% of plays");
+        assertThat(r.excludedNote()).contains("Leaves out 1 plays from 13/02/2005");
     }
 
     @Test
@@ -168,6 +187,9 @@ class CatalogDetailServiceTest {
         assertThat(sub.parentName()).isEqualTo("Reggaeton");
         assertThat(sub.parentHref()).isEqualTo("/genres/1");
         assertThat(sub.breakdownTitle()).isEqualTo("Countries");
+        Document subPage = DetailTemplateSupport.render("catalog/detail", ".cd-page", Map.of("d", sub));
+        assertThat(subPage.select(".cd-eyebrow").text()).isEqualTo("Subgenre of Reggaeton");
+        assertThat(subPage.select(".cd-eyebrow a").attr("href")).isEqualTo("/genres/1");
 
         Detail country = service.build(Dimension.COUNTRY, "Puerto Rico").orElseThrow();
         assertThat(country.plays()).isEqualTo(8);
@@ -182,19 +204,14 @@ class CatalogDetailServiceTest {
     @Test
     void pageRendersEverySection() throws Exception {
         Detail d = service.build(Dimension.GENRE, "1").orElseThrow();
-        String template = Files.readString(Path.of("src/main/resources/templates/catalog/detail.html"))
-                .replaceAll("<th:block th:replace=\"~\\{fragments/navigation :: [a-z-]+}\"></th:block>", "");
-        var engine = new SpringTemplateEngine();
-        engine.setTemplateResolver(new StringTemplateResolver());
-        engine.setLinkBuilder(new StandardLinkBuilder() {
-            @Override
-            protected String computeContextPath(IExpressionContext context, String base, Map<String, Object> parameters) {
-                return "";
-            }
-        });
-        Document doc = Jsoup.parse(engine.process(template, new Context(Locale.ENGLISH, Map.of("d", d))));
+        Document doc = DetailTemplateSupport.render("catalog/detail", ".cd-page", Map.of("d", d));
         assertThat(doc.select(".cd-page").hasClass("gender-male")).isTrue();
         assertThat(doc.select(".cd-hero h1").text()).isEqualTo("Reggaeton");
+        // Rank and share are the standing numbers, the play dates sit under the name
+        assertThat(doc.select(".cd-stand b").eachText()).containsExactly("#1", "58%");
+        assertThat(doc.select(".cd-stand-l").eachText()).containsExactly("of 2 genres by plays", "of all your plays");
+        assertThat(doc.select(".cd-stand.is-top")).hasSize(1);
+        assertThat(doc.select(".cd-hero-sub").text()).isEqualTo("First play 13/02/2005 · last play 09/06/2024");
         assertThat(doc.select(".cd-tile")).hasSize(6);
         assertThat(doc.select("a.cd-tile").eachAttr("href")).containsExactly(
                 "/artists?genre=1&genreMode=includes&view=table", "/albums?genre=1&genreMode=includes&view=table",
@@ -207,13 +224,18 @@ class CatalogDetailServiceTest {
                 .isEqualTo("/songs?genre=1&genreMode=includes&subgenre=10&subgenreMode=includes&view=table");
         assertThat(doc.select("[data-cd-stream]")).hasSize(2);
         assertThat(doc.select(".cd-pill")).hasSize(20);
-        assertThat(doc.select(".cd-pill b.is-one")).hasSize(2);
+        assertThat(doc.select(".cd-pill [data-cd-pill=plays] b.is-one")).hasSize(2);
+        assertThat(doc.select(".cd-pill [data-cd-pill=time]")).hasSize(20).allMatch(e -> e.hasAttr("hidden"));
+        assertThat(doc.select(".cd-pill [data-cd-pill=plays]")).noneMatch(e -> e.hasAttr("hidden"));
         assertThat(doc.select(".cd-peer.is-self")).hasSize(2);
         assertThat(doc.select(".dp-hours > i")).hasSize(24);
         assertThat(doc.select(".dp-wk .dp-sband")).hasSize(2);
         assertThat(doc.select(".dp-wk > div")).hasSize(7);
         assertThat(doc.select(".dp-moy:not(.dp-wk) > div")).hasSize(12);
         assertThat(doc.select(".cd-mix")).hasSize(3);
+        // The mixes sit right under the gender / breakdown row, before the peers and the rhythm panels
+        assertThat(doc.select(".cd-page > *").eachAttr("class")).containsSubsequence(
+                "cd-row", "cd-mixes", "dt-card cd-card cd-peers", "dt-card cd-card cd-when");
         // No tabs: everything lives on one page
         assertThat(doc.select("[role=tablist], .detail-tabs")).isEmpty();
     }

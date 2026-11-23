@@ -144,11 +144,13 @@ class PlaygroundTest {
         assertThat(((PlaygroundService.YearHeatmap) defaultModel.get("heatmap")).year())
                 .isEqualTo(service.getYears().getFirst());
         assertThatThrownBy(() -> controller.playground(0, model)).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> controller.playground(2024, "flashback", model))
+                .as("Flashback tab was removed").isInstanceOf(ResponseStatusException.class);
 
         // Render the actual page without shared navigation, which requires a servlet request.
         String template = Files.readString(Path.of("src/main/resources/templates/playground.html"))
                 .replaceAll("<th:block th:replace=\"[^\"]*\"></th:block>", "")
-                .replace("@{/css/global.css}", "'/css/global.css'")
+                .replace("@{/css/global.css(v=3)}", "'/css/global.css'")
                 .replace("@{/css/playground.css}", "'/css/playground.css'");
         var engine = new SpringTemplateEngine();
         engine.setTemplateResolver(new StringTemplateResolver());
@@ -189,26 +191,11 @@ class PlaygroundTest {
         String template = Files.readString(Path.of("src/main/resources/templates/playground.html"));
         var document = Jsoup.parse(template);
         assertThat(document.select("#year").attr("onchange")).isEqualTo("this.form.submit()");
-        assertThat(document.select(".flashback-controls button[type=submit]")).hasSize(1)
-                .extracting(element -> element.text()).containsExactly("Generate recap");
         assertThat(template).doesNotContain("A year of listening")
                 .doesNotContain("Blue for male")
                 .doesNotContain("Brighter green means")
                 .doesNotContain("Hover, focus, or tap")
                 .doesNotContain("Dates use Mexico City time");
-    }
-
-    @Test
-    void flashbackTemplateShowsSixQuickFactsAndGenreRankings() throws Exception {
-        String template = Files.readString(Path.of("src/main/resources/templates/playground.html"));
-        var document = Jsoup.parse(template);
-        assertThat(document.select(".flashback-fact")).hasSize(6);
-        assertThat(document.select(".flashback-facts").text()).contains("New artists", "New songs")
-                .doesNotContain("Loved tracks", "Events attended");
-        assertThat(document.select("#top-overall-heading").text()).isEqualTo("Top 30 Overall");
-        assertThat(document.select(".flashback-genre-grid")).hasSize(1);
-        assertThat(document.select("#flashback-review-type option")).extracting(element -> element.attr("value"))
-                .containsExactly("year", "season", "month");
     }
 
     @Test

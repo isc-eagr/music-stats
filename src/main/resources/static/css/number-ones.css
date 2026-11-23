@@ -1,0 +1,195 @@
+/* ==========================================================================
+   Number Ones (Weekly, Hot 100, TRL, Vato's Cuntdown): year / search filters
+   and the runs table. Color tokens come from .co-page in chart-overview.css.
+   Prefix: n1-
+   ========================================================================== */
+
+.n1-page .catalog-toolbar { margin-bottom: 18px; }
+
+.n1-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.n1-male-text { color: var(--co-male-text); }
+.n1-female-text { color: var(--co-female-text); }
+
+/* Year bar halves */
+.n1-share-male { background: var(--co-male-strong); }
+.n1-share-female { background: var(--co-female-strong); }
+
+/* Filters */
+.n1-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.n1-filter-side { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+
+.n1-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--co-label);
+}
+
+.n1-field select,
+.n1-field input {
+    min-height: 36px;
+    padding: 0 10px;
+    background: var(--co-fill);
+    color: #e4e4e7;
+    border: 1px solid #2a2a2f;
+    border-radius: 8px;
+    font: 400 13px Inter, system-ui, sans-serif;
+}
+
+.n1-search input { width: 240px; }
+
+/* Table */
+.n1-table-wrap {
+    background: var(--co-panel);
+    border: 1px solid var(--co-line);
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+.n1-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.n1-table th {
+    padding: 8px 12px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--co-line);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--co-label);
+    background: var(--co-panel, #0c0c0e);
+}
+
+.n1-table th button {
+    all: unset;
+    cursor: pointer;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.n1-table th button:hover,
+.n1-table th button.sorted { color: #f4f4f5; }
+.n1-table th button.sorted::after { content: '\25BC'; font-size: 9px; }
+.n1-table th button.sorted.asc::after { content: '\25B2'; }
+
+.n1-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--co-line-soft);
+    font-size: 14px;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.n1-table tbody tr:last-child td { border-bottom: 0; }
+.n1-row.n1-male { background: rgba(59, 130, 246, .06); }
+.n1-row.n1-female { background: rgba(236, 72, 153, .08); }
+.n1-row:hover { background: var(--co-fill-hover); }
+
+.n1-col-cover { width: 44px; padding-right: 0 !important; }
+
+.n1-cover {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.n1-cover-empty { background: var(--co-fill); }
+
+.n1-title a, .n1-title span { color: #fff; font-weight: 600; }
+.n1-title a:hover { color: var(--co-accent); }
+
+.n1-artist a, .n1-artist span:not(.n1-dot) { color: var(--co-muted); }
+.n1-artist a:hover { color: #fff; }
+
+.n1-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: #71717a;
+}
+
+.n1-male .n1-dot { background: var(--co-male); }
+.n1-female .n1-dot { background: var(--co-female); }
+
+.n1-length { display: flex; align-items: center; gap: 10px; }
+
+.n1-length-value {
+    min-width: 18px;
+    font-family: var(--co-num);
+    font-weight: 700;
+    color: var(--co-accent);
+}
+
+.n1-ticks { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--co-muted); }
+.n1-tick { width: 9px; height: 14px; border-radius: 2px; background: #71717a; }
+.n1-male .n1-tick { background: var(--co-male-strong); }
+.n1-female .n1-tick { background: var(--co-female-strong); }
+
+.n1-date { font-family: var(--co-num); color: #d4d4d8; font-variant-numeric: tabular-nums; }
+.n1-date-end { color: var(--co-muted); }
+
+.n1-num {
+    text-align: center !important;
+    font-family: var(--co-num);
+    font-variant-numeric: tabular-nums;
+}
+
+.n1-cumulative { color: var(--co-gold); font-weight: 600; }
+.n1-total { color: #fff; font-weight: 700; }
+
+/* Year group rows, only while sorted by date */
+.n1-year td { padding: 14px 12px 8px; background: var(--co-panel); }
+.n1-year-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.n1-year-label { font-family: var(--co-num); font-size: 20px; font-weight: 700; color: #f4f4f5; }
+.n1-year-stats { font-size: 12px; color: var(--co-muted); }
+.n1-year-stats b { font-family: var(--co-num); }
+
+.n1-year-bar {
+    flex: 0 1 260px;
+    display: flex;
+    height: 6px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--co-fill);
+}
+
+.n1-empty-filter,
+.n1-empty {
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--co-muted);
+}
+
+.n1-foot { margin-top: 10px; font-size: 12px; color: var(--co-label); }
+
+@media (max-width: 900px) {
+    .n1-filter-side { margin-left: 0; width: 100%; }
+    .n1-search, .n1-search input { flex: 1; width: auto; }
+}

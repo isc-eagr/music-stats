@@ -1,0 +1,821 @@
+/* ==========================================================================
+   Import Plays (templates/insertPlaysForm.html) and the CSV Import Result page
+   (templates/insertPlaysResult.html). Same look as the redesign: gradient cards,
+   uppercase captions with hairlines, pill buttons, Space Grotesk numbers.
+   ========================================================================== */
+
+.ip-page,
+.ip-dialog-overlay {
+    --ip-bd: rgba(161, 161, 170, 0.3);
+    --ip-bg: #18181a;
+    --ip-bg2: #121214;
+    --ip-hair: rgba(161, 161, 170, 0.15);
+    --ip-lbl: #8f8f96;
+    --ip-mut: #b4b4bb;
+    --ip-tintb: rgba(161, 161, 170, 0.4);
+    --ip-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+    --ip-ok: #4ade80;
+    --ip-ok-t: #86efac;
+    --ip-warn: #fbbf24;
+    --ip-warn-t: #fcd34d;
+    --ip-bad: #f87171;
+    --ip-bad-t: #fca5a5;
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+.ip-page [hidden],
+.ip-dialog-overlay[hidden] { display: none !important; }
+
+.ip-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 24px;
+    padding-bottom: 48px;
+}
+
+.ip-num {
+    font-family: var(--ip-num);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Header ── */
+.ip-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ip-eyebrow,
+.ip-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ip-lbl);
+}
+
+.ip-head h1 {
+    margin: 0;
+    font-family: var(--ip-num);
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.ip-cap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    margin: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ip-lbl);
+}
+
+.ip-cap::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--ip-hair);
+}
+
+/* ── Cards ── */
+.ip-card {
+    padding: 20px 22px;
+    border: 1px solid var(--ip-bd);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--ip-bg) 0%, var(--ip-bg2) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ── Automation strip ── */
+.ip-strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    padding: 14px 18px;
+    border: 1px solid var(--ip-bd);
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--ip-bg) 0%, var(--ip-bg2) 100%);
+    font-size: 13px;
+    color: var(--ip-mut);
+}
+
+.ip-strip b { color: #f2f2f4; }
+
+.ip-strip-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ip-strip-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 5px;
+    background: #71717a;
+}
+
+.ip-strip-dot.is-on {
+    background: var(--ip-ok);
+    box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.15);
+}
+
+.ip-strip .ip-strip-issue b { color: var(--ip-bad-t); }
+
+.ip-strip-link {
+    margin-left: auto;
+    font-weight: 600;
+    color: #d4d4d8;
+}
+
+.ip-strip-link:hover { color: #fff; }
+
+/* ── Buttons ── */
+.ip-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    box-sizing: border-box;
+    border-radius: 11px;
+    border: 1px solid rgba(161, 161, 170, 0.18);
+    background: rgba(255, 255, 255, 0.04);
+    color: #f2f2f4;
+    font: 600 13px Inter, system-ui, sans-serif;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.ip-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--ip-tintb);
+    color: #fff;
+    text-decoration: none;
+}
+
+.ip-btn--primary {
+    background: #e4e4e7;
+    border-color: #e4e4e7;
+    color: #111114;
+}
+
+.ip-btn--primary:hover {
+    background: #fff;
+    border-color: #fff;
+    color: #111114;
+}
+
+.ip-btn--ghost {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.14);
+    color: var(--ip-mut);
+}
+
+.ip-btn--attention {
+    background: var(--ip-warn);
+    border-color: var(--ip-warn);
+    color: #1f1503;
+}
+
+.ip-btn--attention:hover {
+    background: #fcd34d;
+    border-color: #fcd34d;
+    color: #1f1503;
+}
+
+.ip-btn--danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+
+.ip-btn--danger:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+}
+
+.ip-btn--lg {
+    height: 46px;
+    min-width: 200px;
+    font-size: 14px;
+}
+
+.ip-btn--icon {
+    width: 46px;
+    height: 46px;
+    padding: 0;
+}
+
+.ip-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.ip-btn.is-busy { pointer-events: none; }
+
+/* ── Pills ── */
+.ip-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--ip-hair);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--ip-mut);
+}
+
+.ip-pill.is-ok { border-color: rgba(74, 222, 128, 0.35); background: rgba(74, 222, 128, 0.12); color: var(--ip-ok-t); }
+.ip-pill.is-warn { border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.12); color: var(--ip-warn-t); }
+.ip-pill.is-error { border-color: rgba(248, 113, 113, 0.35); background: rgba(248, 113, 113, 0.12); color: var(--ip-bad-t); }
+
+/* ── Account card ── */
+.ip-account {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.ip-account-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.ip-account-id {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ip-account-id h2 {
+    margin: 0;
+    font-family: var(--ip-num);
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.ip-account-actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ip-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    width: 230px;
+    padding: 6px;
+    border: 1px solid var(--ip-bd);
+    border-radius: 12px;
+    background: #18181a;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+.ip-menu button {
+    display: block;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #d4d4d8;
+    font: 500 13px Inter, system-ui, sans-serif;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ip-menu button:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+
+.ip-menu button.is-danger {
+    color: var(--ip-bad-t);
+    font-weight: 600;
+}
+
+.ip-menu button.is-danger:hover { background: rgba(248, 113, 113, 0.12); }
+
+/* API key field (shown from the More menu) */
+.ip-apikey {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    border: 1px solid var(--ip-hair);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.ip-apikey .ip-field { flex: 1 1 280px; }
+
+/* Stat tiles */
+.ip-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+}
+
+.ip-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(161, 161, 170, 0.12);
+    background: rgba(0, 0, 0, 0.22);
+    color: #f2f2f4;
+    text-decoration: none;
+}
+
+.ip-tile b {
+    font-family: var(--ip-num);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.ip-tile-sub {
+    font-size: 11.5px;
+    color: var(--ip-lbl);
+}
+
+a.ip-tile:hover {
+    border-color: var(--ip-tintb);
+    color: #f2f2f4;
+    text-decoration: none;
+}
+
+.ip-tile.is-attention {
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.06);
+}
+
+.ip-tile.is-attention b { color: var(--ip-warn-t); }
+.ip-tile.is-attention .ip-tile-sub { color: var(--ip-mut); }
+
+/* ── Fetch result ── */
+.ip-result {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 16px;
+    border-top: 1px solid var(--ip-hair);
+}
+
+.ip-result-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ip-lbl);
+}
+
+.ip-result-headline {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 15px;
+    color: var(--ip-mut);
+}
+
+.ip-result-headline b {
+    font-family: var(--ip-num);
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+    color: #f2f2f4;
+}
+
+.ip-result-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    font-size: 13px;
+    color: var(--ip-mut);
+}
+
+.ip-result-stats b {
+    font-family: var(--ip-num);
+    color: #f2f2f4;
+}
+
+.ip-result-stats .is-ok b { color: var(--ip-ok-t); }
+.ip-result-stats .is-warn b { color: var(--ip-warn-t); }
+.ip-result-stats .is-bad b { color: var(--ip-bad-t); }
+
+.ip-check-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+.ip-check-line.is-ok { border: 1px solid rgba(74, 222, 128, 0.35); background: rgba(74, 222, 128, 0.07); color: var(--ip-ok-t); }
+.ip-check-line.is-warn { border: 1px solid rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.07); color: var(--ip-warn-t); }
+.ip-check-line span { color: var(--ip-mut); }
+.ip-check-line.is-warn .ip-ico { display: none; }
+
+.ip-callout {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.07);
+}
+
+.ip-callout-text {
+    flex: 1 1 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.ip-callout-text b { color: var(--ip-warn-t); }
+.ip-callout-text span { font-size: 12.5px; color: var(--ip-mut); }
+
+.ip-alert {
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+.ip-alert.is-error {
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    background: rgba(248, 113, 113, 0.08);
+    color: var(--ip-bad-t);
+}
+
+.ip-empty-card {
+    color: var(--ip-mut);
+    font-size: 13.5px;
+}
+
+/* ── Run history ── */
+.ip-history {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ip-history-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--ip-lbl);
+}
+
+.ip-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--ip-hair);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.ip-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--ip-mut);
+    font: 600 12.5px Inter, system-ui, sans-serif;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ip-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+
+.ip-tab.is-active {
+    color: #fff;
+    background: rgba(161, 161, 170, 0.22);
+    box-shadow: inset 0 0 0 1px var(--ip-tintb);
+}
+
+.ip-tab-count {
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-family: var(--ip-num);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.ip-tab-count.is-error {
+    background: rgba(248, 113, 113, 0.18);
+    color: var(--ip-bad-t);
+}
+
+.ip-history-note {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--ip-lbl);
+}
+
+.ip-day {
+    margin: 12px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #d4d4d8;
+}
+
+.ip-run {
+    display: grid;
+    grid-template-columns: 56px 12px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 4px;
+    border-bottom: 1px solid rgba(161, 161, 170, 0.1);
+    font-size: 13px;
+}
+
+.ip-run:last-child { border-bottom: 0; }
+
+.ip-run-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 5px;
+    background: #71717a;
+}
+
+.ip-run.is-success .ip-run-dot { background: var(--ip-ok); }
+.ip-run.is-warning .ip-run-dot { background: var(--ip-warn); }
+.ip-run.is-error .ip-run-dot { background: var(--ip-bad); }
+
+.ip-run-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ip-mut);
+}
+
+.ip-run-text b { color: #f2f2f4; }
+.ip-run-text .is-off { color: var(--ip-warn-t); }
+.ip-run-msg { color: var(--ip-lbl); }
+.ip-run.is-error .ip-run-text { color: var(--ip-bad-t); }
+
+.ip-empty-text {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--ip-mut);
+}
+
+/* ── CSV upload (quiet, collapsed by default) ── */
+.ip-csv {
+    border: 1px dashed rgba(161, 161, 170, 0.28);
+    border-radius: 16px;
+}
+
+.ip-csv > summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    list-style: none;
+    font-size: 13px;
+    color: var(--ip-mut);
+    cursor: pointer;
+}
+
+.ip-csv > summary::-webkit-details-marker { display: none; }
+
+.ip-csv > summary b {
+    font-weight: 600;
+    color: #d4d4d8;
+}
+
+.ip-csv > summary:hover b { color: #fff; }
+
+.ip-csv-text { flex: 1; }
+
+.ip-csv-chevron { transition: transform 0.15s ease; }
+.ip-csv[open] .ip-csv-chevron { transform: rotate(180deg); }
+
+.ip-csv-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 2px 18px 18px;
+}
+
+/* ── Fields ── */
+.ip-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ip-mut);
+}
+
+.ip-field--file { flex: 2 1 260px; }
+.ip-field--account { flex: 1 1 160px; }
+.ip-field--narrow { flex: 0 1 130px; }
+
+.ip-field input,
+.ip-field select {
+    width: 100%;
+    height: 38px;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 11px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f2f2f4;
+    font: 600 13.5px Inter, system-ui, sans-serif;
+}
+
+.ip-field input[type="file"] {
+    padding: 7px 8px;
+    font-weight: 500;
+    font-size: 12.5px;
+}
+
+.ip-field input:focus,
+.ip-field select:focus {
+    outline: none;
+    border-color: #d4d4d8;
+    box-shadow: 0 0 0 3px rgba(161, 161, 170, 0.18);
+}
+
+.ip-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    font-size: 13px;
+    color: #d4d4d8;
+    cursor: pointer;
+}
+
+.ip-check input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #d4d4d8;
+    cursor: pointer;
+}
+
+/* ── Delete recent plays dialog ── */
+.ip-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+}
+
+.ip-dialog {
+    width: 100%;
+    max-width: 460px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    border-radius: 18px;
+    background: linear-gradient(180deg, #1c1415 0%, #140f10 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    font-size: 13.5px;
+}
+
+.ip-dialog h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: #fecaca;
+}
+
+.ip-dialog-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    background: rgba(248, 113, 113, 0.14);
+    color: var(--ip-bad);
+}
+
+.ip-dialog p {
+    margin: 0;
+    color: rgba(254, 226, 226, 0.75);
+}
+
+.ip-dialog .ip-field { color: #fecaca; }
+.ip-dialog .ip-field select { max-width: 200px; }
+
+.ip-dialog-warn {
+    font-weight: 600;
+    color: #fca5a5 !important;
+}
+
+.ip-dialog .ip-check {
+    height: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(248, 113, 113, 0.22);
+    color: #fecaca;
+}
+
+.ip-dialog .ip-check input { accent-color: #ef4444; }
+
+.ip-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ── CSV Import Result page ── */
+.ip-result-page { gap: 14px; }
+
+.ip-result-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 880px;
+}
+
+.ip-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ip-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ip-note {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--ip-lbl);
+}
+
+/* ── Phones ── */
+@media (max-width: 640px) {
+    .ip-head h1 { font-size: 32px; }
+    .ip-card { padding: 16px; }
+    .ip-strip-link { margin-left: 0; }
+    .ip-account-actions { width: 100%; }
+    .ip-account-actions .ip-btn--lg { flex: 1; min-width: 0; }
+    .ip-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ip-tile b { font-size: 20px; }
+    .ip-run { grid-template-columns: 46px 10px minmax(0, 1fr); }
+    .ip-run .ip-pill { display: none; }
+    .ip-csv-form .ip-btn { width: 100%; }
+}

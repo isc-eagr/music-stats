@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Cards shared by the catalog detail pages (genre, language, ...) and the timeframe detail pages (day ... decade).
+     They take the CatalogDetailService records, so both pages render them the same way. -->
+
+<!-- One hero standing: a big rank or share, what it is measured against and an optional note; podium ranks are gold -->
+<div th:fragment="stand(value, label, note, top)" class="cd-stand" th:classappend="${top} ? 'is-top'">
+    <b class="dt-num" th:text="${value}">#1</b>
+    <span class="cd-stand-l" th:text="${label}">of 21 years by plays</span>
+    <span th:if="${note != null}" class="cd-stand-n" th:text="${note}">85% male plays</span>
+</div>
+
+<!-- Gender breakdown: one stacked column per measure, counts open the filtered lists -->
+<section th:fragment="gender(rows)" class="dt-card cd-card cd-gender">
+    <p class="dt-cap">Gender breakdown</p>
+    <div class="cd-gcols" th:style="|grid-template-columns: repeat(${#lists.size(rows)}, minmax(0, 1fr))|">
+        <div th:each="g : ${rows}" class="cd-gcol">
+            <a th:if="${g.femaleHref != null}" class="cd-gv is-f dt-num" th:href="@{${g.femaleHref}}" th:text="${g.female}"
+               th:title="'Female ' + ${#strings.toLowerCase(g.label)}">0</a>
+            <span th:if="${g.femaleHref == null}" class="cd-gv is-f dt-num" th:text="${g.female}">0</span>
+            <div class="cd-gbar" th:title="${g.malePct} + '% male · ' + ${g.femalePct} + '% female' + (${g.otherPct > 0} ? ' · ' + ${g.otherPct} + '% other' : '')">
+                <span class="is-f" th:style="|height: ${g.femalePct}%|"></span>
+                <span class="is-o" th:style="|height: ${g.otherPct}%|"></span>
+                <span class="is-m"><b class="dt-num" th:text="${g.malePct} + '%'">0%</b></span>
+            </div>
+            <a th:if="${g.maleHref != null}" class="cd-gv is-m dt-num" th:href="@{${g.maleHref}}" th:text="${g.male}"
+               th:title="'Male ' + ${#strings.toLowerCase(g.label)}">0</a>
+            <span th:if="${g.maleHref == null}" class="cd-gv is-m dt-num" th:text="${g.male}">0</span>
+            <span class="cd-glabel" th:text="${g.label}">Plays</span>
+        </div>
+    </div>
+</section>
+
+<!-- Breakdown by another catalog; rows open the Songs table -->
+<section th:fragment="breakdown(title, rows)" class="dt-card cd-card cd-break">
+    <div class="cd-brow cd-bhead">
+        <span class="cd-bname-h" th:text="${title}">Genres</span>
+        <span>Plays</span><span>Time</span><span>Male</span>
+    </div>
+    <div class="cd-scroll">
+        <a th:each="r : ${rows}" class="cd-brow" th:classappend="${r.unset} ? 'is-unset'" th:href="@{${r.href}}">
+            <span class="cd-bname">
+                <span th:text="${r.name}">Name</span>
+                <span class="cd-bbar" th:style="|width: ${r.barPct}%|"><i class="is-m" th:style="|width: ${r.malePct}%|"></i><i class="is-o" th:style="|width: ${r.otherPct}%|"></i><i class="is-f"></i></span>
+            </span>
+            <b class="dt-num" th:text="${r.plays}">0</b>
+            <span class="cd-dim" th:text="${r.time}">0m</span>
+            <span class="cd-male dt-num" th:text="${r.malePct} + '%'">0%</span>
+        </a>
+        <p th:if="${#lists.isEmpty(rows)}" class="cd-empty">Nothing here yet</p>
+    </div>
+</section>
+
+<!-- Mix of the other catalogs, every value shown -->
+<div th:fragment="mixes(cards)" class="cd-mixes" th:if="${!#lists.isEmpty(cards)}">
+    <section th:each="x : ${cards}" class="dt-card cd-card cd-mix" th:style="|--mix: ${x.color}|">
+        <div class="cd-head">
+            <p class="dt-cap" th:text="${x.title}">Languages</p>
+            <span class="cd-head-note">plays · male</span>
+        </div>
+        <div class="cd-scroll">
+            <a th:each="r : ${x.rows}" class="cd-mrow" th:classappend="${r.unset} ? 'is-unset'" th:href="@{${r.href}}">
+                <span class="cd-mname">
+                    <span th:text="${r.name}">Name</span>
+                    <span class="cd-mbar"><i th:style="|width: ${r.barPct}%|"></i></span>
+                </span>
+                <b class="dt-num" th:text="${r.share} + '%'">0%</b>
+                <span class="cd-male dt-num" th:text="${r.malePct} + '%'">0%</span>
+            </a>
+            <p th:if="${#lists.isEmpty(x.rows)}" class="cd-empty">Nothing here yet</p>
+        </div>
+    </section>
+</div>
+
+<!-- Where the page sits among its peers: by plays and by male share -->
+<section th:fragment="peers(caption, note, byPlays, byMale)" class="dt-card cd-card cd-peers">
+    <div class="cd-head">
+        <p class="dt-cap" th:text="${caption}">Where it sits</p>
+        <span class="cd-head-note" th:text="${note}">All time</span>
+    </div>
+    <div class="cd-peer-cols">
+        <div>
+            <p class="cd-sub">By plays</p>
+            <div class="cd-scroll cd-peer-list">
+                <th:block th:each="p : ${byPlays}">
+                    <p th:if="${p.href == null}" class="cd-peer-gap" aria-hidden="true">···</p>
+                    <a th:if="${p.href != null}" class="cd-peer" th:classappend="${p.self} ? 'is-self'" th:href="@{${p.href}}">
+                        <span class="cd-ix dt-num" th:text="${p.rank}">1</span>
+                        <span class="cd-pn" th:text="${p.name}">Name</span>
+                        <span class="cd-pbar" th:style="|width: ${p.barPct}%|"><i class="is-m" th:style="|width: ${p.malePct}%|"></i><i class="is-o" th:style="|width: ${p.otherPct}%|"></i><i class="is-f"></i></span>
+                        <b class="dt-num" th:text="${p.plays}">0</b>
+                    </a>
+                </th:block>
+            </div>
+        </div>
+        <div>
+            <p class="cd-sub">By male share of plays</p>
+            <div class="cd-scroll cd-peer-list">
+                <th:block th:each="p : ${byMale}">
+                    <p th:if="${p.href == null}" class="cd-peer-gap" aria-hidden="true">···</p>
+                    <a th:if="${p.href != null}" class="cd-peer" th:classappend="${p.self} ? 'is-self'" th:href="@{${p.href}}">
+                        <span class="cd-ix dt-num" th:text="${p.rank}">1</span>
+                        <span class="cd-pn" th:text="${p.name}">Name</span>
+                        <span class="cd-lolli"><i th:style="|width: ${p.malePct}%|"></i><em th:style="|left: ${p.malePct}%|"></em></span>
+                        <b class="dt-num is-m" th:text="${p.malePct} + '%'">0%</b>
+                    </a>
+                </th:block>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- When you play it: same panels as the When you listen card on the detail Plays tab; week / month panels are optional -->
+<section th:fragment="when(caption, rhythm, showWeek, showMonth)" class="dt-card cd-card cd-when">
+    <p class="dt-cap" th:text="${caption}">When you play it</p>
+    <div class="cd-when-grid" th:classappend="${showWeek and !showMonth} ? 'is-pair'">
+        <div class="cd-when-hours">
+            <p class="dt-cap">Hour of day</p>
+            <div class="dp-hours">
+                <span th:each="b : ${rhythm.hourBands}" class="dp-band" th:style="|left: ${b.left}|">
+                    <span><th:block th:text="${b.name} + ' '">Night</th:block><b class="dt-num" th:text="${b.share} + '%'">0%</b></span>
+                </span>
+                <i th:each="h : ${rhythm.hours}" th:classappend="${h.best} ? 'is-best'" th:style="|height: ${h.height}px|" th:title="${h.title}"></i>
+            </div>
+            <div class="dp-hax"><span>0</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
+            <p class="dp-note" th:text="${rhythm.hourNote}">Peak hour</p>
+        </div>
+        <div th:if="${showWeek}">
+            <p class="dt-cap">Day of week</p>
+            <div class="dp-mbars dp-moy dp-wk">
+                <span th:each="b : ${rhythm.weekBands}" class="dp-band dp-sband" th:style="|left: ${b.left}; width: ${b.width}|"
+                      th:title="${b.name} + ' · ' + ${b.share} + '% of plays'">
+                    <span><em th:text="${b.name}">Weekdays</em><b class="dt-num" th:text="${b.share} + '%'">0%</b></span>
+                </span>
+                <div th:each="w : ${rhythm.week}">
+                    <b class="dt-num" th:text="${w.value}">0</b>
+                    <i th:classappend="${w.best} ? 'is-best'" th:style="|height: ${w.height}px|" th:title="${w.title}"></i>
+                    <span th:text="${w.label}">Mon</span>
+                </div>
+            </div>
+            <p class="dp-note" th:text="${rhythm.weekNote}">Peak day</p>
+        </div>
+        <div th:if="${showMonth}">
+            <p class="dt-cap">Month of year · all years added</p>
+            <div class="dp-mbars dp-moy">
+                <span th:each="b : ${rhythm.monthBands}" class="dp-band dp-sband" th:style="|left: ${b.left}; width: ${b.width}|"
+                      th:title="${b.name != null} ? ${b.name} + ' · ' + ${b.share} + '% of plays' : 'Winter'">
+                    <span>
+                        <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true" th:switch="${b.icon}">
+                            <path th:case="'winter'" d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5L12 6.5l2.5-2M9.5 19.5l2.5-2 2.5 2"/>
+                            <path th:case="'spring'" d="M12 21v-9M12 12c0-4 3-7 7-7 0 4-3 7-7 7zM12 15c0-3-2.5-5.5-6-5.5 0 3 2.5 5.5 6 5.5z"/>
+                            <th:block th:case="'summer'"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></th:block>
+                            <path th:case="'fall'" d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14zM5 19l8-8"/>
+                        </svg>
+                        <th:block th:if="${b.name != null}"><em th:text="${b.name}">Winter</em><b class="dt-num" th:text="${b.share} + '%'">0%</b></th:block>
+                    </span>
+                </span>
+                <div th:each="m : ${rhythm.months}">
+                    <b class="dt-num" th:text="${m.value}">0</b>
+                    <i th:classappend="${m.best} ? 'is-best'" th:style="|height: ${m.height}px|" th:title="${m.title}"></i>
+                    <span th:text="${m.label}">J</span>
+                </div>
+            </div>
+            <p class="dp-note" th:text="${rhythm.monthNote}">Peak month</p>
+        </div>
+    </div>
+    <p th:if="${rhythm.excludedNote != null}" class="dp-foot-note" th:text="${rhythm.excludedNote}"></p>
+</section>
+</body>
+</html>

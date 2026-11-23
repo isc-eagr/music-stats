@@ -47,15 +47,15 @@
 
 .dp-dim { color: #8b8b93; }
 
-.ad-fact.is-gold {
+.dt-fact.is-gold {
     border-color: rgba(250, 204, 21, 0.25);
     background: rgba(250, 204, 21, 0.06);
     color: #efe4b8;
 }
 
-.ad-fact.is-gold b { color: #fde68a; }
+.dt-fact.is-gold b { color: #fde68a; }
 
-.ad-rank.is-far {
+.dt-rank.is-far {
     background: transparent;
     border: 1px dashed rgba(var(--ad-rgb), 0.3);
     color: #8b8b93;
@@ -87,7 +87,7 @@
     cursor: pointer;
 }
 
-.dp-yp-step .ad-ico { width: 14px; height: 14px; }
+.dp-yp-step .dt-ico { width: 14px; height: 14px; }
 .dp-yp-step:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
 .dp-yp-step:disabled { color: #52525b; cursor: default; }
 
@@ -455,8 +455,8 @@
     cursor: pointer;
 }
 
-.dp-ex .ad-ico { width: 14px; height: 14px; transition: transform 0.15s ease; }
-.dp-lr.is-open .dp-ex .ad-ico { transform: rotate(90deg); }
+.dp-ex .dt-ico { width: 14px; height: 14px; transition: transform 0.15s ease; }
+.dp-lr.is-open .dp-ex .dt-ico { transform: rotate(90deg); }
 
 .dp-yy { font-size: 15px; font-weight: 700; }
 
@@ -713,7 +713,7 @@
 }
 
 .dp-sband em { font-style: normal; color: #a1a1aa; }
-.dp-sband .ad-ico { width: 11px; height: 11px; flex: none; stroke-width: 1.8; }
+.dp-sband .dt-ico { width: 11px; height: 11px; flex: none; stroke-width: 1.8; }
 
 @container (max-width: 96px) {
     .dp-sband em { display: none; }
@@ -798,7 +798,7 @@
     border-radius: 12px;
 }
 
-.dp-mv-ic .ad-ico { width: 12px; height: 12px; }
+.dp-mv-ic .dt-ico { width: 12px; height: 12px; }
 .dp-mv-ic.is-up { background: rgba(134, 239, 172, 0.12); color: #86efac; }
 .dp-mv-ic.is-down { background: rgba(252, 165, 165, 0.12); color: #fca5a5; }
 
@@ -979,7 +979,7 @@
     text-decoration: none;
 }
 
-.dp-pg .ad-ico { width: 14px; height: 14px; }
+.dp-pg .dt-ico { width: 14px; height: 14px; }
 .dp-pg:hover { border-color: var(--ad-tintb); color: #fff; text-decoration: none; }
 
 .dp-pg.is-on {
@@ -1025,6 +1025,20 @@
     .dp-list,
     .dp-rgrid > div { padding-left: 14px; padding-right: 14px; }
     .dp-td { grid-template-columns: 16px 78px 28px minmax(0, 1fr) 70px; }
+
+    /* Day-part bands are ~80px wide on a phone: name over share so AFTERNOON / EVENING don't collide */
+    .dp-band span {
+        left: 6px;
+        right: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        font-size: 8.5px;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+    }
+
+    .dp-hours { padding-top: 34px; }
 }
 
 /* Full history sits under the tab content */

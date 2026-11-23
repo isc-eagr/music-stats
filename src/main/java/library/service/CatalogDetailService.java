@@ -97,7 +97,9 @@ public class CatalogDetailService {
     public record BreakdownRow(String name, String href, boolean unset, String plays, String time, int malePct, int otherPct, int barPct) {}
     /** Plays or time per year stacked by gender, as SVG paths over a 1000 x 220 box. */
     public record Stream(String male, String other, String female, String note) {}
-    public record YearPill(int year, String label, Integer rank) {}
+    /** One year under the chart: rank among peers and this item's value, by plays and by time (null rank = no plays). */
+    public record YearPill(int year, String label, Integer rank, Integer timeRank, String plays, String time,
+                           String playsTitle, String timeTitle) {}
     public record PeerRow(int rank, String name, String href, String plays, int malePct, int otherPct, int barPct, boolean self) {}
     public record Bar(String value, String label, int height, boolean best, String title) {}
     /** A labelled band behind a group of bars; {@code left} and {@code width} are CSS lengths. */
@@ -252,7 +254,7 @@ public class CatalogDetailService {
 
         // Every peer's plays per year and gender: yearly ranks, peer standings and this item's stream
         Map<String, long[]> peerTotals = new HashMap<>();
-        Map<Integer, Map<String, Long>> playsByYear = new TreeMap<>();
+        Map<Integer, Map<String, Long>> playsByYear = new TreeMap<>(), timeByYear = new TreeMap<>();
         Map<Integer, long[][]> selfYears = new TreeMap<>();
         jdbcTemplate.query("SELECT " + dim.songExpr + " AS k, CAST(strftime('%Y', p.play_date) AS INTEGER) AS y, gn.name AS gname,"
                 + " COUNT(*) AS n, SUM(COALESCE(s.length_seconds, 0)) AS secs FROM Play p JOIN Song s ON s.id = p.song_id"
@@ -268,11 +270,13 @@ public class CatalogDetailService {
                     t[3] += n;
                     if (g >= 0) t[g] += n;
                     if (!hasYear) return;
+                    long secs = rs.getLong("secs");
                     playsByYear.computeIfAbsent(y, x -> new HashMap<>()).merge(k, n, Long::sum);
+                    timeByYear.computeIfAbsent(y, x -> new HashMap<>()).merge(k, secs, Long::sum);
                     if (k.equals(key) && g >= 0) {
                         long[][] v = selfYears.computeIfAbsent(y, x -> new long[2][3]);
                         v[0][g] += n;
-                        v[1][g] += rs.getLong("secs");
+                        v[1][g] += secs;
                     }
                 });
 
@@ -284,7 +288,13 @@ public class CatalogDetailService {
                 long[][] v = selfYears.getOrDefault(y, new long[2][3]);
                 yearPlays.add(v[0]);
                 yearTime.add(v[1]);
-                years.add(new YearPill(y, "'" + String.valueOf(y).substring(2), rankIn(playsByYear.getOrDefault(y, Map.of()), key, dim, names)));
+                long yp = v[0][0] + v[0][1] + v[0][2], yt = v[1][0] + v[1][1] + v[1][2];
+                Integer pr = rankIn(playsByYear.getOrDefault(y, Map.of()), key, dim, names);
+                Integer tr = rankIn(timeByYear.getOrDefault(y, Map.of()), key, dim, names);
+                String among = " among " + dim.plural.toLowerCase(Locale.ROOT);
+                years.add(new YearPill(y, "'" + String.valueOf(y).substring(2), pr, tr, compactCount(yp), compactTime(yt),
+                        pr == null ? y + ": no plays" : y + ": #" + pr + among + " · " + fmt(yp) + " plays",
+                        tr == null ? y + ": no plays" : y + ": #" + tr + among + " · " + TimeFormatUtils.formatTime(yt) + " listened"));
             }
         }
         Stream playsStream = stream(yearPlays, years, false);
@@ -420,18 +430,8 @@ public class CatalogDetailService {
     /** Male bottom, other in the middle, female on top; x spreads the years over 1000, y over 220. */
     static Stream stream(List<long[]> perYear, List<YearPill> years, boolean time) {
         if (perYear.isEmpty()) return new Stream("", "", "", null);
-        long max = perYear.stream().mapToLong(v -> v[0] + v[1] + v[2]).max().orElse(0);
+        Stream paths = paths(perYear);
         int n = perYear.size();
-        double[] x = new double[n], y0 = new double[n], y1 = new double[n], y2 = new double[n];
-        for (int i = 0; i < n; i++) {
-            long[] v = perYear.get(i);
-            x[i] = n == 1 ? 500 : i * 1000.0 / (n - 1);
-            y0[i] = 220 - scale(v[0], max);
-            y1[i] = 220 - scale(v[0] + v[2], max);
-            y2[i] = 220 - scale(v[0] + v[1] + v[2], max);
-        }
-        double[] base = new double[n];
-        java.util.Arrays.fill(base, 220);
         int peak = 0;
         for (int i = 1; i < n; i++) {
             long[] v = perYear.get(i), p = perYear.get(peak);
@@ -441,7 +441,39 @@ public class CatalogDetailService {
         long peakTotal = pv[0] + pv[1] + pv[2];
         String note = peakTotal == 0 ? null : "Peak year " + years.get(peak).year() + " with "
                 + (time ? TimeFormatUtils.formatTime(peakTotal) + " listened" : fmt(peakTotal) + " plays");
-        return new Stream(area(x, base, y0), area(x, y0, y1), area(x, y1, y2), note);
+        return new Stream(paths.male(), paths.other(), paths.female(), note);
+    }
+
+    /** Stacked areas (male bottom, other, female on top) for values {male, female, other} spread over a 1000 x 220 box. */
+    static Stream paths(List<long[]> values) {
+        if (values.isEmpty()) return new Stream("", "", "", null);
+        long max = values.stream().mapToLong(v -> v[0] + v[1] + v[2]).max().orElse(0);
+        int n = values.size();
+        double[] x = new double[n], y0 = new double[n], y1 = new double[n], y2 = new double[n];
+        for (int i = 0; i < n; i++) {
+            long[] v = values.get(i);
+            x[i] = n == 1 ? 500 : i * 1000.0 / (n - 1);
+            y0[i] = 220 - scale(v[0], max);
+            y1[i] = 220 - scale(v[0] + v[2], max);
+            y2[i] = 220 - scale(v[0] + v[1] + v[2], max);
+        }
+        double[] base = new double[n];
+        java.util.Arrays.fill(base, 220);
+        return new Stream(area(x, base, y0), area(x, y0, y1), area(x, y1, y2), null);
+    }
+
+    /** Short count for the year pills: exact under 1,000, then 1.2k / 12k. */
+    public static String compactCount(long n) {
+        if (n < 1000) return String.valueOf(n);
+        if (n < 10000) return String.format(Locale.US, "%.1fk", n / 1000.0).replace(".0k", "k");
+        return Math.round(n / 1000.0) + "k";
+    }
+
+    /** Short time for the year pills: minutes under an hour, hours under 1,000, days after that. */
+    public static String compactTime(long seconds) {
+        if (seconds < 3600) return (seconds / 60) + "m";
+        long hours = Math.round(seconds / 3600.0);
+        return hours < 1000 ? hours + "h" : Math.round(seconds / 86400.0) + "d";
     }
 
     private static double scale(long v, long max) {
@@ -466,12 +498,21 @@ public class CatalogDetailService {
 
     /** Hour of day, day of week and month of year, leaving out the initial Last.fm load like the Plays tab. */
     Rhythm rhythm(Dimension dim, Object keyParam) {
+        return rhythm(" FROM Play p JOIN Song s ON s.id = p.song_id JOIN Artist ar ON ar.id = s.artist_id"
+                + " LEFT JOIN Album al ON al.id = s.album_id WHERE " + dim.songExpr + " = ? AND", keyParam);
+    }
+
+    /** Same panels over every play in the library, matched or not (the Home page). */
+    public Rhythm globalRhythm() {
+        return rhythm(" FROM Play p WHERE");
+    }
+
+    private Rhythm rhythm(String fromWhere, Object... params) {
         long[] hours = new long[24], week = new long[7], months = new long[12];
         long[] excluded = new long[1];
         jdbcTemplate.query("SELECT CAST(strftime('%H', p.play_date) AS INTEGER) AS h, CAST(strftime('%w', p.play_date) AS INTEGER) AS w,"
                 + " CAST(strftime('%m', p.play_date) AS INTEGER) AS m, p.play_date LIKE '" + MaleFunFactsService.EXCLUDED_DAY + "%' AS ex,"
-                + " COUNT(*) AS n FROM Play p JOIN Song s ON s.id = p.song_id JOIN Artist ar ON ar.id = s.artist_id"
-                + " LEFT JOIN Album al ON al.id = s.album_id WHERE " + dim.songExpr + " = ? AND strftime('%H', p.play_date) IS NOT NULL"
+                + " COUNT(*) AS n" + fromWhere + " strftime('%H', p.play_date) IS NOT NULL"
                 + " GROUP BY 1, 2, 3, 4", (RowCallbackHandler) rs -> {
                     long n = rs.getLong("n");
                     if (rs.getBoolean("ex")) {
@@ -481,7 +522,7 @@ public class CatalogDetailService {
                     hours[rs.getInt("h")] += n;
                     week[(rs.getInt("w") + 6) % 7] += n;
                     months[rs.getInt("m") - 1] += n;
-                }, keyParam);
+                }, params);
         return rhythm(hours, week, months, excluded[0]);
     }
 

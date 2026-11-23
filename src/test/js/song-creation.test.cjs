@@ -18,7 +18,7 @@ function setup(source, name, { exists = true, confirmed = false, failed = false,
         hidden: true,
         querySelector: selector => selector === '[data-confirm-duplicate]' ? confirmButton : cancelButton,
         scrollIntoView() {},
-        focus() { prompts.push(confirmation.match(/<p role="status">(.*?)<\/p>/)[1]); }
+        focus() { prompts.push(confirmation.match(/<p role="status">[\s\S]*?<span>(.*?)<\/span>/)[1]); }
     };
     const fields = new Map();
     const values = { wizardSongNameInput: "Don't Stop & Go", wizardSongReleaseDate: '14/10/2026',

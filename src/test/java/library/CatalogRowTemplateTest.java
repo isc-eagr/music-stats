@@ -99,6 +99,39 @@ class CatalogRowTemplateTest {
     }
 
     @Test
+    void yearRowsCarryTheirGenderSplitForTheGenderByYearBars() throws Exception {
+        YearCardDTO year = new YearCardDTO();
+        year.setYear(2016);
+        year.setMalePlayCount(60);
+        year.setFemalePlayCount(30);
+        year.setOtherPlayCount(10);
+        year.setMaleTimeListened(600L);
+        year.setFemaleTimeListened(300L);
+        year.setOtherTimeListened(0L);
+        year.setMaleArtistCount(3);
+        year.setFemaleArtistCount(2);
+        year.setOtherArtistCount(1);
+        year.setMaleAlbumCount(4);
+        year.setFemaleAlbumCount(1);
+        year.setOtherAlbumCount(0);
+        year.setMaleCount(7);
+        year.setFemaleCount(5);
+        year.setOtherCount(2);
+
+        Map<String, Object> model = model("plays");
+        model.put("years", List.of(year));
+        model.put("yearType", "listen");
+        Element row = render("years/list", ".lb-list", model).selectFirst(".lb-row.gc");
+        // Measures in order: plays, play time, artists, albums, songs; each male, female, other.
+        assertThat(row.attr("data-id")).isEqualTo("2016");
+        assertThat(row.attr("data-bars")).isEqualTo("60 30 10|600 300 0|3 2 1|4 1 0|7 5 2");
+        String page = new String(getClass().getResourceAsStream("/templates/years/list.html").readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(page).contains("share-history :: year-panel").contains("share-history :: year-scripts")
+                .doesNotContain("share-history :: panel(");
+    }
+
+    @Test
     void yearRowsLinkToListenOrReleaseFilteredTables() {
         YearCardDTO year = new YearCardDTO();
         year.setYear(2016);

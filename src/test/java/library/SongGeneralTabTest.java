@@ -110,43 +110,48 @@ class SongGeneralTabTest {
 
     @Test
     void profileShowsRanksWithValueSourcesAndTheOverflowMenu() {
-        Document doc = render(".ad-profile-view", baseModel());
-        Element profile = doc.selectFirst(".ad-profile-view");
+        Document doc = render(".dt-profile-view", baseModel());
+        Element profile = doc.selectFirst(".dt-profile-view");
         assertThat(profile).isNotNull();
 
         // The overall standing moved to the General box header
-        assertThat(profile.select(".ad-standing")).isEmpty();
+        assertThat(profile.select(".dt-standing")).isEmpty();
 
         Element genre = row(profile, "Genre");
-        assertThat(genre.select(".ad-ovr").text()).isEqualTo("Override");
-        assertThat(genre.select(".ad-rank.is-gold").text()).isEqualTo("#1");
+        assertThat(genre.select(".dt-ovr").text()).isEqualTo("Override");
+        assertThat(genre.select(".dt-rank.is-gold").text()).isEqualTo("#1");
         assertThat(genre.attr("href")).isEqualTo("/songs?genre=5&genreMode=includes&view=table&highlight=7");
         assertThat(genre.attr("title")).isEqualTo("Genre: #1 among Reggaeton songs");
+        // Ranked rows carry what the rank neighbors tooltip needs
+        assertThat(genre.attr("data-rank-attr")).isEqualTo("genre");
+        assertThat(genre.attr("data-rank-value")).isEqualTo("Reggaeton");
+        assertThat(genre.attr("data-rank-noun")).isEqualTo("songs");
+        assertThat(row(profile, "Released in").attr("data-rank-attr")).isEqualTo("releaseYear");
+        assertThat(row(profile, "Album").attr("data-rank-attr")).isEqualTo("album");
 
         Element language = row(profile, "Language");
-        assertThat(language.select(".ad-from").text()).isEqualTo("from album");
-        assertThat(language.select(".ad-ovr")).isEmpty();
+        assertThat(language.select(".dt-from").text()).isEqualTo("from album");
+        assertThat(language.select(".dt-ovr")).isEmpty();
 
         Element gender = row(profile, "Gender");
-        assertThat(gender.select(".ad-from").text()).isEqualTo("from artist");
-        assertThat(gender.select(".ad-dot")).hasSize(1);
-        assertThat(gender.select(".ad-rank").text()).isEqualTo("#3");
+        assertThat(gender.select(".dt-from").text()).isEqualTo("from artist");
+        assertThat(gender.select(".dt-dot")).hasSize(1);
+        assertThat(gender.select(".dt-rank").text()).isEqualTo("#3");
 
-        assertThat(row(profile, "Subgenre").select(".ad-row-v.is-empty").text()).isEqualTo("Not set");
+        assertThat(row(profile, "Subgenre").select(".dt-row-v.is-empty").text()).isEqualTo("Not set");
         assertThat(row(profile, "Artist").attr("href")).isEqualTo("/artists/2");
         assertThat(row(profile, "Album").attr("href")).isEqualTo("/albums/2");
-        assertThat(row(profile, "Released in").select(".ad-rank").text()).isEqualTo("#5");
+        assertThat(row(profile, "Released in").select(".dt-rank").text()).isEqualTo("#5");
 
-        assertThat(profile.select(".ad-facts .ad-fact").eachText()).containsExactly("Single", "Not organized");
-        assertThat(profile.select(".ad-tags a.ad-tag").eachAttr("href")).containsExactly("/artists/4");
-        assertThat(profile.select(".ad-tags span.ad-tag").eachText()).containsExactly("Perreo");
+        assertThat(profile.select(".dt-facts .dt-fact").eachText()).containsExactly("Single", "Not organized");
+        assertThat(profile.select(".dt-tags a.dt-tag").eachAttr("href")).containsExactly("/artists/4");
+        assertThat(profile.select(".dt-tags span.dt-tag").eachText()).containsExactly("Perreo");
 
         Element delete = profile.selectFirst("#deleteBtn");
         assertThat(delete.hasAttr("disabled")).isTrue();
         assertThat(delete.text()).contains("Locked while the song has 150 plays");
         assertThat(profile.select("#deletePlaysBtn")).hasSize(1);
         assertThat(profile.select("#btnViewSamples")).hasSize(1);
-        assertThat(profile.select(".winning-chip")).isEmpty();
     }
 
     @Test
@@ -155,16 +160,16 @@ class SongGeneralTabTest {
         assertThat(doc.select(".sd-photo-sub a").eachAttr("href")).containsExactly("/artists/2", "/albums/2");
 
         // Length sits on the cover; the old quick-fact cells are gone
-        assertThat(render(".ad-photo-len", baseModel()).select(".ad-photo-len").text()).isEqualTo("4:18");
-        assertThat(render(".ad-side-cells", baseModel()).select(".ad-side-cells, .ad-cells")).isEmpty();
+        assertThat(render(".dt-photo-len", baseModel()).select(".dt-photo-len").text()).isEqualTo("4:18");
+        assertThat(render(".dt-side-cells", baseModel()).select(".dt-side-cells, .dt-cells")).isEmpty();
 
         // Plays sit in the General box header: total, split bar, legend and the overall standing badge
-        Element plays = render(".ad-hero", baseModel()).selectFirst(".ad-hero .ad-plays.ad-hero-plays");
-        assertThat(plays.select(".ad-plays-total").text()).isEqualTo("150");
-        assertThat(plays.select(".ad-bar > span").eachAttr("style")).containsExactly("flex: 120 1 0", "flex: 30 1 0");
-        assertThat(plays.select(".ad-legend > span").eachText()).containsExactly("Primary 120 80%", "Legacy 30 20%");
-        assertThat(plays.select(".ad-plays-top > a.ad-standing .ad-standing-n").text()).isEqualTo("#12");
-        assertThat(plays.select(".ad-plays-foot > .ad-plays-time").text()).isEqualTo("10m 45s listened");
+        Element plays = render(".dt-hero", baseModel()).selectFirst(".dt-hero .dt-plays.dt-hero-plays");
+        assertThat(plays.select(".dt-plays-total").text()).isEqualTo("150");
+        assertThat(plays.select(".dt-bar > span").eachAttr("style")).containsExactly("flex: 120 1 0", "flex: 30 1 0");
+        assertThat(plays.select(".dt-legend > span").eachText()).containsExactly("Primary 120 80%", "Legacy 30 20%");
+        assertThat(plays.select(".dt-plays-top > a.dt-standing .dt-standing-n").text()).isEqualTo("#12");
+        assertThat(plays.select(".dt-plays-foot > .dt-plays-time").text()).isEqualTo("10m 45s listened");
     }
 
     @Test
@@ -174,12 +179,12 @@ class SongGeneralTabTest {
         model.put("songRobertloverPlayCount", 0);
         model.put("showLegacy", false);
 
-        Element plays = render(".ad-plays", model).selectFirst(".ad-plays");
+        Element plays = render(".dt-plays", model).selectFirst(".dt-plays");
         // Total alone tells the story: no Primary / Legacy legend, no Primary or Legacy tile
-        assertThat(plays.select(".ad-plays-total").text()).isEqualTo("120");
-        assertThat(plays.select(".ad-legend")).isEmpty();
-        Element stats = render("#generalSectionContent", model).selectFirst("section.ad-stats");
-        assertThat(stats.select(".ad-tile > span").eachText()).doesNotContain("Legacy", "Primary");
+        assertThat(plays.select(".dt-plays-total").text()).isEqualTo("120");
+        assertThat(plays.select(".dt-legend")).isEmpty();
+        Element stats = render("#generalSectionContent", model).selectFirst("section.dt-stats");
+        assertThat(stats.select(".dt-tile > span").eachText()).doesNotContain("Legacy", "Primary");
     }
 
     @Test
@@ -207,24 +212,31 @@ class SongGeneralTabTest {
     @Test
     void statsCardCarriesEveryOldStatisticAndTheChartRuns() {
         Document doc = render("#generalSectionContent", baseModel());
-        Element stats = doc.selectFirst("#generalSectionContent section.ad-card.ad-stats");
+        Element stats = doc.selectFirst("#generalSectionContent section.dt-card.dt-stats");
         assertThat(stats).isNotNull();
 
-        // Header: overall standing on the left, the listening span as First / Last / Over rows on the right
+        // Header: overall standing on the left, First / Last play with how long ago and a recency dot on the right
         Element hero = stats.child(0);
-        assertThat(hero.hasClass("ad-hero")).isTrue();
-        Element standing = hero.selectFirst(".ad-hero-plays a.ad-standing");
+        assertThat(hero.hasClass("dt-hero")).isTrue();
+        Element standing = hero.selectFirst(".dt-hero-plays a.dt-standing");
         assertThat(standing.attr("href")).isEqualTo("/songs?view=table&highlight=7");
         assertThat(standing.attr("title")).isEqualTo("Rank #12 among all songs by total plays");
-        assertThat(standing.select(".ad-standing-n").text()).isEqualTo("#12");
-        assertThat(standing.select(".ad-standing-k").text()).isEqualTo("Overall");
-        assertThat(standing.select(".ad-standing-sub").text()).isEqualTo("of 4,000 songs");
-        assertThat(hero.select(".ad-hero-span .ad-run-rows dt").eachText()).containsExactly("First play", "Last play", "Over");
-        assertThat(hero.select(".ad-hero-span .ad-run-rows dd").eachText()).containsExactly("01-Jun-2022", "02-Jul-2025", "3 years");
-        assertThat(stats.select(".ad-tl")).isEmpty();
+        assertThat(standing.select(".dt-standing-n").text()).isEqualTo("#12");
+        assertThat(standing.select(".dt-standing-k").text()).isEqualTo("Overall");
+        assertThat(standing.select(".dt-standing-sub").text()).isEqualTo("of 4,000 songs");
+        // Hovering it shows the songs ranked around this one overall
+        assertThat(standing.attr("data-rank-attr")).isEqualTo("overall");
+        assertThat(standing.attr("data-rank-noun")).isEqualTo("songs");
+        assertThat(hero.select(".dt-hero-span .dt-run-rows dt").eachText()).containsExactly("First play", "Last play");
+        assertThat(hero.select(".dt-hero-span .dt-run-rows dd").eachText())
+                .containsExactly("01-Jun-20224 years ago", "02-Jul-20251 year ago");
+        assertThat(hero.select(".dt-hero-span .dt-ago").eachText()).containsExactly("4 years ago", "1 year ago");
+        assertThat(hero.select(".dt-hero-span .dt-ago .dt-rec-dot").eachAttr("class"))
+                .containsExactly("dt-rec-dot stale", "dt-rec-dot aging");
+        assertThat(stats.select(".dt-tl")).isEmpty();
 
         // Only the Consistency ledger: plays, length, release and library facts already show in the sidebar
-        assertThat(stats.select(".ad-tile")).isEmpty();
+        assertThat(stats.select(".dt-tile")).isEmpty();
         Element ledger = stats.selectFirst("section.cons");
         assertThat(ledger.hasClass("cons-compact")).isFalse();
         assertThat(ledger.attr("data-cons-url")).isEqualTo("/songs/7/consistency");
@@ -237,23 +249,22 @@ class SongGeneralTabTest {
         assertThat(ledger.select("[data-cons-rank]").eachText()).containsOnly("...");
         assertThat(ledger.select("[data-cons-grank]")).hasSize(4);
 
-        assertThat(stats.select(".ad-year").eachAttr("class")).containsExactly(
-                "ad-year is-medal is-gold", "ad-year is-medal is-silver", "ad-year is-dim");
-        assertThat(stats.select(".ad-year").first().attr("href"))
+        assertThat(stats.select(".dt-year").eachAttr("class")).containsExactly(
+                "dt-year is-medal is-gold", "dt-year is-medal is-silver", "dt-year is-dim");
+        assertThat(stats.select(".dt-year").first().attr("href"))
                 .isEqualTo("/songs?listenedDateFrom=2022-01-01&listenedDateTo=2022-12-31&view=table&highlight=7");
 
         // Weeks at #1 live on the Chart History tab now, not as a General tab crown
-        assertThat(stats.select(".ad-crown, .ad-crowns")).isEmpty();
+        assertThat(stats.select(".dt-crown, .dt-crowns")).isEmpty();
 
-        assertThat(stats.select(".ad-share-row")).hasSize(2);
-        assertThat(stats.select(".ad-share-row.is-extra .ad-share-name").text()).isEqualTo("Ojitos Lindos (Remix)");
-        assertThat(stats.select(".ad-stats-top .ad-cap").first().text()).isEqualTo("Where the 150 plays come from");
+        assertThat(stats.select(".dt-share-row")).hasSize(2);
+        assertThat(stats.select(".dt-share-row.is-extra .dt-share-name").text()).isEqualTo("Ojitos Lindos (Remix)");
+        assertThat(stats.select(".dt-stats-top .dt-cap").first().text()).isEqualTo("Where the 150 plays come from");
 
         Element charts = stats.selectFirst(".sd-charts");
-        assertThat(charts.select(".ad-row-k").eachText()).containsExactly("Weekly chart", "Billboard Hot 100");
-        assertThat(charts.select(".ad-row .ad-rank").eachText()).containsExactly("#1", "#14");
+        assertThat(charts.select(".dt-row-k").eachText()).containsExactly("Weekly chart", "Billboard Hot 100");
+        assertThat(charts.select(".dt-row .dt-rank").eachText()).containsExactly("#1", "#14");
         assertThat(charts.select(".sd-chart-tags a").eachAttr("href")).containsExactly("/charts/seasonal/2022-Summer");
-        assertThat(doc.select(".ds-row, .detail-stats-panel")).isEmpty();
     }
 
     @Test
@@ -261,13 +272,13 @@ class SongGeneralTabTest {
         Document doc = render("#songLinkedSongs", baseModel());
         Element section = doc.getElementById("songLinkedSongs");
         assertThat(section).isNotNull();
-        assertThat(section.classNames()).contains("detail-content-section", "general-tab-section", "ad-card", "ad-section");
-        assertThat(section.select(".ad-sec-head .ad-count").text()).isEqualTo("1");
+        assertThat(section.classNames()).contains("detail-content-section", "general-tab-section", "dt-card", "dt-section");
+        assertThat(section.select(".dt-sec-head .dt-count").text()).isEqualTo("1");
 
         Element form = section.selectFirst("form.linked-song-form");
         assertThat(form.attr("action")).isEqualTo("/songs/7/linked-songs");
         assertThat(form.select("input[name=linkedSongIds]").eachAttr("value")).containsExactly("8");
-        assertThat(form.select(".linked-song-row .linked-song-plays b.ad-gold").text()).isEqualTo("120");
+        assertThat(form.select(".linked-song-row .linked-song-plays b.dt-gold").text()).isEqualTo("120");
         assertThat(form.select(".linked-remove-btn").attr("onclick")).isEqualTo("this.closest('.linked-song-row').remove()");
         assertThat(form.select("#linkedSongList, #linkedSongSearch, #linkedSongResults")).hasSize(3);
         assertThat(form.selectFirst("#linkedSongsSaveButton").hasAttr("disabled")).isTrue();
@@ -279,19 +290,21 @@ class SongGeneralTabTest {
         String html = Files.readString(Path.of("src/main/resources/templates/songs/detail.html"), StandardCharsets.UTF_8);
         Document doc = Jsoup.parse(html);
 
-        Element container = doc.selectFirst(".container-wide.song-detail.ad-page");
+        Element container = doc.selectFirst(".container-wide.song-detail.dt-page");
         assertThat(container).isNotNull();
-        Element sidebar = container.selectFirst(".detail-grid > aside.detail-sidebar.ad-card#songSidebar");
+        Element sidebar = container.selectFirst(".detail-grid > aside.detail-sidebar.dt-card#songSidebar");
         assertThat(sidebar).isNotNull();
-        Element main = container.selectFirst(".detail-grid > .ad-main");
+        // Tab menu is its own bar at the top of the grid, ahead of the sidebar and the content column
+        assertThat(container.selectFirst(".detail-grid").child(0).hasClass("detail-tabs")).isTrue();
+        Element main = container.selectFirst(".detail-grid > .dt-main");
         assertThat(main.children().stream().map(child -> child.id().isEmpty() ? child.className() : child.id()).toList())
-                .containsExactly("detail-tabs", "generalSectionContent", "songLinkedSongs",
+                .containsExactly("generalSectionContent", "songLinkedSongs",
                         "playsTabContent", "featuredTabContent", "chartHistoryTabContent");
 
-        Element form = sidebar.selectFirst("form#songForm.ad-profile-edit");
+        Element form = sidebar.selectFirst("form#songForm.dt-profile-edit");
         assertThat(form.attr("method")).isEqualTo("post");
         assertThat(form.attr("th:action")).isEqualTo("@{'/songs/' + ${song.id}}");
-        assertThat(form.select(".ad-fb[data-field]").eachAttr("data-field")).containsExactly(
+        assertThat(form.select(".dt-fb[data-field]").eachAttr("data-field")).containsExactly(
                 "name", "albumId", "lengthFormatted", "trackNumber", "releaseDate",
                 "overrideGenderId", "overrideEthnicityId", "overrideGenreId", "overrideSubgenreId", "overrideLanguageId",
                 "isSingle", "organized", "featuredArtists", "tags");
@@ -299,18 +312,20 @@ class SongGeneralTabTest {
                 "overrideEthnicityId", "overrideGenreId", "overrideSubgenreId", "overrideLanguageId", "isSingle", "organized", "artistId")) {
             assertThat(form.select("[name=" + name + "]")).describedAs(name).hasSize(1);
         }
-        assertThat(form.select(".ad-switch input[type=checkbox]")).hasSize(2);
+        assertThat(form.select(".dt-switch input[type=checkbox]")).hasSize(2);
         assertThat(form.select("select option[value='']").eachAttr("th:text")).hasSize(5)
                 .allSatisfy(text -> assertThat(text).startsWith("'Inherit ("));
-        assertThat(form.select(".ad-edit-foot #btnFetchItunes, .ad-edit-foot #btnFetchExternalMeta")).hasSize(2);
-        assertThat(form.select(".ad-edit-foot #profileDirtyText")).hasSize(1);
+        assertThat(form.select(".dt-edit-foot #btnFetchItunes, .dt-edit-foot #btnFetchExternalMeta")).hasSize(2);
+        assertThat(form.select(".dt-edit-foot #profileDirtyText")).hasSize(1);
 
-        assertThat(doc.select(".winning-chip, .rank-chip, .chip-group-separator, .detail-stats-panel, .attribute-text, #formActions"))
-                .isEmpty();
         assertThat(html)
-                .contains("function snapshotProfileValues()", "function updateProfileDirtyState()", "function toggleProfileMenu(event)")
+                .contains("function snapshotProfileValues()", "function updateProfileDirtyState()", "/js/detail-page.js")
                 .contains("dateFormat: 'd/m/Y'")
                 .doesNotContain("🎵").doesNotContain("🔹").doesNotContain("⏳");
+
+        // Edit-mode helpers shared by the artist, album and song detail pages
+        assertThat(Files.readString(Path.of("src/main/resources/static/js/detail-page.js"), StandardCharsets.UTF_8))
+                .contains("function toggleProfileMenu(event)", "function captureFormState(formId)", "function restoreFormState(");
 
         List<String> stylesheets = doc.select("link[rel=stylesheet]").eachAttr("th:href");
         // Shared detail styles load last, after the song-only sheet (version numbers are cache busters only)
@@ -319,9 +334,9 @@ class SongGeneralTabTest {
     }
 
     private static Element row(Element profile, String label) {
-        return profile.select(".ad-row").stream()
+        return profile.select(".dt-row").stream()
                 .filter(row -> {
-                    Element key = row.selectFirst(".ad-row-k");
+                    Element key = row.selectFirst(".dt-row-k");
                     return key != null && key.ownText().equals(label);
                 })
                 .findFirst()
@@ -385,7 +400,8 @@ class SongGeneralTabTest {
         model.put("ranksByYear", ranksByYear);
         model.put("firstListenedDate", "01-Jun-2022");
         model.put("lastListenedDate", "02-Jul-2025");
-        model.put("listeningSpan", "3 years");
+        model.put("firstListenedRecency", new library.util.DateFormatUtils.Recency("4 years ago", "stale"));
+        model.put("lastListenedRecency", new library.util.DateFormatUtils.Recency("1 year ago", "aging"));
         model.put("consistencyPeriods", List.of(
                 new ConsistencyPeriodDTO("days", "Days", 40, 1200),
                 new ConsistencyPeriodDTO("weeks", "Weeks", 20, 170),

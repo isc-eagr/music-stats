@@ -19,7 +19,7 @@ Run from the repo root. Java 25, Spring Boot 4.0.5, Maven wrapper (no linter or 
 
 Never start the live app. `music-stats.bat` kills any Java on port 8080 and runs the jar at the repo root; `deploy-prod.bat` runs `clean package` and copies `target/*.jar` over that root jar. Both are user-initiated only.
 
-Always run and verify UI and runtime changes on the dev instance (see "Dev environment" in AGENTS.md): `preview_start` with the `music-stats-dev` entry of `.claude/launch.json` (runs `music-stats-dev.bat`, `dev` profile, http://localhost:8081, dev DB `C:/Music Stats DB/music-stats-dev.db`), then check pages in the browser pane and the server log. Stop it with `preview_stop` before rebuilding the dev DB with `tools/devdb/build-dev-db.bat`.
+Always run and verify UI and runtime changes on the dev instance (see "Dev environment" in AGENTS.md): `preview_start` with the `music-stats-dev` entry of `.claude/launch.json` (runs `music-stats-dev.bat`, `dev` profile, http://localhost:8081, dev DB `C:/Music Stats DB/music-stats-dev.db`), then check pages in the browser pane and the server log. If another session already holds 8081, use the `music-stats-dev-8082` or `music-stats-dev-8083` entry. Always `preview_stop` the server you started once testing is done (and before rebuilding the dev DB with `tools/devdb/build-dev-db.bat`); never leave it running and never stop another session's server.
 
 Read-only query benchmarks (no Spring, SQLite opened `mode=ro`) live in `tools/performance/`. `performance-optimization-report.md` summarizes the optimization work done so far. Do not reintroduce app-level timeframe caching.
 

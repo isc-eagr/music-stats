@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subgenres - Music Stats</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <link rel="stylesheet" th:href="@{/css/catalog-modal.css(v=1)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <th:block th:replace="~{fragments/share-history :: styles}"></th:block>
     <th:block th:replace="~{fragments/catalog-row :: row-styles}"></th:block>
-    <script th:src="@{/js/list-utils.js}"></script>
+    <script th:src="@{/js/list-utils.js(v=2)}"></script>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
@@ -248,7 +249,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Create New Subgenre</h2>
-                <span class="modal-close" onclick="closeCreateModal()">&times;</span>
+                <button type="button" class="modal-close" onclick="closeCreateModal()" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
             </div>
             <form id="createForm" onsubmit="submitCreate(event)">
                 <div class="modal-body">
@@ -268,88 +269,14 @@
                 </div>
                 
                 <div class="modal-footer">
-                    <button type="submit" class="btn-action">Create</button>
-                    <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
+                    <button type="button" class="cm-btn" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="cm-btn is-primary">Create</button>
                 </div>
             </form>
         </div>
     </div>
     
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            background-color: #1a1a1a;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #333;
-        }
-        
-        .modal-header h2 {
-            margin: 0;
-            color: #fff;
-        }
-        
-        .modal-close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .modal-body {
-            padding: 20px;
-        }
-        
-        .modal-body .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .modal-body .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #ccc;
-        }
-        
-        .modal-body .form-group input,
-        .modal-body .form-group select {
-            width: 100%;
-            padding: 8px;
-            background-color: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 4px;
-            color: #fff;
-        }
-        
-        .modal-footer {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid #333;
-            justify-content: flex-end;
-        }
-        
-    </style>
+
     <script>
         // Auto-focus search input if there's a search query
         document.addEventListener('DOMContentLoaded', function() {

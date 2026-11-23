@@ -8,9 +8,9 @@
   open: whether it starts open (it does while paging through it).
 -->
 <section th:fragment="history(plays, total, page, pages, pageUrl, kind, open)"
-         class="ad-card ad-section dp-card dp-history" id="dpFullHistory" th:hidden="${!open}">
-    <div class="ad-sec-head">
-        <h2>Full history <span class="ad-count" th:text="${#numbers.formatInteger(total, 1, 'COMMA')}">0</span></h2>
+         class="dt-card dt-section dp-card dp-history" id="dpFullHistory" th:hidden="${!open}">
+    <div class="dt-sec-head">
+        <h2>Full history <span class="dt-count" th:text="${#numbers.formatInteger(total, 1, 'COMMA')}">0</span></h2>
         <span class="dp-head-note" th:if="${pages > 1}"
               th:text="'Page ' + ${page + 1} + ' of ' + ${#numbers.formatInteger(pages, 1, 'COMMA')} + ' · newest first'">Page 1 of 1</span>
     </div>
@@ -19,9 +19,9 @@
             <span>Date</span><span>Time</span><span th:if="${kind != 'song'}">Song</span><span>Account</span>
         </div>
         <div th:each="play, ps : ${plays}" class="dp-hr">
-            <span class="ad-num dp-lp-d" th:classappend="${!ps.first and plays[ps.index - 1].displayDate == play.displayDate} ? 'is-same' : ''"
+            <span class="dt-num dp-lp-d" th:classappend="${!ps.first and plays[ps.index - 1].displayDate == play.displayDate} ? 'is-same' : ''"
                   th:text="${play.displayDate}">01/01/2026</span>
-            <span class="ad-num dp-lp-t" th:text="${play.displayTime}">00:00</span>
+            <span class="dt-num dp-lp-t" th:text="${play.displayTime}">00:00</span>
             <span th:if="${kind != 'song'}" class="dp-lp-nm">
                 <!-- Album cover first, then the song's own cover (no album, or an album without art) -->
                 <span class="dp-cov"><img loading="lazy" decoding="async" alt=""
@@ -43,7 +43,7 @@
     </div>
     <nav class="dp-pager" th:if="${pages > 1}" aria-label="Full history pages">
         <a class="dp-pg" th:classappend="${page == 0} ? 'is-off' : ''" th:href="${pageUrl + (page - 1 < 0 ? 0 : page - 1) + '#dpFullHistory'}" aria-label="Previous page">
-            <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
+            <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
         <a th:if="${page > 2}" class="dp-pg" th:href="${pageUrl + 0 + '#dpFullHistory'}">1</a>
         <span th:if="${page > 3}" class="dp-pg-gap">…</span>
         <a th:each="n : ${#numbers.sequence(page - 2 < 0 ? 0 : page - 2, page + 2 > pages - 1 ? pages - 1 : page + 2)}"
@@ -53,7 +53,7 @@
         <a th:if="${page < pages - 3}" class="dp-pg" th:href="${pageUrl + (pages - 1) + '#dpFullHistory'}"
            th:text="${#numbers.formatInteger(pages, 1, 'COMMA')}">9</a>
         <a class="dp-pg" th:classappend="${page >= pages - 1} ? 'is-off' : ''" th:href="${pageUrl + (page + 1 > pages - 1 ? pages - 1 : page + 1) + '#dpFullHistory'}" aria-label="Next page">
-            <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+            <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
     </nav>
 </section>
 </body>

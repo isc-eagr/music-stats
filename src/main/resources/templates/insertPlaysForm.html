@@ -4,449 +4,406 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Import Plays</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}" />
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}" />
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-styles}"></th:block>
-    <style>
-        /* Minor page-specific adjustments to match site look */
-        .form-card { max-width: 880px; margin: 24px 0; padding: 28px; background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
-        .hint { color: var(--text-muted); margin-bottom:16px; font-size: 14px; }
-        .field-row { display:flex; gap:12px; align-items:center; }
-        .checkbox-label { color: var(--text-muted); font-size:14px }
-        .actions { display:flex; gap:8px; align-items:center; margin-top:12px }
-        input[type=file] { background: transparent; color: var(--text); border: 1px solid rgba(255,255,255,0.06); padding:8px; border-radius:6px }
-        input { width:100%; padding:8px; margin-bottom:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); background:var(--surface-2); color:var(--text) }
-        label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
-        .error { color: #ff6b6b; margin-bottom:12px; }
-        .success { color: #69db7c; margin-bottom:12px; }
-        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
-        .result-box { background: var(--surface-2); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 16px; margin-top: 16px; display: none; }
-        .result-box.show { display: block; }
-        .stat-row { display: flex; gap: 24px; flex-wrap: wrap; }
-        .stat-item { display: flex; gap: 8px; align-items: center; }
-        .stat-item .label { color: var(--text-muted); font-size: 13px; }
-        .stat-item .value { font-weight: 700; font-size: 15px; }
-        .delete-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-        .delete-buttons .btn { min-width: 80px; }
-        .btn-danger { background: #c92a2a; color: white; border: none; }
-        .btn-danger:hover { background: #a61e1e; }
-        .loading { opacity: 0.6; pointer-events: none; }
-        .automation-grid { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 24px; align-items: start; }
-        .automation-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-        .automation-meta-item { background: var(--surface-2); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; }
-        .automation-meta-item .meta-label { display: block; color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }
-        .automation-meta-item .meta-value { display: block; color: var(--text); font-size: 15px; font-weight: 700; }
-        .automation-config-summary { padding: 16px 18px; border-radius: 12px; background: var(--surface-2); border: 1px solid rgba(255,255,255,0.06); }
-        .automation-config-summary .summary-value { display: block; color: var(--text); font-size: 18px; font-weight: 700; }
-        .automation-config-summary .summary-copy { display: block; color: var(--text-muted); font-size: 13px; line-height: 1.55; margin-top: 8px; }
-        .automation-log-card { overflow: hidden; }
-        .automation-log-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
-        .automation-log-table { width: 100%; border-collapse: collapse; min-width: 940px; }
-        .automation-log-table th, .automation-log-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; font-size: 13px; vertical-align: top; }
-        .automation-log-table th { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(255,255,255,0.03); }
-        .automation-log-table td.message-cell { min-width: 260px; color: var(--text-muted); }
-        .status-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 78px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
-        .status-pill.success { background: rgba(34, 197, 94, 0.16); color: #86efac; }
-        .status-pill.warning { background: rgba(245, 158, 11, 0.16); color: #fcd34d; }
-        .status-pill.error { background: rgba(248, 113, 113, 0.16); color: #fca5a5; }
-        @media (max-width: 900px) {
-            .automation-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/import-plays.css(v=1)}" />
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
-    <main class="container" style="padding-left: 60px; margin-left: 0; margin-right: auto;">
-        <h1 style="margin: 24px 0 16px; font-size: 28px; font-weight: 650;">Import Plays</h1>
-
-        <div class="form-card" th:if="${automationImportState != null}">
-            <p class="section-title">Automation Control</p>
-            <p class="hint">Automation settings now live on the Config page. Use this screen to monitor recent runs and handle manual imports without touching hardcoded values.</p>
-
-            <div class="automation-grid">
-                <div>
-                    <label>Configured automation</label>
-                    <div class="automation-config-summary">
-                        <span class="summary-value" th:text="${automationConfig.enabled ? 'Enabled' : 'Disabled'}">Enabled</span>
-                        <span class="summary-copy" th:text="${automationImportState.runIntervalMinutes + ' min cadence for ' + (#strings.isEmpty(automationAccount) ? 'no account configured' : automationAccount)}">10 min cadence for vatito</span>
-                        <span class="summary-copy" th:text="${'Allowed window: ' + automationConfig.startHour + ':00 - ' + automationConfig.endHour + ':59'}">Allowed window: 7:00 - 23:59</span>
-                        <span class="summary-copy" th:text="${automationImportState.importLogLimit + ' recent rows shown (successes + errors)'}">20 recent rows shown (successes + errors)</span>
-                    </div>
-                    <div class="actions">
-                        <a class="btn btn-action" th:href="@{/config}">Open Config Page</a>
-                    </div>
-                </div>
-                <div class="automation-meta">
-                    <div class="automation-meta-item">
-                        <span class="meta-label">Account</span>
-                        <span class="meta-value" th:text="${automationAccount}">vatito</span>
-                    </div>
-                    <div class="automation-meta-item">
-                        <span class="meta-label">Last Attempt</span>
-                        <span class="meta-value" th:text="${automationImportState.lastAttemptAt != null ? automationImportState.lastAttemptAt : 'Never'}">Never</span>
-                    </div>
-                    <div class="automation-meta-item">
-                        <span class="meta-label">Last Success</span>
-                        <span class="meta-value" th:text="${automationImportState.lastSuccessAt != null ? automationImportState.lastSuccessAt : 'Never'}">Never</span>
-                    </div>
-                    <div class="automation-meta-item">
-                        <span class="meta-label">Last Issue</span>
-                        <span class="meta-value" th:text="${automationImportState.lastIssueAt != null ? automationImportState.lastIssueAt : 'None'}">None</span>
-                    </div>
-                </div>
-            </div>
+    <main class="container ip-page"
+          th:with="state=${automationImportState}, sync=${automationImportState.latestSyncCheck}">
+        <div class="ip-head">
+            <span class="ip-eyebrow">Tools</span>
+            <h1>Import Plays</h1>
         </div>
 
-        <div class="form-card automation-log-card" th:if="${automationImportState != null}">
-            <p class="section-title">Automation Run Log</p>
-            <p class="hint">Latest automated cycles for the configured account. Showing the last success runs with imported plays plus any errors, capped by the Config page limit.</p>
+        <!-- Automation status (settings live on the Config page) -->
+        <section class="ip-strip" aria-label="Automation">
+            <span class="ip-strip-state">
+                <span class="ip-strip-dot" th:classappend="${automationConfig.enabled} ? 'is-on' : ''"></span>
+                <b th:text="${automationConfig.enabled ? 'Automation on' : 'Automation off'}">Automation on</b>
+            </span>
+            <span th:text="${'every ' + state.runIntervalLabel + ' · ' + #numbers.formatInteger(automationConfig.startHour, 2) + ':00–' + #numbers.formatInteger(automationConfig.endHour, 2) + ':59'}">every 10 min · 07:00–23:59</span>
+            <span th:if="${state.nextRunLabel != null}">Next run <b class="ip-num" th:text="${state.nextRunLabel}">21:50</b></span>
+            <span class="ip-strip-issue" th:if="${state.lastIssueAt != null}">Last issue <b class="ip-num" th:text="${state.lastIssueAt}">-</b></span>
+            <a class="ip-strip-link" th:href="@{/config}">Edit in Config</a>
+        </section>
 
-            <div th:if="${automationImportState.recentLogs == null or #lists.isEmpty(automationImportState.recentLogs)}">
-                <p class="hint" style="margin-bottom: 0;">No automated runs have been logged yet.</p>
+        <!-- The automated Last.fm account -->
+        <article class="ip-card ip-account" th:if="${hasAutomationAccount}" th:attr="aria-label=${automationAccount}">
+            <div class="ip-account-head">
+                <div class="ip-account-id">
+                    <span class="ip-label">Last.fm account</span>
+                    <h2 th:text="${automationAccount}">vatito</h2>
+                    <span id="ipSyncPill" class="ip-pill"
+                          th:classappend="${sync == null ? '' : (sync.inSync ? 'is-ok' : 'is-warn')}"
+                          th:text="${sync == null ? 'Not checked yet' : (sync.inSync ? 'In sync with Last.fm' : 'Out of sync · Last.fm ' + (sync.difference > 0 ? '+' : '') + #numbers.formatInteger(sync.difference, 1, 'COMMA'))}">In sync with Last.fm</span>
+                </div>
+                <div class="ip-account-actions">
+                    <button id="fetchBtn" type="button" class="ip-btn ip-btn--primary ip-btn--lg" onclick="fetchFromLastfm()">
+                        <svg class="ip-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>
+                        <span id="fetchBtnLabel">Fetch now</span>
+                    </button>
+                    <button id="ipMoreBtn" type="button" class="ip-btn ip-btn--icon" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" onclick="toggleImportMenu()">
+                        <svg class="ip-ico" viewBox="0 0 24 24" aria-hidden="true" style="fill: currentColor; stroke: none"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                    </button>
+                    <div id="ipMoreMenu" class="ip-menu" role="menu" aria-label="More actions" hidden>
+                        <button type="button" role="menuitem" onclick="showApiKeyField()">Change API key</button>
+                        <button type="button" role="menuitem" class="is-danger" onclick="openDeleteRecentDialog()">Delete recent plays…</button>
+                    </div>
+                </div>
             </div>
 
-            <div class="automation-log-table-wrap" th:if="${automationImportState.recentLogs != null and !#lists.isEmpty(automationImportState.recentLogs)}">
-                <table class="automation-log-table">
-                    <thead>
-                        <tr>
-                            <th>Started</th>
-                            <th>Finished</th>
-                            <th>Status</th>
-                            <th>Interval</th>
-                            <th>Imported</th>
-                            <th>Unmatched</th>
-                            <th>Local</th>
-                            <th>Last.fm</th>
-                            <th>Message</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="entry : ${automationImportState.recentLogs}">
-                            <td th:text="${entry.runStartedAt}">-</td>
-                            <td th:text="${entry.runFinishedAt}">-</td>
-                            <td>
-                                <span class="status-pill"
-                                      th:text="${entry.status}"
-                                      th:classappend="${' ' + #strings.toLowerCase(entry.status)}">SUCCESS</span>
-                            </td>
-                            <td th:text="${entry.intervalMinutes + ' min'}">10 min</td>
-                            <td th:text="${entry.importedCount}">0</td>
-                            <td th:text="${entry.unmatchedCount}">0</td>
-                            <td th:text="${entry.localPlaycount != null ? entry.localPlaycount : '-'}">-</td>
-                            <td th:text="${entry.lastfmPlaycount != null ? entry.lastfmPlaycount : '-'}">-</td>
-                            <td class="message-cell" th:text="${entry.message}">-</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div id="ipApiKeyRow" class="ip-apikey" hidden>
+                <label class="ip-field" for="apiKey">Last.fm API key (used by Fetch now)
+                    <input type="password" id="apiKey" name="apiKey" autocomplete="off" th:value="${defaultLastfmApiKey}" />
+                </label>
+                <button type="button" class="ip-btn" onclick="hideApiKeyField()">Done</button>
             </div>
-        </div>
-        
-        <!-- Max Last.fm ID per account -->
-        <div th:if="${maxLastfmIds != null and !maxLastfmIds.isEmpty()}" class="form-card" style="margin-bottom: 16px; padding: 16px;">
-            <p style="margin: 0 0 8px; font-size: 14px; color: var(--text-muted); font-weight: 600;">Latest Last.fm ID per account:</p>
-            <div style="display: flex; gap: 24px; flex-wrap: wrap;">
-                <div th:each="entry : ${maxLastfmIds}" style="display: flex; gap: 8px; align-items: center;">
-                    <span style="color: var(--text-muted); font-size: 13px;" th:text="${entry.key != '' ? entry.key : '(blank)'}">account</span>
-                    <span style="font-weight: 700; font-size: 15px; color: var(--text);" th:text="${entry.value}">0</span>
+
+            <div class="ip-tiles">
+                <div class="ip-tile">
+                    <span class="ip-label">Plays in the library</span>
+                    <b id="ipLocalCount" th:text="${#numbers.formatInteger(accountPlayCount, 1, 'COMMA')}">0</b>
                 </div>
+                <div class="ip-tile">
+                    <span class="ip-label">Last.fm play count</span>
+                    <b id="ipLastfmCount" th:text="${sync != null ? #numbers.formatInteger(sync.lastfmPlaycount, 1, 'COMMA') : '–'}">–</b>
+                    <span id="ipLastfmChecked" class="ip-tile-sub" th:if="${sync != null and sync.checkedAt != null}" th:text="${'checked ' + sync.checkedAt}">checked</span>
+                </div>
+                <div class="ip-tile">
+                    <span class="ip-label">Latest Last.fm ID</span>
+                    <b th:text="${accountLatestLastfmId != null ? accountLatestLastfmId : '–'}">–</b>
+                    <span class="ip-tile-sub">Fetch now starts after this one</span>
+                </div>
+                <div class="ip-tile">
+                    <span class="ip-label">Last fetched</span>
+                    <b th:text="${state.lastSuccessAt != null and #strings.length(state.lastSuccessAt) >= 16 ? #strings.substring(state.lastSuccessAt, 11, 16) : 'Never'}">Never</b>
+                    <span class="ip-tile-sub" th:if="${state.lastSuccessAt != null and #strings.length(state.lastSuccessAt) >= 10}" th:text="${#strings.substring(state.lastSuccessAt, 0, 10)}">dd/MM/yyyy</span>
+                </div>
+                <a class="ip-tile" th:href="@{/plays/unmatched(account=${automationAccount})}" th:classappend="${accountUnmatchedCount > 0} ? 'is-attention' : ''">
+                    <span class="ip-label">Unmatched plays</span>
+                    <b th:text="${#numbers.formatInteger(accountUnmatchedCount, 1, 'COMMA')}">0</b>
+                    <span class="ip-tile-sub">Review →</span>
+                </a>
             </div>
-        </div>
-        
-        <!-- Automated Last.fm Fetch -->
-        <div class="form-card">
-            <p class="section-title">🚀 Automated Last.fm Fetch</p>
-            <p class="hint">Fetch recent plays directly from Last.fm API. Uses the latest last.fm ID + 1 as the starting point.</p>
-            
-            <div id="fetchError" class="error" style="display: none;"></div>
-            <div id="fetchSuccess" class="success" style="display: none;"></div>
-            
-            <label for="fetchAccount">Account</label>
-            <select id="fetchAccount" name="fetchAccount">
-                <option th:each="a: ${accounts}" th:value="${a}" th:text="${a}"></option>
-            </select>
-            
-            <label for="apiKey">Last.fm API Key</label>
-            <input type="text" id="apiKey" name="apiKey" th:value="${defaultLastfmApiKey}" />
-            
-            <div class="actions">
-                <button id="fetchBtn" class="btn btn-action" type="button" onclick="fetchFromLastfm()">Fetch & Import</button>
-            </div>
-            
-            <div id="fetchResult" class="result-box">
-                <div class="stat-row">
-                    <div class="stat-item">
-                        <span class="label">Processed:</span>
-                        <span class="value" id="fetchProcessed">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Matched:</span>
-                        <span class="value" style="color: #69db7c;" id="fetchMatched">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Unmatched:</span>
-                        <span class="value" style="color: #ffa94d;" id="fetchUnmatched">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Errors:</span>
-                        <span class="value" style="color: #ff6b6b;" id="fetchErrors">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Pages:</span>
-                        <span class="value" id="fetchPages">0</span>
-                    </div>
+
+            <div id="fetchError" class="ip-alert is-error" role="alert" hidden></div>
+
+            <!-- Filled in after Fetch now -->
+            <section id="fetchResult" class="ip-result" aria-label="Fetch result" hidden>
+                <div class="ip-result-head">
+                    <span class="ip-cap">Result · just now</span>
+                    <span><span id="fetchPages" class="ip-num">0</span> page(s) fetched</span>
                 </div>
-                <div id="validationResult" style="margin-top: 16px; padding: 12px; border-radius: 6px; display: none;">
-                    <div class="stat-row">
-                        <div class="stat-item">
-                            <span class="label">Last.fm Playcount:</span>
-                            <span class="value" id="lastfmPlaycount">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Local Plays:</span>
-                            <span class="value" id="localPlayCount">0</span>
-                        </div>
-                        <div class="stat-item" id="differenceItem" style="display: none;">
-                            <span class="label">Difference:</span>
-                            <span class="value" id="validationDifference">0</span>
-                        </div>
-                    </div>
-                    <p id="validationMessage" style="margin: 8px 0 0; font-weight: 600;"></p>
+                <div class="ip-result-headline"><b id="fetchProcessed">0</b><span id="fetchHeadline">plays imported</span></div>
+                <div class="ip-result-stats">
+                    <span class="is-ok"><b id="fetchMatched">0</b> matched</span>
+                    <span class="is-warn"><b id="fetchUnmatched">0</b> unmatched</span>
+                    <span class="is-bad"><b id="fetchErrors">0</b> errors</span>
                 </div>
-                
-                <!-- Unmatched plays alert -->
-                <div id="unmatchedAlert" class="unmatched-alert" style="display: none; background: #3a2a1a; border: 1px solid #8a6a3a; border-radius: 8px; padding: 16px; margin-top: 16px;">
-                    <div style="color: #ffa; font-weight: 600; margin-bottom: 8px;">⚠️ Unmatched Plays Detected</div>
-                    <div style="color: #cca; font-size: 14px; margin-bottom: 12px;">
-                        <span id="unmatchedUniqueCount">0</span> unique song(s) could not be matched to existing songs in your library.
-                        You can create new songs or match them to existing ones.
+                <div id="validationResult" class="ip-check-line" hidden>
+                    <svg class="ip-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                    <b id="validationMessage"></b>
+                    <span>Last.fm <b id="lastfmPlaycount" class="ip-num">0</b> · Local <b id="localPlayCount" class="ip-num">0</b></span>
+                </div>
+                <div id="unmatchedAlert" class="ip-callout" hidden>
+                    <div class="ip-callout-text">
+                        <b><span id="unmatchedUniqueCount">0</span> song(s) didn't match</b>
+                        <span>Create them or link them to songs you already have.</span>
                     </div>
-                    <button type="button" class="btn btn-action" onclick="showUnmatchedFromFetch()">
-                        View & Fix Unmatched Plays
+                    <button type="button" class="ip-btn ip-btn--attention" onclick="showUnmatchedFromFetch()">Fix unmatched plays</button>
+                </div>
+            </section>
+        </article>
+
+        <article class="ip-card ip-empty-card" th:unless="${hasAutomationAccount}">
+            No Last.fm account is set for the automation. <a th:href="@{/config}">Set it on the Config page</a> to fetch plays from here.
+        </article>
+
+        <!-- Automation run history -->
+        <section class="ip-card ip-history" aria-label="Run history">
+            <div class="ip-history-head">
+                <span class="ip-cap">Run history</span>
+                <div class="ip-tabs" role="tablist" aria-label="Run history">
+                    <button type="button" role="tab" id="ipTabSuccess" class="ip-tab is-active" aria-selected="true" aria-controls="ipRunsSuccess" onclick="showRunTab('Success')">
+                        Successes <span class="ip-tab-count" th:text="${#lists.size(state.successLogs)}">0</span>
+                    </button>
+                    <button type="button" role="tab" id="ipTabErrors" class="ip-tab" aria-selected="false" aria-controls="ipRunsErrors" onclick="showRunTab('Errors')">
+                        Errors <span class="ip-tab-count" th:classappend="${!#lists.isEmpty(state.errorLogs)} ? 'is-error' : ''" th:text="${#lists.size(state.errorLogs)}">0</span>
                     </button>
                 </div>
             </div>
-        </div>
-        
-        <!-- Delete Recent Plays -->
-        <div class="form-card">
-            <p class="section-title">🗑️ Delete Recent Plays</p>
-            <p class="hint">Delete plays from the last N days. Useful for re-importing or cleaning up data.</p>
-            
-            <div id="deleteError" class="error" style="display: none;"></div>
-            <div id="deleteSuccess" class="success" style="display: none;"></div>
-            
-            <div class="delete-buttons">
-                <button class="btn btn-danger" type="button" onclick="deleteRecent(5)">5 days</button>
-                <button class="btn btn-danger" type="button" onclick="deleteRecent(10)">10 days</button>
-                <button class="btn btn-danger" type="button" onclick="deleteRecent(20)">20 days</button>
-                <button class="btn btn-danger" type="button" onclick="deleteRecent(30)">30 days</button>
-                <button class="btn btn-danger" type="button" onclick="deleteRecent(60)">60 days</button>
-                <button class="btn btn-danger" type="button" onclick="deleteRecent(90)">90 days</button>
+            <p class="ip-history-note" th:text="${'Latest ' + state.importLogLimit + ' of each (Import log rows on the Config page). Errors include runs still out of sync after the automatic re-fetch.'}">Latest 20 of each</p>
+            <div id="ipRunsSuccess" role="tabpanel" aria-labelledby="ipTabSuccess">
+                <th:block th:replace="~{fragments/import-run-list :: runList(${state.successLogs}, 'No imports logged yet.')}"></th:block>
             </div>
-            
-            <div id="deleteResult" class="result-box">
-                <div class="stat-row">
-                    <div class="stat-item">
-                        <span class="label">Deleted:</span>
-                        <span class="value" style="color: #ff6b6b;" id="deleteCount">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">plays from the last</span>
-                        <span class="value" id="deleteDays">0</span>
-                        <span class="label">days</span>
-                    </div>
-                </div>
+            <div id="ipRunsErrors" role="tabpanel" aria-labelledby="ipTabErrors" hidden>
+                <th:block th:replace="~{fragments/import-run-list :: runList(${state.errorLogs}, 'No errors logged.')}"></th:block>
             </div>
-        </div>
-        
-        <!-- CSV Upload -->
-        <div class="form-card">
-            <p class="section-title">📄 CSV File Upload</p>
-            <p class="hint">Upload a CSV file containing plays. The server will stream and save in batches to avoid high memory usage.</p>
+        </section>
 
-            <div th:if="${error}">
-                <p class="error" th:text="${error}"></p>
-            </div>
-
-            <form th:action="@{/plays/upload}" method="post" enctype="multipart/form-data">
-                <label for="file">CSV file</label>
-                <input type="file" autocomplete="off" id="file" name="file" accept="text/csv" required />
-
-                <label for="account">Account</label>
-                <select id="account" name="account">
-                    <option th:each="a: ${accounts}" th:value="${a}" th:text="${a}"></option>
-                </select>
-
-                <label for="batchSize">Batch size (rows per DB commit)</label>
-                <input type="number" autocomplete="off" id="batchSize" name="batchSize" value="2000" min="1" />
-
-                <div class="field-row">
-                    <label class="checkbox-label"><input type="checkbox" autocomplete="off" name="dryRun" value="true" /> Dry run (do not write to DB)</label>
-                </div>
-
-                <div class="actions">
-                    <button class="btn btn-action" type="submit">Upload & Import</button>
-                    <a class="btn btn-negative" th:href="@{/}">Cancel</a>
-                </div>
+        <!-- CSV upload: rarely used, so it stays collapsed at the bottom -->
+        <details class="ip-csv">
+            <summary>
+                <svg class="ip-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+                <span class="ip-csv-text"><b>Upload a CSV file</b> · <span th:text="${'for ' + csvDefaultAccount + ' or an old Last.fm export'}">for robertlover or an old Last.fm export</span></span>
+                <svg class="ip-ico ip-csv-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <form class="ip-csv-form" th:action="@{/plays/upload}" method="post" enctype="multipart/form-data">
+                <label class="ip-field ip-field--file" for="file">CSV file
+                    <input type="file" autocomplete="off" id="file" name="file" accept="text/csv" required />
+                </label>
+                <label class="ip-field ip-field--account" for="account">Account
+                    <select id="account" name="account">
+                        <option th:each="a : ${accounts}" th:value="${a}" th:text="${a}" th:selected="${a == csvDefaultAccount}"></option>
+                    </select>
+                </label>
+                <label class="ip-field ip-field--narrow" for="batchSize">Batch size
+                    <input type="number" autocomplete="off" id="batchSize" name="batchSize" value="2000" min="1" />
+                </label>
+                <label class="ip-check"><input type="checkbox" autocomplete="off" name="dryRun" value="true" /> Dry run</label>
+                <button class="ip-btn" type="submit">Upload &amp; import</button>
             </form>
-        </div>
+        </details>
     </main>
-    
-    <script>
-        // Store unmatched plays from fetch
+
+    <!-- Delete recent plays (from the account's More menu) -->
+    <div id="ipDeleteDialog" class="ip-dialog-overlay" hidden onclick="if (event.target === this) closeDeleteRecentDialog()">
+        <div class="ip-dialog" role="dialog" aria-modal="true" aria-labelledby="ipDeleteTitle">
+            <h3 id="ipDeleteTitle">
+                <span class="ip-dialog-icon"><svg class="ip-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+                Delete recent plays
+            </h3>
+            <p>Deletes every play from the period you pick, so it can be imported again.</p>
+            <label class="ip-field" for="ipDeleteDays">Plays from the last
+                <select id="ipDeleteDays">
+                    <option value="5">5 days</option>
+                    <option value="10">10 days</option>
+                    <option value="20">20 days</option>
+                    <option value="30">30 days</option>
+                    <option value="60">60 days</option>
+                    <option value="90">90 days</option>
+                </select>
+            </label>
+            <p class="ip-dialog-warn">This can't be undone.</p>
+            <label class="ip-check"><input type="checkbox" id="ipDeleteConfirm" autocomplete="off" onchange="updateDeleteRecentButton()"> I understand these plays will be permanently deleted</label>
+            <div id="deleteError" class="ip-alert is-error" role="alert" hidden></div>
+            <div class="ip-dialog-actions">
+                <button type="button" class="ip-btn ip-btn--ghost" onclick="closeDeleteRecentDialog()">Cancel</button>
+                <button type="button" id="ipDeleteBtn" class="ip-btn ip-btn--danger" disabled onclick="deleteRecent()">Delete permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const automationAccount = /*[[${automationAccount}]]*/ '';
+        // Unmatched plays from the latest fetch, for the Fix unmatched plays list
         let unmatchedFromFetch = [];
 
+        function formatCount(value) {
+            return Number(value || 0).toLocaleString('en-US');
+        }
+
         async function fetchFromLastfm() {
-            const account = document.getElementById('fetchAccount').value;
-            const apiKey = document.getElementById('apiKey').value;
+            const apiKeyInput = document.getElementById('apiKey');
             const btn = document.getElementById('fetchBtn');
+            const btnLabel = document.getElementById('fetchBtnLabel');
             const errorEl = document.getElementById('fetchError');
-            const successEl = document.getElementById('fetchSuccess');
             const resultEl = document.getElementById('fetchResult');
-            
-            // Reset
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
-            resultEl.classList.remove('show');
-            document.getElementById('validationResult').style.display = 'none';
-            document.getElementById('unmatchedAlert').style.display = 'none';
+            const validationEl = document.getElementById('validationResult');
+            const unmatchedAlertEl = document.getElementById('unmatchedAlert');
+
+            errorEl.hidden = true;
+            resultEl.hidden = true;
+            validationEl.hidden = true;
+            unmatchedAlertEl.hidden = true;
             unmatchedFromFetch = [];
-            btn.classList.add('loading');
-            btn.textContent = 'Fetching...';
-            
+            btn.classList.add('is-busy');
+            btnLabel.textContent = 'Fetching...';
+
             try {
                 const response = await fetch('/plays/api/fetch-lastfm', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ account, apiKey })
+                    body: JSON.stringify({ account: automationAccount, apiKey: apiKeyInput ? apiKeyInput.value : '' })
                 });
-                
                 const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('fetchProcessed').textContent = data.stats.totalProcessed || 0;
-                    document.getElementById('fetchMatched').textContent = data.stats.totalMatched || 0;
-                    document.getElementById('fetchUnmatched').textContent = data.stats.totalUnmatched || 0;
-                    document.getElementById('fetchErrors').textContent = data.stats.totalErrors || 0;
-                    document.getElementById('fetchPages').textContent = data.stats.totalPages || 0;
-                    resultEl.classList.add('show');
-                    
-                    if (data.stats.totalProcessed > 0) {
-                        successEl.textContent = `Successfully imported ${data.stats.totalProcessed} plays!`;
-                        successEl.style.display = 'block';
-                    } else {
-                        successEl.textContent = 'No new plays found.';
-                        successEl.style.display = 'block';
-                    }
-                    
-                    // Display validation result
-                    const validationEl = document.getElementById('validationResult');
-                    if (data.validation) {
-                        document.getElementById('lastfmPlaycount').textContent = data.validation.lastfmPlaycount.toLocaleString();
-                        document.getElementById('localPlayCount').textContent = data.validation.localPlayCount.toLocaleString();
-                        
-                        const messageEl = document.getElementById('validationMessage');
-                        const differenceItem = document.getElementById('differenceItem');
-                        
-                        if (data.validation.matches) {
-                            validationEl.style.background = 'rgba(105, 219, 124, 0.15)';
-                            validationEl.style.border = '1px solid rgba(105, 219, 124, 0.3)';
-                            messageEl.style.color = '#69db7c';
-                            messageEl.textContent = '✓ Play counts match! All synced up.';
-                            differenceItem.style.display = 'none';
-                        } else {
-                            validationEl.style.background = 'rgba(255, 169, 77, 0.15)';
-                            validationEl.style.border = '1px solid rgba(255, 169, 77, 0.3)';
-                            messageEl.style.color = '#ffa94d';
-                            const diff = data.validation.difference;
-                            document.getElementById('validationDifference').textContent = (diff > 0 ? '+' : '') + diff.toLocaleString();
-                            differenceItem.style.display = 'flex';
-                            if (diff > 0) {
-                                messageEl.textContent = `⚠ Warning: Last.fm has ${diff.toLocaleString()} more plays than local database.`;
-                            } else {
-                                messageEl.textContent = `⚠ Warning: Local database has ${Math.abs(diff).toLocaleString()} more plays than Last.fm.`;
-                            }
-                        }
-                        validationEl.style.display = 'block';
-                    } else {
-                        validationEl.style.display = 'none';
-                    }
-                    
-                    // Display unmatched plays alert
-                    const unmatchedAlertEl = document.getElementById('unmatchedAlert');
-                    if (data.unmatchedList && data.unmatchedList.length > 0) {
-                        unmatchedFromFetch = data.unmatchedList;
-                        document.getElementById('unmatchedUniqueCount').textContent = data.unmatchedList.length;
-                        unmatchedAlertEl.style.display = 'block';
-                    } else {
-                        unmatchedFromFetch = [];
-                        unmatchedAlertEl.style.display = 'none';
-                    }
-                } else {
+
+                if (!data.success) {
                     errorEl.textContent = data.error || 'Unknown error';
-                    errorEl.style.display = 'block';
+                    errorEl.hidden = false;
+                    return;
                 }
+
+                const stats = data.stats || {};
+                const processed = stats.totalProcessed || 0;
+                document.getElementById('fetchProcessed').textContent = formatCount(processed);
+                document.getElementById('fetchHeadline').textContent = processed > 0 ? 'plays imported' : 'No new plays found';
+                document.getElementById('fetchMatched').textContent = formatCount(stats.totalMatched);
+                document.getElementById('fetchUnmatched').textContent = formatCount(stats.totalUnmatched);
+                document.getElementById('fetchErrors').textContent = formatCount(stats.totalErrors);
+                document.getElementById('fetchPages').textContent = formatCount(stats.totalPages);
+
+                if (data.validation) {
+                    const v = data.validation;
+                    document.getElementById('lastfmPlaycount').textContent = formatCount(v.lastfmPlaycount);
+                    document.getElementById('localPlayCount').textContent = formatCount(v.localPlayCount);
+                    const messageEl = document.getElementById('validationMessage');
+                    validationEl.classList.toggle('is-ok', v.matches);
+                    validationEl.classList.toggle('is-warn', !v.matches);
+                    if (v.matches) {
+                        messageEl.textContent = 'Play counts match.';
+                    } else if (v.difference > 0) {
+                        messageEl.textContent = `Last.fm has ${formatCount(v.difference)} more plays than the library.`;
+                    } else {
+                        messageEl.textContent = `The library has ${formatCount(Math.abs(v.difference))} more plays than Last.fm.`;
+                    }
+                    validationEl.hidden = false;
+
+                    // Keep the account tiles in step with what this fetch just checked
+                    document.getElementById('ipLocalCount').textContent = formatCount(v.localPlayCount);
+                    document.getElementById('ipLastfmCount').textContent = formatCount(v.lastfmPlaycount);
+                    const checkedEl = document.getElementById('ipLastfmChecked');
+                    if (checkedEl) checkedEl.textContent = 'checked just now';
+                    const pill = document.getElementById('ipSyncPill');
+                    pill.classList.toggle('is-ok', v.matches);
+                    pill.classList.toggle('is-warn', !v.matches);
+                    pill.textContent = v.matches
+                        ? 'In sync with Last.fm'
+                        : 'Out of sync · Last.fm ' + (v.difference > 0 ? '+' : '') + formatCount(v.difference);
+                }
+
+                if (data.unmatchedList && data.unmatchedList.length > 0) {
+                    unmatchedFromFetch = data.unmatchedList;
+                    document.getElementById('unmatchedUniqueCount').textContent = data.unmatchedList.length;
+                    unmatchedAlertEl.hidden = false;
+                }
+
+                resultEl.hidden = false;
             } catch (e) {
                 errorEl.textContent = 'Request failed: ' + e.message;
-                errorEl.style.display = 'block';
+                errorEl.hidden = false;
             } finally {
-                btn.classList.remove('loading');
-                btn.textContent = 'Fetch & Import';
+                btn.classList.remove('is-busy');
+                btnLabel.textContent = 'Fetch now';
             }
         }
-        
-        async function deleteRecent(days) {
-            if (!confirm(`Are you sure you want to delete all plays from the last ${days} days? This cannot be undone.`)) {
-                return;
+
+        function showUnmatchedFromFetch() {
+            openUnmatchedListModal(unmatchedFromFetch);
+        }
+
+        // ── Run history tabs ──
+        function showRunTab(name) {
+            ['Success', 'Errors'].forEach(function(tab) {
+                const active = tab === name;
+                const button = document.getElementById('ipTab' + tab);
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-selected', String(active));
+                document.getElementById('ipRuns' + tab).hidden = !active;
+            });
+        }
+
+        // ── More menu ──
+        function toggleImportMenu(forceOpen) {
+            const menu = document.getElementById('ipMoreMenu');
+            const button = document.getElementById('ipMoreBtn');
+            if (!menu || !button) return;
+            const open = typeof forceOpen === 'boolean' ? forceOpen : menu.hidden;
+            menu.hidden = !open;
+            button.setAttribute('aria-expanded', String(open));
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('ipMoreMenu');
+            if (menu && !menu.hidden && !event.target.closest('#ipMoreMenu') && !event.target.closest('#ipMoreBtn')) {
+                toggleImportMenu(false);
             }
-            
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key !== 'Escape') return;
+            toggleImportMenu(false);
+            if (!document.getElementById('ipDeleteDialog').hidden) closeDeleteRecentDialog();
+        });
+
+        function showApiKeyField() {
+            toggleImportMenu(false);
+            const row = document.getElementById('ipApiKeyRow');
+            row.hidden = false;
+            document.getElementById('apiKey').focus();
+        }
+
+        function hideApiKeyField() {
+            document.getElementById('ipApiKeyRow').hidden = true;
+        }
+
+        // ── Delete recent plays ──
+        function openDeleteRecentDialog() {
+            toggleImportMenu(false);
+            document.getElementById('ipDeleteConfirm').checked = false;
+            document.getElementById('deleteError').hidden = true;
+            const btn = document.getElementById('ipDeleteBtn');
+            btn.disabled = true;
+            btn.textContent = 'Delete permanently';
+            document.getElementById('ipDeleteDialog').hidden = false;
+        }
+
+        function closeDeleteRecentDialog() {
+            document.getElementById('ipDeleteDialog').hidden = true;
+        }
+
+        function updateDeleteRecentButton() {
+            document.getElementById('ipDeleteBtn').disabled = !document.getElementById('ipDeleteConfirm').checked;
+        }
+
+        async function deleteRecent() {
+            const days = parseInt(document.getElementById('ipDeleteDays').value, 10);
+            const btn = document.getElementById('ipDeleteBtn');
             const errorEl = document.getElementById('deleteError');
-            const successEl = document.getElementById('deleteSuccess');
-            const resultEl = document.getElementById('deleteResult');
-            
-            // Reset
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
-            resultEl.classList.remove('show');
-            
+            errorEl.hidden = true;
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+
             try {
                 const response = await fetch('/plays/api/delete-recent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ days })
                 });
-                
                 const data = await response.json();
-                
                 if (data.success) {
-                    document.getElementById('deleteCount').textContent = data.deletedCount || 0;
-                    document.getElementById('deleteDays').textContent = data.days || 0;
-                    resultEl.classList.add('show');
-                    successEl.textContent = `Deleted ${data.deletedCount} plays from the last ${data.days} days.`;
-                    successEl.style.display = 'block';
-                } else {
-                    errorEl.textContent = data.error || 'Unknown error';
-                    errorEl.style.display = 'block';
+                    // Reload so every tile and the run history reflect the deletion, then confirm with a toast
+                    window.location.href = '/plays/upload?deleted=' + (data.deletedCount || 0) + '&days=' + (data.days || days);
+                    return;
                 }
+                errorEl.textContent = data.error || 'Unknown error';
             } catch (e) {
                 errorEl.textContent = 'Request failed: ' + e.message;
-                errorEl.style.display = 'block';
             }
+            errorEl.hidden = false;
+            btn.disabled = false;
+            btn.textContent = 'Delete permanently';
         }
-        
-        function showUnmatchedFromFetch() {
-            openUnmatchedListModal(unmatchedFromFetch);
-        }
+
+        (function showDeleteConfirmation() {
+            const params = new URLSearchParams(window.location.search);
+            if (!params.has('deleted')) return;
+            showSuccessToast(`Deleted ${formatCount(params.get('deleted'))} plays from the last ${params.get('days')} days.`);
+            window.history.replaceState(null, '', window.location.pathname);
+        })();
     </script>
-    
+
     <!-- Include modal fragments -->
     <th:block th:replace="~{fragments/unmatched-plays-modal :: unmatched-list-modal}"></th:block>
     <th:block th:replace="~{fragments/unmatched-plays-modal :: create-wizard-modal}"></th:block>
     <th:block th:replace="~{fragments/unmatched-plays-modal :: match-modal}"></th:block>
     <th:block th:replace="~{fragments/external-fetch-modal :: external-fetch-modal}"></th:block>
     <th:block th:replace="~{fragments/artist-fetch-modal :: artist-fetch-modal}"></th:block>
-    
+
     <!-- Include modal scripts -->
     <th:block th:replace="~{fragments/unmatched-plays-modal :: modal-scripts}"></th:block>
 </body>

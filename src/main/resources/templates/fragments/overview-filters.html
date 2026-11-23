@@ -3,11 +3,10 @@
 <head>
 <th:block th:fragment="styles">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" th:href="@{/css/overview-filters.css}">
+    <link rel="stylesheet" th:href="@{/css/overview-filters.css(v=2)}">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
     <script th:src="@{/js/chip-select.js}" defer></script>
     <script th:src="@{/js/overview-filters.js}" defer></script>
-    <script th:src="@{/js/overview-sticky-headers.js}" defer></script>
 </th:block>
 </head>
 <body>
@@ -25,7 +24,7 @@
     <div id="overviewFilterBackdrop" class="overview-filter-backdrop" hidden></div>
     <aside class="filters" id="overviewFilterPanel" role="dialog" aria-modal="true" aria-labelledby="overviewFilterTitle" hidden>
         <div class="filter-header">
-            <h3 id="overviewFilterTitle">Edit Filter</h3>
+            <h3 id="overviewFilterTitle">Filters</h3>
             <button type="button" class="filter-close" id="overviewFilterClose" aria-label="Close filters">&times;</button>
         </div>
         <form id="overviewFilterForm" method="get" autocomplete="off">
@@ -37,9 +36,9 @@
                     <div class="filter-item-content"></div>
                 </div>
             </div>
-            <div class="overview-filter-footer">
-                <button type="button" class="btn btn-secondary" data-overview-reset>Reset</button>
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <div class="filter-actions">
+                <button type="button" class="btn-clear" data-overview-reset>Reset</button>
+                <button type="submit" class="btn-apply">Apply</button>
             </div>
         </form>
     </aside>

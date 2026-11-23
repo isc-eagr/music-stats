@@ -1,5 +1,5 @@
-/* Share over time panel above the catalog lists (fragments/share-history.html, js/catalog-share-history.js).
-   Surface, labels and pills reuse the list cards (catalog-cards.css) and toolbar (catalog-list.css) look. */
+/* Share over time panel above the Catalogs list pages (fragments/share-history.html, js/catalog-share-history.js).
+   Surface, labels and pills reuse the list cards (catalog-cards.css, catalog-rows.css) and toolbar (catalog-list.css) look. */
 
 .share-history {
     --sh-line: #232327;
@@ -54,6 +54,9 @@
     gap: 8px;
     margin: 0;
 }
+
+/* Untitled panels (the year bars) keep Measure on the right */
+.sh-head > .sh-measure:first-child { margin-left: auto; }
 
 .sh-measure-label {
     color: var(--sh-label);
@@ -183,8 +186,8 @@
     font-weight: 700;
 }
 
-.sh-tooltip-sub { padding-left: 17px; color: var(--sh-label); }
 .sh-tooltip-value { margin-top: 3px; font-variant-numeric: tabular-nums; }
+.sh-tooltip-gender { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
 .sh-tooltip-change { color: var(--sh-label); font-variant-numeric: tabular-nums; }
 .sh-tooltip-change .up { color: #86c99a; }
 .sh-tooltip-change .down { color: #d98b8b; }
@@ -269,7 +272,6 @@ button.sh-chip:hover { border-color: rgba(255, 255, 255, 0.2); background: rgba(
 }
 
 /* Highlight a card or table row picked from the chart, in that item's band color */
-.gc.share-glow,
 .lb-row.share-glow {
     animation: share-glow-card 1.5s ease-in-out 2;
 }
@@ -298,7 +300,6 @@ tr.share-glow > td:first-child {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .gc.share-glow,
     .lb-row.share-glow,
     tr.share-glow > td { animation-duration: 0.01s; animation-iteration-count: 1; animation-fill-mode: forwards; }
 }
@@ -307,6 +308,9 @@ tr.share-glow > td:first-child {
     .sh-head { flex-wrap: wrap; padding: 12px 12px 12px 16px; }
     .sh-heading { flex: 1 1 calc(100% - 44px); }
     .sh-measure { order: 3; width: 100%; }
+    .sh-head > .sh-measure:first-child { order: 0; width: auto; flex: 1; }
+    /* mobile.css gives every button a 40px touch height, so keep the knob round at that size */
+    .sh-toggle { width: 40px; height: 40px; }
     .sh-measure-pill { flex: 1; }
     .sh-measure select { field-sizing: fixed; width: 100%; }
     .sh-body { padding: 0 14px 14px; }

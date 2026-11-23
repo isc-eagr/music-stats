@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Chart recaps (Billboard Hot 100, TRL, Vato's Cuntdown): charts/recap.html + js/chart-recap.js.
+   The layout is the Weekly Chart's (weekly-chart.css, wk-); this file only adds what is recap specific.
+   Prefix: rc-
+   ========================================================================== */
+
+/* Chart colour (co-tone-hot100 / trl / cuntdown from chart-overview.css) on the title dot */
+.rc-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rc-title .co-dot {
+    width: 12px;
+    height: 12px;
+    background: var(--co-tone);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--co-tone) 60%, transparent);
+}
+
+.rc-page.rc-loading #recapContent {
+    opacity: 0.45;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.rc-name-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    min-width: 0;
+}
+
+/* Chart entries not linked to a library song / artist */
+.catalog-table .wk-name.rc-unlinked,
+.wk-hero-title.rc-unlinked {
+    color: #d4d4d8;
+    font-weight: 600;
+}
+
+.catalog-table .wk-artist.rc-unlinked,
+.wk-hero-artist.rc-unlinked {
+    display: block;
+    margin-top: 2px;
+    color: var(--co-label);
+    font-size: 12.5px;
+}
+
+.co-cover.rc-cover-empty {
+    cursor: default;
+}
+
+/* TRL Hall of Fame (retired) entries: gold name and flag */
+.co-flag.rc-retired-flag {
+    margin-left: 0;
+    border-color: rgba(251, 191, 36, 0.5);
+    background: rgba(251, 191, 36, 0.1);
+    color: #fcd34d;
+}
+
+.catalog-table tr.rc-retired a.wk-name,
+.catalog-table tr.rc-retired .wk-name.rc-unlinked {
+    color: #fde68a;
+}
+
+/* Vato's Cuntdown close calls: cover and name only */
+.rc-closecalls .wk-c-cover {
+    width: 76px;
+    padding-left: 16px !important;
+}
+
+@media (max-width: 768px) {
+    .rc-title {
+        gap: 9px;
+    }
+
+    .rc-closecalls .wk-c-cover {
+        width: 60px;
+        padding-left: 12px !important;
+    }
+}

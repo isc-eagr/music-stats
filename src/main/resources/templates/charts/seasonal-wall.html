@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seasonal / Yearly Overview - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <link rel="stylesheet" th:href="@{/css/chart-overview.css}">
+    <link rel="stylesheet" th:href="@{/css/seasonal-wall.css}">
+    <script th:if="${overviewTab == 'artist'}" th:src="@{/js/seasonal-artists.js}" defer></script>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container co-page sw-page" id="seasonalWall"
+         th:with="artistTab=${overviewTab == 'artist'}, overviewBase='/charts/seasonal/overview'"
+         th:attr="data-tab=${overviewTab}">
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title">Chart Overview</h1>
+                    <div class="view-toggle" role="group" aria-label="View" th:unless="${artistTab}">
+                        <a class="view-btn active" data-view="wall" aria-current="page" th:href="@{${overviewBase}(overviewTab=${overviewTab})}">Wall</a>
+                        <a class="view-btn" data-view="seasonal" th:href="@{/charts/seasonal/overview(overviewTab=${overviewTab},view='table')}">Seasonal table</a>
+                        <a class="view-btn" data-view="yearly" th:href="@{/charts/yearly/overview(overviewTab=${overviewTab},view='table')}">Yearly table</a>
+                    </div>
+                </div>
+                <div class="catalog-toolbar-actions">
+                    <a class="toolbar-btn" th:href="@{/charts/seasonal}">Latest season</a>
+                    <a class="toolbar-btn" th:href="@{/charts/yearly}">Latest year</a>
+                </div>
+            </div>
+
+            <nav class="co-menubar" aria-label="Chart overview menu">
+                <a th:each="item : ${charts}"
+                   class="co-menu-tab" th:classappend="${'co-tone-' + item.key()}"
+                   th:href="@{/charts/overview(chart=${item.key()},tab=${overviewTab})}">
+                    <span class="co-dot"></span><span th:text="${item.label()}">Weekly</span>
+                </a>
+                <span class="co-menu-divider" aria-hidden="true"></span>
+                <a class="co-menu-tab co-tone-seasonal active" aria-current="page"
+                   th:href="@{${overviewBase}(overviewTab=${overviewTab})}"><span class="co-dot"></span>Seasonal / Yearly</a>
+                <div class="co-menu-side">
+                    <span class="co-menu-label">Show</span>
+                    <a class="co-menu-tab" th:href="@{${overviewBase}(overviewTab='song')}" th:classappend="${overviewTab == 'song'} ? 'active' : ''">Songs</a>
+                    <a class="co-menu-tab" th:href="@{${overviewBase}(overviewTab='album')}" th:classappend="${overviewTab == 'album'} ? 'active' : ''">Albums</a>
+                    <a class="co-menu-tab" th:href="@{${overviewBase}(overviewTab='artist')}" th:classappend="${artistTab} ? 'active' : ''">Artists</a>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Artists: one board with every artist on a seasonal or yearly song chart -->
+        <th:block th:if="${artistTab}">
+            <div class="sw-board-bar">
+                <label class="sw-search">
+                    <span class="co-eyebrow">Search</span>
+                    <input type="search" id="swArtistSearch" placeholder="Filter artists..." autocomplete="off">
+                </label>
+                <label class="co-toggle">
+                    <input type="checkbox" id="swIncludeFeatured" th:checked="${includeFeatured}"> Count featured songs
+                </label>
+                <span class="sw-board-hint">Points = 31 minus position (a #1 is worth 30). Bubbling under (seasonal 31-35) earns no points. Click a header to sort.</span>
+                <span class="sw-board-count" id="swArtistCount" th:text="${#lists.size(artists) + ' artists'}">0 artists</span>
+            </div>
+            <div class="table-scroll sw-board-wrap">
+                <table class="sticky-head sw-board" id="swArtistBoard">
+                    <thead>
+                        <tr class="sw-board-groups">
+                            <th colspan="2"></th>
+                            <th colspan="7" class="sw-group-seasonal">Seasonal</th>
+                            <th colspan="4" class="sw-group-yearly">Yearly</th>
+                        </tr>
+                        <tr>
+                            <th class="sw-rank">#</th>
+                            <th data-sort="name" data-type="text">Artist</th>
+                            <th class="sw-num sw-sorted-desc" data-sort="sp">Points</th>
+                            <th class="sw-num" data-sort="se">Entries</th>
+                            <th class="sw-num" data-sort="s1">#1s</th>
+                            <th class="sw-num" data-sort="s10">Top 10</th>
+                            <th class="sw-num" data-sort="bub">Bubbling under</th>
+                            <th class="sw-num" data-sort="first" data-first="asc">First season</th>
+                            <th class="sw-num" data-sort="last">Last season</th>
+                            <th class="sw-num sw-yearcol" data-sort="yp">Points</th>
+                            <th class="sw-num" data-sort="ye">Entries</th>
+                            <th class="sw-num" data-sort="y1">#1s</th>
+                            <th class="sw-num" data-sort="y10">Top 10</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="a, it : ${artists}" th:class="${'sw-' + a.gender()}"
+                            th:attr="data-name=${#strings.toLowerCase(a.name())},data-sp=${a.seasonPoints()},data-se=${a.seasonEntries()},data-s1=${a.seasonNumberOnes()},data-s10=${a.seasonTop10()},data-bub=${a.bubblingUnder()},data-first=${a.firstSeasonOrder()},data-last=${a.lastSeasonOrder()},data-yp=${a.yearPoints()},data-ye=${a.yearEntries()},data-y1=${a.yearNumberOnes()},data-y10=${a.yearTop10()}">
+                            <td class="sw-rank co-num" th:text="${it.count}">1</td>
+                            <td>
+                                <a class="sw-artist" th:href="${a.link()}">
+                                    <span class="sw-avatar">
+                                        <img th:if="${a.coverUrl() != null}" th:src="${a.coverUrl()}" alt="" loading="lazy">
+                                    </span>
+                                    <span class="sw-artist-name" th:text="${a.name()}">Artist</span>
+                                </a>
+                            </td>
+                            <td class="sw-num co-num" th:text="${a.seasonPoints()}">0</td>
+                            <td class="sw-num" th:text="${a.seasonEntries()}">0</td>
+                            <td class="sw-num sw-ones" th:text="${a.seasonNumberOnes() > 0 ? a.seasonNumberOnes() : '-'}">-</td>
+                            <td class="sw-num" th:text="${a.seasonTop10()}">0</td>
+                            <td class="sw-num sw-dim" th:text="${a.bubblingUnder()}">0</td>
+                            <td class="sw-num sw-dim" th:text="${a.firstSeason() != null ? a.firstSeason() : '-'}">-</td>
+                            <td class="sw-num sw-dim" th:text="${a.lastSeason() != null ? a.lastSeason() : '-'}">-</td>
+                            <td class="sw-num co-num sw-yearcol" th:text="${a.yearPoints()}">0</td>
+                            <td class="sw-num" th:text="${a.yearEntries()}">0</td>
+                            <td class="sw-num sw-ones" th:text="${a.yearNumberOnes() > 0 ? a.yearNumberOnes() : '-'}">-</td>
+                            <td class="sw-num" th:text="${a.yearTop10()}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="co-empty" th:if="${artists.isEmpty()}">No artists on the seasonal or yearly charts yet.</div>
+        </th:block>
+
+        <!-- Songs / Albums: the Season wall -->
+        <th:block th:unless="${artistTab}" th:with="s=${wall.summary()}">
+            <div class="co-summary sw-summary">
+                <div class="co-kpi">
+                    <span class="co-eyebrow">Seasons charted</span>
+                    <span class="co-kpi-value" th:text="${s.seasonsCharted()}">0</span>
+                    <span class="co-kpi-sub" th:text="${(s.firstSeason() != null ? s.firstSeason() + ' to ' + s.lastSeason() : 'No seasons yet') + (s.seasonsWaiting() > 0 ? ' · ' + s.seasonsWaiting() + ' in progress' : '')}">Winter 1996 to Spring 2026</span>
+                </div>
+                <div class="co-kpi" th:with="c=${s.seasonLeaders()}">
+                    <span class="co-eyebrow">Season #1s</span>
+                    <span class="co-kpi-value" style="color:#fbbf24" th:text="${c.total()}">0</span>
+                    <span class="co-kpi-sub" th:text="${c.male() + ' male · ' + c.female() + ' female' + (c.other() > 0 ? ' · ' + c.other() + ' other' : '')}"></span>
+                    <span class="co-kpi-bar" aria-hidden="true"><i class="male" th:style="${'flex:' + c.male()}"></i><i class="female" th:style="${'flex:' + c.female()}"></i><i class="other" th:style="${'flex:' + c.other()}"></i></span>
+                </div>
+                <div class="co-kpi" th:with="c=${s.yearLeaders()}">
+                    <span class="co-eyebrow">Year #1s</span>
+                    <span class="co-kpi-value" style="color:#c4b5fd" th:text="${c.total()}">0</span>
+                    <span class="co-kpi-sub" th:text="${c.male() + ' male · ' + c.female() + ' female' + (c.other() > 0 ? ' · ' + c.other() + ' other' : '')}"></span>
+                    <span class="co-kpi-bar" aria-hidden="true"><i class="male" th:style="${'flex:' + c.male()}"></i><i class="female" th:style="${'flex:' + c.female()}"></i><i class="other" th:style="${'flex:' + c.other()}"></i></span>
+                </div>
+                <div class="co-kpi">
+                    <span class="co-eyebrow">Season #1s on the Yearly</span>
+                    <span class="co-kpi-value" th:text="${s.seasonLeadersOnYearly()}">0</span>
+                    <span class="co-kpi-sub" th:text="${'of ' + s.seasonLeaders().total() + ' · ' + s.seasonLeadersInYearlyTop10() + ' in its top 10'}"></span>
+                </div>
+            </div>
+
+            <div class="sw-legend">
+                <span th:text="${overviewTab == 'album' ? 'Each tile: the #1 album and one dot per album on the chart (seasons hold 5, years 10)' : 'Each tile: the #1 song and one dot per position, 10 per row (seasons: 30 + 5 bubbling under, years: 30)'}">Each tile</span>
+                <span class="sw-key"><i class="sw-d male"></i>Male</span>
+                <span class="sw-key"><i class="sw-d female"></i>Female</span>
+                <span class="sw-key"><i class="sw-d other"></i>Other</span>
+                <span class="sw-key" th:if="${overviewTab == 'song'}"><i class="sw-d male bub"></i>Bubbling under</span>
+                <span class="sw-key"><i class="sw-crown-key"></i>Also the Year #1</span>
+            </div>
+
+            <div class="sw-scroll" th:if="${!wall.rows().isEmpty()}">
+                <div class="sw-grid sw-head" aria-hidden="true">
+                    <span></span>
+                    <span class="sw-colh sw-winter">Winter</span>
+                    <span class="sw-colh sw-spring">Spring</span>
+                    <span class="sw-colh sw-summer">Summer</span>
+                    <span class="sw-colh sw-fall">Fall</span>
+                    <span class="sw-colh sw-yearh">Year</span>
+                </div>
+                <div class="sw-grid" th:each="row : ${wall.rows()}">
+                    <div class="sw-year co-num" th:text="${row.year()}">2026</div>
+                    <th:block th:each="tile : ${row.seasons()}">
+                        <div th:replace="~{fragments/seasonal-wall-tile :: tile(${tile}, false)}"></div>
+                    </th:block>
+                    <div th:replace="~{fragments/seasonal-wall-tile :: tile(${row.yearTile()}, true)}"></div>
+                </div>
+            </div>
+            <div class="co-empty" th:if="${wall.rows().isEmpty()}">No seasonal or yearly charts yet.</div>
+        </th:block>
+    </div>
+</body>
+</html>

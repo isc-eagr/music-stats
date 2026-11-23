@@ -4,317 +4,174 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Themes - Music Stats</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <style>
-        .themes-container {
-            max-width: 700px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-        .themes-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        .themes-header h1 {
-            margin: 0;
-            font-size: 1.8rem;
-        }
-        /* Create form */
-        .create-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-        .create-form input[type="text"] {
-            flex: 1;
-            padding: 10px 14px;
-            border: 1px solid #444;
-            border-radius: 8px;
-            background: #1e1e1e;
-            color: #fff;
-            font-size: 14px;
-        }
-        .create-form input[type="text"]:focus {
-            outline: none;
-            border-color: #888;
-        }
-        .btn-create {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            background: #4a90e2;
-            color: #fff;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-create:hover { background: #357abd; }
-
-        /* Theme list */
-        .theme-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .theme-card {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px 18px;
-            border-radius: 10px;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            transition: border-color 0.2s;
-        }
-        .theme-card.active {
-            border-color: #4a90e2;
-            background: linear-gradient(135deg, rgba(74,144,226,0.1), #1a1a1a);
-        }
-        .theme-name {
-            flex: 1;
-            font-size: 15px;
-            font-weight: 600;
-            color: #e0e0e0;
-        }
-        .theme-active-badge {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 20px;
-            background: #4a90e2;
-            color: #fff;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .theme-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .btn-activate {
-            padding: 6px 14px;
-            border: 1px solid #4a90e2;
-            border-radius: 6px;
-            background: transparent;
-            color: #4a90e2;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-activate:hover { background: rgba(74,144,226,0.15); }
-        .btn-delete {
-            padding: 6px 12px;
-            border: 1px solid #cc3333;
-            border-radius: 6px;
-            background: transparent;
-            color: #cc3333;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-delete:hover { background: rgba(204,51,51,0.15); }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            font-size: 15px;
-        }
-        .empty-state span { font-size: 2rem; display: block; margin-bottom: 12px; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/themes.css(v=1)}">
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
-    <div class="themes-container">
-        <div class="themes-header">
+    <main class="container tm-page">
+        <div class="tm-head">
+            <span class="tm-eyebrow">Artists</span>
             <h1>Image Themes</h1>
+            <p class="tm-sub">The active theme swaps each artist's picture for the one assigned to that theme. Artists without one keep their main picture.</p>
         </div>
 
-        <!-- Create new theme -->
-        <div class="create-form">
-            <input type="text" id="newThemeName" placeholder="New theme name…" maxlength="100"
-                   onkeydown="if(event.key==='Enter') createTheme()">
-            <button class="btn-create" onclick="createTheme()">Create Theme</button>
-        </div>
+        <div class="tm-card">
+            <form class="tm-create" onsubmit="createTheme(event)">
+                <input type="text" id="newThemeName" placeholder="New theme name" maxlength="100" autocomplete="off" aria-label="New theme name">
+                <button type="submit" class="tm-btn tm-btn--primary">
+                    <svg class="tm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Create Theme
+                </button>
+            </form>
 
-        <!-- Theme list -->
-        <div class="theme-list" id="themeList">
-            <!-- No Theme Card -->
-            <div class="theme-card" id="defaultThemeCard"
-                 th:classappend="${activeTheme == null} ? ' active' : ''"
-                 data-id="null" data-name="No Theme" th:attr="data-active=${activeTheme == null}">
-                <span class="theme-name">No Theme</span>
-                <span class="theme-active-badge" th:if="${activeTheme == null}">Active</span>
-                <div class="theme-actions">
-                    <button class="btn-activate" th:unless="${activeTheme == null}"
-                            onclick="deactivateAll()">Set Active</button>
+            <div class="tm-list" id="themeList">
+                <!-- No Theme: every artist shows their main picture -->
+                <div class="tm-row" data-id="" data-name="No Theme" th:classappend="${activeTheme == null} ? 'is-active' : ''">
+                    <span class="tm-dot" aria-hidden="true"></span>
+                    <div class="tm-info">
+                        <span class="tm-name">No Theme</span>
+                        <span class="tm-meta"><span class="is-empty">Every artist shows their main picture</span></span>
+                    </div>
+                    <div class="tm-actions">
+                        <span class="tm-active-pill"><svg class="tm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Active</span>
+                        <button type="button" class="tm-btn tm-activate" onclick="activateTheme(this)">Set Active</button>
+                    </div>
+                </div>
+
+                <div th:each="theme : ${themes}" class="tm-row"
+                     th:with="total=${pictureCounts.getOrDefault(theme.id, 0)}"
+                     th:classappend="${theme.isActive} ? 'is-active' : ''"
+                     th:attr="data-id=${theme.id}, data-name=${theme.name}, data-count=${total}">
+                    <span class="tm-dot" aria-hidden="true"></span>
+                    <div class="tm-info">
+                        <span class="tm-name" th:text="${theme.name}">Theme</span>
+                        <span class="tm-meta">
+                            <span th:if="${total > 0}"><b th:text="${total}">0</b> <th:block th:text="${total == 1 ? 'picture' : 'pictures'}">pictures</th:block></span>
+                            <span th:if="${total == 0}" class="is-empty">No pictures yet</span>
+                        </span>
+                    </div>
+                    <div class="tm-actions">
+                        <a th:if="${total > 0}" class="tm-btn" th:href="@{/artists(imageTheme=${theme.id}, imageThemeMode='has')}"
+                           title="Artists with a picture in this theme">Artists</a>
+                        <span class="tm-active-pill"><svg class="tm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Active</span>
+                        <button type="button" class="tm-btn tm-activate" onclick="activateTheme(this)">Set Active</button>
+                        <button type="button" class="tm-btn tm-btn--icon tm-btn--danger" title="Delete theme" aria-label="Delete theme" onclick="deleteTheme(this)">
+                            <svg class="tm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div th:each="theme : ${themes}" class="theme-card"
-                 th:classappend="${theme.isActive} ? ' active' : ''"
-                 th:attr="data-id=${theme.id}, data-name=${theme.name}, data-active=${theme.isActive}">
-                <span class="theme-name" th:text="${theme.name}"></span>
-                <span class="theme-active-badge" th:if="${theme.isActive}">Active</span>
-                <div class="theme-actions">
-                    <button class="btn-activate" th:unless="${theme.isActive}"
-                            th:onclick="'activateTheme(' + ${theme.id} + ')'">Set Active</button>
-                    <button class="btn-delete"
-                            th:onclick="'deleteTheme(' + ${theme.id} + ', this)'">Delete</button>
-                </div>
+            <p class="tm-empty" id="emptyState" th:hidden="${themes != null and !themes.isEmpty()}">No custom themes yet. Create one above.</p>
+
+            <p class="tm-hint">Assign pictures from an artist's detail page with <strong>Assign Image to Theme</strong>. Each artist holds one picture per theme.</p>
+        </div>
+    </main>
+
+    <!-- Row for a newly created theme (starts with no pictures) -->
+    <template id="themeRowTemplate">
+        <div class="tm-row" data-count="0">
+            <span class="tm-dot" aria-hidden="true"></span>
+            <div class="tm-info">
+                <span class="tm-name"></span>
+                <span class="tm-meta"><span class="is-empty">No pictures yet</span></span>
             </div>
-            <div class="empty-state" id="emptyState"
-                 th:if="${themes == null or themes.isEmpty()}">
-                <span>🎨</span>
-                No custom themes yet. Create one above!
+            <div class="tm-actions">
+                <span class="tm-active-pill"><svg class="tm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Active</span>
+                <button type="button" class="tm-btn tm-activate" onclick="activateTheme(this)">Set Active</button>
+                <button type="button" class="tm-btn tm-btn--icon tm-btn--danger" title="Delete theme" aria-label="Delete theme" onclick="deleteTheme(this)">
+                    <svg class="tm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>
+                </button>
             </div>
         </div>
-    </div>
+    </template>
 
     <script>
-        // ==================================================================
-        // Helpers
-        // ==================================================================
-        function refreshCardAppearance(activeId) {
-            document.querySelectorAll('.theme-card').forEach(card => {
-                const idStr = card.dataset.id;
-                const id = idStr === 'null' ? null : parseInt(idStr);
-                const isActive = id === activeId;
-                card.classList.toggle('active', isActive);
-                // Badge
-                let badge = card.querySelector('.theme-active-badge');
-                if (isActive) {
-                    if (!badge) {
-                        badge = document.createElement('span');
-                        badge.className = 'theme-active-badge';
-                        badge.textContent = 'Active';
-                        card.querySelector('.theme-name').after(badge);
-                    }
-                } else if (badge) {
-                    badge.remove();
-                }
-                // Activate button
-                const activateBtn = card.querySelector('.btn-activate');
-                if (isActive) {
-                    if (activateBtn) activateBtn.remove();
-                } else {
-                    if (!activateBtn) {
-                        const actions = card.querySelector('.theme-actions');
-                        const newBtn = document.createElement('button');
-                        newBtn.className = 'btn-activate';
-                        newBtn.textContent = 'Set Active';
-                        newBtn.onclick = id === null ? deactivateAll : () => activateTheme(id);
-                        actions.insertBefore(newBtn, actions.firstChild);
-                    }
-                }
-            });
+        const themeList = document.getElementById('themeList');
+
+        function customRows() {
+            return Array.from(themeList.querySelectorAll('.tm-row')).filter(row => row.dataset.id);
         }
 
-        // ==================================================================
-        // Create
-        // ==================================================================
-        function createTheme() {
+        function markActive(activeRow) {
+            themeList.querySelectorAll('.tm-row').forEach(row => row.classList.toggle('is-active', row === activeRow));
+        }
+
+        function syncEmptyState() {
+            document.getElementById('emptyState').hidden = customRows().length > 0;
+        }
+
+        function postJson(url, options) {
+            return fetch(url, options).then(r => r.json());
+        }
+
+        // Create: insert the new row in alphabetical order, like the server does on reload
+        function createTheme(event) {
+            event.preventDefault();
             const input = document.getElementById('newThemeName');
             const name = input.value.trim();
-            if (!name) { showWarningToast('Please enter a theme name'); return; }
+            if (!name) { showWarningToast('Please enter a theme name'); input.focus(); return; }
 
-            fetch('/themes', {
+            const submit = event.target.querySelector('button[type="submit"]');
+            submit.disabled = true;
+            postJson('/themes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
             })
-            .then(r => r.json())
             .then(data => {
                 if (!data.success) { showErrorToast(data.message || 'Failed to create theme'); return; }
-
+                const row = document.getElementById('themeRowTemplate').content.firstElementChild.cloneNode(true);
+                row.dataset.id = data.id;
+                row.dataset.name = data.name;
+                row.querySelector('.tm-name').textContent = data.name;
+                const next = customRows().find(r => r.dataset.name.localeCompare(data.name, undefined, { sensitivity: 'base' }) > 0);
+                themeList.insertBefore(row, next || null);
                 input.value = '';
-                const list = document.getElementById('themeList');
-                const empty = document.getElementById('emptyState');
-                if (empty) empty.remove();
-
-                const card = document.createElement('div');
-                card.className = 'theme-card';
-                card.dataset.id = data.id;
-                card.dataset.name = data.name;
-                card.dataset.active = 'false';
-                card.innerHTML = `
-                    <span class="theme-name">${data.name}</span>
-                    <div class="theme-actions">
-                        <button class="btn-activate" onclick="activateTheme(${data.id})">Set Active</button>
-                        <button class="btn-delete" onclick="deleteTheme(${data.id}, this)">Delete</button>
-                    </div>`;
-                list.appendChild(card);
-                showSuccessToast('Theme "' + data.name + '" created!');
+                syncEmptyState();
+                showSuccessToast('Theme "' + data.name + '" created');
             })
-            .catch(() => showErrorToast('Network error'));
+            .catch(() => showErrorToast('Network error'))
+            .finally(() => { submit.disabled = false; });
         }
 
-        // ==================================================================
-        // Activate / Deactivate
-        // ==================================================================
-        function activateTheme(id) {
-            fetch(`/themes/${id}/activate`, { method: 'POST' })
-            .then(r => r.json())
+        // Activate: the No Theme row has no id and turns every theme off
+        function activateTheme(btn) {
+            const row = btn.closest('.tm-row');
+            const id = row.dataset.id;
+            btn.disabled = true;
+            postJson(id ? `/themes/${id}/activate` : '/themes/deactivate', { method: 'POST' })
             .then(data => {
                 if (!data.success) { showErrorToast(data.message || 'Failed'); return; }
-                const card = document.querySelector(`.theme-card[data-id="${id}"]`);
-                const name = card ? card.dataset.name : '';
-                refreshCardAppearance(id);
-                showSuccessToast('Theme "' + name + '" is now active!');
+                markActive(row);
+                showSuccessToast(id ? 'Theme "' + row.dataset.name + '" is now active' : 'No theme active. Main pictures are shown.');
             })
-            .catch(() => showErrorToast('Network error'));
+            .catch(() => showErrorToast('Network error'))
+            .finally(() => { btn.disabled = false; });
         }
 
-        function deactivateAll() {
-            fetch('/themes/deactivate', { method: 'POST' })
-            .then(r => r.json())
+        function deleteTheme(btn) {
+            const row = btn.closest('.tm-row');
+            const count = parseInt(row.dataset.count || '0', 10);
+            const detail = count > 0
+                ? `Its ${count} picture assignment${count === 1 ? '' : 's'} will be removed.`
+                : 'It has no pictures assigned.';
+            if (!confirm(`Delete theme "${row.dataset.name}"? ${detail}`)) return;
+
+            btn.disabled = true;
+            postJson(`/themes/${row.dataset.id}`, { method: 'DELETE' })
             .then(data => {
-                if (!data.success) { showErrorToast(data.message || 'Failed'); return; }
-                refreshCardAppearance(null);
-                showSuccessToast('Theme deactivated. Default images are shown.');
+                if (!data.success) { showErrorToast(data.message || 'Failed to delete'); btn.disabled = false; return; }
+                const wasActive = row.classList.contains('is-active');
+                row.remove();
+                if (wasActive) markActive(themeList.querySelector('.tm-row[data-id=""]'));
+                syncEmptyState();
+                showSuccessToast('Theme deleted');
             })
-            .catch(() => showErrorToast('Network error'));
-        }
-
-        // ==================================================================
-        // Delete
-        // ==================================================================
-        function deleteTheme(id, btn) {
-            const card = document.querySelector(`.theme-card[data-id="${id}"]`);
-            const name = card ? card.dataset.name : 'this theme';
-            if (!confirm(`Delete theme "${name}"? All artist image assignments for this theme will be removed.`)) return;
-
-            fetch(`/themes/${id}`, { method: 'DELETE' })
-            .then(r => r.json())
-            .then(data => {
-                if (!data.success) { showErrorToast(data.message || 'Failed to delete'); return; }
-                
-                // If deleted theme was active, fallback to default
-                const wasActive = card.classList.contains('active');
-                if (card) card.remove();
-                
-                if (wasActive) {
-                    refreshCardAppearance(null);
-                }
-
-                // Check if only the default card is left
-                if (document.querySelectorAll('.theme-card').length <= 1) {
-                    const list = document.getElementById('themeList');
-                    const div = document.createElement('div');
-                    div.className = 'empty-state';
-                    div.id = 'emptyState';
-                    div.innerHTML = '<span>🎨</span>No custom themes yet. Create one above!';
-                    list.appendChild(div);
-                }
-                showSuccessToast('Theme deleted.');
-            })
-            .catch(() => showErrorToast('Network error'));
+            .catch(() => { showErrorToast('Network error'); btn.disabled = false; });
         }
     </script>
 </body>

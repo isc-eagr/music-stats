@@ -5,7 +5,7 @@
    Male = blue, Female = pink, anything else = gray.
    ========================================================================== */
 
-.ad-page {
+.dt-page {
     --ad-c: #a1a1aa;
     --ad-t: #d4d4d8;
     --ad-rgb: 161, 161, 170;
@@ -22,7 +22,7 @@
     --ad-num: 'Space Grotesk', Inter, system-ui, sans-serif;
 }
 
-.ad-page.gender-male {
+.dt-page.gender-male {
     --ad-c: #60a5fa;
     --ad-t: #93c5fd;
     --ad-rgb: 96, 165, 250;
@@ -38,7 +38,7 @@
     --ad-ink: #08111f;
 }
 
-.ad-page.gender-female {
+.dt-page.gender-female {
     --ad-c: #f472b6;
     --ad-t: #f9a8d4;
     --ad-rgb: 244, 114, 182;
@@ -55,18 +55,18 @@
 }
 
 /* ── Layout: sidebar card + main column ── */
-.ad-page .detail-grid {
+.dt-page .detail-grid {
     grid-template-columns: 380px minmax(0, 1fr);
     column-gap: 28px;
 }
 
-.ad-page .detail-grid > .detail-sidebar {
+.dt-page .detail-grid > .detail-sidebar {
     grid-row: 1;
 }
 
 /* The sidebar floats while the page scrolls; when it is taller than the window it scrolls on its own */
 @media (min-width: 901px) {
-    .container-wide.ad-page > .detail-grid > .detail-sidebar.ad-card {
+    .container-wide.dt-page > .detail-grid > .detail-sidebar.dt-card {
         position: sticky;
         top: 16px;
         max-height: calc(100vh - 32px);
@@ -76,12 +76,12 @@
         scrollbar-width: none;
     }
 
-    .container-wide.ad-page > .detail-grid > .detail-sidebar.ad-card::-webkit-scrollbar {
+    .container-wide.dt-page > .detail-grid > .detail-sidebar.dt-card::-webkit-scrollbar {
         display: none;
     }
 
     /* Overlay thumb: floats over the right edge, shows only while the pointer is in the sidebar */
-    .ad-sb-thumb {
+    .dt-sb-thumb {
         position: absolute;
         right: 3px;
         width: 6px;
@@ -94,22 +94,22 @@
         touch-action: none;
     }
 
-    .ad-sb-thumb[hidden] {
+    .dt-sb-thumb[hidden] {
         display: none;
     }
 
-    .detail-sidebar.ad-card:hover > .ad-sb-thumb,
-    .detail-sidebar.ad-card:focus-within > .ad-sb-thumb,
-    .ad-sb-thumb.is-dragging {
+    .detail-sidebar.dt-card:hover > .dt-sb-thumb,
+    .detail-sidebar.dt-card:focus-within > .dt-sb-thumb,
+    .dt-sb-thumb.is-dragging {
         opacity: 1;
     }
 
-    .ad-sb-thumb.is-dragging {
+    .dt-sb-thumb.is-dragging {
         cursor: grabbing;
     }
 }
 
-.ad-main {
+.dt-main {
     grid-column: 2;
     grid-row: 1;
     min-width: 0;
@@ -118,26 +118,62 @@
     gap: 20px;
 }
 
-/* Full column width (the tabs sheet sets align-self: start, which shrinks the row to its content),
-   so the tab underline spans the column and the toggles can sit at the right end */
-.ad-main > .detail-tabs {
-    align-self: stretch;
-    margin-bottom: 0;
-}
-
 /* Artist tab row: the Include toggles form a compact cluster at the right end of the tabs line */
 .toggles-label {
     display: none;
 }
 
 @media (min-width: 901px) {
-    .ad-page .detail-tabs .toggles-container {
-        margin-left: auto;
-        gap: 2px;
-        padding: 6px 0 6px 20px;
+    /* Tab menu: its own bar across the full page width, above the sidebar card and the content */
+    .dt-page .detail-grid > .detail-tabs {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        align-self: stretch;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 4px;
+        margin: 0;
+        padding: 6px;
+        border: 1px solid var(--ad-bd);
+        border-radius: 14px;
+        background: linear-gradient(180deg, var(--ad-bg) 0%, var(--ad-bg2) 100%);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        font-family: Inter, system-ui, sans-serif;
     }
 
-    .ad-page .detail-tabs .toggles-label {
+    .dt-page .detail-grid > .detail-sidebar,
+    .dt-page .detail-grid > .dt-main {
+        grid-row: 2;
+    }
+
+    .dt-page .detail-tabs .detail-tab {
+        padding: 9px 18px;
+        margin-bottom: 0;
+        border-bottom: 0;
+        border-radius: 10px;
+        color: var(--ad-mut);
+        font-weight: 600;
+    }
+
+    .dt-page .detail-tabs .detail-tab:hover {
+        color: #fff;
+        background: var(--ad-tint);
+    }
+
+    .dt-page .detail-tabs .detail-tab.active {
+        color: #fff;
+        background: rgba(var(--ad-rgb), 0.22);
+        box-shadow: inset 0 0 0 1px var(--ad-tintb);
+    }
+
+    .dt-page .detail-tabs .toggles-container {
+        margin-left: auto;
+        gap: 2px;
+        padding: 0 4px 0 16px;
+        border-left: 1px solid var(--ad-hair);
+    }
+
+    .dt-page .detail-tabs .toggles-label {
         display: inline;
         margin-right: 6px;
         font-size: 10px;
@@ -147,22 +183,22 @@
         color: #6b7280;
     }
 
-    .ad-page .detail-tabs .toggles-container .toggle-prefix {
+    .dt-page .detail-tabs .toggles-container .toggle-prefix {
         display: none;
     }
 
-    .ad-page .detail-tabs .include-groups-toggle {
+    .dt-page .detail-tabs .include-groups-toggle {
         padding: 0 8px;
     }
 }
 
-.ad-main .detail-content-section {
+.dt-main .detail-content-section {
     margin-top: 0;
 }
 
 /* Beats the global gender panel styles (.container-wide.gender-x .detail-content-section) */
-.container-wide.ad-page .ad-card,
-.container-wide.ad-page .detail-content-section.ad-card {
+.container-wide.dt-page .dt-card,
+.container-wide.dt-page .detail-content-section.dt-card {
     border: 1px solid var(--ad-bd);
     border-radius: 18px;
     background: linear-gradient(180deg, var(--ad-bg) 0%, var(--ad-bg2) 100%);
@@ -171,12 +207,12 @@
     font-family: Inter, system-ui, sans-serif;
 }
 
-.ad-num {
+.dt-num {
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
 }
 
-.ad-cap {
+.dt-cap {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -188,14 +224,14 @@
     color: var(--ad-lbl);
 }
 
-.ad-cap::after {
+.dt-cap::after {
     content: '';
     flex: 1;
     height: 1px;
     background: var(--ad-hair);
 }
 
-.ad-cap-note {
+.dt-cap-note {
     order: 3;
     font-size: 10px;
     font-weight: 500;
@@ -204,19 +240,8 @@
     color: #8b8b93;
 }
 
-.ad-ico {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    flex: none;
-}
-
 /* ── Buttons ── */
-.ad-btn {
+.dt-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -232,36 +257,36 @@
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.ad-btn:hover {
+.dt-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: var(--ad-tintb);
 }
 
-.ad-btn--icon {
+.dt-btn--icon {
     width: 36px;
     padding: 0;
 }
 
-.ad-btn--pill {
+.dt-btn--pill {
     height: 34px;
     border-radius: 999px;
     border-color: rgba(255, 255, 255, 0.18);
     background: transparent;
 }
 
-.ad-btn--primary {
+.dt-btn--primary {
     background: var(--ad-c);
     border-color: var(--ad-c);
     color: var(--ad-ink);
 }
 
-.ad-btn--primary:hover {
+.dt-btn--primary:hover {
     background: var(--ad-t);
     border-color: var(--ad-t);
 }
 
 /* ── Sidebar: photo (beats the global gender border on the detail image) ── */
-.container-wide.ad-page > .detail-grid > .detail-sidebar > .item-image-container {
+.container-wide.dt-page > .detail-grid > .detail-sidebar > .item-image-container {
     margin: 0;
     border: 0;
     border-radius: 18px 18px 0 0;
@@ -269,14 +294,14 @@
     background: var(--ad-bg);
 }
 
-.ad-page .detail-sidebar > .item-image-container img.item-image-large {
+.dt-page .detail-sidebar > .item-image-container img.item-image-large {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center top;
 }
 
-.ad-photo-fade {
+.dt-photo-fade {
     position: absolute;
     left: 0;
     right: 0;
@@ -287,7 +312,7 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.35) 45%, var(--ad-bg) 100%);
 }
 
-.ad-page .item-name-top.ad-photo-name {
+.dt-page .item-name-top.dt-photo-name {
     position: absolute;
     left: 20px;
     right: 20px;
@@ -303,7 +328,7 @@
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 
-.ad-page .detail-sidebar .image-upload-overlay {
+.dt-page .detail-sidebar .image-upload-overlay {
     top: 0;
     bottom: auto;
     z-index: 4;
@@ -311,12 +336,12 @@
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
 }
 
-.ad-page .detail-sidebar .item-image-container:hover .flag-overlay {
+.dt-page .detail-sidebar .item-image-container:hover .flag-overlay {
     opacity: 0;
 }
 
 /* Length pill on the album / song cover, top right (the flag sits top left) */
-.ad-photo-len {
+.dt-photo-len {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -337,27 +362,27 @@
     pointer-events: none;
 }
 
-.ad-photo-len svg {
+.dt-photo-len svg {
     color: var(--ad-t);
 }
 
-.ad-photo-len.is-empty {
+.dt-photo-len.is-empty {
     color: var(--ad-mut);
 }
 
-.ad-page .detail-sidebar .item-image-container:hover .ad-photo-len {
+.dt-page .detail-sidebar .item-image-container:hover .dt-photo-len {
     opacity: 0;
 }
 
 /* ── Plays block (General box header): total, primary / legacy bar and legend ── */
 
-.ad-plays-top {
+.dt-plays-top {
     display: flex;
     align-items: baseline;
     gap: 8px;
 }
 
-.ad-plays-total {
+.dt-plays-total {
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
     font-size: 32px;
@@ -365,7 +390,7 @@
     line-height: 1;
 }
 
-.ad-plays-unit {
+.dt-plays-unit {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -373,11 +398,11 @@
     color: var(--ad-mut);
 }
 
-.ad-plays-unit svg {
+.dt-plays-unit svg {
     fill: var(--ad-c);
 }
 
-.ad-bar {
+.dt-bar {
     display: flex;
     gap: 2px;
     height: 8px;
@@ -386,18 +411,18 @@
     background: rgba(255, 255, 255, 0.06);
 }
 
-.ad-bar > span {
+.dt-bar > span {
     display: block;
     height: 100%;
     border-radius: 4px;
     background: var(--ad-c);
 }
 
-.ad-bar > span.is-legacy {
+.dt-bar > span.is-legacy {
     background: var(--ad-soft);
 }
 
-.ad-legend {
+.dt-legend {
     display: flex;
     gap: 14px;
     margin-top: 8px;
@@ -405,24 +430,24 @@
     color: var(--ad-mut);
 }
 
-.ad-legend b {
+.dt-legend b {
     font-family: var(--ad-num);
     font-weight: 600;
     color: #f2f2f4;
 }
 
 /* ── Sidebar: profile (view) ── */
-.ad-profile {
+.dt-profile {
     padding: 18px 20px 22px;
 }
 
-.ad-profile-view {
+.dt-profile-view {
     display: flex;
     flex-direction: column;
     gap: 18px;
 }
 
-.ad-profile-head {
+.dt-profile-head {
     position: relative;
     display: flex;
     align-items: center;
@@ -430,18 +455,18 @@
     gap: 10px;
 }
 
-.ad-profile-head h2 {
+.dt-profile-head h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 700;
 }
 
-.ad-profile-actions {
+.dt-profile-actions {
     display: flex;
     gap: 6px;
 }
 
-.ad-menu {
+.dt-menu {
     position: absolute;
     top: 44px;
     right: 0;
@@ -454,11 +479,11 @@
     box-shadow: 0 24px 50px rgba(0, 0, 0, 0.6);
 }
 
-.ad-menu[hidden] {
+.dt-menu[hidden] {
     display: none;
 }
 
-.ad-menu-item {
+.dt-menu-item {
     display: flex;
     align-items: flex-start;
     gap: 10px;
@@ -473,27 +498,27 @@
     cursor: pointer;
 }
 
-.ad-menu-item:hover:not(:disabled) {
+.dt-menu-item:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.06);
 }
 
-.ad-menu-item.is-danger {
+.dt-menu-item.is-danger {
     color: #fca5a5;
 }
 
-.ad-menu-item:disabled {
+.dt-menu-item:disabled {
     color: #71717a;
     cursor: not-allowed;
 }
 
-.ad-menu-item small {
+.dt-menu-item small {
     display: block;
     margin-top: 2px;
     font-size: 11px;
     color: #71717a;
 }
 
-.ad-menu-sep {
+.dt-menu-sep {
     height: 1px;
     margin: 6px 4px;
     background: rgba(255, 255, 255, 0.08);
@@ -501,7 +526,7 @@
 
 /* ── Header of the General box: plays lead on the left (with the overall standing badge),
    listening span on the right, bleeding to the card edges over a gender-tinted fade ── */
-.ad-hero {
+.dt-hero {
     display: flex;
     align-items: stretch;
     margin: -22px -24px 0;
@@ -511,33 +536,33 @@
     overflow: hidden;
 }
 
-.ad-hero-plays {
+.dt-hero-plays {
     flex: 1.3 1 0;
     min-width: 0;
     padding: 20px 24px;
     border-right: 1px solid var(--ad-hair);
 }
 
-.ad-hero-plays .ad-plays-top {
+.dt-hero-plays .dt-plays-top {
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
 }
 
-.ad-hero-plays .ad-plays-total {
+.dt-hero-plays .dt-plays-total {
     font-size: 52px;
     line-height: 0.9;
     color: #fff;
 }
 
-.ad-hero-plays .ad-plays-unit {
+.dt-hero-plays .dt-plays-unit {
     align-self: flex-end;
     margin-bottom: 3px;
     font-size: 13px;
 }
 
 /* Under the bar: primary / legacy legend on the left, time listened pushed right */
-.ad-plays-foot {
+.dt-plays-foot {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -545,11 +570,11 @@
     margin-top: 10px;
 }
 
-.ad-plays-foot .ad-legend {
+.dt-plays-foot .dt-legend {
     margin-top: 0;
 }
 
-.ad-plays-time {
+.dt-plays-time {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -558,22 +583,22 @@
     color: var(--ad-t);
 }
 
-.ad-plays-time svg {
+.dt-plays-time svg {
     color: var(--ad-c);
 }
 
-.ad-hero-plays .ad-bar {
+.dt-hero-plays .dt-bar {
     height: 10px;
     margin-top: 16px;
 }
 
-.ad-hero-plays .ad-legend {
+.dt-hero-plays .dt-legend {
     gap: 18px;
     font-size: 12.5px;
 }
 
 /* Swatches tie each legend entry to its bar segment */
-.ad-hero-plays .ad-legend > span::before {
+.dt-hero-plays .dt-legend > span::before {
     content: '';
     display: inline-block;
     width: 8px;
@@ -583,12 +608,12 @@
     background: var(--ad-c);
 }
 
-.ad-hero-plays .ad-legend > span[title="Legacy plays"]::before {
+.dt-hero-plays .dt-legend > span[title="Legacy plays"]::before {
     background: var(--ad-soft);
 }
 
 /* Overall standing badge, pushed to the right end of the totals row */
-.ad-standing {
+.dt-standing {
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -601,12 +626,12 @@
     text-decoration: none;
 }
 
-.ad-standing:hover {
+.dt-standing:hover {
     border-color: var(--ad-c);
     text-decoration: none;
 }
 
-.ad-standing-n {
+.dt-standing-n {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -622,13 +647,13 @@
     font-weight: 700;
 }
 
-.ad-standing-tx {
+.dt-standing-tx {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
 
-.ad-standing-k {
+.dt-standing-k {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -636,13 +661,13 @@
     color: var(--ad-t);
 }
 
-.ad-standing-sub {
+.dt-standing-sub {
     font-size: 12px;
     white-space: nowrap;
     color: var(--ad-mut);
 }
 
-.ad-hero-span {
+.dt-hero-span {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -651,42 +676,67 @@
     padding: 14px 24px;
 }
 
-.ad-hero-span .ad-run-rows {
+.dt-hero-span .dt-run-rows {
     padding: 0;
 }
 
 /* Brighter than the boxed run rows: the span shares the header with the plays */
-.ad-hero-span .ad-run-rows > div {
+.dt-hero-span .dt-run-rows > div {
     padding: 6px 0;
 }
 
-.ad-hero-span .ad-run-rows dt {
+.dt-hero-span .dt-run-rows dt {
     font-size: 12px;
     color: var(--ad-t);
 }
 
-.ad-hero-span .ad-run-rows dd {
+.dt-hero-span .dt-run-rows dd {
     font-size: 14px;
     color: #fff;
 }
 
-.ad-hero-span .ad-run-rows dd a {
+.dt-hero-span .dt-run-rows dd a {
     font-size: 12px;
     color: #e4e4e7;
 }
 
+/* How long ago, under the date, with the list Table view recency dot (green / amber / red / grey) */
+.dt-ago {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 2px;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ad-t);
+}
+
+.dt-rec-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #71717a;
+}
+
+.dt-rec-dot.fresh { background: #4ade80; }
+.dt-rec-dot.aging { background: #fbbf24; }
+.dt-rec-dot.stale { background: #f87171; }
+
 @media (max-width: 600px) {
-    .ad-hero {
+    .dt-hero {
         flex-direction: column;
     }
 
-    .ad-hero-plays {
+    .dt-hero-plays {
         border-right: 0;
         border-bottom: 1px solid var(--ad-hair);
     }
 }
 
-.ad-row {
+.dt-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -698,19 +748,19 @@
     text-decoration: none;
 }
 
-.ad-cap + .ad-row {
+.dt-cap + .dt-row {
     border-top: 0;
 }
 
-a.ad-row:hover {
+a.dt-row:hover {
     text-decoration: none;
 }
 
-a.ad-row:hover .ad-row-v {
+a.dt-row:hover .dt-row-v {
     color: var(--ad-t);
 }
 
-.ad-row-k {
+.dt-row-k {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -719,7 +769,7 @@ a.ad-row:hover .ad-row-v {
 }
 
 /* Where an inheritable value comes from (album and song pages) */
-.ad-from {
+.dt-from {
     max-width: 140px;
     overflow: hidden;
     white-space: nowrap;
@@ -729,7 +779,7 @@ a.ad-row:hover .ad-row-v {
     color: #8b8b93;
 }
 
-.ad-ovr {
+.dt-ovr {
     display: inline-flex;
     align-items: center;
     height: 17px;
@@ -745,7 +795,7 @@ a.ad-row:hover .ad-row-v {
 }
 
 /* Number inputs in field boxes (track number) look like the text inputs */
-.ad-fb input[type="number"] {
+.dt-fb input[type="number"] {
     width: 100%;
     min-height: 36px;
     box-sizing: border-box;
@@ -757,7 +807,7 @@ a.ad-row:hover .ad-row-v {
     font: 600 13.5px Inter, system-ui, sans-serif;
 }
 
-.ad-row-v {
+.dt-row-v {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -766,38 +816,38 @@ a.ad-row:hover .ad-row-v {
     text-align: right;
 }
 
-.ad-row-v.is-empty {
+.dt-row-v.is-empty {
     font-weight: 500;
     color: #71717a;
 }
 
-.ad-row-v small {
+.dt-row-v small {
     font-size: 11.5px;
     font-weight: 500;
     color: var(--ad-mut);
 }
 
-.ad-row-v img {
+.dt-row-v img {
     width: 20px;
     height: 14px;
     border-radius: 3px;
     object-fit: cover;
 }
 
-.ad-dot {
+.dt-dot {
     width: 8px;
     height: 8px;
     border-radius: 4px;
     background: var(--ad-c);
 }
 
-.ad-go {
+.dt-go {
     width: 14px;
     height: 14px;
     color: var(--ad-lbl);
 }
 
-.ad-rank {
+.dt-rank {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -813,19 +863,19 @@ a.ad-row:hover .ad-row-v {
     font-weight: 700;
 }
 
-.ad-rank.is-gold {
+.dt-rank.is-gold {
     background: rgba(250, 204, 21, 0.14);
     color: #fde68a;
 }
 
-.ad-facts,
-.ad-tags {
+.dt-facts,
+.dt-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
 }
 
-.ad-fact {
+.dt-fact {
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -838,17 +888,17 @@ a.ad-row:hover .ad-row-v {
     color: var(--ad-mut);
 }
 
-.ad-fact b {
+.dt-fact b {
     font-weight: 600;
     color: #f2f2f4;
 }
 
-.ad-fact.is-off {
+.dt-fact.is-off {
     background: transparent;
     border-style: dashed;
 }
 
-.ad-tag {
+.dt-tag {
     display: inline-flex;
     align-items: center;
     height: 26px;
@@ -861,81 +911,82 @@ a.ad-row:hover .ad-row-v {
     text-decoration: none;
 }
 
-a.ad-tag:hover {
+a.dt-tag:hover {
     text-decoration: none;
     border-color: var(--ad-tintb);
 }
 
-.ad-muted-note {
+.dt-muted-note {
     font-size: 12px;
     color: #8b8b93;
 }
 
-.ad-library {
+.dt-library {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-.ad-library .ad-cap {
+.dt-library .dt-cap {
     margin-bottom: 0;
 }
 
 /* ── Sidebar: profile (edit in place) ── */
-.ad-profile-edit {
+.dt-profile-edit {
     display: none;
     flex-direction: column;
     gap: 16px;
 }
 
-.detail-sidebar.is-editing .ad-profile-view {
+.detail-sidebar.is-editing .dt-profile-view {
     display: none;
 }
 
-.detail-sidebar.is-editing .ad-profile-edit {
+.detail-sidebar.is-editing .dt-profile-edit {
     display: flex;
 }
 
-.ad-page.is-editing-profile .ad-main {
+.dt-page.is-editing-profile .dt-main,
+.dt-page.is-editing-profile .detail-grid > .detail-tabs {
     opacity: 0.45;
     transition: opacity 0.2s ease;
 }
 
-.ad-edit-head {
+.dt-edit-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
 }
 
-.ad-edit-head h2 {
+.dt-edit-head h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 700;
 }
 
-.ad-edit-head span {
+.dt-edit-head span {
     font-size: 11.5px;
     color: var(--ad-mut);
 }
 
-.ad-edit-group {
+.dt-edit-group {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-.ad-edit-group .ad-cap {
+.dt-edit-group .dt-cap {
     margin: 0;
 }
 
-.ad-g2 {
+.dt-g2 {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
 }
 
-.ad-fb {
+.dt-fb {
     display: block;
     min-width: 0;
     padding: 8px 10px 10px;
@@ -945,23 +996,23 @@ a.ad-tag:hover {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.ad-fb:focus-within {
+.dt-fb:focus-within {
     border-color: var(--ad-tintb);
 }
 
 /* Unsaved change: the whole box is outlined in orange (kept apart from the gold used for top ranks) */
-.ad-fb.is-changed {
+.dt-fb.is-changed {
     border-color: #fb923c;
     box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.2);
 }
 
 /* Value just filled in by Fetch external */
-.ad-fb.field-highlight {
+.dt-fb.field-highlight {
     border-color: var(--ad-c);
     box-shadow: 0 0 0 3px var(--ad-tintb);
 }
 
-.ad-fb-l {
+.dt-fb-l {
     display: block;
     margin-bottom: 6px;
     font-size: 11px;
@@ -969,10 +1020,10 @@ a.ad-tag:hover {
     color: var(--ad-mut);
 }
 
-.ad-fb input[type="text"],
-.ad-fb select,
-.ad-fb .searchable-select-display,
-.ad-fb .chips-input-wrapper {
+.dt-fb input[type="text"],
+.dt-fb select,
+.dt-fb .searchable-select-display,
+.dt-fb .chips-input-wrapper {
     width: 100%;
     min-height: 36px;
     box-sizing: border-box;
@@ -983,16 +1034,16 @@ a.ad-tag:hover {
     font: 600 13.5px Inter, system-ui, sans-serif;
 }
 
-.ad-fb input[type="text"],
-.ad-fb select {
+.dt-fb input[type="text"],
+.dt-fb select {
     padding: 0 10px;
 }
 
-.ad-fb .searchable-select-wrapper {
+.dt-fb .searchable-select-wrapper {
     width: 100%;
 }
 
-.ad-fb-toggle {
+.dt-fb-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1001,14 +1052,14 @@ a.ad-tag:hover {
     cursor: pointer;
 }
 
-.ad-fb-toggle .ad-fb-l {
+.dt-fb-toggle .dt-fb-l {
     margin: 0;
     font-size: 13px;
     font-weight: 600;
     color: #f2f2f4;
 }
 
-.ad-switch {
+.dt-switch {
     position: relative;
     display: inline-block;
     flex: none;
@@ -1016,7 +1067,7 @@ a.ad-tag:hover {
     height: 20px;
 }
 
-.ad-switch input {
+.dt-switch input {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -1026,7 +1077,7 @@ a.ad-tag:hover {
     cursor: pointer;
 }
 
-.ad-switch span {
+.dt-switch span {
     position: absolute;
     inset: 0;
     border-radius: 999px;
@@ -1035,7 +1086,7 @@ a.ad-tag:hover {
     transition: background 0.15s ease;
 }
 
-.ad-switch span::after {
+.dt-switch span::after {
     content: '';
     position: absolute;
     top: 3px;
@@ -1048,20 +1099,20 @@ a.ad-tag:hover {
 }
 
 /* "~" not "+": Spring's th:field puts a hidden "_field" input right after the checkbox */
-.ad-switch input:checked ~ span {
+.dt-switch input:checked ~ span {
     background: var(--ad-c);
 }
 
-.ad-switch input:checked ~ span::after {
+.dt-switch input:checked ~ span::after {
     left: 19px;
     background: #fff;
 }
 
-.ad-switch input:focus-visible ~ span {
+.dt-switch input:focus-visible ~ span {
     box-shadow: 0 0 0 3px var(--ad-tintb);
 }
 
-.ad-edit-foot {
+.dt-edit-foot {
     position: sticky;
     bottom: 12px;
     z-index: 5;
@@ -1073,7 +1124,7 @@ a.ad-tag:hover {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
 }
 
-.ad-edit-status {
+.dt-edit-status {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1082,18 +1133,18 @@ a.ad-tag:hover {
     color: var(--ad-t);
 }
 
-.ad-edit-status .ad-dirty-dot {
+.dt-edit-status .dt-dirty-dot {
     width: 7px;
     height: 7px;
     border-radius: 4px;
     background: #71717a;
 }
 
-.ad-edit-status.is-dirty .ad-dirty-dot {
+.dt-edit-status.is-dirty .dt-dirty-dot {
     background: #fb923c;
 }
 
-.ad-edit-status kbd {
+.dt-edit-status kbd {
     display: inline-flex;
     align-items: center;
     height: 18px;
@@ -1105,39 +1156,39 @@ a.ad-tag:hover {
     color: var(--ad-t);
 }
 
-.ad-edit-actions {
+.dt-edit-actions {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-top: 12px;
 }
 
-.ad-edit-actions .ad-spacer {
+.dt-edit-actions .dt-spacer {
     flex: 1;
 }
 
 /* ── Stats card ── */
-.ad-stats {
+.dt-stats {
     padding: 22px 24px 24px;
     display: flex;
     flex-direction: column;
     gap: 22px;
 }
 
-.ad-stats-top {
+.dt-stats-top {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
     gap: 28px;
 }
 
-.ad-stats-side {
+.dt-stats-side {
     display: flex;
     flex-direction: column;
     gap: 18px;
     min-width: 0;
 }
 
-.ad-share {
+.dt-share {
     display: flex;
     gap: 2px;
     height: 22px;
@@ -1146,17 +1197,17 @@ a.ad-tag:hover {
     background: rgba(255, 255, 255, 0.04);
 }
 
-.ad-share > span {
+.dt-share > span {
     display: block;
     height: 100%;
     background: rgba(var(--ad-rgb), var(--a, 0.5));
 }
 
-.ad-share-legend {
+.dt-share-legend {
     margin-top: 10px;
 }
 
-.ad-share-row {
+.dt-share-row {
     display: grid;
     grid-template-columns: 12px minmax(0, 1fr) 60px 50px;
     align-items: center;
@@ -1166,46 +1217,46 @@ a.ad-tag:hover {
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.ad-share-row:first-child {
+.dt-share-row:first-child {
     border-top: 0;
 }
 
-.ad-share-sw {
+.dt-share-sw {
     width: 10px;
     height: 10px;
     border-radius: 3px;
     background: rgba(var(--ad-rgb), var(--a, 0.5));
 }
 
-.ad-share-name {
+.dt-share-name {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-.ad-share-row.is-extra .ad-share-name {
+.dt-share-row.is-extra .dt-share-name {
     color: var(--ad-mut);
 }
 
-.ad-share-row b {
+.dt-share-row b {
     text-align: right;
     font-family: var(--ad-num);
     font-weight: 600;
 }
 
-.ad-share-pct {
+.dt-share-pct {
     text-align: right;
     font-family: var(--ad-num);
     color: var(--ad-mut);
 }
 
-.ad-years {
+.dt-years {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
 }
 
-.ad-year {
+.dt-year {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1219,71 +1270,71 @@ a.ad-tag:hover {
     text-decoration: none;
 }
 
-a.ad-year:hover {
+a.dt-year:hover {
     text-decoration: none;
     box-shadow: inset 0 0 0 1px var(--ad-t);
 }
 
-.ad-year-r {
+.dt-year-r {
     font-family: var(--ad-num);
     font-size: 16px;
     font-weight: 700;
 }
 
-.ad-year-y {
+.dt-year-y {
     font-family: var(--ad-num);
     font-size: 10.5px;
     color: rgba(242, 242, 244, 0.72);
 }
 
 /* Podium years: #1 gold, #2 silver, #3 bronze */
-.ad-year.is-medal {
+.dt-year.is-medal {
     border: 1px solid rgba(255, 255, 255, 0.28);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
-.ad-year.is-medal .ad-year-r,
-.ad-year.is-medal .ad-year-y {
+.dt-year.is-medal .dt-year-r,
+.dt-year.is-medal .dt-year-y {
     color: #1c1405;
 }
 
-.ad-year.is-medal .ad-year-y {
+.dt-year.is-medal .dt-year-y {
     opacity: 0.75;
 }
 
-.ad-year.is-gold {
+.dt-year.is-gold {
     background: linear-gradient(145deg, #fff1b8 0%, #f5c542 38%, #d39b16 72%, #a8720a 100%);
 }
 
-.ad-year.is-silver {
+.dt-year.is-silver {
     background: linear-gradient(145deg, #ffffff 0%, #d9dde3 38%, #aab1bb 72%, #7e8691 100%);
 }
 
-.ad-year.is-bronze {
+.dt-year.is-bronze {
     background: linear-gradient(145deg, #ffd9b5 0%, #e2a06a 38%, #b8702f 72%, #8a4f1c 100%);
 }
 
-.ad-year.is-dim {
+.dt-year.is-dim {
     border: 1px dashed rgba(var(--ad-rgb), 0.3);
 }
 
-.ad-year.is-dim .ad-year-r,
-.ad-year.is-dim .ad-year-y {
+.dt-year.is-dim .dt-year-r,
+.dt-year.is-dim .dt-year-y {
     color: #8b8b93;
 }
 
-.ad-tiles {
+.dt-tiles {
     display: grid;
     grid-template-columns: repeat(var(--cols, 7), minmax(0, 1fr));
     gap: 6px;
 }
 
-.ad-tiles.is-first {
+.dt-tiles.is-first {
     padding-top: 18px;
     border-top: 1px solid var(--ad-hair);
 }
 
-.ad-tile {
+.dt-tile {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -1294,7 +1345,7 @@ a.ad-year:hover {
     background: rgba(0, 0, 0, 0.18);
 }
 
-.ad-tile span {
+.dt-tile span {
     font-size: 9.5px;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -1305,20 +1356,20 @@ a.ad-year:hover {
     text-overflow: ellipsis;
 }
 
-.ad-tile b {
+.dt-tile b {
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
     font-size: 17px;
     font-weight: 600;
 }
 
-.ad-tile small {
+.dt-tile small {
     font-size: 11px;
     color: var(--ad-mut);
 }
 
 /* ── Run block (album Full listens, artist Releases): count on the left, first / last / spread rows on the right ── */
-.ad-run {
+.dt-run {
     display: flex;
     align-items: stretch;
     border: 1px solid var(--ad-hair);
@@ -1326,7 +1377,7 @@ a.ad-year:hover {
     overflow: hidden;
 }
 
-.ad-run-n {
+.dt-run-n {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1337,7 +1388,7 @@ a.ad-year:hover {
     border-right: 1px solid var(--ad-hair);
 }
 
-.ad-run-n b {
+.dt-run-n b {
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
     font-size: 28px;
@@ -1346,7 +1397,7 @@ a.ad-year:hover {
     color: #fff;
 }
 
-.ad-run-n span {
+.dt-run-n span {
     margin-top: 4px;
     font-size: 10px;
     font-weight: 700;
@@ -1355,30 +1406,30 @@ a.ad-year:hover {
     color: var(--ad-lbl);
 }
 
-.ad-run-rows {
+.dt-run-rows {
     flex: 1;
     min-width: 0;
     margin: 0;
     padding: 6px 14px;
 }
 
-.ad-run-rows > div {
+.dt-run-rows > div {
     display: flex;
     justify-content: space-between;
     gap: 12px;
     padding: 4px 0;
 }
 
-.ad-run-rows > div + div {
+.dt-run-rows > div + div {
     border-top: 1px solid var(--ad-hair);
 }
 
-.ad-run-rows dt {
+.dt-run-rows dt {
     font-size: 11px;
     color: var(--ad-mut);
 }
 
-.ad-run-rows dd {
+.dt-run-rows dd {
     margin: 0;
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
@@ -1388,7 +1439,7 @@ a.ad-year:hover {
     text-align: right;
 }
 
-.ad-run-rows dd a {
+.dt-run-rows dd a {
     display: inline-block;
     max-width: 150px;
     margin-right: 8px;
@@ -1403,23 +1454,23 @@ a.ad-year:hover {
     text-decoration: none;
 }
 
-.ad-run-rows dd a:hover {
+.dt-run-rows dd a:hover {
     text-decoration: underline;
 }
 
 /* ── Catalog block (artist detail): the list card More panel split bars, themed with the page colors ── */
-.ad-catalog {
+.dt-catalog {
     padding-top: 18px;
     border-top: 1px solid var(--ad-hair);
 }
 
-.ad-catalog .mm-total {
+.dt-catalog .mm-total {
     margin: 0 0 10px 0;
     font-size: 12px;
     color: var(--ad-mut);
 }
 
-.ad-catalog .mm-total b {
+.dt-catalog .mm-total b {
     color: #f2f2f4;
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
@@ -1427,13 +1478,13 @@ a.ad-year:hover {
     font-weight: 600;
 }
 
-.ad-catalog .mm-stack {
+.dt-catalog .mm-stack {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.ad-catalog .mm-split-row {
+.dt-catalog .mm-split-row {
     display: flex;
     justify-content: space-between;
     gap: 8px;
@@ -1442,35 +1493,35 @@ a.ad-year:hover {
     color: var(--ad-mut);
 }
 
-.ad-catalog .mm-split-row b {
+.dt-catalog .mm-split-row b {
     color: #f2f2f4;
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
 
-.ad-catalog .gc-bar {
+.dt-catalog .gc-bar {
     display: flex;
     gap: 3px;
     height: 6px;
 }
 
-.ad-catalog .gc-bar > span {
+.dt-catalog .gc-bar > span {
     min-width: 0;
     border-radius: 4px;
 }
 
-.ad-catalog .gc-bar-primary { background: var(--ad-c); }
-.ad-catalog .gc-bar-legacy { background: var(--ad-soft); }
-.ad-catalog .gc-bar-empty { flex: 1 1 0; background: var(--ad-hair); }
+.dt-catalog .gc-bar-primary { background: var(--ad-c); }
+.dt-catalog .gc-bar-legacy { background: var(--ad-soft); }
+.dt-catalog .gc-bar-empty { flex: 1 1 0; background: var(--ad-hair); }
 
 /* ── Albums and songs sections ── */
-.container-wide.ad-page .ad-section {
+.container-wide.dt-page .dt-section {
     overflow: hidden;
     padding: 0;
 }
 
-.ad-sec-head {
+.dt-sec-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1479,7 +1530,7 @@ a.ad-year:hover {
     padding: 20px 22px 14px;
 }
 
-.ad-sec-head h2 {
+.dt-sec-head h2 {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1489,7 +1540,7 @@ a.ad-year:hover {
     color: #f2f2f4;
 }
 
-.ad-count {
+.dt-count {
     display: inline-flex;
     align-items: center;
     height: 22px;
@@ -1502,7 +1553,7 @@ a.ad-year:hover {
     font-weight: 700;
 }
 
-.ad-view-toggle {
+.dt-view-toggle {
     display: inline-flex;
     padding: 3px;
     border-radius: 10px;
@@ -1510,7 +1561,7 @@ a.ad-year:hover {
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.ad-view-toggle button {
+.dt-view-toggle button {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -1524,12 +1575,12 @@ a.ad-year:hover {
     cursor: pointer;
 }
 
-.ad-view-toggle button.is-active {
+.dt-view-toggle button.is-active {
     background: rgba(255, 255, 255, 0.08);
     color: #f2f2f4;
 }
 
-.ad-sortbar {
+.dt-sortbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1537,13 +1588,13 @@ a.ad-year:hover {
     padding: 0 22px 16px;
 }
 
-.ad-sortbar-l {
+.dt-sortbar-l {
     margin-right: 4px;
     font-size: 11.5px;
     color: var(--ad-mut);
 }
 
-.ad-sort-chip {
+.dt-sort-chip {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -1557,32 +1608,32 @@ a.ad-year:hover {
     cursor: pointer;
 }
 
-.ad-sort-chip:hover {
+.dt-sort-chip:hover {
     border-color: var(--ad-tintb);
 }
 
-.ad-sort-chip.is-active {
+.dt-sort-chip.is-active {
     background: var(--ad-tint);
     border-color: var(--ad-tintb);
     color: var(--ad-t);
 }
 
-.ad-sort-arrow {
+.dt-sort-arrow {
     display: none;
     width: 11px;
     height: 11px;
 }
 
-.is-active > .ad-sort-arrow {
+.is-active > .dt-sort-arrow {
     display: inline-block;
 }
 
-[data-sort-dir="asc"] > .ad-sort-arrow {
+[data-sort-dir="asc"] > .dt-sort-arrow {
     transform: rotate(180deg);
 }
 
 /* Album shelf */
-.ad-shelf {
+.dt-shelf {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     gap: 14px;
@@ -1590,13 +1641,13 @@ a.ad-year:hover {
 }
 
 /* Shelf sorts with the chips; the table view sorts with its headers */
-.ad-albums.is-table .ad-shelf,
-.ad-albums.is-table .ad-sortbar,
-.ad-albums:not(.is-table) .ad-albums-table {
+.dt-albums.is-table .dt-shelf,
+.dt-albums.is-table .dt-sortbar,
+.dt-albums:not(.is-table) .dt-albums-table {
     display: none;
 }
 
-.ad-album {
+.dt-album {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1608,32 +1659,32 @@ a.ad-year:hover {
     color: #f2f2f4;
 }
 
-.ad-album.is-cross {
+.dt-album.is-cross {
     border-color: rgba(250, 204, 21, 0.3);
 }
 
-.ad-album.is-group {
+.dt-album.is-group {
     border-color: rgba(167, 139, 250, 0.35);
 }
 
-.ad-album.is-no-album {
+.dt-album.is-no-album {
     border-style: dashed;
 }
 
-.ad-album-art {
+.dt-album-art {
     position: relative;
     aspect-ratio: 1 / 1;
     background: linear-gradient(140deg, var(--ad-bg) 0%, var(--ad-hair) 100%);
     cursor: pointer;
 }
 
-.ad-album-art img {
+.dt-album-art img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.ad-album-art .ad-art-ph {
+.dt-album-art .dt-art-ph {
     position: absolute;
     inset: 0;
     display: flex;
@@ -1642,17 +1693,17 @@ a.ad-year:hover {
     color: var(--ad-lbl);
 }
 
-.ad-album-art .ad-art-ph svg {
+.dt-album-art .dt-art-ph svg {
     width: 40px;
     height: 40px;
 }
 
-.ad-album.is-no-album .ad-album-art {
+.dt-album.is-no-album .dt-album-art {
     cursor: default;
     background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 10px, rgba(255, 255, 255, 0.06) 10px 20px);
 }
 
-.ad-album-rank {
+.dt-album-rank {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -1667,7 +1718,7 @@ a.ad-year:hover {
     font-weight: 700;
 }
 
-.ad-album-art .itunes-badge {
+.dt-album-art .itunes-badge {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -1675,11 +1726,11 @@ a.ad-year:hover {
     box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
 }
 
-.ad-album-body {
+.dt-album-body {
     padding: 11px 12px 12px;
 }
 
-.ad-album-name {
+.dt-album-name {
     display: block;
     overflow: hidden;
     white-space: nowrap;
@@ -1690,12 +1741,12 @@ a.ad-year:hover {
     text-decoration: none;
 }
 
-a.ad-album-name:hover {
+a.dt-album-name:hover {
     color: var(--ad-t);
     text-decoration: none;
 }
 
-.ad-album-sub {
+.dt-album-sub {
     margin-top: 2px;
     overflow: hidden;
     white-space: nowrap;
@@ -1704,37 +1755,37 @@ a.ad-album-name:hover {
     color: #a1a1aa;
 }
 
-.ad-album-sub a {
+.dt-album-sub a {
     color: inherit;
     text-decoration: underline;
 }
 
-.ad-album-total {
+.dt-album-total {
     display: flex;
     align-items: baseline;
     gap: 6px;
     margin-top: 10px;
 }
 
-.ad-album-total b {
+.dt-album-total b {
     font-family: var(--ad-num);
     font-size: 24px;
     font-weight: 700;
     line-height: 1;
 }
 
-.ad-album-total span {
+.dt-album-total span {
     font-size: 11px;
     color: var(--ad-mut);
 }
 
-.ad-album .ad-bar {
+.dt-album .dt-bar {
     height: 5px;
     margin-top: 8px;
 }
 
 /* Album length in the lower right corner of the cover */
-.ad-album-len {
+.dt-album-len {
     position: absolute;
     right: 8px;
     bottom: 8px;
@@ -1750,13 +1801,13 @@ a.ad-album-name:hover {
     color: #f2f2f4;
 }
 
-.ad-albums[data-active-sort="length"] .ad-album-len {
+.dt-albums[data-active-sort="length"] .dt-album-len {
     background: var(--ad-c);
     color: var(--ad-ink);
 }
 
 /* The sorted-by metric, like the list page cards; hidden while sorting by total plays, name or length */
-.ad-album-metric span {
+.dt-album-metric span {
     display: none;
     justify-content: space-between;
     gap: 6px;
@@ -1767,24 +1818,24 @@ a.ad-album-name:hover {
     color: var(--ad-mut);
 }
 
-.ad-album-metric b {
+.dt-album-metric b {
     font-family: var(--ad-num);
     font-weight: 600;
     color: var(--ad-t);
     white-space: nowrap;
 }
 
-.ad-albums[data-active-sort="primaryplays"] .ad-album-metric [data-metric="primaryplays"],
-.ad-albums[data-active-sort="legacyplays"] .ad-album-metric [data-metric="legacyplays"],
-.ad-albums[data-active-sort="releasedate"] .ad-album-metric [data-metric="releasedate"],
-.ad-albums[data-active-sort="firstlistened"] .ad-album-metric [data-metric="firstlistened"],
-.ad-albums[data-active-sort="lastlistened"] .ad-album-metric [data-metric="lastlistened"],
-.ad-albums[data-active-sort="timelistened"] .ad-album-metric [data-metric="timelistened"] {
+.dt-albums[data-active-sort="primaryplays"] .dt-album-metric [data-metric="primaryplays"],
+.dt-albums[data-active-sort="legacyplays"] .dt-album-metric [data-metric="legacyplays"],
+.dt-albums[data-active-sort="releasedate"] .dt-album-metric [data-metric="releasedate"],
+.dt-albums[data-active-sort="firstlistened"] .dt-album-metric [data-metric="firstlistened"],
+.dt-albums[data-active-sort="lastlistened"] .dt-album-metric [data-metric="lastlistened"],
+.dt-albums[data-active-sort="timelistened"] .dt-album-metric [data-metric="timelistened"] {
     display: flex;
 }
 
 /* Golden play counts (songs 100+, albums 500+): metallic gold text with a soft glow */
-.ad-gold {
+.dt-gold {
     background: linear-gradient(180deg, #fff3c4 0%, #f7cd4c 45%, #dc9f17 100%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -1794,12 +1845,12 @@ a.ad-album-name:hover {
 }
 
 /* Tables (album table view and songs) */
-.ad-table-wrap {
+.dt-table-wrap {
     overflow-x: auto;
 }
 
 /* Fixed column widths: the name column takes the rest, and the table scrolls sideways when tight */
-.ad-table {
+.dt-table {
     width: 100%;
     min-width: 980px;
     table-layout: fixed;
@@ -1808,46 +1859,47 @@ a.ad-album-name:hover {
     color: #f2f2f4;
 }
 
-.ad-table .ad-col-i { width: 52px; }
-.ad-table .ad-col-total { width: 82px; }
-.ad-table .ad-col-num { width: 74px; }
-.ad-table .ad-col-date { width: 104px; }
-.ad-table .ad-col-time { width: 92px; }
-.ad-table .mobile-expand-col { width: 36px; }
+.dt-table .dt-col-i { width: 52px; }
+.dt-table .dt-col-total { width: 82px; }
+.dt-table .dt-col-num { width: 74px; }
+.dt-table .dt-col-date { width: 104px; }
+.dt-table .dt-col-time { width: 92px; }
+.dt-table .mobile-expand-col { width: 36px; }
 
-.ad-albums-table .ad-table .ad-col-total { width: 130px; }
+.dt-albums-table .dt-table .dt-col-total { width: 130px; }
 
-.ad-table td {
+.dt-table td {
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.ad-table th {
+.dt-table th {
     height: 36px;
     padding: 0 10px;
     border-top: 1px solid var(--ad-hair);
     border-bottom: 1px solid var(--ad-hair);
-    background: rgba(0, 0, 0, 0.18);
+    /* Same tint as before over the card colour, opaque so rows don't show through the floating header */
+    background: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), var(--ad-bg, #18181a);
     text-align: left;
     white-space: nowrap;
 }
 
-.ad-table th.is-num,
-.ad-table td.is-num {
+.dt-table th.is-num,
+.dt-table td.is-num {
     text-align: right;
 }
 
-.ad-table th:first-child,
-.ad-table td:first-child {
+.dt-table th:first-child,
+.dt-table td:first-child {
     padding-left: 22px;
 }
 
-.ad-table th:last-child,
-.ad-table td:last-child {
+.dt-table th:last-child,
+.dt-table td:last-child {
     padding-right: 22px;
 }
 
-.ad-th-btn {
+.dt-th-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -1862,65 +1914,65 @@ a.ad-album-name:hover {
     cursor: pointer;
 }
 
-.ad-th-btn.is-active {
+.dt-th-btn.is-active {
     color: var(--ad-t);
 }
 
-.ad-table td {
+.dt-table td {
     height: 54px;
     padding: 0 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     white-space: nowrap;
 }
 
-.ad-table tr.is-cross td,
-.ad-table tr.is-featured td {
+.dt-table tr.is-cross td,
+.dt-table tr.is-featured td {
     background: rgba(250, 204, 21, 0.03);
 }
 
-.ad-table tr.is-group td {
+.dt-table tr.is-group td {
     background: rgba(167, 139, 250, 0.04);
 }
 
-.ad-table tr.is-summary td {
+.dt-table tr.is-summary td {
     background: rgba(0, 0, 0, 0.22);
 }
 
-.ad-td-i {
+.dt-td-i {
     color: #71717a;
     font-family: var(--ad-num);
     font-size: 12px;
 }
 
-.ad-td-n {
+.dt-td-n {
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
 }
 
-.ad-td-d {
+.dt-td-d {
     color: #a1a1aa;
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
     font-size: 12px;
 }
 
-.ad-td-name {
+.dt-td-name {
     white-space: normal !important;
 }
 
-.ad-name {
+.dt-name {
     display: flex;
     align-items: center;
     gap: 11px;
     min-width: 0;
 }
 
-.ad-name-tx {
+.dt-name-tx {
     min-width: 0;
 }
 
-.ad-name-tx > a,
-.ad-name-tx > b {
+.dt-name-tx > a,
+.dt-name-tx > b {
     display: block;
     overflow: hidden;
     white-space: nowrap;
@@ -1930,11 +1982,11 @@ a.ad-album-name:hover {
     text-decoration: none;
 }
 
-.ad-name-tx > a:hover {
+.dt-name-tx > a:hover {
     color: var(--ad-t);
 }
 
-.ad-name-tx small {
+.dt-name-tx small {
     display: block;
     margin-top: 2px;
     overflow: hidden;
@@ -1944,12 +1996,12 @@ a.ad-album-name:hover {
     color: #a1a1aa;
 }
 
-.ad-name-tx small a {
+.dt-name-tx small a {
     color: inherit;
     text-decoration: underline;
 }
 
-.ad-cover {
+.dt-cover {
     position: relative;
     flex: none;
     width: 38px;
@@ -1960,42 +2012,42 @@ a.ad-album-name:hover {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.ad-cover img {
+.dt-cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     cursor: pointer;
 }
 
-.ad-cover .hover-image-container {
+.dt-cover .hover-image-container {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-.ad-cover .hover-image-container img {
+.dt-cover .hover-image-container img {
     position: absolute;
     inset: 0;
     transition: opacity 0.2s ease;
 }
 
-.ad-cover .song-image-hover {
+.dt-cover .song-image-hover {
     opacity: 0;
 }
 
-.ad-cover:hover .song-image-hover {
+.dt-cover:hover .song-image-hover {
     opacity: 1;
 }
 
-.ad-cover:hover .album-image-default {
+.dt-cover:hover .album-image-default {
     opacity: 0;
 }
 
-.ad-cover .inherited-cover {
+.dt-cover .inherited-cover {
     opacity: 0.7;
 }
 
-.ad-cover-ph {
+.dt-cover-ph {
     position: absolute;
     inset: 0;
     display: flex;
@@ -2004,12 +2056,12 @@ a.ad-album-name:hover {
     color: var(--ad-lbl);
 }
 
-.ad-cover-ph svg {
+.dt-cover-ph svg {
     width: 16px;
     height: 16px;
 }
 
-.ad-badge {
+.dt-badge {
     display: inline-flex;
     gap: 4px;
     align-items: center;
@@ -2024,116 +2076,289 @@ a.ad-album-name:hover {
     vertical-align: 1px;
 }
 
-.ad-badge.is-gold {
+.dt-badge.is-gold {
     background: rgba(250, 204, 21, 0.12);
     color: #fde68a;
 }
 
-.ad-badge.is-group {
+.dt-badge.is-group {
     background: rgba(167, 139, 250, 0.14);
     color: #ddd6fe;
 }
 
-.ad-pc {
+.dt-pc {
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
 }
 
-.ad-pc b {
+.dt-pc b {
     font-family: var(--ad-num);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
 
-.ad-mb {
+.dt-mb {
     width: 56px;
     height: 5px;
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.06);
 }
 
-.ad-mb > span {
+.dt-mb > span {
     display: flex;
     gap: 1px;
     height: 100%;
 }
 
-.ad-mb i {
+.dt-mb i {
     display: block;
     height: 100%;
     border-radius: 3px;
     background: var(--ad-c);
 }
 
-.ad-mb i.is-legacy {
+.dt-mb i.is-legacy {
     background: var(--ad-soft);
 }
 
-.ad-table-foot {
-    padding: 14px 22px;
-    font-size: 12px;
-    color: #8b8b93;
-}
-
 /* Sidebar image ratio: artist photos keep their 2:3 portrait, album and song covers stay square */
-.container-wide.ad-page.artist-detail > .detail-grid > .detail-sidebar > .item-image-container {
+.container-wide.dt-page.artist-detail > .detail-grid > .detail-sidebar > .item-image-container {
     aspect-ratio: 2 / 3;
 }
 
 /* ── Narrower screens ── */
 @media (max-width: 1280px) {
-    .ad-stats-top {
+    .dt-stats-top {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .ad-tiles {
+    .dt-tiles {
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     }
 }
 
 @media (max-width: 1024px) {
-    .ad-page .detail-grid {
+    .dt-page .detail-grid {
         grid-template-columns: 320px minmax(0, 1fr);
     }
 }
 
 @media (max-width: 900px) {
-    /* Let the tabs keep their mobile spot above the sidebar */
-    .ad-main {
-        display: contents;
-    }
-
-    .ad-page .detail-grid > .detail-sidebar {
+    .dt-page .detail-grid > .detail-sidebar {
         max-width: none;
         width: 100%;
         margin: 0;
     }
 
-    .ad-years {
+    /* Phones: the sidebar card stacks (photo full width on top, profile under it) instead of the
+       old two-column header card from global.css, which squeezed the photo and the name */
+    .container-wide.dt-page > .detail-grid > .detail-sidebar.dt-card {
+        display: block;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .container-wide.dt-page > .detail-grid > .detail-sidebar > .item-image-container {
+        width: 100% !important;
+        min-width: 0;
+        max-width: none;
+        aspect-ratio: 1 / 1 !important;
+    }
+
+    .container-wide.dt-page.artist-detail > .detail-grid > .detail-sidebar > .item-image-container {
+        max-width: none;
+        aspect-ratio: 1 / 1 !important;
+    }
+
+    .dt-page .item-name-top.dt-photo-name {
+        font-size: 24px;
+        word-break: normal;
+        overflow-wrap: anywhere;
+        margin: 0;
+    }
+
+    .dt-profile {
+        padding: 16px 16px 20px;
+    }
+
+    /* Phones stack the sidebar above the tab content, so it only shows on General: the other tabs
+       open straight on their own content instead of a screen-tall photo and profile */
+    .dt-page .detail-grid:has(> .detail-tabs .detail-tab.active:not(#generalTab)) > .detail-sidebar {
+        display: none !important;
+    }
+
+    /* The stacked grid already spaces its children; the tab row's own margin doubled the gap under it */
+    .dt-page .detail-grid > .detail-tabs {
+        margin-bottom: 0;
+    }
+
+    .dt-years {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .ad-shelf {
+    .dt-shelf {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
         padding: 0 14px 16px;
     }
 
-    .ad-sortbar,
-    .ad-sec-head {
+    .dt-sortbar,
+    .dt-sec-head {
         padding-left: 14px;
         padding-right: 14px;
     }
 
-    .ad-table th:first-child,
-    .ad-table td:first-child {
+    .dt-table th:first-child,
+    .dt-table td:first-child {
         padding-left: 12px;
     }
 
-    /* Phones show # / name / total only (the rest opens with +), so no sideways scroll */
-    .ad-table {
+    /* Phones show # / name / total only (the rest opens with +), so no sideways scroll.
+       The global hide-mobile rule only targets .table / .top-table, so the detail tables need their own. */
+    .dt-table {
         min-width: 0;
+        table-layout: fixed;
     }
+
+    .dt-table .hide-mobile {
+        display: none;
+    }
+
+    .dt-table .dt-col-i {
+        width: 40px;
+    }
+}
+
+/* Rank neighbors tooltip (detail-sidebar.js): items ranked 5 above and 5 below the current one in a profile
+   attribute. Lives inside .dt-page so it picks up the gender colors, fixed so the sidebar scroll never clips it. */
+.dt-rn {
+    position: fixed;
+    z-index: 3000;
+    width: 340px;
+    max-width: calc(100vw - 16px);
+    box-sizing: border-box;
+    padding: 10px 6px 6px;
+    border-radius: 14px;
+    border: 1px solid var(--ad-bd);
+    background: linear-gradient(180deg, var(--ad-bg) 0%, var(--ad-bg2) 100%);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+    color: #f2f2f4;
+    font-size: 12.5px;
+}
+
+.dt-rn[hidden] {
+    display: none;
+}
+
+.dt-rn-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--ad-hair);
+}
+
+.dt-rn-head b {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--ad-t);
+    font-size: 13px;
+}
+
+.dt-rn-head span {
+    flex: 0 0 auto;
+    color: var(--ad-lbl);
+    font-family: var(--ad-num);
+    font-size: 11.5px;
+}
+
+.dt-rn-list {
+    display: flex;
+    flex-direction: column;
+    padding-top: 4px;
+}
+
+.dt-rn-row {
+    display: grid;
+    grid-template-columns: 44px 8px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 3px 8px;
+    border-radius: 8px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.dt-rn-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+    text-decoration: none;
+}
+
+.dt-rn-row.is-current {
+    background: rgba(var(--ad-rgb), 0.18);
+    box-shadow: inset 0 0 0 1px var(--ad-tintb);
+}
+
+.dt-rn-rank {
+    color: var(--ad-mut);
+    font-family: var(--ad-num);
+    font-size: 11.5px;
+    font-weight: 700;
+}
+
+.dt-rn-rank.is-gold {
+    color: #fde68a;
+}
+
+.dt-rn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: #a1a1aa;
+}
+
+.dt-rn-dot.is-male {
+    background: #60a5fa;
+}
+
+.dt-rn-dot.is-female {
+    background: #f472b6;
+}
+
+.dt-rn-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.dt-rn-name span,
+.dt-rn-name small {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.dt-rn-name span {
+    font-weight: 600;
+}
+
+.dt-rn-row.is-current .dt-rn-name span {
+    color: var(--ad-t);
+}
+
+.dt-rn-name small {
+    color: #8b8b93;
+    font-size: 11px;
+}
+
+.dt-rn-plays {
+    color: var(--ad-t);
+    font-family: var(--ad-num);
+    font-weight: 700;
 }

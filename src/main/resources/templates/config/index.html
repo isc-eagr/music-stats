@@ -4,618 +4,223 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Config - Music Stats</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <link rel="stylesheet" th:href="@{/css/detail-general.css(v=12)}">
+    <link rel="stylesheet" th:href="@{/css/config.css(v=2)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <style>
-        .config-shell {
-            max-width: 1320px;
-            margin: 0 auto;
-            padding: 28px 24px 56px;
-        }
-        .config-hero {
-            position: relative;
-            display: grid;
-            grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
-            gap: 22px;
-            margin-bottom: 22px;
-        }
-        .config-hero-panel,
-        .config-section,
-        .config-save-bar,
-        .config-alert {
-            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 24px;
-            box-shadow: 0 28px 60px rgba(0, 0, 0, 0.24);
-            backdrop-filter: blur(10px);
-        }
-        .config-hero-panel {
-            overflow: hidden;
-        }
-        .config-hero-copy {
-            padding: 30px 32px 34px;
-            background:
-                radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 42%),
-                radial-gradient(circle at bottom right, rgba(244, 63, 94, 0.15), transparent 38%),
-                linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(17, 24, 39, 0.82));
-        }
-        .config-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 12px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: #b6dff5;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-        .config-title {
-            margin: 18px 0 12px;
-            font-size: clamp(2rem, 4vw, 3.3rem);
-            line-height: 1.04;
-            letter-spacing: -0.04em;
-        }
-        .config-subtitle {
-            max-width: 760px;
-            margin: 0;
-            color: var(--text-muted);
-            font-size: 1rem;
-            line-height: 1.65;
-        }
-        .config-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
-            padding: 24px;
-            background:
-                radial-gradient(circle at top right, rgba(251, 191, 36, 0.12), transparent 42%),
-                linear-gradient(180deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.82));
-        }
-        .config-stat-card {
-            padding: 18px;
-            border-radius: 18px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
-        }
-        .config-stat-label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--text-muted);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-        .config-stat-value {
-            display: block;
-            color: var(--text);
-            font-size: 1.15rem;
-            font-weight: 700;
-            line-height: 1.3;
-        }
-        .config-stat-meta {
-            display: block;
-            margin-top: 8px;
-            color: var(--text-muted);
-            font-size: 0.88rem;
-            line-height: 1.45;
-        }
-        .config-alert {
-            margin-bottom: 18px;
-            padding: 16px 20px;
-            border-color: rgba(74, 222, 128, 0.22);
-            background: linear-gradient(135deg, rgba(22, 101, 52, 0.2), rgba(15, 23, 42, 0.76));
-            color: #cffade;
-            font-weight: 600;
-            overflow-wrap: anywhere;
-        }
-        .config-alert-error {
-            border-color: rgba(248, 113, 113, 0.3);
-            background: rgba(127, 29, 29, 0.2);
-            color: #fecaca;
-        }
-        .config-backup {
-            margin-bottom: 18px;
-        }
-        .config-database-path {
-            overflow-wrap: anywhere;
-        }
-        .config-form {
-            display: grid;
-            gap: 18px;
-        }
-        .config-section {
-            padding: 26px 28px 28px;
-        }
-        .config-section-header {
-            display: flex;
-            align-items: start;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 22px;
-        }
-        .config-section-title {
-            margin: 0;
-            font-size: 1.35rem;
-            font-weight: 750;
-            letter-spacing: -0.02em;
-        }
-        .config-section-copy {
-            margin: 8px 0 0;
-            max-width: 760px;
-            color: var(--text-muted);
-            line-height: 1.65;
-        }
-        .config-grid {
-            display: grid;
-            grid-template-columns: repeat(12, minmax(0, 1fr));
-            gap: 16px;
-        }
-        .config-card {
-            grid-column: span 12;
-            padding: 20px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-        }
-        .config-card.half {
-            grid-column: span 6;
-        }
-        .config-card.third {
-            grid-column: span 4;
-        }
-        .config-card-title {
-            margin: 0 0 8px;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-        .config-card-copy {
-            margin: 0 0 16px;
-            color: var(--text-muted);
-            font-size: 0.92rem;
-            line-height: 1.55;
-        }
-        .config-field-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px 16px;
-        }
-        .config-field {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-        }
-        .config-field.full {
-            grid-column: 1 / -1;
-        }
-        .config-field label {
-            color: var(--text-muted);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-        .config-field input {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: rgba(8, 15, 28, 0.68);
-            color: var(--text);
-            font-size: 0.96rem;
-        }
-        .config-field input:focus {
-            outline: none;
-            border-color: rgba(56, 189, 248, 0.55);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
-        }
-        .config-help {
-            color: var(--text-muted);
-            font-size: 0.82rem;
-            line-height: 1.45;
-        }
-        .config-toggle {
-            display: flex;
-            gap: 14px;
-            align-items: center;
-            padding: 16px 18px;
-            border-radius: 18px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .config-toggle input {
-            width: 22px;
-            height: 22px;
-            accent-color: #38bdf8;
-            margin: 0;
-        }
-        .config-toggle-title {
-            margin: 0 0 4px;
-            font-weight: 700;
-        }
-        .config-toggle-copy {
-            margin: 0;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-        .config-save-bar {
-            position: sticky;
-            bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, rgba(8, 15, 28, 0.92), rgba(17, 24, 39, 0.9));
-            border-color: rgba(56, 189, 248, 0.16);
-        }
-        .config-save-copy {
-            margin: 0;
-            color: var(--text-muted);
-            line-height: 1.55;
-        }
-        .config-save-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        @media (max-width: 1080px) {
-            .config-hero {
-                grid-template-columns: 1fr;
-            }
-            .config-card.half,
-            .config-card.third {
-                grid-column: span 12;
-            }
-        }
-        @media (max-width: 760px) {
-            .config-shell {
-                padding: 18px 14px 42px;
-            }
-            .config-hero-copy,
-            .config-summary-grid,
-            .config-section {
-                padding-left: 18px;
-                padding-right: 18px;
-            }
-            .config-summary-grid,
-            .config-field-grid {
-                grid-template-columns: 1fr;
-            }
-            .config-section-header,
-            .config-save-bar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
-    </style>
 </head>
 <body>
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
 
-    <main class="config-shell">
-        <section class="config-hero">
-            <div class="config-hero-panel config-hero-copy">
-                <span class="config-kicker">Settings</span>
-                <h1 class="config-title">Config</h1>
-                <p class="config-subtitle">Database backups, automation, full-listen thresholds, and per-page defaults.</p>
-            </div>
+    <main class="container-wide dt-page cfg-page"
+          th:attr="data-initial-tab=${backupSuccess != null or backupError != null ? 'database' : ''}">
+        <div class="cfg-layout">
+            <aside class="dt-card cfg-side">
+                <h1 class="cfg-title">Config</h1>
 
-            <div class="config-hero-panel config-summary-grid">
-                <div class="config-stat-card">
-                    <span class="config-stat-label">Automation</span>
-                    <span class="config-stat-value" th:text="${automationConfig.enabled ? 'Enabled' : 'Disabled'}">Enabled</span>
-                    <span class="config-stat-meta" th:text="${#strings.isEmpty(automationConfig.account) ? 'No account configured' : automationConfig.account}">vatito</span>
-                </div>
-                <div class="config-stat-card">
-                    <span class="config-stat-label">Cadence</span>
-                    <span class="config-stat-value" th:text="${automationConfig.intervalMinutes + ' min'}">10 min</span>
-                    <span class="config-stat-meta">Run interval</span>
-                </div>
-                <div class="config-stat-card">
-                    <span class="config-stat-label">Import Log Limit</span>
-                    <span class="config-stat-value" th:text="${automationConfig.importLogLimit + ' rows'}">20 rows</span>
-                    <span class="config-stat-meta">Successes and errors shown</span>
-                </div>
-                <div class="config-stat-card">
-                    <span class="config-stat-label">Automation Window</span>
-                    <span class="config-stat-value" th:text="${automationConfig.startHour + ':00 - ' + automationConfig.endHour + ':59'}">7:00 - 23:59</span>
-                    <span class="config-stat-meta">Server time</span>
-                </div>
-                <div class="config-stat-card">
-                    <span class="config-stat-label">Last Success</span>
-                    <span class="config-stat-value" th:text="${automationImportState != null and automationImportState.lastSuccessAt != null ? automationImportState.lastSuccessAt : 'Never'}">Never</span>
-                    <span class="config-stat-meta" th:text="${automationImportState != null and automationImportState.lastIssueAt != null ? 'Last issue: ' + automationImportState.lastIssueAt : 'No recent issues'}">No recent issues</span>
-                </div>
-            </div>
-        </section>
+                <nav class="cfg-nav" role="tablist" aria-label="Config sections">
+                    <button type="button" class="cfg-tab" role="tab" id="cfgTab-import" data-tab="import" aria-controls="cfgPanel-import">Last.fm import<span class="cfg-tab-dot" aria-hidden="true"></span></button>
+                    <button type="button" class="cfg-tab" role="tab" id="cfgTab-listens" data-tab="listens" aria-controls="cfgPanel-listens">Full listens<span class="cfg-tab-dot" aria-hidden="true"></span></button>
+                    <button type="button" class="cfg-tab" role="tab" id="cfgTab-display" data-tab="display" aria-controls="cfgPanel-display">Display<span class="cfg-tab-dot" aria-hidden="true"></span></button>
+                    <button type="button" class="cfg-tab" role="tab" id="cfgTab-database" data-tab="database" aria-controls="cfgPanel-database">Database</button>
+                </nav>
 
-        <div class="config-alert" th:if="${saved}">Configuration saved.</div>
-        <div class="config-alert" role="status" th:if="${backupSuccess}" th:text="${backupSuccess}"></div>
-        <div class="config-alert config-alert-error" role="alert" th:if="${backupError}" th:text="${backupError}"></div>
-
-        <form id="databaseBackupForm" class="config-section config-backup" method="post" th:action="@{/config/backup}">
-            <div class="config-section-header">
-                <div>
-                    <h2 class="config-section-title">Database Backup</h2>
-                    <p class="config-section-copy">Create a complete snapshot of your music library, plays, images, and settings. Each backup is saved as a separate .db file in the same folder as the active database.</p>
+                <div class="cfg-status">
+                    <p class="dt-cap">Automation</p>
+                    <div class="cfg-status-row"><span>Imports</span><b th:classappend="${automationConfig.enabled} ? 'is-on'" th:text="${automationConfig.enabled ? 'On' : 'Off'}">On</b></div>
+                    <div class="cfg-status-row"><span>Last success</span><b th:text="${automationImportState != null and automationImportState.lastSuccessAt != null ? automationImportState.lastSuccessAt : 'Never'}">Never</b></div>
+                    <div class="cfg-status-row" th:if="${automationImportState != null and automationImportState.lastIssueAt != null}"><span>Last issue</span><b class="is-issue" th:text="${automationImportState.lastIssueAt}"></b></div>
                 </div>
-            </div>
-            <p class="config-card-copy config-database-path" th:if="${databasePath}">
-                Active database: <span th:text="${databasePath}"></span>
-            </p>
-            <p class="config-card-copy" th:if="${backupUnavailable}" th:text="${backupUnavailable}"></p>
-            <div class="config-save-actions">
-                <button id="databaseBackupButton" class="btn btn-action" type="submit" th:disabled="${backupUnavailable != null}">Back Up Database</button>
-                <span id="databaseBackupStatus" class="config-help" role="status">Large databases may take several minutes. Backups use the currently saved settings.</span>
-            </div>
-        </form>
+            </aside>
 
-        <form id="configForm" class="config-form" method="post" th:action="@{/config}">
-            <section class="config-section">
-                <div class="config-section-header">
-                    <div>
-                        <h2 class="config-section-title">Automation Runtime</h2>
-                        <p class="config-section-copy">Importer identity, cadence, and schedule window.</p>
-                    </div>
-                </div>
-
-                <div class="config-grid">
-                    <div class="config-card half">
-                        <div class="config-toggle">
-                            <input type="checkbox" id="automationEnabled" name="automationEnabled" th:checked="${automationConfig.enabled}">
-                            <div>
-                                <p class="config-toggle-title">Enable automated imports</p>
-                                <p class="config-toggle-copy">Toggle scheduled Last.fm fetches.</p>
-                            </div>
+            <div class="cfg-main">
+                <form id="configForm" method="post" th:action="@{/config}">
+                    <section class="dt-card cfg-panel" id="cfgPanel-import" role="tabpanel" aria-labelledby="cfgTab-import" data-panel="import">
+                        <div class="cfg-panel-head">
+                            <h2>Last.fm import</h2>
+                            <span>Hours use server time</span>
                         </div>
-                    </div>
-
-                    <div class="config-card half">
-                        <h3 class="config-card-title">Automation identity</h3>
-                        <p class="config-card-copy">Account and API key.</p>
-                        <div class="config-field-grid">
-                            <div class="config-field">
-                                <label for="automationAccount">Last.fm Account</label>
+                        <div class="cfg-group">
+                            <div class="cfg-row">
+                                <label for="automationEnabled">Automated imports</label>
+                                <span class="dt-switch"><input type="checkbox" id="automationEnabled" name="automationEnabled" th:checked="${automationConfig.enabled}"><span></span></span>
+                            </div>
+                            <div class="cfg-row">
+                                <label for="automationAccount">Account</label>
                                 <input id="automationAccount" name="automationAccount" type="text" spellcheck="false" autocomplete="off" th:value="${automationConfig.account}">
                             </div>
-                            <div class="config-field">
-                                <label for="automationApiKey">Last.fm API Key</label>
+                            <div class="cfg-row">
+                                <label for="automationApiKey">API key</label>
                                 <input id="automationApiKey" name="automationApiKey" type="text" spellcheck="false" autocomplete="off" th:value="${automationConfig.apiKey}">
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Run interval</h3>
-                        <p class="config-card-copy">Minutes between runs.</p>
-                        <div class="config-field">
-                            <input id="automationIntervalMinutes" name="automationIntervalMinutes" type="number" min="1" max="180" step="1" aria-label="Minutes between runs" th:value="${automationConfig.intervalMinutes}">
-                            <span class="config-help">Allowed range: 1 to 180 minutes.</span>
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Import log limit</h3>
-                        <p class="config-card-copy">Rows shown on the Import page.</p>
-                        <div class="config-field">
-                            <label for="automationImportLogLimit">Recent rows</label>
-                            <input id="automationImportLogLimit" name="automationImportLogLimit" type="number" min="10" max="100" step="1" th:value="${automationConfig.importLogLimit}">
-                            <span class="config-help">Allowed range: 10 to 100 rows.</span>
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Start hour</h3>
-                        <div class="config-field">
-                            <label for="automationStartHour">24-hour clock</label>
-                            <input id="automationStartHour" name="automationStartHour" type="number" min="0" max="23" step="1" th:value="${automationConfig.startHour}">
-                            <span class="config-help">Server time.</span>
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">End hour</h3>
-                        <div class="config-field">
-                            <label for="automationEndHour">24-hour clock</label>
-                            <input id="automationEndHour" name="automationEndHour" type="number" min="0" max="23" step="1" th:value="${automationConfig.endHour}">
-                            <span class="config-help">24-hour clock.</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="config-section">
-                <div class="config-section-header">
-                    <div>
-                        <h2 class="config-section-title">Album Full-Listen Leniency</h2>
-                        <p class="config-section-copy">Allowed missing album tracks and unrelated songs within a full-listen run.</p>
-                    </div>
-                </div>
-
-                <div class="config-grid">
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Albums up to 6 tracks</h3>
-                        <div class="config-field">
-                            <label for="allowedMissingUpTo6Tracks">Allowed missing tracks</label>
-                            <input id="allowedMissingUpTo6Tracks" name="allowedMissingUpTo6Tracks" type="number" min="0" max="6" step="1" th:value="${fullListenConfig.allowedMissingUpTo6Tracks}">
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Albums up to 10 tracks</h3>
-                        <div class="config-field">
-                            <label for="allowedMissingUpTo10Tracks">Allowed missing tracks</label>
-                            <input id="allowedMissingUpTo10Tracks" name="allowedMissingUpTo10Tracks" type="number" min="0" max="10" step="1" th:value="${fullListenConfig.allowedMissingUpTo10Tracks}">
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Albums up to 15 tracks</h3>
-                        <div class="config-field">
-                            <label for="allowedMissingUpTo15Tracks">Allowed missing tracks</label>
-                            <input id="allowedMissingUpTo15Tracks" name="allowedMissingUpTo15Tracks" type="number" min="0" max="15" step="1" th:value="${fullListenConfig.allowedMissingUpTo15Tracks}">
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Albums up to 20 tracks</h3>
-                        <div class="config-field">
-                            <label for="allowedMissingUpTo20Tracks">Allowed missing tracks</label>
-                            <input id="allowedMissingUpTo20Tracks" name="allowedMissingUpTo20Tracks" type="number" min="0" max="20" step="1" th:value="${fullListenConfig.allowedMissingUpTo20Tracks}">
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Albums over 20 tracks</h3>
-                        <div class="config-field">
-                            <label for="allowedMissingOver20Tracks">Allowed missing tracks</label>
-                            <input id="allowedMissingOver20Tracks" name="allowedMissingOver20Tracks" type="number" min="0" max="50" step="1" th:value="${fullListenConfig.allowedMissingOver20Tracks}">
-                        </div>
-                    </div>
-
-                    <div class="config-card third">
-                        <h3 class="config-card-title">Unrelated songs during a run</h3>
-                        <div class="config-field">
-                            <label for="allowedInterruptingSongs">Allowed songs</label>
-                            <input id="allowedInterruptingSongs" name="allowedInterruptingSongs" type="number" min="0" max="100" step="1" th:value="${fullListenConfig.allowedInterruptingSongs}">
-                            <span class="config-help">Total allowed anywhere between the first and completing album song. Defaults to 5.</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="config-section">
-                <div class="config-section-header">
-                    <div>
-                        <h2 class="config-section-title">Song Display</h2>
-                        <p class="config-section-copy">Controls for song-level statistics and charts.</p>
-                    </div>
-                </div>
-
-                <div class="config-grid">
-                    <div class="config-card half">
-                        <div class="config-toggle">
-                            <input type="checkbox" id="combineLinkedSongs" name="combineLinkedSongs" th:checked="${combineLinkedSongs}">
-                            <div>
-                                <p class="config-toggle-title">Combine Linked Songs</p>
-                                <p class="config-toggle-copy">Show linked versions as one song in song stats and weekly song charts.</p>
+                            <div class="cfg-row">
+                                <label for="automationIntervalValue">Run every</label>
+                                <span class="cfg-ctl">
+                                    <input id="automationIntervalValue" name="automationIntervalValue" type="number" min="1" max="10800" step="1" th:value="${automationConfig.intervalDisplayValue()}">
+                                    <select id="automationIntervalUnit" name="automationIntervalUnit" aria-label="Interval unit">
+                                        <option value="sec" th:selected="${!automationConfig.intervalInMinutes()}">sec</option>
+                                        <option value="min" th:selected="${automationConfig.intervalInMinutes()}">min</option>
+                                    </select>
+                                </span>
+                            </div>
+                            <div class="cfg-row">
+                                <label for="automationStartHour">Active hours</label>
+                                <span class="cfg-ctl">
+                                    <input id="automationStartHour" name="automationStartHour" type="number" min="0" max="23" step="1" th:value="${automationConfig.startHour}">
+                                    <span class="cfg-unit">:00 to</span>
+                                    <input id="automationEndHour" name="automationEndHour" type="number" min="0" max="23" step="1" aria-label="End hour" th:value="${automationConfig.endHour}">
+                                    <span class="cfg-unit">:59</span>
+                                </span>
+                            </div>
+                            <div class="cfg-row">
+                                <label for="automationImportLogLimit">Import log rows</label>
+                                <input id="automationImportLogLimit" name="automationImportLogLimit" type="number" min="10" max="100" step="1" th:value="${automationConfig.importLogLimit}">
                             </div>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            <section class="config-section">
-                <div class="config-section-header">
-                    <div>
-                        <h2 class="config-section-title">Per-Page Load Sizes</h2>
-                        <p class="config-section-copy">Default row counts when no page size is provided.</p>
-                    </div>
-                </div>
+                    <section class="dt-card cfg-panel" id="cfgPanel-listens" role="tabpanel" aria-labelledby="cfgTab-listens" data-panel="listens" hidden>
+                        <div class="cfg-panel-head">
+                            <h2>Album full listens</h2>
+                        </div>
+                        <div class="cfg-group">
+                            <p class="dt-cap">Missing tracks allowed</p>
+                            <div class="cfg-row">
+                                <label for="allowedMissingUpTo6Tracks">Up to 6 tracks</label>
+                                <input id="allowedMissingUpTo6Tracks" name="allowedMissingUpTo6Tracks" type="number" min="0" max="6" step="1" th:value="${fullListenConfig.allowedMissingUpTo6Tracks}">
+                            </div>
+                            <div class="cfg-row">
+                                <label for="allowedMissingUpTo10Tracks">Up to 10 tracks</label>
+                                <input id="allowedMissingUpTo10Tracks" name="allowedMissingUpTo10Tracks" type="number" min="0" max="10" step="1" th:value="${fullListenConfig.allowedMissingUpTo10Tracks}">
+                            </div>
+                            <div class="cfg-row">
+                                <label for="allowedMissingUpTo15Tracks">Up to 15 tracks</label>
+                                <input id="allowedMissingUpTo15Tracks" name="allowedMissingUpTo15Tracks" type="number" min="0" max="15" step="1" th:value="${fullListenConfig.allowedMissingUpTo15Tracks}">
+                            </div>
+                            <div class="cfg-row">
+                                <label for="allowedMissingUpTo20Tracks">Up to 20 tracks</label>
+                                <input id="allowedMissingUpTo20Tracks" name="allowedMissingUpTo20Tracks" type="number" min="0" max="20" step="1" th:value="${fullListenConfig.allowedMissingUpTo20Tracks}">
+                            </div>
+                            <div class="cfg-row">
+                                <label for="allowedMissingOver20Tracks">Over 20 tracks</label>
+                                <input id="allowedMissingOver20Tracks" name="allowedMissingOver20Tracks" type="number" min="0" max="50" step="1" th:value="${fullListenConfig.allowedMissingOver20Tracks}">
+                            </div>
+                        </div>
+                        <div class="cfg-group">
+                            <p class="dt-cap">During a run</p>
+                            <div class="cfg-row">
+                                <label for="allowedInterruptingSongs">Unrelated songs allowed</label>
+                                <input id="allowedInterruptingSongs" name="allowedInterruptingSongs" type="number" min="0" max="100" step="1" th:value="${fullListenConfig.allowedInterruptingSongs}">
+                            </div>
+                        </div>
+                    </section>
 
-                <div class="config-grid">
-                    <div class="config-card half">
-                        <h3 class="config-card-title">Catalog list pages</h3>
-                        <p class="config-card-copy">Artists, albums, songs, and timeframe pages.</p>
-                        <div class="config-field-grid">
-                            <div class="config-field">
-                                <label for="artistsListPageSize">Artists list</label>
+                    <section class="dt-card cfg-panel" id="cfgPanel-display" role="tabpanel" aria-labelledby="cfgTab-display" data-panel="display" hidden>
+                        <div class="cfg-panel-head">
+                            <h2>Display</h2>
+                        </div>
+                        <div class="cfg-group">
+                            <p class="dt-cap">Songs</p>
+                            <div class="cfg-row">
+                                <label for="combineLinkedSongs">Combine linked songs</label>
+                                <span class="dt-switch"><input type="checkbox" id="combineLinkedSongs" name="combineLinkedSongs" th:checked="${combineLinkedSongs}"><span></span></span>
+                            </div>
+                        </div>
+                        <div class="cfg-group">
+                            <p class="dt-cap">Rows per page: lists</p>
+                            <div class="cfg-row">
+                                <label for="artistsListPageSize">Artists</label>
                                 <input id="artistsListPageSize" name="artistsListPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.artistsListPageSize}">
                             </div>
-                            <div class="config-field">
-                                <label for="albumsListPageSize">Albums list</label>
+                            <div class="cfg-row">
+                                <label for="albumsListPageSize">Albums</label>
                                 <input id="albumsListPageSize" name="albumsListPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.albumsListPageSize}">
                             </div>
-                            <div class="config-field">
-                                <label for="songsListPageSize">Songs list</label>
+                            <div class="cfg-row">
+                                <label for="songsListPageSize">Songs</label>
                                 <input id="songsListPageSize" name="songsListPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.songsListPageSize}">
                             </div>
-                            <div class="config-field">
-                                <label for="timeframesListPageSize">Timeframe pages</label>
+                            <div class="cfg-row">
+                                <label for="timeframesListPageSize">Timeframes</label>
                                 <input id="timeframesListPageSize" name="timeframesListPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.timeframesListPageSize}">
-                                <span class="config-help">Days, weeks, months, seasons, years, and decades.</span>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="config-card half">
-                        <h3 class="config-card-title">Detail page play history tabs</h3>
-                        <p class="config-card-copy">Artist, album, and song detail pages.</p>
-                        <div class="config-field-grid">
-                            <div class="config-field">
-                                <label for="artistDetailPlaysPageSize">Artist detail plays</label>
+                        <div class="cfg-group">
+                            <p class="dt-cap">Rows per page: detail Plays tab</p>
+                            <div class="cfg-row">
+                                <label for="artistDetailPlaysPageSize">Artist</label>
                                 <input id="artistDetailPlaysPageSize" name="artistDetailPlaysPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.artistDetailPlaysPageSize}">
                             </div>
-                            <div class="config-field">
-                                <label for="albumDetailPlaysPageSize">Album detail plays</label>
+                            <div class="cfg-row">
+                                <label for="albumDetailPlaysPageSize">Album</label>
                                 <input id="albumDetailPlaysPageSize" name="albumDetailPlaysPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.albumDetailPlaysPageSize}">
                             </div>
-                            <div class="config-field full">
-                                <label for="songDetailPlaysPageSize">Song detail plays</label>
+                            <div class="cfg-row">
+                                <label for="songDetailPlaysPageSize">Song</label>
                                 <input id="songDetailPlaysPageSize" name="songDetailPlaysPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.songDetailPlaysPageSize}">
                             </div>
                         </div>
-                    </div>
-
-                    <div class="config-card half">
-                        <h3 class="config-card-title">Charts overview pages</h3>
-                        <p class="config-card-copy">Weekly and seasonal overview pages.</p>
-                        <div class="config-field-grid">
-                            <div class="config-field">
-                                <label for="weeklyOverviewPageSize">Weekly overview</label>
+                        <div class="cfg-group">
+                            <p class="dt-cap">Rows per page: chart overviews</p>
+                            <div class="cfg-row">
+                                <label for="weeklyOverviewPageSize">Weekly</label>
                                 <input id="weeklyOverviewPageSize" name="weeklyOverviewPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.weeklyOverviewPageSize}">
                             </div>
-                            <div class="config-field">
-                                <label for="seasonalOverviewPageSize">Seasonal overview</label>
+                            <div class="cfg-row">
+                                <label for="seasonalOverviewPageSize">Seasonal</label>
                                 <input id="seasonalOverviewPageSize" name="seasonalOverviewPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.seasonalOverviewPageSize}">
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="config-card half">
-                        <h3 class="config-card-title">Misc overview pages</h3>
-                        <p class="config-card-copy">PC, TRL, and Billboard overview pages.</p>
-                        <div class="config-field-grid">
-                            <div class="config-field">
-                                <label for="pcOverviewPageSize">Vato's Cuntdown overview</label>
+                            <div class="cfg-row">
+                                <label for="pcOverviewPageSize">Vato's Cuntdown</label>
                                 <input id="pcOverviewPageSize" name="pcOverviewPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.pcOverviewPageSize}">
                             </div>
-                            <div class="config-field">
-                                <label for="trlOverviewPageSize">TRL overview</label>
+                            <div class="cfg-row">
+                                <label for="trlOverviewPageSize">TRL</label>
                                 <input id="trlOverviewPageSize" name="trlOverviewPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.trlOverviewPageSize}">
                             </div>
-                            <div class="config-field full">
-                                <label for="billboardOverviewPageSize">Billboard Hot 100 overview</label>
+                            <div class="cfg-row">
+                                <label for="billboardOverviewPageSize">Billboard Hot 100</label>
                                 <input id="billboardOverviewPageSize" name="billboardOverviewPageSize" type="number" min="10" max="500" step="1" th:value="${pageSizeConfig.billboardOverviewPageSize}">
                             </div>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            <div class="config-save-bar">
-                <p class="config-save-copy">Changes apply to new requests after save.</p>
-                <div class="config-save-actions">
-                    <button class="btn btn-action" type="submit">Save Configuration</button>
-                </div>
+                    <div class="dt-edit-foot cfg-foot" id="configFoot">
+                        <div class="dt-edit-status" id="configStatus" aria-live="polite" th:classappend="${saved} ? 'is-saved'">
+                            <span class="dt-dirty-dot"></span><span id="configStatusText" th:text="${saved ? 'Saved' : 'No changes yet'}">No changes yet</span>
+                            <span class="cfg-keys"><span aria-hidden="true">·</span> <kbd>Esc</kbd> to discard <span aria-hidden="true">·</span> <kbd>Ctrl+S</kbd> to save</span>
+                        </div>
+                        <div class="dt-edit-actions">
+                            <span class="dt-spacer"></span>
+                            <button type="reset" class="dt-btn dt-btn--pill">Discard</button>
+                            <button type="submit" class="dt-btn dt-btn--pill dt-btn--primary">Save</button>
+                        </div>
+                    </div>
+                </form>
+
+                <section class="dt-card cfg-panel" id="cfgPanel-database" role="tabpanel" aria-labelledby="cfgTab-database" data-panel="database" hidden>
+                    <div class="cfg-panel-head">
+                        <h2>Database</h2>
+                    </div>
+                    <form id="databaseBackupForm" method="post" th:action="@{/config/backup}">
+                        <div class="cfg-group">
+                            <div class="cfg-row">
+                                <span class="cfg-label">Active database</span>
+                                <span class="cfg-path" th:text="${databasePath != null ? databasePath : 'Unavailable'}"></span>
+                            </div>
+                            <div class="cfg-row">
+                                <span class="cfg-label">Backup</span>
+                                <button id="databaseBackupButton" class="dt-btn dt-btn--pill" type="submit" th:disabled="${backupUnavailable != null}">Back up now</button>
+                            </div>
+                        </div>
+                        <p class="cfg-note" id="databaseBackupStatus" th:text="${backupUnavailable != null ? backupUnavailable : 'Saved as a new .db file in the same folder as the active database. Large databases can take a few minutes.'}">Saved as a new .db file in the same folder as the active database.</p>
+                    </form>
+                    <p class="cfg-msg" role="status" th:if="${backupSuccess}" th:text="${backupSuccess}"></p>
+                    <p class="cfg-msg is-error" role="alert" th:if="${backupError}" th:text="${backupError}"></p>
+                </section>
             </div>
-        </form>
+        </div>
     </main>
-    <script>
-        document.getElementById('databaseBackupForm').addEventListener('submit', function () {
-            const button = document.getElementById('databaseBackupButton');
-            button.disabled = true;
-            button.textContent = 'Backing Up...';
-            document.getElementById('databaseBackupStatus').textContent = 'Creating database backup. Please keep this page open until it finishes.';
-        });
-    </script>
+    <script th:src="@{/js/config.js(v=2)}"></script>
 </body>
 </html>

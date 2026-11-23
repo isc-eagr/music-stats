@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PlaygroundGraphsControllerTest {
     @Test
-    void graphsPageLoadsIndependentlyOfYearActivityAndFlashback() throws Exception {
+    void graphsPageLoadsIndependentlyOfYearActivity() throws Exception {
         var service = mock(PlaygroundService.class);
         var charts = mock(CatalogChartService.class);
         var resolver = mock(CatalogGraphFilterResolver.class);
@@ -53,14 +53,14 @@ class PlaygroundGraphsControllerTest {
                 .andExpect(status().isOk()).andExpect(view().name("playground"))
                 .andExpect(model().attribute("graphsSource", "albums"))
                 .andExpect(model().attribute("currentSection", "playground"))
-                .andExpect(model().attributeDoesNotExist("heatmap", "flashback", "years"))
+                .andExpect(model().attributeDoesNotExist("heatmap", "years"))
                 .andReturn();
         verifyNoInteractions(service, charts, resolver);
 
         var document = render("playground", null, result);
         assertThat(document.select(".playground-tabs a.active").text()).isEqualTo("Library graphs");
         assertThat(document.select("#graphs-explorer")).hasSize(1);
-        assertThat(document.select(".heatmap-panel, .flashback-controls")).isEmpty();
+        assertThat(document.select(".heatmap-panel")).isEmpty();
     }
 
     @Test

@@ -5,6 +5,7 @@ import library.entity.Chart;
 import library.entity.ChartEntry;
 import library.repository.ChartEntryRepository;
 import library.repository.ChartRepository;
+import library.util.ChartRowAttributes;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -334,11 +335,33 @@ public class ChartService {
             
             // Calculate peak, times at peak, and weeks on chart for albums
             calculateAlbumChartRunStats(dto, albumId, periodKey);
-            
+
             result.add(dto);
         }
 
         return result;
+    }
+
+    /**
+     * Fills ethnicity, language and country on weekly chart rows for the page's breakdown tiles, in one query
+     * (override chain in {@link ChartRowAttributes}). Genre is already set by the chart queries.
+     */
+    public void applyBreakdownAttributes(List<ChartEntryDTO> entries, boolean albums) {
+        if (entries == null || entries.isEmpty()) {
+            return;
+        }
+        List<Integer> ids = entries.stream().map(albums ? ChartEntryDTO::getAlbumId : ChartEntryDTO::getSongId).toList();
+        Map<Integer, ChartRowAttributes.Attributes> attributes = albums
+            ? ChartRowAttributes.forAlbums(jdbcTemplate, ids)
+            : ChartRowAttributes.forSongs(jdbcTemplate, ids);
+        for (ChartEntryDTO entry : entries) {
+            ChartRowAttributes.Attributes values = attributes.get(albums ? entry.getAlbumId() : entry.getSongId());
+            if (values != null) {
+                entry.setEthnicityName(values.ethnicity());
+                entry.setLanguageName(values.language());
+                entry.setCountryName(values.country());
+            }
+        }
     }
 
     /**
@@ -2450,11 +2473,13 @@ public class ChartService {
             ? "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, (SELECT al2.override_genre_id FROM Album al2 WHERE al2.id = item.album_id), ar.genre_id)) as genre_name"
             : "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, ar.genre_id)) as genre_name";
 
+        // Songs take their own gender override; albums use the artist's gender
+        String genderExpr = "song".equals(chartType) ? "COALESCE(item.override_gender_id, ar.gender_id)" : "ar.gender_id";
         String sql = String.format("""
             SELECT ce.position, ce.%s as item_id, 
                    item.name as item_name,
                    ar.id as artist_id, ar.name as artist_name,
-                   ar.gender_id as gender_id,
+                   %s as gender_id,
                    %s,
                    %s,
                    %s
@@ -2466,6 +2491,7 @@ public class ChartService {
             ORDER BY ce.position ASC
             """,
             itemIdCol,
+            genderExpr,
             imageColumns,
             "song".equals(chartType) ? "item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name" : "NULL as album_id, NULL as album_name",
             genreSubquery,
@@ -2524,11 +2550,13 @@ public class ChartService {
             ? "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, (SELECT al2.override_genre_id FROM Album al2 WHERE al2.id = item.album_id), ar.genre_id)) as genre_name"
             : "(SELECT g.name FROM Genre g WHERE g.id = COALESCE(item.override_genre_id, ar.genre_id)) as genre_name";
         
+        // Songs take their own gender override; albums use the artist's gender
+        String genderExpr = "song".equals(chartType) ? "COALESCE(item.override_gender_id, ar.gender_id)" : "ar.gender_id";
         String sql = String.format("""
             SELECT ce.position, ce.%s as item_id, 
                    item.name as item_name,
                    ar.id as artist_id, ar.name as artist_name,
-                   ar.gender_id as gender_id,
+                   %s as gender_id,
                    %s,
                    %s,
                    %s,
@@ -2542,6 +2570,7 @@ public class ChartService {
             ORDER BY ce.position ASC
             """,
             itemIdCol,
+            genderExpr,
             imageColumns,
             "song".equals(chartType) ? "item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name" : "NULL as album_id, NULL as album_name",
             genreSubquery2,
@@ -2587,7 +2616,7 @@ public class ChartService {
             SELECT ce.position, ce.song_id as item_id, 
                    item.name as item_name,
                    ar.id as artist_id, ar.name as artist_name,
-                   ar.gender_id as gender_id,
+                   COALESCE(item.override_gender_id, ar.gender_id) as gender_id,
                    CASE WHEN item.single_cover IS NOT NULL THEN 1 ELSE 0 END as has_single_cover,
                    CASE WHEN EXISTS(SELECT 1 FROM Album al WHERE al.id = item.album_id AND al.image IS NOT NULL) THEN 1 ELSE 0 END as album_has_image,
                    item.album_id, (SELECT name FROM Album WHERE id = item.album_id) as album_name,
@@ -2656,52 +2685,6 @@ public class ChartService {
                 ("seasonal".equals(periodType) ? formatSeasonPeriodKey(periodKey) : periodKey));
             return entry;
         }, params.toArray());
-    }
-
-    /**
-     * Get past finalized chart appearances for a specific song or album, excluding the given period key.
-     * Used in the chart editor to show whether an item has previously charted.
-     * Includes gender_id for color coding in the UI.
-     *
-     * @param itemId          Song or album ID
-     * @param chartType       "song" or "album"
-     * @param periodType      "seasonal" or "yearly"
-     * @param excludePeriodKey The current period being edited (excluded from results)
-     */
-    public List<Map<String, Object>> getPastChartAppearancesForItem(Integer itemId, String chartType, String periodType, String excludePeriodKey) {
-        String idColumn = "song".equals(chartType) ? "song_id" : "album_id";
-        String itemTable = "song".equals(chartType) ? "Song" : "Album";
-        int maxPosition = "seasonal".equals(periodType) && "song".equals(chartType)
-            ? SEASONAL_YEARLY_SONGS_COUNT + SEASONAL_EXTRA_SONGS_COUNT
-            : SEASONAL_YEARLY_SONGS_COUNT;
-        String genderJoin = "song".equals(chartType) 
-            ? "LEFT JOIN Artist a ON s.artist_id = a.id"
-            : "LEFT JOIN Artist a ON al.artist_id = a.id";
-        String itemAlias = "song".equals(chartType) ? "s" : "al";
-        
-        String sql = String.format("""
-            SELECT ce.position, c.period_key, a.gender_id
-            FROM ChartEntry ce
-            INNER JOIN Chart c ON ce.chart_id = c.id
-            INNER JOIN %s %s ON ce.%s = %s.id
-            %s
-            WHERE ce.%s = ? AND c.period_type = ? AND c.chart_type = ? AND c.is_finalized = 1
-              AND ce.position <= %d
-              AND c.period_key != ?
-            ORDER BY c.period_start_date DESC
-            """, itemTable, itemAlias, idColumn, itemAlias, genderJoin, idColumn, maxPosition);
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> entry = new HashMap<>();
-            int position = rs.getInt("position");
-            String pk = rs.getString("period_key");
-            Integer genderId = rs.getObject("gender_id", Integer.class);
-            entry.put("position", position);
-            entry.put("periodKey", pk);
-            entry.put("genderId", genderId);
-            entry.put("displayName", "seasonal".equals(periodType) ? formatSeasonPeriodKey(pk) : pk);
-            return entry;
-        }, itemId, periodType, chartType, excludePeriodKey != null ? excludePeriodKey : "");
     }
 
     /**
@@ -4615,183 +4598,6 @@ public class ChartService {
         );
     }
     
-    // ========== WEEKLY NUMBER ONES ==========
-    
-    /**
-     * Get all #1 runs for songs or albums, most recent first.
-     * Each run is a set of consecutive weeks where the same item was at #1.
-     * Returns runs with cumulative week counts.
-     */
-    public List<NumberOneRunDTO> getNumberOneRuns(String type) {
-        boolean isSong = "song".equals(type);
-        
-        // Get all #1 entries ordered chronologically (ASC for building runs, we reverse at the end)
-        String sql;
-        if (isSong) {
-            sql = """
-                SELECT 
-                    s.id,
-                    s.name,
-                    ar.name as artist_name,
-                    ar.id as artist_id,
-                    ar.gender_id,
-                    (CASE WHEN s.single_cover IS NOT NULL OR EXISTS (SELECT 1 FROM SongImage si WHERE si.song_id = s.id) THEN 1 ELSE 0 END) as has_image,
-                    s.album_id,
-                    (CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END) as album_has_image,
-                    c.period_start_date,
-                    c.period_end_date
-                FROM ChartEntry ce
-                INNER JOIN Chart c ON ce.chart_id = c.id
-                INNER JOIN Song s ON ce.song_id = s.id
-                INNER JOIN Artist ar ON s.artist_id = ar.id
-                LEFT JOIN Album al ON s.album_id = al.id
-                WHERE c.chart_type = 'song'
-                  AND c.period_type = 'weekly'
-                  AND ce.position = 1
-                ORDER BY c.period_start_date ASC
-                """;
-        } else {
-            sql = """
-                SELECT 
-                    al.id,
-                    al.name,
-                    ar.name as artist_name,
-                    ar.id as artist_id,
-                    ar.gender_id,
-                    CASE WHEN al.image IS NOT NULL THEN 1 ELSE 0 END as has_image,
-                    NULL as album_id,
-                    0 as album_has_image,
-                    c.period_start_date,
-                    c.period_end_date
-                FROM ChartEntry ce
-                INNER JOIN Chart c ON ce.chart_id = c.id
-                INNER JOIN Album al ON ce.album_id = al.id
-                INNER JOIN Artist ar ON al.artist_id = ar.id
-                WHERE c.chart_type = 'album'
-                  AND c.period_type = 'weekly'
-                  AND ce.position = 1
-                ORDER BY c.period_start_date ASC
-                """;
-        }
-        
-        // Fetch all #1 week entries chronologically
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
-        
-        if (rows.isEmpty()) {
-            return new ArrayList<>();
-        }
-        
-        // Build runs: consecutive weeks with the same item
-        List<NumberOneRunDTO> runs = new ArrayList<>();
-        
-        Integer currentId = null;
-        String currentStartDate = null;
-        String currentEndDate = null;
-        String currentName = null;
-        String currentArtistName = null;
-        Integer currentArtistId = null;
-        Integer currentGenderId = null;
-        boolean currentHasImage = false;
-        Integer currentAlbumId = null;
-        boolean currentAlbumHasImage = false;
-        int runWeeks = 0;
-        
-        // Track cumulative weeks per item (id -> total weeks)
-        Map<Integer, Integer> cumulativeMap = new HashMap<>();
-        
-        for (Map<String, Object> row : rows) {
-            Integer id = ((Number) row.get("id")).intValue();
-            
-            if (currentId != null && id.equals(currentId)) {
-                // Same item, extend the run
-                runWeeks++;
-                currentEndDate = (String) row.get("period_end_date");
-            } else {
-                // Different item or first entry - close previous run if any
-                if (currentId != null) {
-                    int cumulative = cumulativeMap.getOrDefault(currentId, 0) + runWeeks;
-                    cumulativeMap.put(currentId, cumulative);
-                    
-                    NumberOneRunDTO dto = buildRunDTO(currentId, currentName, currentArtistName,
-                            currentArtistId, currentGenderId, currentHasImage, isSong ? "song" : "album",
-                            currentAlbumId, currentAlbumHasImage, runWeeks,
-                            currentStartDate, currentEndDate, cumulative);
-                    runs.add(dto);
-                }
-                
-                // Start new run
-                currentId = id;
-                currentName = (String) row.get("name");
-                currentArtistName = (String) row.get("artist_name");
-                currentArtistId = ((Number) row.get("artist_id")).intValue();
-                currentGenderId = row.get("gender_id") != null ? ((Number) row.get("gender_id")).intValue() : null;
-                currentHasImage = ((Number) row.get("has_image")).intValue() == 1;
-                currentAlbumId = row.get("album_id") != null ? ((Number) row.get("album_id")).intValue() : null;
-                currentAlbumHasImage = ((Number) row.get("album_has_image")).intValue() == 1;
-                currentStartDate = (String) row.get("period_start_date");
-                currentEndDate = (String) row.get("period_end_date");
-                runWeeks = 1;
-            }
-        }
-        
-        // Close the last run
-        if (currentId != null) {
-            int cumulative = cumulativeMap.getOrDefault(currentId, 0) + runWeeks;
-            cumulativeMap.put(currentId, cumulative);
-            
-            NumberOneRunDTO dto = buildRunDTO(currentId, currentName, currentArtistName,
-                    currentArtistId, currentGenderId, currentHasImage, isSong ? "song" : "album",
-                    currentAlbumId, currentAlbumHasImage, runWeeks,
-                    currentStartDate, currentEndDate, cumulative);
-            runs.add(dto);
-        }
-        
-        // Reverse to show most recent first
-        Collections.reverse(runs);
-        
-        // Second pass: set grand total weeks at #1 on every run.
-        // cumulativeMap now holds the final cumulative total for each item,
-        // which equals the all-time total since we processed every week.
-        for (NumberOneRunDTO run : runs) {
-            run.setTotalWeeks(cumulativeMap.getOrDefault(run.getId(), run.getRunWeeks()));
-        }
-        
-        return runs;
-    }
-    
-    private NumberOneRunDTO buildRunDTO(Integer id, String name, String artistName,
-            Integer artistId, Integer genderId, boolean hasImage, String type,
-            Integer albumId, boolean albumHasImage, int runWeeks,
-            String startDate, String endDate, int cumulativeWeeks) {
-        NumberOneRunDTO dto = new NumberOneRunDTO();
-        dto.setId(id);
-        dto.setName(name);
-        dto.setArtistName(artistName);
-        dto.setArtistId(artistId);
-        dto.setGenderId(genderId);
-        dto.setHasImage(hasImage);
-        dto.setType(type);
-        dto.setAlbumId(albumId);
-        dto.setAlbumHasImage(albumHasImage);
-        dto.setRunWeeks(runWeeks);
-        dto.setCumulativeWeeks(cumulativeWeeks);
-        
-        // Format dates from yyyy-MM-dd to dd/MM/yyyy
-        dto.setRunStartDate(formatDateForDisplay(startDate));
-        dto.setRunEndDate(formatDateForDisplay(endDate));
-        
-        return dto;
-    }
-    
-    private String formatDateForDisplay(String isoDate) {
-        if (isoDate == null || isoDate.isEmpty()) return "";
-        try {
-            LocalDate date = LocalDate.parse(isoDate);
-            return String.format("%02d/%02d/%d", date.getDayOfMonth(), date.getMonthValue(), date.getYear());
-        } catch (Exception e) {
-            return isoDate;
-        }
-    }
 
     /**
      * Returns ALL songs for an album with their weekly chart stats.

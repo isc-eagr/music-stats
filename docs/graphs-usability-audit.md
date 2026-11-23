@@ -50,7 +50,7 @@ Automated coverage accompanies navigation and template changes, explorer normali
 
 Manual checks for the developer's existing local instance:
 
-1. Open Playground and switch among Year activity, Flashback, and Library graphs. Verify that only Cards and Table remain in each catalog and that an old filtered `?view=graphs&tab=...` link opens the matching Playground scope.
+1. Open Playground and switch between Year activity and Library graphs. Verify that only Cards and Table remain in each catalog and that an old filtered `?view=graphs&tab=...` link opens the matching Playground scope.
 2. Compare one filtered artist, album, and song selection against its catalog. Include an artist/album whose songs override genre, language, or gender; a tag filter; an image-theme filter; a chart date/mode filter; and an album full-listen condition.
 3. Apply a Last.fm account and a `dd/MM/yyyy` played-date range. Check that Plays and listening time use the selected account/window and that clearing filters restores the full-library view.
 4. Change every measure and scale, inspect all breakdowns, then search for a category and page through it. Confirm that paging/search do not alter summary totals and that Release year makes Artists unavailable without trapping navigation.

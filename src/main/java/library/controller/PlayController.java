@@ -49,13 +49,36 @@ public class PlayController {
     @GetMapping("/upload")
     public String showUploadForm(Model model) {
         AppConfigService.AutomationConfig automationConfig = appConfigService.getAutomationConfig();
-        model.addAttribute("accounts", List.of("vatito", "robertlover"));
-        model.addAttribute("maxLastfmIds", playService.getMaxLastfmIdByAccount());
+        String automationAccount = automationConfig.account();
+        List<String> accounts = List.of("vatito", "robertlover");
+        boolean hasAutomationAccount = automationAccount != null && !automationAccount.isBlank();
+        model.addAttribute("accounts", accounts);
+        model.addAttribute("csvDefaultAccount", csvDefaultAccount(accounts, automationAccount));
         model.addAttribute("automationConfig", automationConfig);
         model.addAttribute("defaultLastfmApiKey", automationConfig.apiKey());
-        model.addAttribute("automationAccount", automationConfig.account());
+        model.addAttribute("automationAccount", automationAccount);
+        model.addAttribute("hasAutomationAccount", hasAutomationAccount);
+        if (hasAutomationAccount) {
+            model.addAttribute("accountPlayCount", playService.getPlayCountByAccount(automationAccount));
+            model.addAttribute("accountUnmatchedCount", playService.getUnmatchedPlayCountByAccount(automationAccount));
+            model.addAttribute("accountLatestLastfmId", playService.getMaxLastfmIdByAccount().get(automationAccount));
+        }
         model.addAttribute("automationImportState", automationStateService.getImportPageState());
         return "insertPlaysForm";
+    }
+
+    /**
+     * The CSV upload is mainly for the accounts the automation does not fetch, so it defaults to the
+     * first account that is not the automated one (falling back to the first account).
+     */
+    static String csvDefaultAccount(List<String> accounts, String automationAccount) {
+        if (accounts == null || accounts.isEmpty()) {
+            return null;
+        }
+        return accounts.stream()
+                .filter(account -> !account.equalsIgnoreCase(automationAccount == null ? "" : automationAccount.trim()))
+                .findFirst()
+                .orElse(accounts.get(0));
     }
 
     // Handle the uploaded file and stream-import

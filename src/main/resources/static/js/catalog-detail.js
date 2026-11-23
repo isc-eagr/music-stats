@@ -1,4 +1,4 @@
-/* Catalog detail page: switches the Over the years chart between plays and time listened. */
+/* Catalog detail page: switches the Over the years chart and its year pills between plays and time listened. */
 (function () {
     'use strict';
 
@@ -15,6 +15,7 @@
             });
             card.querySelectorAll('[data-cd-stream]').forEach((svg) => { svg.hidden = svg.dataset.cdStream !== measure; });
             card.querySelectorAll('[data-cd-note]').forEach((note) => { note.hidden = note.dataset.cdNote !== measure; });
+            card.querySelectorAll('[data-cd-pill]').forEach((pill) => { pill.hidden = pill.dataset.cdPill !== measure; });
         }));
     });
 })();

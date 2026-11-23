@@ -7,13 +7,13 @@
     border: 1px solid #2a2a2a;
 }
 
-@media (min-width: 901px) {
-    #topArtistsTableContainer,
-    #topAlbumsTableContainer,
-    #topSongsTableContainer {
-        max-height: calc(100vh - 120px);
-        overflow: auto;
-    }
+/* Floating headers on every width (see .table-scroll in global.css) */
+#topArtistsTableContainer,
+#topAlbumsTableContainer,
+#topSongsTableContainer {
+    max-height: calc(100vh - 120px);
+    max-height: calc(100dvh - 120px);
+    overflow: auto;
 }
 
 .top-table {
@@ -117,36 +117,12 @@
     border-radius: 4px;
 }
 
-.top-table .cover-col .cover-placeholder {
-    width: 50px;
-    height: 50px;
-    background: #2a2a2a;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #666;
-    font-size: 18px;
-}
-
 /* Artist cover with 2:3 portrait ratio */
 .top-table .cover-col.artist-cover img {
     width: 40px;
     height: 60px;
     object-fit: cover;
     border-radius: 4px;
-}
-
-.top-table .cover-col.artist-cover .cover-placeholder {
-    width: 40px;
-    height: 60px;
-    background: #2a2a2a;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #666;
-    font-size: 18px;
 }
 
 .top-table a {
@@ -173,25 +149,6 @@
     padding: 20px;
     font-style: italic;
 }
-
-/* Songs table: make Song Name column fixed width and allow multi-line wrapping to avoid horizontal overflow */
-/* Only apply fixed-layout song-name column on the artist detail page to avoid
-   changing table behavior on album detail pages */
-.artist-detail #songsTable {
-    table-layout: fixed; /* enable fixed column widths so our .song-name-col width is respected */
-}
-
-.artist-detail #songsTable th.song-name-col,
-.artist-detail #songsTable td.song-name-col {
-    width: 200px; /* fixed width for song name column */
-    max-width: 200px;
-    white-space: normal; /* allow wrapping */
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-/* Slightly reduce padding inside song name column to give more room for text */
-.artist-detail #songsTable td.song-name-col { padding-right: 8px; padding-left: 8px; }
 
 /* ============================================================================
    TOP TAB TABLES - Fixed width columns with word wrapping
@@ -337,16 +294,6 @@
         font-size: 12px;
     }
 
-    .artist-detail #songsTable.mobile-compact-table {
-        table-layout: auto;
-    }
-
-    .artist-detail #songsTable.mobile-compact-table th.song-name-col,
-    .artist-detail #songsTable.mobile-compact-table td.song-name-col {
-        width: auto;
-        max-width: none;
-    }
-    
     .top-table th,
     .top-table td {
         padding: 6px 8px;
@@ -357,14 +304,13 @@
         padding: 3px 6px;
     }
     
-    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
-    .top-table .cover-col .cover-placeholder {
+    .top-table .cover-col img,
+    .top-table .cover-col .hover-image-container {
         width: 38px;
         height: 38px;
     }
 
-    .top-table .cover-col.artist-cover img,
-    .top-table .cover-col.artist-cover .cover-placeholder {
+    .top-table .cover-col.artist-cover img {
         width: 34px;
         height: 51px;
     }
@@ -418,14 +364,13 @@
         padding: 5px 6px;
     }
     
-    .top-table .cover-col img, .top-table .cover-col .hover-image-container,
-    .top-table .cover-col .cover-placeholder {
+    .top-table .cover-col img,
+    .top-table .cover-col .hover-image-container {
         width: 32px;
         height: 32px;
     }
 
-    .top-table .cover-col.artist-cover img,
-    .top-table .cover-col.artist-cover .cover-placeholder {
+    .top-table .cover-col.artist-cover img {
         width: 30px;
         height: 45px;
     }
@@ -811,7 +756,6 @@
     border-radius: 4px;
     border-left: 3px solid #2a2a2a;
 }
-
 
 /* Featured song row highlighting */
 .featured-song-row {

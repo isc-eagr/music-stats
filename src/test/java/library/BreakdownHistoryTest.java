@@ -2,20 +2,16 @@ package library;
 
 import library.controller.BreakdownHistoryController;
 import library.service.BreakdownHistoryService;
-import library.service.CatalogGraphFilterResolver;
-import library.service.ItunesService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 class BreakdownHistoryTest {
     private TestDatabaseSupport db;
@@ -163,7 +159,7 @@ class BreakdownHistoryTest {
 
     @Test
     void emptyDataAndRequestValidation() {
-        var controller = controller();
+        var controller = new BreakdownHistoryController(service);
         assertThat(controller.history("gender", "plays", "cumulative", "month", null).periods()).isEmpty();
         assertThat(controller.history("gender", "plays", "cumulative", "month", 9998).periods()).isEmpty();
         assertThatThrownBy(() -> controller.history("invalid", "plays", "cumulative", "month", null))
@@ -175,34 +171,23 @@ class BreakdownHistoryTest {
     }
 
     @Test
-    void catalogHistoryKeepsRequestedOrderLabelsAndPutsEverythingElseInRest() {
+    void catalogHistoryKeepsRequestedOrderAndPutsEverythingElseInRest() {
         play("2024-02-01", 1);
         play("2024-02-02", 2);
         play("2024-02-03", 3);
         play("2024-02-04", 4);
         play("2024-02-05", null);
-        var artists = catalog("artists", List.of("2", "1"), "plays", "period", 2024);
-        assertThat(artists.series()).extracting(BreakdownHistoryService.CatalogSeries::key).containsExactly("2", "1");
-        assertThat(artists.series().getFirst().name()).isEqualTo("Female artist");
-        assertThat(artists.series().getFirst().genderId()).isEqualTo(1);
-        // Artist plays count songs where the artist is the main artist.
-        assertThat(catalogValues(artists, "1")).containsExactly(3);
-        assertThat(catalogValues(artists, "2")).containsExactly(1);
-        assertThat(artists.rest()).containsExactly(1);
-        assertThat(artists.totals()).containsExactly(5L);
-
-        var songs = catalog("songs", List.of("2"), "plays", "period", 2024);
-        var song = songs.series().getFirst();
-        assertThat(song.name()).isEqualTo("Override");
-        assertThat(song.subtitle()).isEqualTo("Male artist");
-        assertThat(song.genderId()).isEqualTo(1);
-        assertThat(songs.rest()).containsExactly(4);
-
-        var albums = catalog("albums", List.of("1"), "songs", "cumulative", 2024);
-        assertThat(albums.series().getFirst().subtitle()).isEqualTo("Male artist");
-        assertThat(catalogValues(albums, "1")).containsExactly(2);
-        assertThat(catalogValues(catalog("artists", List.of("1"), "songs", "cumulative", 2024), "1")).containsExactly(3);
-        assertThat(catalogValues(catalog("artists", List.of("1"), "time", "period", 2024), "1")).containsExactly(180);
+        var genders = catalog("genders", List.of("1", "2"), "plays", "period", 2024);
+        assertThat(genders.series()).extracting(BreakdownHistoryService.CatalogSeries::key).containsExactly("1", "2");
+        assertThat(genders.series().getFirst().name()).isEqualTo("Female");
+        assertThat(genders.rest()).containsExactly(1);
+        assertThat(genders.totals()).containsExactly(5L);
+        // Unrequested genres and plays without a song both land in the rest.
+        var rock = catalog("genres", List.of("1"), "plays", "period", 2024);
+        assertThat(catalogValues(rock, "1")).containsExactly(1);
+        assertThat(rock.rest()).containsExactly(4);
+        assertThat(catalogValues(catalog("genres", List.of("1"), "time", "period", 2024), "1")).containsExactly(0);
+        assertThat(catalogValues(catalog("genres", List.of("3"), "time", "period", 2024), "3")).containsExactly(120);
     }
 
     @Test
@@ -241,54 +226,41 @@ class BreakdownHistoryTest {
 
     @Test
     void catalogHistoryValidation() {
-        var controller = controller();
-        assertThat(controller.catalogHistory(new MockHttpServletRequest(), "artists", null, "plays", null).series()).isEmpty();
-        assertThatThrownBy(() -> controller.catalogHistory(new MockHttpServletRequest(), "bogus", List.of("1"), "plays", null))
+        var controller = new BreakdownHistoryController(service);
+        assertThat(controller.catalogHistory("genres", null, "plays", null).series()).isEmpty();
+        assertThatThrownBy(() -> controller.catalogHistory("bogus", List.of("1"), "plays", null))
                 .isInstanceOfSatisfying(ResponseStatusException.class, error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
-        assertThatThrownBy(() -> catalog("songs", List.of("1"), "artists", "period", null)).isInstanceOf(IllegalArgumentException.class);
+        // Artists, Albums and Songs lists have no share chart.
+        assertThatThrownBy(() -> catalog("artists", List.of("1"), "plays", "period", null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> catalog("genres", List.of("1"), "bad", "period", null)).isInstanceOf(IllegalArgumentException.class);
         List<String> tooMany = IntStream.rangeClosed(1, BreakdownHistoryService.MAX_CATALOG_KEYS + 1).mapToObj(String::valueOf).toList();
-        assertThatThrownBy(() -> catalog("artists", tooMany, "plays", "period", null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> catalog("genres", tooMany, "plays", "period", null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    void everythingElseCoversOnlyWhatMatchesTheListFilters() {
+    void everythingElseCoversOnlyTheListedItemsWhenTheListIsSearched() {
         play("2024-02-01", 1);
         play("2024-02-02", 2);
         play("2024-02-03", 3);
         play("2024-02-04", 4);
         play("2024-02-05", null);
-        var controller = controller();
+        var controller = new BreakdownHistoryController(service);
         // The panel shows cumulative monthly history, so every check reads the latest month.
-        // Artists filtered to female: the male artist's plays and unmatched plays leave the total.
-        var female = controller.catalogHistory(new MockHttpServletRequest(), "artists", List.of("2"), "plays",
-                "gender=1&genderMode=includes&sortby=plays&view=table");
-        assertThat(female.filtered()).isTrue();
-        assertThat(catalogValues(female, "2")).endsWith(1);
-        assertThat(female.rest()).endsWith(0);
-        assertThat(female.totals().getLast()).isEqualTo(1L);
-        // Sort and view alone are not filters, so the whole library stays the total.
-        var unfiltered = controller.catalogHistory(new MockHttpServletRequest(), "artists", List.of("2"), "plays",
-                "sortby=plays&view=table");
-        assertThat(unfiltered.filtered()).isFalse();
-        assertThat(unfiltered.totals().getLast()).isEqualTo(5L);
-        // A searched lookup list is limited to its listed items (no unknown genre, no unlisted genres).
-        var searched = controller.catalogHistory(new MockHttpServletRequest(), "genres", List.of("2", "3"), "plays",
-                "q=p+o");
+        // A searched list is limited to its listed items (no unknown genre, no unlisted genres).
+        var searched = controller.catalogHistory("genres", List.of("2", "3"), "plays", "q=p+o&sortby=name");
         assertThat(searched.filtered()).isTrue();
         assertThat(searched.totals().getLast()).isEqualTo(3L);
         assertThat(searched.rest()).endsWith(0);
-        assertThat(controller.catalogHistory(new MockHttpServletRequest(), "genres", List.of("2"), "plays",
-                "sortby=name").totals().getLast()).isEqualTo(5L);
+        // Sort, view and a blank search are not a search, so the whole library stays the total.
+        var unfiltered = controller.catalogHistory("genres", List.of("2"), "plays", "sortby=name&view=table&q=");
+        assertThat(unfiltered.filtered()).isFalse();
+        assertThat(unfiltered.totals().getLast()).isEqualTo(5L);
+        assertThat(unfiltered.rest().length).isEqualTo(unfiltered.totals().size());
+        assertThat(controller.catalogHistory("subgenres", List.of("1"), "plays", "parentGenre=1").filtered()).isTrue();
         // Country names are escaped into the scope, quotes included.
         db.jdbcTemplate.update("UPDATE Artist SET country = 'Puerto \"Rico' WHERE id = 2");
-        var countries = controller.catalogHistory(new MockHttpServletRequest(), "countries", List.of("Puerto \"Rico"),
-                "plays", "q=rico");
+        var countries = controller.catalogHistory("countries", List.of("Puerto \"Rico"), "plays", "q=rico");
         assertThat(countries.totals().getLast()).isEqualTo(1L);
-    }
-
-    private BreakdownHistoryController controller() {
-        return new BreakdownHistoryController(service, new CatalogGraphFilterResolver(db.artistRepository,
-                db.albumRepository, db.songRepository, mock(ItunesService.class)));
     }
 
     private BreakdownHistoryService.CatalogHistory catalog(String catalog, List<String> keys, String measure, String mode, Integer year) {

@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${periodTypeDisplay} + ' - Music Stats'">Timeframes - Music Stats</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <th:block th:replace="~{fragments/catalog-row :: row-styles}"></th:block>
-    <script th:src="@{/js/list-utils.js}"></script>
+    <script th:src="@{/js/list-utils.js(v=2)}"></script>
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -455,7 +455,7 @@
                     <!-- Filter Panel -->
                     <div class="filters" id="filterPanel">
                         <div class="filter-header">
-                            <h3>Edit Filter</h3>
+                            <h3>Filters</h3>
                             <button class="filter-close" onclick="toggleFilters()">×</button>
                         </div>
                         
@@ -467,16 +467,15 @@
                                 <input type="hidden" autocomplete="off" name="perpage" th:value="${perPage}">
                                 
                                 <!-- 100% Male Filter (only for days and weeks) -->
-                                <div th:if="${periodType == 'days' or periodType == 'weeks'}" class="filter-item" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(100, 160, 255, 0.05)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; margin-bottom: 12px;">
-                                    <div style="padding: 12px;">
-                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #60a5fa; font-weight: 600;">
-                                            <input type="checkbox" autocomplete="off" name="perfectMale" value="true" 
-                                                   th:checked="${perfectMale == true}"
-                                                   style="width: 18px; height: 18px; accent-color: #3b82f6;">
-                                            <span>✨ 100% Male Only</span>
-                                        </label>
-                                        <p style="margin: 6px 0 0 28px; font-size: 0.75rem; color: #888;">Show only periods with 100% male across all metrics</p>
-                                    </div>
+                                <div th:if="${periodType == 'days' or periodType == 'weeks'}" class="filter-item filter-item-male">
+                                    <label class="filter-item-switch">
+                                        <input type="checkbox" autocomplete="off" name="perfectMale" value="true"
+                                               th:checked="${perfectMale == true}">
+                                        <span class="filter-item-switch-text">
+                                            <span class="filter-item-switch-title">100% Male Only</span>
+                                            <span class="filter-item-switch-hint">Show only periods with 100% male across all metrics</span>
+                                        </span>
+                                    </label>
                                 </div>
                                 
                                 <!-- Album Count Range Filter -->
@@ -488,7 +487,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min</span>
                                                 <input type="number" autocomplete="off" name="albumCountMin" th:value="${albumCountMin}" placeholder="0" min="0">
                                             </label>
@@ -508,7 +507,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min</span>
                                                 <input type="number" autocomplete="off" name="artistCountMin" th:value="${artistCountMin}" placeholder="0" min="0">
                                             </label>
@@ -528,7 +527,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>From</span>
                                                 <input type="text" autocomplete="off" name="dateFrom" id="dateFromInput" th:value="${dateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}">
                                             </label>
@@ -548,7 +547,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min</span>
                                                 <input type="number" autocomplete="off" name="timeMin" th:value="${timeMin}" placeholder="0" min="0">
                                             </label>
@@ -568,7 +567,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min</span>
                                                 <input type="number" autocomplete="off" name="maleDaysMin" th:value="${maleDaysMin}" placeholder="0" min="0">
                                             </label>
@@ -588,7 +587,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min %</span>
                                                 <input type="number" autocomplete="off" name="maleAlbumPctMin" th:value="${maleAlbumPctMin}" placeholder="0" min="0" max="100" step="0.1">
                                             </label>
@@ -608,7 +607,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min %</span>
                                                 <input type="number" autocomplete="off" name="maleArtistPctMin" th:value="${maleArtistPctMin}" placeholder="0" min="0" max="100" step="0.1">
                                             </label>
@@ -628,7 +627,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min %</span>
                                                 <input type="number" autocomplete="off" name="malePlayPctMin" th:value="${malePlayPctMin}" placeholder="0" min="0" max="100" step="0.1">
                                             </label>
@@ -648,7 +647,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min %</span>
                                                 <input type="number" autocomplete="off" name="maleSongPctMin" th:value="${maleSongPctMin}" placeholder="0" min="0" max="100" step="0.1">
                                             </label>
@@ -668,7 +667,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min %</span>
                                                 <input type="number" autocomplete="off" name="maleTimePctMin" th:value="${maleTimePctMin}" placeholder="0" min="0" max="100" step="0.1">
                                             </label>
@@ -688,7 +687,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min</span>
                                                 <input type="number" autocomplete="off" name="playsMin" th:value="${playsMin}" placeholder="0" min="0">
                                             </label>
@@ -708,7 +707,7 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="range-inputs">
+                                        <div class="filter-group">
                                             <label class="field"><span>Min</span>
                                                 <input type="number" autocomplete="off" name="songCountMin" th:value="${songCountMin}" placeholder="0" min="0">
                                             </label>
@@ -1086,7 +1085,7 @@
                 <span class="lb-rank card-index" th:text="${startIndex + iterStat.index}">1</span>
                 <div class="lb-name">
                     <div class="lb-title">
-                        <h3 class="lb-h" th:text="${tf.periodDisplayName}" th:title="${tf.periodDisplayName}">Period Name</h3>
+                        <h3 class="lb-h" th:title="${tf.periodDisplayName}"><a th:href="@{'/' + ${periodType} + '/' + ${tf.periodKey}}" th:text="${tf.periodDisplayName}">Period Name</a></h3>
                     </div>
                 </div>
                 <div th:replace="~{fragments/catalog-row :: mix(${tf}, ${sortBy}, @{/artists(listenedDateFrom=${tf.listenedDateFrom}, listenedDateTo=${tf.listenedDateTo}, periodLabel=${tf.periodDisplayName}, view='table')}, @{/albums(listenedDateFrom=${tf.listenedDateFrom}, listenedDateTo=${tf.listenedDateTo}, periodLabel=${tf.periodDisplayName}, view='table')}, @{/songs(listenedDateFrom=${tf.listenedDateFrom}, listenedDateTo=${tf.listenedDateTo}, periodLabel=${tf.periodDisplayName}, view='table')})}"></div>
@@ -1206,8 +1205,8 @@
 
         <div id="tableView" style="display:none;">
             <div class="top-sort-hint" style="margin:16px 0 8px 0;">Click a sortable column header to update the current timeframe sort.</div>
-            <div class="top-table-container" id="topTimeframesTableContainer">
-                <table class="top-table timeframe-list-table" id="topTimeframesTable">
+            <div class="table-scroll top-table-container" id="topTimeframesTableContainer">
+                <table class="sticky-head top-table timeframe-list-table" id="topTimeframesTable">
                     <thead>
                         <tr>
                             <th class="rank-col">#</th>
@@ -1395,44 +1394,6 @@
             }
         }
         
-        function toggleFilters() {
-            const panel = document.getElementById('filterPanel');
-            const isMobile = window.innerWidth <= 768;
-            if (panel.style.display === 'block') {
-                panel.style.display = 'none';
-                if (isMobile) {
-                    document.body.style.overflow = '';
-                    const overlay = document.querySelector('.filter-sheet-overlay');
-                    if (overlay) overlay.remove();
-                }
-            } else {
-                panel.style.display = 'block';
-                if (isMobile) {
-                    document.body.style.overflow = 'hidden';
-                    const overlay = document.createElement('div');
-                    overlay.className = 'filter-sheet-overlay';
-                    overlay.addEventListener('click', function() { toggleFilters(); });
-                    document.body.appendChild(overlay);
-                    requestAnimationFrame(function() { overlay.style.opacity = '1'; });
-                }
-            }
-        }
-        
-        function toggleFilterItem(header) {
-            const content = header.nextElementSibling;
-            const chevron = header.querySelector('.filter-item-chevron');
-            
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
-                chevron.classList.remove('expanded');
-                header.classList.remove('active');
-            } else {
-                content.classList.add('expanded');
-                chevron.classList.add('expanded');
-                header.classList.add('active');
-            }
-        }
-        
         function toggleMultiSelectDropdown(filterName) {
             const dropdown = document.getElementById(filterName + 'Dropdown');
             if (!dropdown) return;
@@ -1571,11 +1532,6 @@
             submitFilterForm('filterForm');
         }
         
-        function removeFilter(...paramNames) {
-            const url = new URL(window.location);
-            paramNames.forEach(paramName => url.searchParams.delete(paramName));
-            window.location.href = url.toString();
-        }
         
         function removeFilterGroup(paramName) {
             const url = new URL(window.location);
@@ -1749,6 +1705,9 @@
             }
 
             function isListNearBottom() {
+                if (listContainer && listContainer.scrollHeight > listContainer.clientHeight + 4) {
+                    return listContainer.scrollTop + listContainer.clientHeight >= listContainer.scrollHeight - 300;
+                }
                 if (!listSentinel) return false;
                 const sentinelRect = listSentinel.getBoundingClientRect();
                 return sentinelRect.top <= window.innerHeight + 300;

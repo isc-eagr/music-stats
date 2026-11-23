@@ -2,8 +2,6 @@ package library;
 
 import library.service.SongService;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,10 +11,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CountdownLinkSearchTest {
 
-    @ParameterizedTest
-    @ValueSource(strings = {"pc", "trl", "billboard-hot100"})
-    void libraryLinkSearchRequestsUnlimitedResults(String page) throws IOException {
-        String html = Files.readString(Path.of("src/main/resources/templates/misc", page + ".html"));
+    @Test
+    void libraryLinkSearchRequestsUnlimitedResults() throws IOException {
+        String html = Files.readString(Path.of("src/main/resources/static/js/chart-overview-admin.js"));
 
         assertThat(html)
                 .contains("fetch('/songs/api/search?song=' + enc + '&artist=' + enc + '&limit=0')")

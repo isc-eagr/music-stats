@@ -1,411 +1,107 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Number Ones - Music Stats</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title th:text="${pageTitle + ' - Music Stats'}">Weekly Number Ones - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <style>
-        .number-ones-page {
-            padding: 20px;
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-        
-        .number-ones-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .number-ones-title {
-            font-size: 1.8rem;
-            color: #fff;
-            margin: 0 0 20px 0;
-        }
-        
-        /* Type toggle (Albums/Songs) */
-        .type-toggle {
-            display: flex;
-            justify-content: center;
-            gap: 0;
-            margin-bottom: 20px;
-        }
-        
-        .type-toggle-btn {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #888;
-            padding: 12px 20px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .type-toggle-btn:first-child {
-            border-radius: 8px 0 0 8px;
-            border-right: none;
-        }
-        
-        .type-toggle-btn:last-child {
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .type-toggle-btn.active {
-            background: #2d5016;
-            border-color: #3d6b1e;
-            color: #fff;
-        }
-        
-        .type-toggle-btn:hover:not(.active) {
-            background: #2a2a2a;
-            border-color: #444;
-            color: #fff;
-        }
-        
-        /* Results table */
-        .results-table-container {
-            background: #0a0a0a;
-            border-radius: 12px;
-            border: 1px solid #2a2a2a;
-            overflow: hidden;
-        }
-        
-        .results-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .results-table th,
-        .results-table td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid #1a1a1a;
-        }
-        
-        .results-table th {
-            background: #111;
-            color: #888;
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .results-table tbody tr:hover {
-            background: #151515;
-        }
-        
-        .results-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        
-        /* Column styling */
-        .col-title {
-            min-width: 200px;
-        }
-        
-        .col-artist {
-            min-width: 120px;
-        }
-        
-        .col-weeks {
-            width: 80px;
-            text-align: center;
-            font-weight: 600;
-            color: #22c55e;
-            font-size: 1rem;
-        }
-        
-        .col-dates {
-            min-width: 180px;
-            color: #aaa;
-            font-size: 0.85rem;
-        }
-        
-        .col-cumulative {
-            width: 80px;
-            text-align: center;
-            font-weight: 600;
-            color: #fbbf24;
-            font-size: 1rem;
-        }
-        
-        .col-total {
-            width: 80px;
-            text-align: center;
-            font-weight: 700;
-            color: #a78bfa;
-            font-size: 1rem;
-        }
-        
-        /* Title cell with image */
-        .title-cell {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .title-image {
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            min-height: 40px;
-            max-width: 40px;
-            max-height: 40px;
-            border-radius: 4px;
-            object-fit: cover;
-            flex-shrink: 0;
-            display: block;
-        }
-        
-        .title-placeholder {
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            min-height: 40px;
-            max-width: 40px;
-            max-height: 40px;
-            border-radius: 4px;
-            background: #1a1a1a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            color: #444;
-            flex-shrink: 0;
-        }
-        
-        .title-text {
-            color: #fff;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-        
-        .title-text:hover {
-            color: #22c55e;
-            text-decoration: underline;
-        }
-        
-        .artist-link {
-            color: #aaa;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-        
-        .artist-link:hover {
-            color: #fff;
-            text-decoration: underline;
-        }
-        
-        .date-range {
-            white-space: nowrap;
-        }
-        
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #888;
-        }
-        
-        .empty-state-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        
-        .empty-state-text {
-            font-size: 1.1rem;
-        }
-        
-        /* Hover image container for song/album art swaps */
-        .hover-image-container {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            min-height: 40px;
-            max-width: 40px;
-            max-height: 40px;
-            flex-shrink: 0;
-        }
-        
-        .hover-image-container .album-image-default {
-            display: block;
-        }
-        
-        .hover-image-container .song-image-hover {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        
-        .hover-image-container:hover .album-image-default {
-            display: none;
-        }
-        
-        .hover-image-container:hover .song-image-hover {
-            display: block;
-        }
-        
-        .inherited-cover {
-            opacity: 0.7;
-        }
-        
-        /* Summary stats */
-        .summary-stats {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-        }
-        
-        .summary-stat {
-            text-align: center;
-        }
-        
-        .summary-stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        
-        .summary-stat-label {
-            font-size: 0.8rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        @media (max-width: 768px) {
-            .results-table-container {
-                overflow-x: auto;
-            }
-            
-            .results-table {
-                min-width: 730px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <link rel="stylesheet" th:href="@{/css/chart-overview.css}">
+    <link rel="stylesheet" th:href="@{/css/number-ones.css(v=1)}">
+    <script th:src="@{/js/number-ones.js(v=1)}" defer></script>
 </head>
 <body>
-    <nav th:replace="~{fragments/navigation :: navigation}"></nav>
-    
-    <div class="number-ones-page">
-        <div class="number-ones-header">
-            <h1 class="number-ones-title">Weekly Number Ones</h1>
-            
-            <!-- Type toggle (Songs/Albums) -->
-            <div class="type-toggle">
-                <a th:href="@{/charts/number-ones(type='song')}"
-                   class="type-toggle-btn"
-                   th:classappend="${selectedType == 'song'} ? 'active' : ''"
-                   title="Songs">Songs</a>
-                <a th:href="@{/charts/number-ones(type='album')}"
-                   class="type-toggle-btn"
-                   th:classappend="${selectedType == 'album'} ? 'active' : ''"
-                   title="Albums">Albums</a>
-            </div>
-            
-            <!-- Summary stats -->
-            <div class="summary-stats" th:if="${not #lists.isEmpty(runs)}">
-                <div class="summary-stat">
-                    <div class="summary-stat-value" th:text="${#lists.size(runs)}">0</div>
-                    <div class="summary-stat-label">Total Runs</div>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+    <div class="container co-page n1-page" id="numberOnes"
+         th:attr="data-unit=${chart.unit()}">
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title" th:text="${pageTitle}">Weekly Number Ones</h1>
+                </div>
+                <div class="catalog-toolbar-actions">
+                    <a class="toolbar-btn" th:href="@{/charts/overview(chart=${chart.key()})}">Overview</a>
+                    <a th:if="${chart.key() == 'weekly'}" class="toolbar-btn" href="/charts/weekly">Weekly chart</a>
                 </div>
             </div>
+
+            <nav class="co-menubar" aria-label="Number ones charts">
+                <a th:each="item : ${charts}"
+                   class="co-menu-tab" th:classappend="${'co-tone-' + item.key() + (item == chart ? ' active' : '')}"
+                   th:href="@{'/charts/' + ${item.key()} + '/number-ones'}"
+                   th:attr="aria-current=${item == chart ? 'page' : null}">
+                    <span class="co-dot"></span><span th:text="${item.label()}">Weekly</span>
+                </a>
+                <div class="co-menu-side" th:if="${chart.key() == 'weekly'}">
+                    <span class="co-menu-label">Show</span>
+                    <a class="co-menu-tab" th:href="@{/charts/weekly/number-ones(type='song')}" th:classappend="${selectedType == 'song'} ? 'active' : ''">Songs</a>
+                    <a class="co-menu-tab" th:href="@{/charts/weekly/number-ones(type='album')}" th:classappend="${selectedType == 'album'} ? 'active' : ''">Albums</a>
+                </div>
+            </nav>
         </div>
-        
-        <!-- Results table -->
-        <div class="results-table-container" th:if="${not #lists.isEmpty(runs)}">
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th class="col-title">Title</th>
-                        <th class="col-artist">Artist</th>
-                        <th class="col-weeks">Weeks</th>
-                        <th class="col-dates">Dates</th>
-                        <th class="col-cumulative">Cumul.</th>
-                        <th class="col-total">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="run : ${runs}"
-                        th:style="${run.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${run.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                        <td class="col-title">
-                            <div class="title-cell">
-                                <!-- Song images -->
-                                <th:block th:if="${run.type == 'song'}">
-                                    <div th:if="${run.hasImage and run.albumHasImage}" class="hover-image-container" style="width:40px;height:40px;">
-                                        <img th:src="@{'/albums/' + ${run.albumId} + '/image'}"
-                                             alt="" class="album-image-default title-image">
-                                        <img th:src="@{'/songs/' + ${run.id} + '/image'}"
-                                             alt="" class="song-image-hover title-image">
-                                    </div>
-                                    <img th:if="${run.hasImage and !run.albumHasImage}"
-                                         th:src="@{'/songs/' + ${run.id} + '/image'}"
-                                         alt="" class="title-image">
-                                    <img th:if="${!run.hasImage and run.albumId != null}"
-                                         th:src="@{'/albums/' + ${run.albumId} + '/image'}"
-                                         alt="" class="title-image inherited-cover"
-                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <div th:if="${!run.hasImage and run.albumId == null}" class="title-placeholder">
-                                        <span>&#x1F3B5;</span>
-                                    </div>
-                                    <div th:if="${!run.hasImage and run.albumId != null}" class="title-placeholder" style="display: none;">
-                                        <span>&#x1F3B5;</span>
-                                    </div>
-                                </th:block>
-                                <!-- Album images -->
-                                <th:block th:if="${run.type == 'album'}">
-                                    <img th:if="${run.hasImage}"
-                                         th:src="@{'/albums/' + ${run.id} + '/image'}"
-                                         alt="" class="title-image">
-                                    <div th:unless="${run.hasImage}" class="title-placeholder">
-                                        <span>&#x1F4BF;</span>
-                                    </div>
-                                </th:block>
-                                <!-- Title link -->
-                                <a th:if="${run.type == 'song'}" 
-                                   th:href="@{'/songs/' + ${run.id}}" 
-                                   th:text="${run.name}"
-                                   class="title-text">Song Title</a>
-                                <a th:if="${run.type == 'album'}" 
-                                   th:href="@{'/albums/' + ${run.id}}" 
-                                   th:text="${run.name}"
-                                   class="title-text">Album Title</a>
-                            </div>
-                        </td>
-                        <td class="col-artist">
-                            <a th:href="@{'/artists/' + ${run.artistId}}" 
-                               th:text="${run.artistName}"
-                               class="artist-link">Artist Name</a>
-                        </td>
-                        <td class="col-weeks" th:text="${run.runWeeks}">1</td>
-                        <td class="col-dates">
-                            <span class="date-range" th:text="${run.runStartDate + ' - ' + run.runEndDate}">01/01/2024 - 07/01/2024</span>
-                        </td>
-                        <td class="col-cumulative" th:text="${run.cumulativeWeeks}">5</td>
-                        <td class="col-total" th:text="${run.totalWeeks}">10</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- Empty state -->
-        <div class="empty-state" th:if="${#lists.isEmpty(runs)}">
-            <div class="empty-state-icon">&#x1F3C6;</div>
-            <div class="empty-state-text">No #1 chart data available yet.</div>
-        </div>
+
+        <th:block th:if="${not #lists.isEmpty(runs)}">
+            <div class="n1-filters">
+                <div class="n1-filter-side">
+                    <label class="n1-field">Year
+                        <select id="n1Year"><option value="">All years</option></select>
+                    </label>
+                    <label class="n1-field n1-search">
+                        <span class="n1-sr">Search</span>
+                        <input type="search" id="n1Search" placeholder="Search title or artist" autocomplete="off">
+                    </label>
+                </div>
+            </div>
+
+            <div class="table-scroll n1-table-wrap">
+                <table class="sticky-head n1-table">
+                    <thead>
+                        <tr>
+                            <th class="n1-col-cover"><span class="n1-sr">Cover</span></th>
+                            <th><button type="button" data-sort="title">Title</button></th>
+                            <th><button type="button" data-sort="artist">Artist</button></th>
+                            <th><button type="button" data-sort="length" th:text="${chart.unit() == 'day' ? 'Days' : 'Weeks'}">Weeks</button></th>
+                            <th><button type="button" data-sort="start">Start</button></th>
+                            <th><button type="button" data-sort="end">End</button></th>
+                            <th class="n1-num"><button type="button" data-sort="run">Run</button></th>
+                            <th class="n1-num"><button type="button" data-sort="cumulative">Cumul.</button></th>
+                            <th class="n1-num"><button type="button" data-sort="total">Total</button></th>
+                        </tr>
+                    </thead>
+                    <tbody id="n1Rows">
+                        <tr th:each="run : ${runs}" class="n1-row"
+                            th:classappend="${run.display().gender() != null} ? ${'n1-' + run.display().gender()} : ''"
+                            th:attr="data-gender=${run.display().gender()},data-year=${run.year()},data-start=${run.startDate()},data-end=${run.endDate()},data-length=${run.length()},data-run=${run.runNumber()},data-cumulative=${run.cumulative()},data-total=${run.total()},data-title=${run.display().title()},data-artist=${run.display().artistName()}">
+                            <td class="n1-col-cover">
+                                <img th:if="${run.display().coverUrl() != null}" th:src="${run.display().coverUrl()}" alt="" class="n1-cover" loading="lazy"
+                                     onerror="this.replaceWith(Object.assign(document.createElement('span'), {className: 'n1-cover n1-cover-empty'}))">
+                                <span th:unless="${run.display().coverUrl() != null}" class="n1-cover n1-cover-empty"></span>
+                            </td>
+                            <td class="n1-title">
+                                <a th:if="${run.display().link() != null}" th:href="${run.display().link()}" th:text="${run.display().title()}">Title</a>
+                                <span th:unless="${run.display().link() != null}" th:text="${run.display().title()}">Title</span>
+                            </td>
+                            <td class="n1-artist">
+                                <span class="n1-dot" aria-hidden="true"></span>
+                                <a th:if="${run.display().artistId() != null}" th:href="@{'/artists/' + ${run.display().artistId()}}" th:text="${run.display().artistName()}">Artist</a>
+                                <span th:unless="${run.display().artistId() != null}" th:text="${run.display().artistName()}">Artist</span>
+                            </td>
+                            <td><div class="n1-length"><span class="n1-length-value" th:text="${run.length()}">1</span><span class="n1-ticks" aria-hidden="true"></span></div></td>
+                            <td class="n1-date" th:text="${run.startDisplay()}">01/01/2024</td>
+                            <td class="n1-date n1-date-end" th:text="${run.endDisplay()}">07/01/2024</td>
+                            <td class="n1-num" th:text="${run.runNumber()}">1</td>
+                            <td class="n1-num n1-cumulative" th:text="${run.cumulative()}">1</td>
+                            <td class="n1-num n1-total" th:text="${run.total()}">1</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="n1-empty-filter" id="n1NoMatch" hidden>No runs match these filters.</div>
+            </div>
+            <div class="n1-foot" id="n1Count"></div>
+        </th:block>
+
+        <div class="n1-empty" th:if="${#lists.isEmpty(runs)}">No #1 chart data available yet.</div>
     </div>
 </body>
 </html>

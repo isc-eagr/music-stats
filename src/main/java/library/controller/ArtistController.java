@@ -681,8 +681,8 @@ public class ArtistController {
         boolean mainScopeOnly = includeMain && !includeGroups && !includeFeatured;
         model.addAttribute("firstListenedSong", mainScopeOnly ? artistService.getFirstListenedSongForArtist(id) : null);
         model.addAttribute("lastListenedSong", mainScopeOnly ? artistService.getLastListenedSongForArtist(id) : null);
-        model.addAttribute("listeningSpan", DateFormatUtils.spanLabel(
-                (String) model.getAttribute("firstListenedDate"), (String) model.getAttribute("lastListenedDate")));
+        model.addAttribute("firstListenedRecency", DateFormatUtils.recency((String) model.getAttribute("firstListenedDate")));
+        model.addAttribute("lastListenedRecency", DateFormatUtils.recency((String) model.getAttribute("lastListenedDate")));
         model.addAttribute("averageSongLength", scopedMetrics.songCount() > 0
                 ? library.util.TimeFormatUtils.formatTimeHMS(scopedMetrics.totalSongLength() / scopedMetrics.songCount()) : "-");
         model.addAttribute("averagePlaysPerSong", formatAverage(scopedMetrics.averagePlaysPerSong()));

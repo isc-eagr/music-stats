@@ -186,19 +186,47 @@ public final class DateFormatUtils {
         return String.join(", ", parts);
     }
 
+    /**
+     * How long ago a display date was ("Today", "3 weeks ago", "4 years ago") plus its recency level, the same
+     * buckets as the catalog Table view: fresh within 1 year, aging 1-3 years, stale 3-5 years, old after that.
+     */
+    public record Recency(String ago, String level) {
+    }
+
+    /** {@link Recency} of a display date as of today; null when the date is missing or unparsable. */
+    public static Recency recency(String displayDate) {
+        return recency(displayDate, java.time.LocalDate.now());
+    }
+
+    static Recency recency(String displayDate, java.time.LocalDate today) {
+        java.time.LocalDate date = parseDisplayDate(displayDate);
+        if (date == null) {
+            return null;
+        }
+        long days = java.time.temporal.ChronoUnit.DAYS.between(date, today);
+        double years = days / 365.25;
+        String level = years <= 1 ? "fresh" : years <= 3 ? "aging" : years <= 5 ? "stale" : "old";
+        return new Recency(agoText(days), level);
+    }
+
+    private static String agoText(long days) {
+        if (days < 0) return "Upcoming";
+        if (days == 0) return "Today";
+        if (days == 1) return "Yesterday";
+        if (days < 7) return days + " days ago";
+        if (days < 30) return plural(days / 7, "week") + " ago";
+        if (days < 365) return plural(Math.max(1, (long) Math.floor(days / 30.44)), "month") + " ago";
+        return plural((long) Math.floor(days / 365.25), "year") + " ago";
+    }
+
+    private static String plural(long amount, String unit) {
+        return amount + " " + unit + (amount == 1 ? "" : "s");
+    }
+
     private static void addSpanPart(java.util.List<String> parts, int amount, String unit) {
         if (amount > 0) {
             parts.add(amount + " " + unit + (amount == 1 ? "" : "s"));
         }
-    }
-
-    /**
-     * Start of the 7-day weekly chart week that ends on the given display date (dd-MMM-yyyy), as dd-MMM-yyyy.
-     * Returns the input unchanged when it does not parse.
-     */
-    public static String weeklyChartStartFromEnd(String weekEnd) {
-        java.time.LocalDate end = parseDisplayDate(weekEnd);
-        return end == null ? weekEnd : formatIsoDateForDisplay(end.minusDays(6).toString());
     }
 
     /**

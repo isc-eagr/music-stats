@@ -1,0 +1,276 @@
+/* ==========================================================================
+   Timeframe detail page (day, week, month, season, year, decade).
+   Same look as the catalog detail page (catalog-detail.css, detail-general.css): this file only adds the
+   timeframe sections (who won each slice, streaks, sessions & runs, mixed top lists, discoveries,
+   comebacks, farewells, same date every year).
+   ========================================================================== */
+
+/* ── Crumb navigation and the period navigator ── */
+.tf-nav { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+
+.tf-page a.tf-nb {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #d4d6dc;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tf-page a.tf-nb:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.tf-nb svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.tf-pnav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: #9ca3af; }
+.tf-pnav > span { margin-left: 6px; }
+.tf-pnav > span:first-child { margin-left: 0; }
+
+.tf-page .tf-pnav a {
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #d4d6dc;
+}
+
+.tf-page .tf-pnav a.is-up { border-color: var(--ad-tintb); background: var(--ad-tint); color: var(--ad-t); }
+.tf-page .tf-pnav a:hover { color: #fff; border-color: rgba(255, 255, 255, 0.25); }
+
+/* ── Hero ── */
+.tf-tiles { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.tf-tile-n { font-size: 11px; font-weight: 600; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; }
+.tf-tile-n.is-up { color: #86efac; }
+.tf-tile-n.is-down { color: #fdba74; }
+.cd-tile-v.is-m { color: #93c5fd; }
+
+/* ── Who won each slice ── */
+.tf-tally { display: grid; gap: 12px; }
+
+.tf-ty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.tf-tl { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; }
+.tf-sc { display: flex; justify-content: space-between; align-items: baseline; }
+.tf-sc b { font-size: 26px; }
+.tf-sc .is-m { color: #93c5fd; }
+.tf-sc .is-f { color: #f9a8d4; font-size: 16px; font-weight: 700; }
+.tf-tyb { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--cd-f); }
+.tf-tyb i { display: block; background: var(--cd-m); }
+.tf-tynote { font-size: 11px; color: #9ca3af; overflow-wrap: anywhere; }
+
+/* ── Across the period ── */
+.tf-pills[hidden] { display: none; }
+.tf-pills .cd-pill { padding: 2px 0; border-radius: 6px; }
+.tf-page a.cd-pill:hover { background: rgba(255, 255, 255, 0.05); }
+.tf-pm { color: #93c5fd; }
+/* Many slices (weeks of a year, days of a month): smaller text, time wraps to "25h" over "40m". */
+.tf-pills.is-dense .cd-pill b { font-size: 8.5px; line-height: 1.15; white-space: normal; letter-spacing: -0.02em; }
+.tf-pill-note b { font-weight: 600; color: #d4d6dc; }
+.tf-pill-note b.tf-pm { color: #93c5fd; }
+
+.tf-strip { position: relative; height: 30px; margin-top: 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.3); }
+
+.tf-strip span {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid var(--ad-tintb);
+    background: var(--ad-tint);
+    color: var(--ad-t);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ── Two cards side by side ── */
+.tf-two { display: flex; flex-wrap: wrap; gap: 16px; }
+.tf-two > * { flex: 1 1 420px; min-width: 0; }
+.tf-mini { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+
+/* ── Streaks ── */
+.tf-tln { position: relative; height: 34px; border-radius: 8px; background: rgba(0, 0, 0, 0.3); }
+.tf-tln .tf-band { position: absolute; top: 8px; bottom: 8px; border-radius: 5px; }
+.tf-tln .tf-band.is-listen { background: rgba(96, 165, 250, 0.28); }
+.tf-tln .tf-band.is-male { top: 13px; bottom: 13px; background: var(--cd-m); }
+.tf-tln em { position: absolute; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; }
+.tf-tln em.is-female { background: var(--cd-f); }
+.tf-tln em.is-silent { background: #fdba74; }
+.tf-tlab { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #9ca3af; }
+
+.tf-stk { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.tf-stk b { font-size: 12px; }
+.tf-stk small { font-size: 11px; color: #9ca3af; }
+.tf-sline { position: relative; height: 14px; border-radius: 7px; background: rgba(96, 165, 250, 0.25); }
+.tf-sline.is-male { background: var(--cd-m); }
+.tf-sline em { position: absolute; top: -4px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: var(--cd-gold); }
+
+/* ── Sessions & runs ── */
+.tf-ss-list { margin-top: 12px; }
+
+.tf-ss {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) 40px 54px;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 4px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.tf-page a.tf-ss:hover, .tf-page a.tf-run:hover { background: rgba(255, 255, 255, 0.04); }
+.tf-ss-bar i { display: block; height: 8px; border-radius: 4px; background: var(--cd-m); }
+
+.tf-run {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    margin-top: 10px;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.tf-run b { display: block; font-size: 12px; }
+.tf-run small { display: block; font-size: 11px; color: #9ca3af; }
+.tf-run-bar { display: flex; gap: 1px; height: 16px; border-radius: 4px; overflow: hidden; }
+.tf-run-bar i { flex: 1; background: var(--cd-m); }
+
+/* ── Top of the period ── */
+.tf-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.tf-th { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 6px; }
+.tf-th b { font-size: 13px; }
+.tf-th span { font-size: 11px; color: #9ca3af; }
+.tf-list[hidden] { display: none; }
+
+.tf-page a.tf-chart {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.08);
+    color: #fcd34d;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tf-page a.tf-chart:hover { background: rgba(251, 191, 36, 0.16); }
+.tf-chart .dt-ico { width: 12px; height: 12px; stroke-width: 2.4; }
+
+.tf-tr {
+    display: grid;
+    grid-template-columns: 22px 30px minmax(0, 1fr) 46px;
+    gap: 10px;
+    align-items: center;
+    padding: 5px 4px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.tf-page a.tf-tr:hover { background: rgba(255, 255, 255, 0.04); }
+.tf-tn { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tf-tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tf-tname small { margin-left: 6px; font-size: 11px; color: #9ca3af; }
+.tf-tb { display: block; height: 3px; border-radius: 2px; background: var(--cd-o); }
+.tf-tb.is-m { background: var(--cd-m); }
+.tf-tb.is-f { background: var(--cd-f); }
+.tf-r { text-align: right; }
+
+/* ── Discoveries, comebacks, farewells ── */
+.tf-dr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px 56px minmax(80px, 160px) 64px;
+    gap: 12px;
+    align-items: center;
+    padding: 6px 4px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.tf-dr.no-since { grid-template-columns: minmax(0, 1fr) 90px 56px; }
+.tf-dhead { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280; }
+.tf-page a.tf-dr:hover, .tf-page a.tf-cb:hover { background: rgba(255, 255, 255, 0.04); }
+.tf-nm { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tf-nm > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tf-nm small { display: block; font-size: 11px; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; }
+/* Thumbnail: round for artists, square for albums and songs; the border is the gender, the initial sits under the image. */
+.tf-im {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.tf-im.is-artist { border-radius: 50%; }
+.tf-im.g-m { border-color: var(--cd-m); }
+.tf-im.g-f { border-color: var(--cd-f); }
+.tf-im.g-o { border-color: var(--cd-o); }
+.tf-im em { font-size: 12px; font-style: normal; font-weight: 700; color: #9ca3af; }
+.tf-im img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tf-split { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: rgba(147, 197, 253, 0.35); }
+.tf-split i { display: block; background: var(--cd-m); }
+.tf-tag { padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; }
+.tf-tag.is-kept { color: #bbf7d0; background: rgba(134, 239, 172, 0.12); }
+.tf-tag.is-faded { color: #fed7aa; background: rgba(253, 186, 116, 0.12); }
+.tf-gap { margin-top: 14px; }
+
+.tf-cb {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px 52px;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 4px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.tf-gap-l { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #9ca3af; white-space: nowrap; }
+.tf-gap-l i { display: block; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); }
+
+/* ── Same date every year (Day pages) ── */
+.tf-otd { display: grid; gap: 4px; align-items: end; height: 110px; }
+.tf-otd a { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
+.tf-otd i { display: block; border-radius: 3px 3px 1px 1px; background: var(--cd-m); overflow: hidden; }
+.tf-otd em { display: block; background: var(--cd-f); }
+.tf-otd a.is-self i { outline: 2px solid var(--cd-gold); outline-offset: 1px; }
+.tf-oax { display: grid; gap: 4px; margin-top: 6px; font-size: 9px; color: #9ca3af; text-align: center; }
+
+@media (max-width: 900px) {
+    .tf-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .tf-three { grid-template-columns: minmax(0, 1fr); }
+    .tf-tally { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
+@media (max-width: 560px) {
+    .tf-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tf-dr { grid-template-columns: minmax(0, 1fr) 52px 64px; }
+    .tf-dr > :nth-child(2), .tf-dr .tf-x { display: none; }
+    .tf-dr.no-since { grid-template-columns: minmax(0, 1fr) 52px; }
+    .tf-ss { grid-template-columns: 96px minmax(0, 1fr) 34px 48px; }
+    .tf-run { grid-template-columns: minmax(0, 1fr); }
+    .tf-oax { display: none; }
+}

@@ -1,15 +1,42 @@
+/* Duplicate song warning (fragments/song-creation-confirmation.html), shown inside the Create Song
+   popup on the Songs list and the Create step of the Unmatched plays wizard. Amber alert in the
+   redesign look: hairline box, icon, pill buttons. */
+
 .song-duplicate-confirmation {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     margin-top: 16px;
-    padding: 16px;
-    border: 1px solid #a67c32;
-    border-radius: 6px;
-    background: #2b2416;
-    color: #f0d49a;
+    padding: 14px 16px;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: 14px;
+    background: rgba(251, 191, 36, 0.08);
+    color: #fcd34d;
+    font-family: Inter, system-ui, sans-serif;
 }
 
+.song-duplicate-confirmation[hidden] { display: none; }
+
 .song-duplicate-confirmation p {
-    margin: 0 0 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
     line-height: 1.5;
+}
+
+.song-duplicate-ico {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .song-duplicate-actions {
@@ -17,4 +44,37 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;
+}
+
+.song-duplicate-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 11px;
+    border: 1px solid rgba(161, 161, 170, 0.3);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(212, 212, 216, 0.85);
+    font: 600 13px Inter, system-ui, sans-serif;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.song-duplicate-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(161, 161, 170, 0.5);
+}
+
+.song-duplicate-btn.is-confirm {
+    border-color: #fbbf24;
+    background: #fbbf24;
+    color: #1a1205;
+}
+
+.song-duplicate-btn.is-confirm:hover {
+    border-color: #fcd34d;
+    background: #fcd34d;
+    color: #1a1205;
 }

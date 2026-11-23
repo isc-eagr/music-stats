@@ -1,6 +1,7 @@
 package library.controller;
 
 import library.dto.AlbumChartRunDTO;
+import library.dto.ChartBreakdownDTO;
 import library.dto.ChartEntryDTO;
 import library.dto.ChartGenerationProgressDTO;
 import library.dto.ChartAlbumOverviewRowDTO;
@@ -10,9 +11,12 @@ import library.dto.ChartSongOverviewRowDTO;
 import library.entity.Chart;
 import library.service.AppConfigService;
 import library.service.BillboardHot100Service;
+import library.service.ChartOverviewService;
 import library.service.ChartService;
 import library.service.OverviewFilterService;
 import library.service.PcService;
+import library.service.PeriodChartService;
+import library.service.SeasonalWallService;
 import library.service.TrlService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -59,23 +63,28 @@ public class ChartsController {
     private final PcService pcService;
     private final TrlService trlService;
     private final OverviewFilterService overviewFilterService;
+    private final SeasonalWallService seasonalWallService;
+    private final PeriodChartService periodChartService;
     
     public ChartsController(ChartService chartService, AppConfigService appConfigService, BillboardHot100Service billboardHot100Service,
                              PcService pcService, TrlService trlService) {
         this(chartService, appConfigService, billboardHot100Service, pcService, trlService,
-                new OverviewFilterService());
+                new OverviewFilterService(), null, null);
     }
 
     @Autowired
     public ChartsController(ChartService chartService, AppConfigService appConfigService, BillboardHot100Service billboardHot100Service,
-                             PcService pcService, TrlService trlService, OverviewFilterService overviewFilterService) {
+                             PcService pcService, TrlService trlService, OverviewFilterService overviewFilterService,
+                             SeasonalWallService seasonalWallService, PeriodChartService periodChartService) {
         this.chartService = chartService;
         this.appConfigService = appConfigService;
         this.billboardHot100Service = billboardHot100Service;
         this.pcService = pcService;
         this.trlService = trlService;
         this.overviewFilterService = overviewFilterService;
-    }
+        this.seasonalWallService = seasonalWallService;
+        this.periodChartService = periodChartService;
+}
     
     /**
      * Weekly charts landing page - redirects to latest chart or shows empty state.
@@ -127,6 +136,7 @@ public class ChartsController {
                         ? new ArrayList<>(previewEntries.subList(WEEKLY_CHART_SIZE, previewEntries.size()))
                         : List.of();
                 List<ChartEntryDTO> albumEntries = chartService.getWeeklyAlbumChartPreview(periodKey);
+                addWeeklyBreakdowns(model, entries, albumEntries);
 
                 // Get formatted period for display
                 String formattedPeriod = chartService.formatPeriodKey(periodKey);
@@ -177,7 +187,8 @@ public class ChartsController {
         List<ChartEntryDTO> albumEntries = chartService.getWeeklyAlbumChartWithStats(periodKey);
         List<ChartEntryDTO> fallOffEntries = chartService.getWeeklyChartFallOffs(periodKey, entries);
         List<ChartEntryDTO> albumFallOffEntries = chartService.getWeeklyAlbumChartFallOffs(periodKey, albumEntries);
-        
+        addWeeklyBreakdowns(model, entries, albumEntries);
+
         // Navigation
         Optional<Chart> prevChart = chartService.getPreviousChart("song", periodKey);
         Optional<Chart> nextChart = chartService.getNextChart("song", periodKey);
@@ -234,6 +245,14 @@ public class ChartsController {
         return "charts/weekly";
     }
     
+    /** Genre / Ethnicity / Language / Country tiles above the songs and albums charts. */
+    private void addWeeklyBreakdowns(Model model, List<ChartEntryDTO> songEntries, List<ChartEntryDTO> albumEntries) {
+        chartService.applyBreakdownAttributes(songEntries, false);
+        chartService.applyBreakdownAttributes(albumEntries, true);
+        model.addAttribute("songBreakdowns", ChartBreakdownDTO.forEntries(songEntries));
+        model.addAttribute("albumBreakdowns", ChartBreakdownDTO.forEntries(albumEntries));
+    }
+
     /**
      * API: Get chart run data for a song (for expandable row).
      */
@@ -639,28 +658,99 @@ public class ChartsController {
         }
         
         model.addAttribute("currentSection", "seasonal-charts");
-        model.addAttribute("periodType", "seasonal");
-        model.addAttribute("periodKey", periodKey);
         model.addAttribute("displayName", chartService.formatSeasonPeriodKey(periodKey));
+        model.addAttribute("maxSongs", ChartService.SEASONAL_YEARLY_SONGS_COUNT);
+        model.addAttribute("maxAlbums", ChartService.SEASONAL_ALBUMS_COUNT);
+        model.addAttribute("maxExtraSongs", ChartService.SEASONAL_EXTRA_SONGS_COUNT);
+        model.addAttribute("allSeasons", chartService.getAllSeasonsWithData());
+        model.addAttribute("seasonNames", SeasonalWallService.SEASONS);
+        return renderPeriodChart(model, "seasonal", periodKey, songChart, albumChart, songEntries, albumEntries,
+                extraSongEntries, isComplete, canFinalize, prevPeriodKey, nextPeriodKey);
+    }
+    
+    /**
+     * Seasonal and Yearly chart page (charts/period-chart.html): one page that shows a finalized chart and
+     * edits a draft. Adds plays in the period, weekly-chart runs, other seasonal / yearly placements,
+     * the summary strip and the Genre / Ethnicity / Language / Country breakdowns.
+     */
+    private String renderPeriodChart(Model model, String periodType, String periodKey, Chart songChart, Chart albumChart,
+                                     List<ChartEntryDTO> songEntries, List<ChartEntryDTO> albumEntries,
+                                     List<ChartEntryDTO> extraSongEntries, boolean isComplete, boolean canFinalize,
+                                     String prevPeriodKey, String nextPeriodKey) {
+        String start = songChart.getPeriodStartDate();
+        String end = songChart.getPeriodEndDate();
+        List<ChartEntryDTO> allSongs = new ArrayList<>(songEntries);
+        allSongs.addAll(extraSongEntries);
+        Map<Integer, PeriodChartService.ItemStats> songStats = periodChartService.stats("song", allSongs, periodType, periodKey, start, end);
+        Map<Integer, PeriodChartService.ItemStats> albumStats = periodChartService.stats("album", albumEntries, periodType, periodKey, start, end);
+        chartService.applyBreakdownAttributes(songEntries, false);
+        chartService.applyBreakdownAttributes(albumEntries, true);
+
+        model.addAttribute("periodType", periodType);
+        model.addAttribute("periodKey", periodKey);
+        model.addAttribute("periodStart", start);
+        model.addAttribute("periodEnd", end);
+        model.addAttribute("periodRange", PeriodChartService.displayDate(start) + " - " + PeriodChartService.displayDate(end));
+        model.addAttribute("periodYear", periodKey.length() >= 4 ? periodKey.substring(0, 4) : periodKey);
         model.addAttribute("songChart", songChart);
         model.addAttribute("albumChart", albumChart);
         model.addAttribute("songEntries", songEntries);
         model.addAttribute("albumEntries", albumEntries);
         model.addAttribute("extraSongEntries", extraSongEntries);
+        model.addAttribute("songStats", songStats);
+        model.addAttribute("albumStats", albumStats);
+        model.addAttribute("songSummary", periodChartService.summary(songEntries, songStats, false));
+        model.addAttribute("albumSummary", periodChartService.summary(albumEntries, albumStats, true));
+        model.addAttribute("songBreakdowns", ChartBreakdownDTO.forEntries(songEntries));
+        model.addAttribute("albumBreakdowns", ChartBreakdownDTO.forEntries(albumEntries));
         model.addAttribute("isComplete", isComplete);
         model.addAttribute("canFinalize", canFinalize);
-        model.addAttribute("songChartFinalized", songChart.getIsFinalized());
-        model.addAttribute("albumChartFinalized", albumChart.getIsFinalized());
-        model.addAttribute("maxSongs", ChartService.SEASONAL_YEARLY_SONGS_COUNT);
-        model.addAttribute("maxAlbums", ChartService.SEASONAL_ALBUMS_COUNT);
-        model.addAttribute("maxExtraSongs", ChartService.SEASONAL_EXTRA_SONGS_COUNT);
+        model.addAttribute("songChartFinalized", Boolean.TRUE.equals(songChart.getIsFinalized()));
+        model.addAttribute("albumChartFinalized", Boolean.TRUE.equals(albumChart.getIsFinalized()));
         model.addAttribute("prevPeriodKey", prevPeriodKey);
         model.addAttribute("nextPeriodKey", nextPeriodKey);
-        model.addAttribute("allSeasons", chartService.getAllSeasonsWithData());
-        
-        return "charts/seasonal-edit";
+        model.addAttribute("prevLabel", prevPeriodKey == null ? null : "seasonal".equals(periodType) ? chartService.formatSeasonPeriodKey(prevPeriodKey) : prevPeriodKey);
+        model.addAttribute("nextLabel", nextPeriodKey == null ? null : "seasonal".equals(periodType) ? chartService.formatSeasonPeriodKey(nextPeriodKey) : nextPeriodKey);
+        return "charts/period-chart";
     }
-    
+
+    /**
+     * API: the extra columns for one song or album the editor just added (plays in the period,
+     * weekly-chart run, other seasonal / yearly placements, gender).
+     */
+    @GetMapping("/{periodType:seasonal|yearly}/{periodKey}/entry-stats")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> periodEntryStats(@PathVariable String periodType, @PathVariable String periodKey,
+                                                                @RequestParam String type, @RequestParam int id) {
+        String chartType = "album".equals(type) ? "album" : "song";
+        Optional<Chart> chart = "seasonal".equals(periodType)
+                ? chartService.getSeasonalChart(chartType, periodKey)
+                : chartService.getYearlyChart(chartType, periodKey);
+        PeriodChartService.ItemStats stats = periodChartService.statsForIds(chartType, List.of(id), periodType, periodKey,
+                chart.map(Chart::getPeriodStartDate).orElse(null), chart.map(Chart::getPeriodEndDate).orElse(null)).get(id);
+        String year = periodKey.length() >= 4 ? periodKey.substring(0, 4) : periodKey;
+        Map<String, Object> result = new HashMap<>();
+        result.put("plays", stats.plays());
+        result.put("weeklyPeak", stats.weeklyPeak());
+        result.put("weeklyWeeks", stats.weeklyWeeks());
+        result.put("weeklyBand", stats.weeklyBand());
+        result.put("genderId", periodChartService.genderId(chartType, id));
+        List<Map<String, Object>> others = new ArrayList<>();
+        for (PeriodChartService.Appearance a : stats.yearly()) others.add(appearanceJson(a, year));
+        for (PeriodChartService.Appearance a : stats.seasons()) others.add(appearanceJson(a, year));
+        result.put("appearances", others);
+        return ResponseEntity.ok(result);
+    }
+
+    private static Map<String, Object> appearanceJson(PeriodChartService.Appearance a, String year) {
+        Map<String, Object> out = new HashMap<>();
+        out.put("periodType", a.periodType());
+        out.put("label", a.labelFor(year));
+        out.put("position", a.position());
+        out.put("link", a.link());
+        return out;
+    }
+
     /**
      * API: Save chart entries for a seasonal chart.
      */
@@ -837,24 +927,18 @@ public class ChartsController {
         }
         
         model.addAttribute("currentSection", "yearly-charts");
-        model.addAttribute("periodType", "yearly");
-        model.addAttribute("periodKey", periodKey);
         model.addAttribute("displayName", periodKey);
-        model.addAttribute("songChart", songChart);
-        model.addAttribute("albumChart", albumChart);
-        model.addAttribute("songEntries", songEntries);
-        model.addAttribute("albumEntries", albumEntries);
-        model.addAttribute("isComplete", isComplete);
-        model.addAttribute("canFinalize", canFinalize);
-        model.addAttribute("songChartFinalized", songChart.getIsFinalized());
-        model.addAttribute("albumChartFinalized", albumChart.getIsFinalized());
         model.addAttribute("maxSongs", ChartService.SEASONAL_YEARLY_SONGS_COUNT);
         model.addAttribute("maxAlbums", ChartService.YEARLY_ALBUMS_COUNT);
-        model.addAttribute("prevPeriodKey", prevPeriodKey);
-        model.addAttribute("nextPeriodKey", nextPeriodKey);
+        model.addAttribute("maxExtraSongs", 0);
         model.addAttribute("allYears", chartService.getAllYearsWithData());
-        
-        return "charts/yearly-edit";
+        // The year bar links straight to that year's seasonal charts
+        model.addAttribute("yearSeasons", SeasonalWallService.SEASONS.stream()
+                .map(season -> periodKey + "-" + season)
+                .filter(key -> chartService.hasChart("seasonal", "song", key))
+                .toList());
+        return renderPeriodChart(model, "yearly", periodKey, songChart, albumChart, songEntries, albumEntries,
+                List.of(), isComplete, canFinalize, prevPeriodKey, nextPeriodKey);
     }
     
     /**
@@ -955,146 +1039,6 @@ public class ChartsController {
         }
     }
 
-    @GetMapping("/weekly/overview")
-    public String weeklyOverview(
-            @RequestParam(defaultValue = "song") String overviewTab,
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String dir,
-            @RequestParam(required = false) String sort2,
-            @RequestParam(required = false) String dir2,
-            @RequestParam(required = false) String sort3,
-            @RequestParam(required = false) String dir3,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
-            @RequestParam(required = false) Integer topSong,
-            @RequestParam(required = false) Integer topAlbum,
-            @RequestParam MultiValueMap<String, String> filterParams,
-            Model model) {
-        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
-        String normalizedQuery = normalizeOverviewQuery(q);
-        List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(normalizedOverviewTab, sort, dir, sort2, dir2, sort3, dir3);
-        String normalizedSort = sortSpecs.get(0).sort();
-        String normalizedDir = sortSpecs.get(0).dir();
-        int pageSize = appConfigService.getWeeklyOverviewPageSize();
-
-        List<ChartSongOverviewRowDTO> pagedSongRows = List.of();
-        List<ChartAlbumOverviewRowDTO> pagedAlbumRows = List.of();
-        List<ChartArtistOverviewRowDTO> pagedArtistRows = List.of();
-        int activeTotalCount;
-
-        switch (normalizedOverviewTab) {
-            case "album" -> {
-                List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = chartAlbumOverviewRows("weekly");
-                weeklyAlbumRows = overviewFilterService.filter("weekly", "album", weeklyAlbumRows, filterParams);
-                activeTotalCount = weeklyAlbumRows.size();
-                List<ChartAlbumOverviewRowDTO> sortedRows = new ArrayList<>(weeklyAlbumRows);
-                sortedRows.sort(buildAlbumOverviewComparator(sortSpecs));
-                pagedAlbumRows = paginateRows(sortedRows, 0, pageSize);
-            }
-            case "artist" -> {
-                List<ChartArtistOverviewRowDTO> weeklyArtistRows = chartArtistOverviewRows("weekly", includeFeatured);
-                weeklyArtistRows = overviewFilterService.filter("weekly", "artist", weeklyArtistRows, filterParams);
-                activeTotalCount = weeklyArtistRows.size();
-                List<ChartArtistOverviewRowDTO> sortedRows = new ArrayList<>(weeklyArtistRows);
-                sortedRows.sort(buildArtistOverviewComparator(sortSpecs, topSong, topAlbum));
-                pagedArtistRows = paginateRows(sortedRows, 0, pageSize);
-            }
-            default -> {
-                List<ChartSongOverviewRowDTO> weeklySongRows = chartSongOverviewRows("weekly");
-                weeklySongRows = overviewFilterService.filter("weekly", "song", weeklySongRows, filterParams);
-                activeTotalCount = weeklySongRows.size();
-                List<ChartSongOverviewRowDTO> sortedRows = new ArrayList<>(weeklySongRows);
-                sortedRows.sort(buildSongOverviewComparator(sortSpecs));
-                pagedSongRows = paginateRows(sortedRows, 0, pageSize);
-            }
-        }
-
-        model.addAttribute("currentSection", "weekly-overview-charts");
-        model.addAttribute("periodType", "weekly");
-        model.addAttribute("unitLabel", resolveOverviewUnitLabel("weekly"));
-        model.addAttribute("overviewTab", normalizedOverviewTab);
-        model.addAttribute("songRows", pagedSongRows);
-        model.addAttribute("albumRows", pagedAlbumRows);
-        model.addAttribute("artistRows", pagedArtistRows);
-        model.addAttribute("pageTitle", "Weekly Chart Overview");
-        model.addAttribute("serverInfiniteScrollEnabled", true);
-        model.addAttribute("overviewDataPath", "/charts/weekly/overview/data");
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("activeTotalCount", activeTotalCount);
-        model.addAttribute("selectedSort", normalizedSort);
-        model.addAttribute("selectedDir", normalizedDir);
-        model.addAttribute("searchQuery", normalizedQuery);
-        model.addAttribute("selectedIncludeFeatured", includeFeatured);
-        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("weekly", normalizedOverviewTab));
-        model.addAttribute("pageSizeConfig", appConfigService.getPageSizeConfig());
-
-        return "charts/overview";
-    }
-
-    @GetMapping("/weekly/overview/data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> weeklyOverviewData(
-            @RequestParam(defaultValue = "song") String overviewTab,
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String dir,
-            @RequestParam(required = false) String sort2,
-            @RequestParam(required = false) String dir2,
-            @RequestParam(required = false) String sort3,
-            @RequestParam(required = false) String dir3,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
-            @RequestParam(name = "filter", required = false) List<String> columnFilters,
-            @RequestParam(required = false) Integer topSong,
-            @RequestParam(required = false) Integer topAlbum,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam MultiValueMap<String, String> filterParams) {
-        page = Math.max(0, page);
-        String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
-        List<OverviewSortSpec> sortSpecs = normalizeWeeklyOverviewSortSpecs(normalizedOverviewTab, sort, dir, sort2, dir2, sort3, dir3);
-        String normalizedQuery = normalizeOverviewQuery(q);
-        List<String> normalizedFilters = normalizeOverviewColumnFilters(columnFilters);
-        int safeSize = appConfigService.normalizePageSize(size, appConfigService.getWeeklyOverviewPageSize(), 1, 250);
-
-        Map<String, Object> result = new HashMap<>();
-
-        switch (normalizedOverviewTab) {
-            case "album" -> {
-                List<ChartAlbumOverviewRowDTO> weeklyAlbumRows = overviewFilterService.filter("weekly", "album", chartAlbumOverviewRows("weekly"), filterParams);
-                List<ChartAlbumOverviewRowDTO> filteredRows = filterWeeklyAlbumOverviewRows(weeklyAlbumRows, null, normalizedFilters);
-                filteredRows.sort(buildAlbumOverviewComparator(sortSpecs));
-                int totalCount = filteredRows.size();
-                List<ChartAlbumOverviewRowDTO> entries = paginateRows(filteredRows, page, safeSize);
-                result.put("entries", entries);
-                result.put("totalCount", totalCount);
-                result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
-            }
-            case "artist" -> {
-                List<ChartArtistOverviewRowDTO> weeklyArtistRows = overviewFilterService.filter("weekly", "artist", chartArtistOverviewRows("weekly", includeFeatured), filterParams);
-                List<ChartArtistOverviewRowDTO> filteredRows = filterWeeklyArtistOverviewRows(weeklyArtistRows, null, normalizedFilters, topSong, topAlbum);
-                filteredRows.sort(buildArtistOverviewComparator(sortSpecs, topSong, topAlbum));
-                int totalCount = filteredRows.size();
-                List<ChartArtistOverviewRowDTO> entries = paginateRows(filteredRows, page, safeSize);
-                result.put("entries", entries);
-                result.put("totalCount", totalCount);
-                result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
-            }
-            default -> {
-                List<ChartSongOverviewRowDTO> weeklySongRows = overviewFilterService.filter("weekly", "song", chartSongOverviewRows("weekly"), filterParams);
-                List<ChartSongOverviewRowDTO> filteredRows = filterWeeklySongOverviewRows(weeklySongRows, null, normalizedFilters);
-                filteredRows.sort(buildSongOverviewComparator(sortSpecs));
-                int totalCount = filteredRows.size();
-                List<ChartSongOverviewRowDTO> entries = paginateRows(filteredRows, page, safeSize);
-                result.put("entries", entries);
-                result.put("totalCount", totalCount);
-                result.put("hasMore", (long) (page + 1) * safeSize < totalCount);
-            }
-        }
-
-        result.put("nextPage", page + 1);
-        return ResponseEntity.ok(result);
-    }
-
     @GetMapping("/{periodType}/overview/song-export")
     @ResponseBody
     public ResponseEntity<List<ChartSongOverviewRowDTO>> songOverviewExport(
@@ -1106,7 +1050,7 @@ public class ChartsController {
             @RequestParam(required = false) String sort3,
             @RequestParam(required = false) String dir3,
             @RequestParam MultiValueMap<String, String> filterParams) {
-        if (!List.of("weekly", "seasonal", "yearly").contains(periodType)) {
+        if (!List.of("seasonal", "yearly").contains(periodType)) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -1121,6 +1065,7 @@ public class ChartsController {
     @GetMapping("/seasonal/overview")
     public String seasonalOverview(
             @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(defaultValue = "wall") String view,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
@@ -1134,12 +1079,16 @@ public class ChartsController {
             @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
         String normalizedOverviewTab = normalizeOverviewTab(overviewTab);
+        if (!"table".equals(view)) {
+            return renderSeasonalWall("seasonal", normalizedOverviewTab, includeFeatured, model);
+        }
         return renderSeasonalOverview("seasonal", normalizedOverviewTab, q, sort, dir, sort2, dir2, sort3, dir3, includeFeatured, topSong, topAlbum, filterParams, model);
     }
 
     @GetMapping("/yearly/overview")
     public String yearlyOverview(
             @RequestParam(defaultValue = "song") String overviewTab,
+            @RequestParam(defaultValue = "wall") String view,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String dir,
@@ -1152,6 +1101,9 @@ public class ChartsController {
             @RequestParam(required = false) Integer topAlbum,
             @RequestParam MultiValueMap<String, String> filterParams,
             Model model) {
+        if (!"table".equals(view)) {
+            return renderSeasonalWall("yearly", normalizeOverviewTab(overviewTab), includeFeatured, model);
+        }
         return renderSeasonalOverview("yearly", normalizeOverviewTab(overviewTab), q, sort, dir, sort2, dir2, sort3, dir3, includeFeatured, topSong, topAlbum, filterParams, model);
     }
 
@@ -1218,38 +1170,22 @@ public class ChartsController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * Weekly Number Ones page - shows all #1 runs on the weekly chart for songs and albums.
-     */
-    @GetMapping("/number-ones")
-    public String weeklyNumberOnes(
-            @RequestParam(defaultValue = "song") String type,
-            Model model) {
-        
-        List<library.dto.NumberOneRunDTO> runs = chartService.getNumberOneRuns(type);
-        
-        model.addAttribute("currentSection", "number-ones-charts");
-        model.addAttribute("runs", runs);
-        model.addAttribute("selectedType", type);
-        
-        return "charts/number-ones";
-    }
-    
+
     // ========== HELPER METHODS ==========
 
-    /**
-     * API: Get past chart appearances for a song or album in a given period type.
-     * Used by the chart editor to show prior chart history on each item.
-     */
-    @GetMapping("/api/history/{periodType}/{chartType}/{itemId}")
-    @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getItemChartHistory(
-            @PathVariable String periodType,
-            @PathVariable String chartType,
-            @PathVariable Integer itemId,
-            @RequestParam(required = false, defaultValue = "") String excludePeriodKey) {
-        List<Map<String, Object>> history = chartService.getPastChartAppearancesForItem(itemId, chartType, periodType, excludePeriodKey);
-        return ResponseEntity.ok(history);
+    /** Seasonal / Yearly overview: the Season wall for songs and albums, one all-artist board for artists. */
+    private String renderSeasonalWall(String periodType, String overviewTab, boolean includeFeatured, Model model) {
+        model.addAttribute("currentSection", "yearly".equals(periodType) ? "yearly-overview-charts" : "seasonal-overview-charts");
+        model.addAttribute("periodType", periodType);
+        model.addAttribute("overviewTab", overviewTab);
+        model.addAttribute("charts", ChartOverviewService.Chart.values());
+        if ("artist".equals(overviewTab)) {
+            model.addAttribute("artists", seasonalWallService.artistBoard(includeFeatured));
+            model.addAttribute("includeFeatured", includeFeatured);
+        } else {
+            model.addAttribute("wall", seasonalWallService.build(overviewTab));
+        }
+        return "charts/seasonal-wall";
     }
 
     private String renderSeasonalOverview(String periodType,
@@ -1312,7 +1248,6 @@ public class ChartsController {
         model.addAttribute("albumRows", pagedAlbumRows);
         model.addAttribute("artistRows", pagedArtistRows);
         model.addAttribute("pageTitle", "yearly".equals(periodType) ? "Yearly Chart Overview" : "Seasonal Chart Overview");
-        model.addAttribute("serverInfiniteScrollEnabled", true);
         model.addAttribute("overviewDataPath", "/charts/" + periodType + "/overview/data");
         model.addAttribute("pageSize", pageSize);
         model.addAttribute("activeTotalCount", activeTotalCount);
@@ -1423,14 +1358,6 @@ public class ChartsController {
 
     private boolean containsOverviewValue(String value, String normalizedQuery) {
         return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedQuery);
-    }
-
-    private List<ChartSongOverviewRowDTO> filterWeeklySongOverviewRows(List<ChartSongOverviewRowDTO> rows, String query, List<String> columnFilters) {
-        return filterSongOverviewRowsForPeriod(rows, query, columnFilters, "weekly");
-    }
-
-    private List<ChartAlbumOverviewRowDTO> filterWeeklyAlbumOverviewRows(List<ChartAlbumOverviewRowDTO> rows, String query, List<String> columnFilters) {
-        return filterAlbumOverviewRowsForPeriod(rows, query, columnFilters, "weekly");
     }
 
     private List<ChartSongOverviewRowDTO> filterSongOverviewRowsForPeriod(List<ChartSongOverviewRowDTO> rows, String query, List<String> columnFilters, String periodType) {

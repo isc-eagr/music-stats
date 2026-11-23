@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${d.name} + ' - Music Stats'">Timeframe Detail</title>
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/detail-general.css(v=13)}">
+    <link rel="stylesheet" th:href="@{/css/detail-plays.css(v=3)}">
+    <link rel="stylesheet" th:href="@{/css/catalog-detail.css(v=7)}">
+    <link rel="stylesheet" th:href="@{/css/timeframe-detail.css(v=4)}">
+    <script defer th:src="@{/js/timeframe-detail.js(v=1)}"></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+<div class="container-wide dt-page cd-page tf-page" th:classappend="${d.theme}">
+
+    <nav class="cd-crumb" aria-label="Breadcrumb">
+        <a th:href="@{'/' + ${d.period.type}}" th:text="${d.listLabel}">Years</a>
+        <span aria-hidden="true">/</span>
+        <span class="cd-crumb-here" th:text="${d.name}">2024</span>
+        <span class="tf-nav">
+            <a class="tf-nb" th:href="@{${d.prev.href}}" th:title="'Previous: ' + ${d.prev.label}">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span th:text="${d.prev.label}">2023</span></a>
+            <a th:if="${d.next != null}" class="tf-nb" th:href="@{${d.next.href}}" th:title="'Next: ' + ${d.next.label}">
+                <span th:text="${d.next.label}">2025</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></a>
+        </span>
+    </nav>
+    <div class="tf-pnav" th:if="${!#lists.isEmpty(d.partOf) or !#lists.isEmpty(d.contains)}">
+        <th:block th:if="${!#lists.isEmpty(d.partOf)}">
+            <span>Part of</span>
+            <a th:each="l : ${d.partOf}" class="is-up" th:href="@{${l.href}}" th:text="${l.label}">2020s</a>
+        </th:block>
+        <th:block th:if="${!#lists.isEmpty(d.contains)}">
+            <span th:text="${d.containsLabel}">Contains</span>
+            <a th:each="l : ${d.contains}" th:href="@{${l.href}}" th:text="${l.label}">Jan</a>
+        </th:block>
+    </div>
+
+    <!-- Hero: name, where it stands among its peers, and the eight tiles -->
+    <section class="dt-card cd-hero">
+        <div class="cd-hero-top">
+            <div class="cd-hero-name">
+                <span class="cd-eyebrow" th:text="${d.eyebrow}">Year · listened</span>
+                <h1 th:text="${d.name}">2024</h1>
+                <span class="cd-hero-sub" th:text="${d.sub}">01/01/2024 – 31/12/2024 · 366 days</span>
+            </div>
+            <div class="cd-standing" th:if="${!#lists.isEmpty(d.standing)}">
+                <th:block th:each="s : ${d.standing}">
+                    <div th:replace="~{fragments/detail-sections :: stand(${s.value}, ${s.label}, ${s.note}, ${s.top})}"></div>
+                </th:block>
+            </div>
+        </div>
+        <div class="cd-tiles tf-tiles">
+            <th:block th:each="t : ${d.tiles}">
+                <a th:if="${t.href != null}" class="cd-tile is-link" th:href="@{${t.href}}">
+                    <span class="cd-tile-l"><span th:text="${t.label}">Artists</span>
+                        <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+                    <span class="cd-tile-v dt-num" th:text="${t.value}">0</span>
+                    <span th:if="${t.note != null}" class="tf-tile-n" th:classappend="${t.tone == 'up'} ? 'is-up' : (${t.tone == 'down'} ? 'is-down' : '')" th:text="${t.note}"></span>
+                </a>
+                <div th:if="${t.href == null}" class="cd-tile">
+                    <span class="cd-tile-l" th:text="${t.label}">Plays</span>
+                    <span class="cd-tile-v dt-num" th:text="${t.value}">0</span>
+                    <span th:if="${t.note != null}" class="tf-tile-n" th:classappend="${t.tone == 'up'} ? 'is-up' : (${t.tone == 'down'} ? 'is-down' : '')" th:text="${t.note}"></span>
+                </div>
+            </th:block>
+        </div>
+    </section>
+
+    <th:block th:if="${d.plays == 0}">
+        <section class="dt-card cd-card"><p class="cd-empty">No plays in this period.</p></section>
+    </th:block>
+
+    <th:block th:if="${d.plays > 0}">
+    <!-- Gender breakdown and genres, then the mixes -->
+    <div class="cd-row">
+        <section th:replace="~{fragments/detail-sections :: gender(${d.gender})}"></section>
+        <section th:replace="~{fragments/detail-sections :: breakdown('Genres', ${d.genres})}"></section>
+    </div>
+    <div th:replace="~{fragments/detail-sections :: mixes(${d.mixes})}"></div>
+
+    <!-- Who won each slice of the period -->
+    <section class="dt-card cd-card tf-won">
+        <div class="cd-head">
+            <p class="dt-cap">Who won each slice</p>
+            <span class="cd-head-note">winner = more plays in that slice</span>
+        </div>
+        <div class="tf-tally" th:style="|grid-template-columns: repeat(${#lists.size(d.tallies)}, minmax(0, 1fr))|">
+            <div th:each="t : ${d.tallies}" class="tf-ty">
+                <span class="tf-tl" th:text="${t.label}">Months</span>
+                <span class="tf-sc"><b class="dt-num is-m" th:text="${t.male}">12</b><span class="dt-num is-f" th:text="${t.female}">0</span></span>
+                <span class="tf-tyb" th:title="${t.male} + ' male · ' + ${t.female} + ' female' + (${t.ties > 0} ? ' · ' + ${t.ties} + ' ties' : '')"><i th:style="|width: ${t.malePct}%|"></i></span>
+                <span class="tf-tynote" th:text="${t.note}">closest: May · 78% male</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Across the period: plays (or time) per slice by gender -->
+    <section class="dt-card cd-card tf-across" data-tf-across>
+        <div class="cd-head">
+            <p class="dt-cap" th:text="'Across the ' + ${#strings.toLowerCase(d.period.typeLabel())}">Across the year</p>
+            <div class="cd-head-r">
+                <span class="cd-legend"><i class="is-m"></i>Male<i class="is-f"></i>Female</span>
+                <div class="cd-toggle" role="group" aria-label="Measure">
+                    <button type="button" class="is-on" aria-pressed="true" data-tf-measure="plays">Plays</button>
+                    <button type="button" aria-pressed="false" data-tf-measure="time">Time</button>
+                </div>
+                <div th:if="${#lists.size(d.steps) > 1}" class="cd-toggle" role="group" aria-label="Step">
+                    <button th:each="s, it : ${d.steps}" type="button" th:classappend="${it.first} ? 'is-on'"
+                            th:attr="aria-pressed=${it.first},data-tf-step=${s.id}" th:text="${s.label}">Months</button>
+                </div>
+            </div>
+        </div>
+        <th:block th:each="s, it : ${d.steps}">
+            <svg class="cd-stream" viewBox="0 0 1000 220" preserveAspectRatio="none" role="img"
+                 th:attr="aria-label=${d.name} + ' plays per ' + ${s.id} + ' by gender',data-tf-stream=${s.id} + '-plays'" th:hidden="${!it.first}">
+                <path class="is-m" th:attr="d=${s.plays.male}"/>
+                <path class="is-o" th:attr="d=${s.plays.other}"/>
+                <path class="is-f" th:attr="d=${s.plays.female}"/>
+            </svg>
+            <svg class="cd-stream" viewBox="0 0 1000 220" preserveAspectRatio="none" role="img" hidden
+                 th:attr="aria-label=${d.name} + ' time listened per ' + ${s.id} + ' by gender',data-tf-stream=${s.id} + '-time'">
+                <path class="is-m" th:attr="d=${s.time.male}"/>
+                <path class="is-o" th:attr="d=${s.time.other}"/>
+                <path class="is-f" th:attr="d=${s.time.female}"/>
+            </svg>
+            <div class="cd-pills tf-pills" th:attr="data-tf-pills=${s.id}" th:hidden="${!it.first}"
+                 th:with="dense=${#lists.size(s.pills) > 31}" th:classappend="${dense} ? 'is-dense'"
+                 th:style="|grid-template-columns: repeat(${#lists.size(s.pills)}, minmax(0, 1fr))|">
+                <th:block th:each="p : ${s.pills}">
+                    <a th:if="${p.href != null}" class="cd-pill" th:href="@{${p.href}}" th:title="${p.title}" th:insert="~{:: pill(${p}, ${dense})}"></a>
+                    <div th:if="${p.href == null}" class="cd-pill" th:title="${p.title}" th:insert="~{:: pill(${p}, ${dense})}"></div>
+                </th:block>
+            </div>
+        </th:block>
+        <div th:if="${!#lists.isEmpty(d.sessionStrip)}" class="tf-strip" aria-label="Listening sessions">
+            <span th:each="g : ${d.sessionStrip}" th:style="|left: ${g.left}%; width: ${g.width}%|" th:title="${g.title}" th:text="${g.label}">29</span>
+        </div>
+        <p class="cd-note tf-pill-note" th:with="unit=${#lists.isEmpty(d.steps) ? 'slice' : #strings.substring(d.steps[0].id, 0, #strings.length(d.steps[0].id) - 1)}">
+            Under each <span data-tf-unit th:text="${unit}">year</span>:
+            <b data-tf-pill="plays">top = total plays</b><b data-tf-pill="time" hidden>top = total listening time (hours and minutes)</b>,
+            <b class="tf-pm">bottom = % of those plays by male artists</b>.
+            Gold = the <span data-tf-unit th:text="${unit}">year</span> with the most plays.
+            <th:block th:if="${d.period.type == 'days'}">The strip under it = your listening sessions.</th:block>
+            <th:block th:if="${d.period.type != 'days'}">Click one to open its own page.</th:block>
+        </p>
+    </section>
+
+    <!-- Streaks and sessions -->
+    <div class="tf-two">
+        <section class="dt-card cd-card tf-streaks">
+            <div class="cd-head">
+                <p class="dt-cap">Streaks</p>
+                <span class="cd-head-note" th:text="${d.streaks.around} ? 'the streaks this ' + ${#strings.toLowerCase(d.period.typeLabel())} + ' belongs to' : 'inside the ' + ${#strings.toLowerCase(d.period.typeLabel())}">inside the year</span>
+            </div>
+            <th:block th:if="${!d.streaks.around}">
+                <div class="tf-tln" role="img" aria-label="Streaks across the period">
+                    <span th:each="s : ${d.streaks.streaks}" th:if="${s.days > 0}" th:class="'tf-band is-' + ${s.kind}"
+                          th:style="|left: ${s.left}%; width: ${s.width}%|" th:title="${s.label} + ' · ' + ${s.range}"></span>
+                    <em th:each="k : ${d.streaks.ticks}" th:class="'is-' + ${k.kind}" th:style="|left: ${k.left}%|" th:title="${k.title}"></em>
+                </div>
+                <div class="tf-tlab"><span th:each="a : ${d.streaks.axis}" th:text="${a}">Jan</span></div>
+                <div class="tf-mini">
+                    <div th:each="s : ${d.streaks.streaks}" class="cd-tile">
+                        <span class="cd-tile-l" th:text="${s.label}">Listening streak</span>
+                        <span class="cd-tile-v dt-num" th:classappend="${s.kind == 'male'} ? 'is-m'" th:text="${s.days} + (${s.days == 1} ? ' day' : ' days')">220 days</span>
+                        <span class="tf-tile-n" th:text="${s.note}">26/05 → 31/12</span>
+                    </div>
+                </div>
+                <p class="cd-note">Light band = days in a row with plays, solid band = male-won days in a row, pink ticks = female-won days, orange = days without plays.</p>
+            </th:block>
+            <th:block th:if="${d.streaks.around}">
+                <div th:each="s : ${d.streaks.streaks}" class="tf-stk">
+                    <span><b th:text="${s.label}">Listening streak · 130 days</b> <small th:if="${s.range != null}" th:text="${s.range}">10/02 → 19/06</small></span>
+                    <span th:if="${s.marker != null}" class="tf-sline" th:classappend="'is-' + ${s.kind}"><em th:style="|left: ${s.marker}%|"></em></span>
+                    <small th:text="${s.note}">This day is day 40</small>
+                </div>
+                <p class="cd-note">Gold mark = this period inside its streak.</p>
+            </th:block>
+        </section>
+
+        <section th:if="${d.sessions != null}" class="dt-card cd-card tf-sessions">
+            <div class="cd-head">
+                <p class="dt-cap">Sessions &amp; runs</p>
+                <span class="cd-head-note">session = plays under 25 min apart</span>
+            </div>
+            <div class="tf-mini">
+                <div class="cd-tile">
+                    <span class="cd-tile-l">Sessions</span>
+                    <span class="cd-tile-v dt-num" th:text="${d.sessions.count}">1,347</span>
+                    <span class="tf-tile-n" th:text="${d.sessions.perDay}">3.7 a day</span>
+                </div>
+                <a th:if="${d.sessions.longestHref != null}" class="cd-tile is-link" th:href="@{${d.sessions.longestHref}}">
+                    <span class="cd-tile-l">Longest session</span>
+                    <span class="cd-tile-v dt-num" th:text="${d.sessions.longest}">7h 11m</span>
+                    <span class="tf-tile-n" th:text="${d.sessions.longestNote}">03/03 17:54</span>
+                </a>
+                <div th:if="${d.sessions.longestHref == null}" class="cd-tile">
+                    <span class="cd-tile-l">Longest session</span>
+                    <span class="cd-tile-v dt-num" th:text="${d.sessions.longest}">2h 29m</span>
+                    <span class="tf-tile-n" th:text="${d.sessions.longestNote}">17:31 → 20:00</span>
+                </div>
+            </div>
+            <div th:if="${!#lists.isEmpty(d.sessions.rows)}" class="tf-ss-list">
+                <th:block th:each="s : ${d.sessions.rows}">
+                    <a th:if="${s.href != null}" class="tf-ss" th:href="@{${s.href}}" th:insert="~{:: session(${s})}"></a>
+                    <div th:if="${s.href == null}" class="tf-ss" th:insert="~{:: session(${s})}"></div>
+                </th:block>
+            </div>
+            <a th:each="r : ${d.sessions.runs}" class="tf-run" th:href="@{${r.href}}">
+                <span class="tf-nm"><span th:replace="~{:: thumb(${r.img}, ${r.title}, null)}"></span>
+                    <span><b th:text="${r.title}">Rauw Alejandro</b><small th:text="${r.sub}">205 in a row</small></span></span>
+                <span class="tf-run-bar" aria-hidden="true"><i th:each="i : ${#numbers.sequence(1, (r.plays > 40 ? 40 : r.plays))}"></i></span>
+            </a>
+            <p class="cd-note">Runs = the same artist 8+ times back to back. "Whole album" when the run covers every song of one album.</p>
+        </section>
+    </div>
+
+    <!-- Top of the period: mixed lists, bar color = gender -->
+    <section class="dt-card cd-card tf-top" data-tf-top>
+        <div class="cd-head">
+            <p class="dt-cap" th:text="'Top of ' + ${d.name}">Top of 2024</p>
+            <div class="cd-head-r">
+                <a th:if="${d.chart != null}" class="tf-chart" th:href="@{${d.chart.href}}">
+                    <span th:text="${d.chart.text}">Yearly chart #1 · Columbia</span>
+                    <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+                <span th:if="${d.topNote != null}" class="cd-head-note" th:text="${d.topNote}">44 of your top 50 artists are male</span>
+                <div class="cd-toggle" role="group" aria-label="Gender filter">
+                    <button type="button" class="is-on" aria-pressed="true" data-tf-filter="all">All</button>
+                    <button type="button" aria-pressed="false" data-tf-filter="male">Male</button>
+                    <button type="button" aria-pressed="false" data-tf-filter="female">Female</button>
+                </div>
+            </div>
+        </div>
+        <div class="tf-three">
+            <div th:each="c : ${d.tops}">
+                <p class="tf-th"><b th:text="${c.title}">Artists</b><span th:text="${c.note}">bar color = gender</span></p>
+                <div class="cd-scroll tf-list" data-tf-list="all" th:insert="~{:: toplist(${c.all})}"></div>
+                <div class="cd-scroll tf-list" data-tf-list="male" hidden th:insert="~{:: toplist(${c.male})}"></div>
+                <div class="cd-scroll tf-list" data-tf-list="female" hidden th:insert="~{:: toplist(${c.female})}"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Discoveries: first-ever plays inside the period -->
+    <section th:if="${!#lists.isEmpty(d.discoveries.artists) or !#lists.isEmpty(d.discoveries.songs)}" id="tf-discoveries" class="dt-card cd-card tf-disc">
+        <div class="cd-head">
+            <p class="dt-cap">Discoveries</p>
+            <span class="cd-head-note" th:text="${d.discoveries.note}">96 artists first played</span>
+        </div>
+        <th:block th:if="${!#lists.isEmpty(d.discoveries.artists)}">
+            <div class="tf-dr tf-dhead" th:classappend="${!d.discoveries.showSince} ? 'no-since'">
+                <span>Artist</span><span>First play</span><span class="tf-r" th:text="${d.name}">2024</span>
+                <th:block th:if="${d.discoveries.showSince}"><span class="tf-x">Inside vs since</span><span class="tf-r">Since</span></th:block>
+            </div>
+            <div class="cd-scroll">
+                <a th:each="x : ${d.discoveries.artists}" class="tf-dr" th:classappend="${!d.discoveries.showSince} ? 'no-since'" th:href="@{${x.href}}">
+                    <span class="tf-nm"><span th:replace="~{:: thumb(${x.img}, ${x.name}, ${x.gender})}"></span><span th:text="${x.name}">Sinaka</span></span>
+                    <span class="cd-dim dt-num" th:text="${x.first}">16/09/2024</span>
+                    <b class="dt-num tf-r" th:text="${x.plays}">386</b>
+                    <th:block th:if="${d.discoveries.showSince}">
+                        <span class="tf-x tf-split"><i th:style="|width: ${x.insidePct}%|"></i></span>
+                        <span class="tf-tag dt-num" th:classappend="${x.faded} ? 'is-faded' : 'is-kept'" th:text="${x.since}">1,259</span>
+                    </th:block>
+                </a>
+            </div>
+        </th:block>
+        <th:block th:if="${!#lists.isEmpty(d.discoveries.songs)}">
+            <p class="cd-sub tf-gap">First-ever songs</p>
+            <a th:each="x : ${d.discoveries.songs}" class="tf-cb" th:href="@{${x.href}}">
+                <span class="tf-nm"><span th:replace="~{:: thumb(${x.img}, ${x.name}, ${x.gender})}"></span><span th:text="${x.name}">Maltrato · Sinaka</span></span>
+                <span class="cd-dim dt-num" th:text="${x.first}">11:29</span>
+                <b class="dt-num tf-r" th:text="${x.plays}">1</b>
+            </a>
+        </th:block>
+        <p class="cd-note" th:if="${d.discoveries.showSince}">Split bar = plays inside the period (solid) vs every play after it (light). Orange = faded right after.</p>
+    </section>
+
+    <div class="tf-two" th:if="${!#lists.isEmpty(d.comebacks) or !#lists.isEmpty(d.farewells)}">
+        <section th:if="${!#lists.isEmpty(d.comebacks)}" class="dt-card cd-card tf-back">
+            <div class="cd-head">
+                <p class="dt-cap">Comebacks</p>
+                <span class="cd-head-note" th:text="${d.comebackNote}">back after a year or more away</span>
+            </div>
+            <div class="cd-scroll">
+                <a th:each="x : ${d.comebacks}" class="tf-cb" th:href="@{${x.href}}">
+                    <span class="tf-nm"><span th:replace="~{:: thumb(${x.img}, ${x.name}, ${x.gender})}"></span><span><span th:text="${x.name}">Sky</span><small th:text="${x.sub}">last 07/02/2020</small></span></span>
+                    <span class="tf-gap-l"><i th:style="|width: ${x.gapPx}px|"></i><span th:text="${x.gap}">4.0 yrs</span></span>
+                    <b class="dt-num tf-r" th:text="${x.plays}" th:title="'Plays in ' + ${d.name}">67</b>
+                </a>
+            </div>
+        </section>
+        <section th:if="${!#lists.isEmpty(d.farewells)}" class="dt-card cd-card tf-bye">
+            <div class="cd-head">
+                <p class="dt-cap">Farewells</p>
+                <span class="cd-head-note">last play ever happened here</span>
+            </div>
+            <div class="cd-scroll">
+                <a th:each="x : ${d.farewells}" class="tf-cb" th:href="@{${x.href}}">
+                    <span class="tf-nm"><span th:replace="~{:: thumb(${x.img}, ${x.name}, ${x.gender})}"></span><span><span th:text="${x.name}">Flyleaf</span><small th:text="${x.sub}">last play 07/06/2024</small></span></span>
+                    <span class="cd-dim">lifetime</span>
+                    <b class="dt-num tf-r" th:text="${x.lifetime}">533</b>
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <!-- Where it sits: ranked lists, or the same date every year on a Day page -->
+    <section th:if="${d.period.type == 'days'}" class="dt-card cd-card tf-sameday">
+        <div class="cd-head">
+            <p class="dt-cap" th:text="'Where ' + ${d.name} + ' sits'">Where it sits</p>
+            <span class="cd-head-note">bars = plays, pink = female share</span>
+        </div>
+        <p class="cd-sub">Same date, every year</p>
+        <div class="tf-otd" th:style="|grid-template-columns: repeat(${#lists.size(d.sameDate)}, minmax(0, 1fr))|" role="img" aria-label="Plays on the same date every year">
+            <a th:each="b : ${d.sameDate}" th:href="@{${b.href}}" th:classappend="${b.self} ? 'is-self'" th:title="${b.title}">
+                <i th:style="|height: ${b.height}%|"><em th:style="|height: ${b.femalePct}%|"></em></i>
+            </a>
+        </div>
+        <div class="tf-oax" th:style="|grid-template-columns: repeat(${#lists.size(d.sameDate)}, minmax(0, 1fr))|">
+            <span th:each="b : ${d.sameDate}" th:text="${b.label}">'25</span>
+        </div>
+    </section>
+    <th:block th:if="${d.period.type != 'days' and !#lists.isEmpty(d.byPlays)}">
+        <section th:replace="~{fragments/detail-sections :: peers(${d.peersCaption}, ${d.peersNote}, ${d.byPlays}, ${d.byMale})}"></section>
+    </th:block>
+
+    <!-- When you play it (a Day page already shows its hours above) -->
+    <th:block th:if="${d.period.type != 'days'}">
+        <section th:replace="~{fragments/detail-sections :: when('When you play it', ${d.rhythm}, ${d.showWeek}, ${d.showMonth})}"></section>
+    </th:block>
+    </th:block>
+</div>
+
+<th:block th:if="false">
+    <th:block th:fragment="pill(p, dense)">
+        <span th:text="${p.label}">Jan</span>
+        <div class="cd-pv" data-tf-pill="plays">
+            <b class="dt-num" th:classappend="${p.best} ? 'is-one'" th:text="${p.plays}">1,834</b>
+            <small class="dt-num tf-pm" th:text="${p.plays == '0'} ? '' : ${p.malePct} + (${dense} ? '%' : '% male')">82% male</small>
+        </div>
+        <div class="cd-pv" data-tf-pill="time" hidden>
+            <b class="dt-num" th:classappend="${p.best} ? 'is-one'" th:text="${p.time}">98h 12m</b>
+            <small class="dt-num tf-pm" th:text="${p.plays == '0'} ? '' : ${p.malePct} + (${dense} ? '%' : '% male')">82% male</small>
+        </div>
+    </th:block>
+    <th:block th:fragment="session(s)">
+        <span class="cd-dim dt-num" th:text="${s.range}">11:27 – 13:54</span>
+        <span class="tf-ss-bar"><i th:style="|width: ${s.barPct}%|"></i></span>
+        <b class="dt-num tf-r" th:text="${s.plays}">29</b>
+        <span class="cd-dim dt-num tf-r" th:text="${s.length}">2h 27m</span>
+    </th:block>
+    <!-- Artist (round) / album / song thumbnail with a gender ring; the initial shows when there is no image -->
+    <span th:fragment="thumb(src, name, gender)" class="tf-im"
+          th:classappend="${(#strings.startsWith(src, '/artists/') ? 'is-artist' : '') + (gender != null ? ' g-' + gender : '')}">
+        <em th:text="${#strings.isEmpty(name) ? '?' : #strings.substring(name, 0, 1)}">A</em>
+        <img loading="lazy" decoding="async" th:src="@{${src}}" alt="" onerror="this.remove()">
+    </span>
+    <th:block th:fragment="toplist(rows)">
+        <a th:each="r : ${rows}" class="tf-tr" th:href="@{${r.href}}">
+            <span class="cd-ix dt-num" th:text="${r.rank}">1</span>
+            <span th:replace="~{:: thumb(${r.img}, ${r.name}, ${r.gender})}"></span>
+            <span class="tf-tn">
+                <span class="tf-tname"><span th:text="${r.name}">Rauw Alejandro</span><small th:if="${r.sub != null}" th:text="${r.sub}"></small></span>
+                <span th:class="'tf-tb is-' + ${r.gender}" th:style="|width: ${r.barPct}%|"></span>
+            </span>
+            <b class="dt-num tf-r" th:text="${r.plays}">1,301</b>
+        </a>
+        <p th:if="${#lists.isEmpty(rows)}" class="cd-empty">Nothing here</p>
+    </th:block>
+</th:block>
+</body>
+</html>

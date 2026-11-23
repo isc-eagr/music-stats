@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${album.name} + ' - Music Stats'">Album Detail</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
-    <link rel="stylesheet" th:href="@{/css/detail-chart-history.css(v=9)}">
+    <link rel="stylesheet" th:href="@{/css/detail-chart-history.css(v=10)}">
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -17,16 +17,18 @@
     <script th:src="@{/js/consistency.js}" defer></script>
     <link rel="stylesheet" th:href="@{/css/detail-plays.css(v=3)}">
     <link rel="stylesheet" th:href="@{/css/detail-associations.css(v=8)}">
-    <link rel="stylesheet" th:href="@{/css/detail-general.css(v=12)}">
-    <script defer th:src="@{/js/detail-sidebar.js(v=1)}"></script>
+    <link rel="stylesheet" th:href="@{/css/detail-general.css(v=13)}">
+    <script defer th:src="@{/js/detail-sidebar.js(v=3)}"></script>
     <script defer th:src="@{/js/detail-plays-tab.js(v=3)}"></script>
     <link rel="stylesheet" th:href="@{/css/album-detail.css(v=3)}">
-    <script th:src="@{/js/list-utils.js}"></script>
+    <script th:src="@{/js/list-utils.js(v=2)}"></script>
     <script th:src="@{/js/detail-sort.js(v=2)}" defer></script>
     <script th:src="@{/js/table-sort.js}" defer></script>
     <script th:src="@{/js/searchable-select.js}" defer></script>
     <script th:src="@{/js/detail-state.js(v=1)}"></script>
-    <script th:src="@{/js/detail-chart-history.js(v=9)}" defer></script>
+    <script th:src="@{/js/detail-page.js(v=1)}"></script>
+    <script th:src="@{/js/chart-run.js(v=1)}" defer></script>
+    <script th:src="@{/js/detail-chart-history.js(v=10)}" defer></script>
     <style>
         .detail-save-overlay {
             position: fixed;
@@ -129,10 +131,26 @@
             </div>
         </div>
     </div>
-    <div class="container-wide album-detail ad-page" th:classappend="${artistGender != null and artistGender.toLowerCase().contains('male') and !artistGender.toLowerCase().contains('female')} ? 'gender-male' : (${artistGender != null and artistGender.toLowerCase().contains('female')} ? 'gender-female' : '')">
+    <div class="container-wide album-detail dt-page" th:classappend="${artistGender != null and artistGender.toLowerCase().contains('male') and !artistGender.toLowerCase().contains('female')} ? 'gender-male' : (${artistGender != null and artistGender.toLowerCase().contains('female')} ? 'gender-female' : '')">
         <div class="detail-grid">
+            <!-- Tab menu: its own bar across the top, above the sidebar and the content -->
+            <div class="detail-tabs">
+                <a href="#" onclick="switchTab(event, 'general')"
+                   th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
+                   class="detail-tab" id="generalTab">General</a>
+                <a href="#" onclick="switchTab(event, 'plays')"
+                   th:classappend="${activeTab == 'plays'} ? 'active' : ''"
+                   class="detail-tab" id="playsTab">Plays</a>
+                <a href="#" onclick="switchTab(event, 'featured')"
+                   th:classappend="${activeTab == 'featured'} ? 'active' : ''"
+                   class="detail-tab" id="featuredTab">Featured Artists</a>
+                <a href="#" onclick="switchTab(event, 'chart-history')"
+                   th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
+                   class="detail-tab" id="chartHistoryTab">Chart History</a>
+            </div>
+
             <!-- Sidebar card: cover, plays, profile (view and edit in place) -->
-            <aside class="detail-sidebar ad-card" id="albumSidebar"
+            <aside class="detail-sidebar dt-card" id="albumSidebar"
                    th:with="genderName=${artist != null and artist.genderId != null ? genders.get(artist.genderId) : null}">
                 <div class="item-image-container">
                     <!-- Gallery Navigation Arrows -->
@@ -166,10 +184,10 @@
                     </div>
 
                     <!-- Length on the cover (top right; the flag sits top left) -->
-                    <span class="ad-photo-len" th:with="len=${albumLengthFormatted != null and !#strings.isEmpty(albumLengthFormatted) ? albumLengthFormatted : null}" th:classappend="${len == null} ? 'is-empty' : ''" th:title="${len != null} ? 'Length' : 'Length not set'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><th:block th:text="${len != null ? len : '--:--'}">0:00</th:block></span>
-                    <div class="ad-photo-fade"></div>
+                    <span class="dt-photo-len" th:with="len=${albumLengthFormatted != null and !#strings.isEmpty(albumLengthFormatted) ? albumLengthFormatted : null}" th:classappend="${len == null} ? 'is-empty' : ''" th:title="${len != null} ? 'Length' : 'Length not set'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><th:block th:text="${len != null ? len : '--:--'}">0:00</th:block></span>
+                    <div class="dt-photo-fade"></div>
                     <div class="ab-photo-title">
-                        <h1 class="item-name-top ad-photo-name">
+                        <h1 class="item-name-top dt-photo-name">
                             <span th:replace="~{fragments/catalog-card :: itunes-badge(${album.inItunes})}"></span><span th:text="${album.name}">Album Name</span>
                         </h1>
                         <a th:if="${artistName != null}" class="ab-photo-artist" th:href="@{'/artists/' + ${album.artistId}}" th:text="${artistName}">Artist</a>
@@ -198,28 +216,28 @@
                     </div>
                 </div>
 
-                <div class="ad-profile">
+                <div class="dt-profile">
                     <!-- Profile (view) -->
-                    <div class="ad-profile-view">
-                        <div class="ad-profile-head">
+                    <div class="dt-profile-view">
+                        <div class="dt-profile-head">
                             <h2>Profile</h2>
-                            <div class="ad-profile-actions">
-                                <button type="button" class="ad-btn" id="editBtn" onclick="toggleEdit()">
-                                    <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit
+                            <div class="dt-profile-actions">
+                                <button type="button" class="dt-btn" id="editBtn" onclick="toggleEdit()">
+                                    <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit
                                 </button>
-                                <button type="button" class="ad-btn ad-btn--icon" id="profileMenuBtn" aria-label="More actions" aria-haspopup="true" aria-expanded="false" onclick="toggleProfileMenu(event)">
-                                    <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+                                <button type="button" class="dt-btn dt-btn--icon" id="profileMenuBtn" aria-label="More actions" aria-haspopup="true" aria-expanded="false" onclick="toggleProfileMenu(event)">
+                                    <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
                                 </button>
                             </div>
-                            <div class="ad-menu" id="profileMenu" role="menu" hidden>
-                                <button type="button" class="ad-menu-item" role="menuitem" onclick="openExternalFetchFromMenu()">
-                                    <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+                            <div class="dt-menu" id="profileMenu" role="menu" hidden>
+                                <button type="button" class="dt-menu-item" role="menuitem" onclick="openExternalFetchFromMenu()">
+                                    <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
                                     <span>Fetch external data<small>Opens the editor and fills the release date</small></span>
                                 </button>
-                                <div class="ad-menu-sep"></div>
-                                <button type="button" class="ad-menu-item is-danger" id="deleteBtn" role="menuitem"
+                                <div class="dt-menu-sep"></div>
+                                <button type="button" class="dt-menu-item is-danger" id="deleteBtn" role="menuitem"
                                         th:disabled="${albumPlayCount > 0}" onclick="confirmDelete()">
-                                    <svg class="ad-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>
+                                    <svg class="dt-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>
                                     <span>Delete album
                                         <small th:if="${albumPlayCount > 0}" th:text="'Locked while the album has ' + ${#numbers.formatInteger(albumPlayCount, 1, 'COMMA')} + ' plays'">Locked</small>
                                         <small th:unless="${albumPlayCount > 0}">Also deletes its songs</small>
@@ -231,7 +249,7 @@
                         <!-- Ranks among albums sharing each attribute. Genre, subgenre and language can be overridden on the album;
                              everything else follows the artist. -->
                         <div>
-                            <p class="ad-cap">Ranks by attribute</p>
+                            <p class="dt-cap">Ranks by attribute</p>
                             <th:block th:replace="~{fragments/detail-general :: rank-row('Artist', ${artistName}, ${rankByArtist}, @{'/artists/' + ${album.artistId}}, null, false, 'albums', null)}"></th:block>
                             <th:block th:replace="~{fragments/detail-general :: rank-row('Gender', ${genderName}, ${rankByGender}, @{/albums(gender=${artist != null ? artist.genderId : null},genderMode='includes',view='table',highlight=${album.id})}, null, true, 'albums', ${artistName})}"></th:block>
                             <th:block th:replace="~{fragments/detail-general :: rank-row('Genre', ${effectiveGenreName}, ${rankByGenre}, @{/albums(genre=${album.effectiveGenreId},genreMode='includes',view='table',highlight=${album.id})}, null, false, 'albums', ${album.overrideGenreId != null ? 'override' : artistName})}"></th:block>
@@ -246,57 +264,57 @@
                         </div>
 
                         <div>
-                            <p class="ad-cap">Release</p>
-                            <div class="ad-row">
-                                <span class="ad-row-k">Released</span>
-                                <span class="ad-row-v" th:if="${album.releaseDate != null}">
-                                    <span class="ad-num" th:text="${album.releaseDateFormatted}">01-Jan-2020</span>
+                            <p class="dt-cap">Release</p>
+                            <div class="dt-row">
+                                <span class="dt-row-k">Released</span>
+                                <span class="dt-row-v" th:if="${album.releaseDate != null}">
+                                    <span class="dt-num" th:text="${album.releaseDateFormatted}">01-Jan-2020</span>
                                     <small th:if="${artist != null and artist.deathDate != null and album.releaseDate.toLocalDate().isAfter(artist.deathDate)}">posthumous</small>
                                     <small th:if="${ageAtRelease != null and (artist.deathDate == null or !album.releaseDate.toLocalDate().isAfter(artist.deathDate))}"
                                            th:text="'at ' + ${ageAtRelease}">at 25</small>
                                 </span>
-                                <span class="ad-row-v is-empty" th:unless="${album.releaseDate != null}">Not set</span>
+                                <span class="dt-row-v is-empty" th:unless="${album.releaseDate != null}">Not set</span>
                             </div>
                         </div>
 
-                        <div class="ad-library">
-                            <p class="ad-cap">Library</p>
-                            <div class="ad-facts">
-                                <span class="ad-fact" th:classappend="${album.organized != null and album.organized} ? '' : 'is-off'">
-                                    <svg th:if="${album.organized != null and album.organized}" class="ad-ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; color: var(--ad-t)"><path d="M20 6L9 17l-5-5"/></svg>
+                        <div class="dt-library">
+                            <p class="dt-cap">Library</p>
+                            <div class="dt-facts">
+                                <span class="dt-fact" th:classappend="${album.organized != null and album.organized} ? '' : 'is-off'">
+                                    <svg th:if="${album.organized != null and album.organized}" class="dt-ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; color: var(--ad-t)"><path d="M20 6L9 17l-5-5"/></svg>
                                     <b th:text="${album.organized != null and album.organized} ? 'Organized' : 'Not organized'">Organized</b>
                                 </span>
                             </div>
-                            <div class="ad-tags" th:if="${assignedTags != null and !assignedTags.isEmpty()}">
-                                <span th:each="tag : ${assignedTags}" class="ad-tag" th:text="${tag['name']}">Tag</span>
+                            <div class="dt-tags" th:if="${assignedTags != null and !assignedTags.isEmpty()}">
+                                <span th:each="tag : ${assignedTags}" class="dt-tag" th:text="${tag['name']}">Tag</span>
                             </div>
-                            <span class="ad-muted-note" th:if="${assignedTags == null or assignedTags.isEmpty()}">No tags</span>
+                            <span class="dt-muted-note" th:if="${assignedTags == null or assignedTags.isEmpty()}">No tags</span>
                         </div>
                     </div>
 
                     <!-- Profile (edit in place): the same section turns into fields -->
-                    <form method="post" th:action="@{'/albums/' + ${album.id}}" th:object="${album}" id="albumForm" class="ad-profile-edit">
+                    <form method="post" th:action="@{'/albums/' + ${album.id}}" th:object="${album}" id="albumForm" class="dt-profile-edit">
                         <input type="hidden" id="artistId" name="artistId" th:field="*{artistId}" />
-                        <div class="ad-edit-head">
+                        <div class="dt-edit-head">
                             <h2>Editing profile</h2>
                             <span>Ranks refresh after saving</span>
                         </div>
 
-                        <div class="ad-fb" data-field="name">
-                            <label class="ad-fb-l" for="name">Name</label>
+                        <div class="dt-fb" data-field="name">
+                            <label class="dt-fb-l" for="name">Name</label>
                             <input type="text" autocomplete="off" id="name" name="name" th:field="*{name}" />
                         </div>
 
-                        <div class="ad-fb" data-field="releaseDate">
-                            <label class="ad-fb-l" for="releaseDate">Release date</label>
+                        <div class="dt-fb" data-field="releaseDate">
+                            <label class="dt-fb-l" for="releaseDate">Release date</label>
                             <input type="text" autocomplete="off" id="releaseDate" name="releaseDate" th:value="${album.releaseDateInput}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                         </div>
 
-                        <div class="ad-edit-group">
-                            <p class="ad-cap">Sound<span class="ad-cap-note" th:text="${artistName != null} ? 'Inherit follows ' + ${artistName} : 'Inherit follows the artist'">Inherit follows the artist</span></p>
-                            <div class="ad-g2">
-                                <div class="ad-fb" data-field="overrideGenreId">
-                                    <label class="ad-fb-l" for="overrideGenreId">Genre</label>
+                        <div class="dt-edit-group">
+                            <p class="dt-cap">Sound<span class="dt-cap-note" th:text="${artistName != null} ? 'Inherit follows ' + ${artistName} : 'Inherit follows the artist'">Inherit follows the artist</span></p>
+                            <div class="dt-g2">
+                                <div class="dt-fb" data-field="overrideGenreId">
+                                    <label class="dt-fb-l" for="overrideGenreId">Genre</label>
                                     <select id="overrideGenreId" name="overrideGenreId">
                                         <option value="" th:selected="${album.overrideGenreId == null}" th:text="'Inherit (' + (${inheritedGenreName} != null ? ${inheritedGenreName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${genres}"
@@ -305,8 +323,8 @@
                                                 th:text="${entry.value}"></option>
                                     </select>
                                 </div>
-                                <div class="ad-fb" data-field="overrideSubgenreId">
-                                    <label class="ad-fb-l" for="overrideSubgenreId">Subgenre</label>
+                                <div class="dt-fb" data-field="overrideSubgenreId">
+                                    <label class="dt-fb-l" for="overrideSubgenreId">Subgenre</label>
                                     <select id="overrideSubgenreId" name="overrideSubgenreId">
                                         <option value="" th:selected="${album.overrideSubgenreId == null}" th:text="'Inherit (' + (${inheritedSubgenreName} != null ? ${inheritedSubgenreName} : 'none') + ')'">Inherit</option>
                                         <option th:each="entry : ${subgenres}"
@@ -316,8 +334,8 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="ad-fb" data-field="overrideLanguageId">
-                                <label class="ad-fb-l" for="overrideLanguageId">Language</label>
+                            <div class="dt-fb" data-field="overrideLanguageId">
+                                <label class="dt-fb-l" for="overrideLanguageId">Language</label>
                                 <select id="overrideLanguageId" name="overrideLanguageId">
                                     <option value="" th:selected="${album.overrideLanguageId == null}" th:text="'Inherit (' + (${inheritedLanguageName} != null ? ${inheritedLanguageName} : 'none') + ')'">Inherit</option>
                                     <option th:each="entry : ${languages}"
@@ -328,73 +346,57 @@
                             </div>
                         </div>
 
-                        <div class="ad-edit-group">
-                            <p class="ad-cap">Library</p>
-                            <label class="ad-fb ad-fb-toggle" data-field="organized">
-                                <span class="ad-fb-l">Organized</span>
-                                <span class="ad-switch"><input type="checkbox" autocomplete="off" id="organized" name="organized" th:field="*{organized}" /><span></span></span>
+                        <div class="dt-edit-group">
+                            <p class="dt-cap">Library</p>
+                            <label class="dt-fb dt-fb-toggle" data-field="organized">
+                                <span class="dt-fb-l">Organized</span>
+                                <span class="dt-switch"><input type="checkbox" autocomplete="off" id="organized" name="organized" th:field="*{organized}" /><span></span></span>
                             </label>
-                            <div class="ad-fb" data-field="tags">
-                                <span class="ad-fb-l">Tags</span>
+                            <div class="dt-fb" data-field="tags">
+                                <span class="dt-fb-l">Tags</span>
                                 <div id="tagChipSelect"></div>
                             </div>
                         </div>
 
-                        <div class="ad-edit-foot">
-                            <div class="ad-edit-status" id="profileEditStatus" aria-live="polite">
-                                <span class="ad-dirty-dot"></span><span id="profileDirtyText">No changes yet</span>
+                        <div class="dt-edit-foot">
+                            <div class="dt-edit-status" id="profileEditStatus" aria-live="polite">
+                                <span class="dt-dirty-dot"></span><span id="profileDirtyText">No changes yet</span>
                                 <span aria-hidden="true">·</span><kbd>Esc</kbd> to discard
                                 <span aria-hidden="true">·</span><kbd>Ctrl+S</kbd> to save
                             </div>
-                            <div class="ad-edit-actions">
-                                <button type="button" class="ad-btn ad-btn--pill" id="btnFetchExternalMeta" onclick="openAlbumExternalMetadataSearch()">Fetch external</button>
-                                <span class="ad-spacer"></span>
-                                <button type="button" class="ad-btn ad-btn--pill" onclick="clearAllHighlights(); cancelEdit()">Discard</button>
-                                <button type="submit" class="ad-btn ad-btn--pill ad-btn--primary" onclick="clearAllHighlights()">Save</button>
+                            <div class="dt-edit-actions">
+                                <button type="button" class="dt-btn dt-btn--pill" id="btnFetchExternalMeta" onclick="openAlbumExternalMetadataSearch()">Fetch external</button>
+                                <span class="dt-spacer"></span>
+                                <button type="button" class="dt-btn dt-btn--pill" onclick="clearAllHighlights(); cancelEdit()">Discard</button>
+                                <button type="submit" class="dt-btn dt-btn--pill dt-btn--primary" onclick="clearAllHighlights()">Save</button>
                             </div>
                         </div>
                     </form>
                 </div>
             </aside>
 
-            <div class="ad-main">
-            <!-- Tab Navigation -->
-            <div class="detail-tabs">
-                <a href="#" onclick="switchTab(event, 'general')"
-                   th:classappend="${activeTab == 'general' or activeTab == null} ? 'active' : ''"
-                   class="detail-tab" id="generalTab">General</a>
-                <a href="#" onclick="switchTab(event, 'plays')"
-                   th:classappend="${activeTab == 'plays'} ? 'active' : ''"
-                   class="detail-tab" id="playsTab">Plays</a>
-                <a href="#" onclick="switchTab(event, 'featured')"
-                   th:classappend="${activeTab == 'featured'} ? 'active' : ''"
-                   class="detail-tab" id="featuredTab">Featured Artists</a>
-                <a href="#" onclick="switchTab(event, 'chart-history')"
-                   th:classappend="${activeTab == 'chart-history'} ? 'active' : ''"
-                   class="detail-tab" id="chartHistoryTab">Chart History</a>
-            </div>
-
+            <div class="dt-main">
             <!-- General tab: stats card -->
             <div class="detail-right-section" id="generalSectionContent"
                  th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
-                <section class="ad-card ad-stats">
+                <section class="dt-card dt-stats">
                     <!-- Header: plays lead (total, primary / legacy split, overall standing), listening span on the right -->
-                    <div class="ad-hero">
-                        <div class="ad-plays ad-hero-plays" th:with="total=${albumPlayCount != null ? albumPlayCount : 0},
+                    <div class="dt-hero">
+                        <div class="dt-plays dt-hero-plays" th:with="total=${albumPlayCount != null ? albumPlayCount : 0},
                                                         primary=${albumVatitoPlayCount != null ? albumVatitoPlayCount : 0},
                                                         legacy=${albumRobertloverPlayCount != null ? albumRobertloverPlayCount : 0}">
-                            <div class="ad-plays-top">
-                                <span class="ad-plays-total" title="Total plays" th:text="${#numbers.formatInteger(total, 1, 'COMMA')}">0</span>
-                                <span class="ad-plays-unit"><svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>plays</span>
+                            <div class="dt-plays-top">
+                                <span class="dt-plays-total" title="Total plays" th:text="${#numbers.formatInteger(total, 1, 'COMMA')}">0</span>
+                                <span class="dt-plays-unit"><svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>plays</span>
                                 <a th:replace="~{fragments/detail-general :: standing(${overallPosition}, ${totalAlbumCount}, 'albums', @{/albums(view='table',highlight=${album.id})})}"></a>
                             </div>
-                            <div class="ad-bar" aria-hidden="true">
+                            <div class="dt-bar" aria-hidden="true">
                                 <span th:if="${primary > 0}" th:style="|flex: ${primary} 1 0|"></span>
                                 <span th:if="${legacy > 0}" class="is-legacy" th:style="|flex: ${legacy} 1 0|"></span>
                             </div>
                             <!-- Primary / legacy legend on the left, time listened on the right -->
-                            <div class="ad-plays-foot">
-                                <div class="ad-legend" th:if="${showLegacy}">
+                            <div class="dt-plays-foot">
+                                <div class="dt-legend" th:if="${showLegacy}">
                                     <span title="Primary plays">Primary <b th:text="${#numbers.formatInteger(primary, 1, 'COMMA')}">0</b>
                                         <th:block th:if="${total > 0}" th:text="${#numbers.formatDecimal(primary * 100.0 / total, 1, 0)} + '%'"></th:block>
                                     </span>
@@ -402,82 +404,82 @@
                                         <th:block th:if="${total > 0}" th:text="${#numbers.formatDecimal(legacy * 100.0 / total, 1, 0)} + '%'"></th:block>
                                     </span>
                                 </div>
-                                <span class="ad-plays-time" title="Time listened"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><th:block th:text="${totalListeningTime}">0m</th:block> listened</span>
+                                <span class="dt-plays-time" title="Time listened"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><th:block th:text="${totalListeningTime}">0m</th:block> listened</span>
                             </div>
                         </div>
-                        <div th:replace="~{fragments/detail-general :: hero-span(${firstListenedDate}, null, ${lastListenedDate}, null, ${listeningSpan})}"></div>
+                        <div th:replace="~{fragments/detail-general :: hero-span(${firstListenedDate}, ${firstListenedRecency}, null, ${lastListenedDate}, ${lastListenedRecency}, null)}"></div>
                     </div>
-                    <div class="ad-stats-top">
+                    <div class="dt-stats-top">
                         <div>
-                            <p class="ad-cap" th:text="'Where the ' + ${#numbers.formatInteger(albumPlayCount != null ? albumPlayCount : 0, 1, 'COMMA')} + ' plays come from'">Where the plays come from</p>
+                            <p class="dt-cap" th:text="'Where the ' + ${#numbers.formatInteger(albumPlayCount != null ? albumPlayCount : 0, 1, 'COMMA')} + ' plays come from'">Where the plays come from</p>
                             <th:block th:if="${!playsShare.isEmpty()}">
-                                <div class="ad-share" aria-hidden="true">
+                                <div class="dt-share" aria-hidden="true">
                                     <span th:each="slice : ${playsShare}" th:if="${slice.plays > 0}" th:style="|flex: ${slice.plays} 1 0; --a: ${slice.shade}|" th:title="${slice.name}"></span>
                                 </div>
-                                <div class="ad-share-legend">
-                                    <div th:each="slice : ${playsShare}" class="ad-share-row" th:classappend="${slice.plays == 0} ? 'is-extra' : ''">
-                                        <span class="ad-share-sw" th:style="|--a: ${slice.shade}|"></span>
-                                        <a class="ad-share-name" th:href="@{'/songs/' + ${slice.songId}}" th:text="${slice.name}" th:title="${slice.name}">Song</a>
+                                <div class="dt-share-legend">
+                                    <div th:each="slice : ${playsShare}" class="dt-share-row" th:classappend="${slice.plays == 0} ? 'is-extra' : ''">
+                                        <span class="dt-share-sw" th:style="|--a: ${slice.shade}|"></span>
+                                        <a class="dt-share-name" th:href="@{'/songs/' + ${slice.songId}}" th:text="${slice.name}" th:title="${slice.name}">Song</a>
                                         <b th:text="${#numbers.formatInteger(slice.plays, 1, 'COMMA')}">0</b>
-                                        <span class="ad-share-pct" th:text="${#numbers.formatDecimal(slice.percent, 1, 1)} + '%'">0%</span>
+                                        <span class="dt-share-pct" th:text="${#numbers.formatDecimal(slice.percent, 1, 1)} + '%'">0%</span>
                                     </div>
                                 </div>
                             </th:block>
-                            <span th:if="${playsShare.isEmpty()}" class="ad-muted-note">No plays yet</span>
+                            <span th:if="${playsShare.isEmpty()}" class="dt-muted-note">No plays yet</span>
                         </div>
 
-                        <div class="ad-stats-side">
+                        <div class="dt-stats-side">
                             <div th:if="${ranksByYear != null and !ranksByYear.isEmpty()}">
-                                <p class="ad-cap">Most listened rank by year<span class="ad-cap-note">gold, silver, bronze = top 3 · dashed = below #100</span></p>
-                                <div class="ad-years">
-                                    <a th:each="yearEntry : ${ranksByYear}" class="ad-year"
+                                <p class="dt-cap">Most listened rank by year<span class="dt-cap-note">gold, silver, bronze = top 3 · dashed = below #100</span></p>
+                                <div class="dt-years">
+                                    <a th:each="yearEntry : ${ranksByYear}" class="dt-year"
                                        th:classappend="${yearEntry.value == 1 ? 'is-medal is-gold' : (yearEntry.value == 2 ? 'is-medal is-silver' : (yearEntry.value == 3 ? 'is-medal is-bronze' : (yearEntry.value > 100 ? 'is-dim' : '')))}"
                                        th:style="|--a: ${yearEntry.value > 100 ? 0.03 : 0.08 + 0.58 * (100 - yearEntry.value) / 99.0}|"
                                        th:href="@{/albums(listenedDateFrom=${yearEntry.key} + '-01-01',listenedDateTo=${yearEntry.key} + '-12-31',view='table',highlight=${album.id})}"
                                        target="_blank"
                                        th:title="'Rank #' + ${yearEntry.value} + ' most listened album in ' + ${yearEntry.key}">
-                                        <span class="ad-year-r" th:text="'#' + ${yearEntry.value}">#1</span>
-                                        <span class="ad-year-y" th:text="${yearEntry.key}">2024</span>
+                                        <span class="dt-year-r" th:text="'#' + ${yearEntry.value}">#1</span>
+                                        <span class="dt-year-y" th:text="${yearEntry.key}">2024</span>
                                     </a>
                                 </div>
                             </div>
 
                             <div th:if="${(weeklyChartStats != null and weeklyChartStats.hasCharted()) or (seasonalChartHistory != null and !seasonalChartHistory.isEmpty()) or (yearlyChartHistory != null and !yearlyChartHistory.isEmpty())}">
-                                <p class="ad-cap">Album charts</p>
-                                <div class="ad-tags">
-                                    <a th:if="${weeklyChartStats != null and weeklyChartStats.hasCharted()}" class="ad-tag"
+                                <p class="dt-cap">Album charts</p>
+                                <div class="dt-tags">
+                                    <a th:if="${weeklyChartStats != null and weeklyChartStats.hasCharted()}" class="dt-tag"
                                        th:href="@{/albums/{id}(id=${album.id},tab='chart-history')}"
                                        th:title="'Spent ' + ${weeklyChartStats.totalWeeks} + ' weeks on the weekly album chart with a peak of #' + ${weeklyChartStats.peakPosition}"
                                        th:text="'Weekly · ' + ${weeklyChartStats.totalWeeks} + (${weeklyChartStats.totalWeeks == 1} ? ' week' : ' weeks') + ' · peak #' + ${weeklyChartStats.peakPosition} + ' for ' + ${weeklyChartStats.weeksAtPeak} + (${weeklyChartStats.weeksAtPeak == 1} ? ' week' : ' weeks')">Weekly</a>
-                                    <a th:each="entry : ${seasonalChartHistory}" class="ad-tag" th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}" target="_blank" th:text="${entry.displayName}">Season</a>
-                                    <a th:each="entry : ${yearlyChartHistory}" class="ad-tag" th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}" target="_blank" th:text="${entry.displayName}">Year</a>
+                                    <a th:each="entry : ${seasonalChartHistory}" class="dt-tag" th:href="@{/charts/seasonal/{pk}(pk=${entry.periodKey})}" target="_blank" th:text="${entry.displayName}">Season</a>
+                                    <a th:each="entry : ${yearlyChartHistory}" class="dt-tag" th:href="@{/charts/yearly/{pk}(pk=${entry.periodKey})}" target="_blank" th:text="${entry.displayName}">Year</a>
                                 </div>
                             </div>
 
                             <div>
-                                <p class="ad-cap">Full album listens</p>
+                                <p class="dt-cap">Full album listens</p>
                                 <!-- Count on the left, first / last full listen and the spread between them on the right -->
-                                <div class="ad-run" th:if="${fullListenEligible and fullAlbumPlays != null and fullAlbumPlays > 0}">
-                                    <div class="ad-run-n">
+                                <div class="dt-run" th:if="${fullListenEligible and fullAlbumPlays != null and fullAlbumPlays > 0}">
+                                    <div class="dt-run-n">
                                         <b th:text="${#numbers.formatInteger(fullAlbumPlays, 1, 'COMMA')}">0</b>
                                         <span th:text="${fullAlbumPlays == 1} ? 'full listen' : 'full listens'">full listens</span>
                                     </div>
-                                    <dl class="ad-run-rows">
+                                    <dl class="dt-run-rows">
                                         <div><dt>First</dt><dd th:text="${firstFullListenDate != null ? firstFullListenDate : 'N/A'}">N/A</dd></div>
                                         <div><dt>Last</dt><dd th:text="${lastFullListenDate != null ? lastFullListenDate : 'N/A'}">N/A</dd></div>
                                         <div th:if="${fullListenSpan != null}"><dt>Over</dt><dd th:text="${fullListenSpan}">1 year</dd></div>
                                     </dl>
                                 </div>
-                                <span th:if="${fullListenEligible and (fullAlbumPlays == null or fullAlbumPlays == 0)}" class="ad-muted-note">No full listens yet</span>
-                                <span th:unless="${fullListenEligible}" class="ad-muted-note">Not an album: full listens count only with 5 or more songs</span>
+                                <span th:if="${fullListenEligible and (fullAlbumPlays == null or fullAlbumPlays == 0)}" class="dt-muted-note">No full listens yet</span>
+                                <span th:unless="${fullListenEligible}" class="dt-muted-note">Not an album: full listens count only with 5 or more songs</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Catalog: what the album is made of, as split bars over its songs (same look as the artist Catalog) -->
-                    <div class="ad-catalog" id="albumCatalog"
+                    <div class="dt-catalog" id="albumCatalog"
                          th:with="cat=${albumCatalog}, total=${cat != null ? cat.songs : 0}">
-                        <p class="ad-cap">Catalog</p>
+                        <p class="dt-cap">Catalog</p>
                         <p class="mm-total">Songs <b th:text="${total}">0</b>
                             <th:block th:if="${albumAssociations != null and !albumAssociations.guests.isEmpty()}"> &#183; featured artists <b th:text="${albumAssociations.guests.size()}">0</b></th:block></p>
                         <div class="mm-stack" th:if="${total > 0}">
@@ -490,38 +492,38 @@
                             </th:block>
                         </div>
                     </div>
-                    <div class="ad-tiles is-first" style="--cols: 2">
-                        <div class="ad-tile" title="Average plays per song"><span>Per song</span><b th:text="${averagePlaysPerSong}">-</b><small>avg plays</small></div>
-                        <div class="ad-tile" title="Average song length"><span>Avg song length</span><b th:text="${averageSongLength != null ? averageSongLength : '-'}">-</b></div>
+                    <div class="dt-tiles is-first" style="--cols: 2">
+                        <div class="dt-tile" title="Average plays per song"><span>Per song</span><b th:text="${averagePlaysPerSong}">-</b><small>avg plays</small></div>
+                        <div class="dt-tile" title="Average song length"><span>Avg song length</span><b th:text="${averageSongLength != null ? averageSongLength : '-'}">-</b></div>
                     </div>
                     <section th:replace="~{fragments/consistency :: ledger(${consistencyPeriods}, ${consistencyRankUrl}, false)}"></section>
                 </section>
             </div>
 
             <!-- Songs (tracklist): full list, sorted by its column headers, one sort at a time -->
-            <section class="detail-content-section general-tab-section ad-card ad-section" id="albumSongs"
+            <section class="detail-content-section general-tab-section dt-card dt-section" id="albumSongs"
                      th:if="${songs != null and !songs.isEmpty()}"
                      th:style="${activeTab == 'general' or activeTab == null} ? 'display: block !important;' : 'display: none !important;'">
-                <div class="ad-sec-head">
-                    <h2>Songs<span class="ad-count" th:text="${songs.size()}">0</span></h2>
-                    <span class="ad-muted-note">Click a column to sort</span>
+                <div class="dt-sec-head">
+                    <h2>Songs<span class="dt-count" th:text="${songs.size()}">0</span></h2>
+                    <span class="dt-muted-note">Click a column to sort</span>
                 </div>
-                <div class="ad-table-wrap">
-                    <table class="ad-table mobile-compact-table" id="songsTable">
+                <div class="table-scroll dt-table-wrap">
+                    <table class="sticky-head dt-table mobile-compact-table" id="songsTable">
                         <thead>
                             <tr>
                                 <th class="mobile-expand-col show-mobile-only"></th>
-                                <th class="ad-col-i"><span class="ad-th-btn">#</span></th>
-                                <th class="is-num hide-mobile ab-col-track"><button type="button" class="ad-th-btn" data-sort-key="tracknumber" data-sort-type="number">Track<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th class="ad-col-name"><button type="button" class="ad-th-btn" data-sort-key="name" data-sort-type="text">Song<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th class="is-num ad-col-total"><button type="button" class="ad-th-btn" data-sort-key="totalplays" data-sort-type="number">Total<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th th:if="${showLegacy}" class="is-num hide-mobile ad-col-num"><button type="button" class="ad-th-btn" data-sort-key="primaryplays" data-sort-type="number">Primary<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th th:if="${showLegacy}" class="is-num hide-mobile ad-col-num"><button type="button" class="ad-th-btn" data-sort-key="legacyplays" data-sort-type="number">Legacy<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th class="is-num hide-mobile ad-col-num"><button type="button" class="ad-th-btn" data-sort-key="length" data-sort-type="number">Length<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th class="hide-mobile ad-col-date"><button type="button" class="ad-th-btn" data-sort-key="releasedate" data-sort-type="date">Released<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th class="hide-mobile ad-col-date"><button type="button" class="ad-th-btn" data-sort-key="firstlistened" data-sort-type="date">First listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th class="hide-mobile ad-col-date"><button type="button" class="ad-th-btn" data-sort-key="lastlistened" data-sort-type="date">Last listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
-                                <th class="is-num hide-mobile ad-col-time"><button type="button" class="ad-th-btn" data-sort-key="timelistened" data-sort-type="number">Listened<svg class="ad-ico ad-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="dt-col-i"><span class="dt-th-btn">#</span></th>
+                                <th class="is-num hide-mobile ab-col-track"><button type="button" class="dt-th-btn" data-sort-key="tracknumber" data-sort-type="number">Track<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="dt-col-name"><button type="button" class="dt-th-btn" data-sort-key="name" data-sort-type="text">Song<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="is-num dt-col-total"><button type="button" class="dt-th-btn" data-sort-key="totalplays" data-sort-type="number">Total<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th th:if="${showLegacy}" class="is-num hide-mobile dt-col-num"><button type="button" class="dt-th-btn" data-sort-key="primaryplays" data-sort-type="number">Primary<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th th:if="${showLegacy}" class="is-num hide-mobile dt-col-num"><button type="button" class="dt-th-btn" data-sort-key="legacyplays" data-sort-type="number">Legacy<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="is-num hide-mobile dt-col-num"><button type="button" class="dt-th-btn" data-sort-key="length" data-sort-type="number">Length<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="hide-mobile dt-col-date"><button type="button" class="dt-th-btn" data-sort-key="releasedate" data-sort-type="date">Released<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="hide-mobile dt-col-date"><button type="button" class="dt-th-btn" data-sort-key="firstlistened" data-sort-type="date">First listened<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="hide-mobile dt-col-date"><button type="button" class="dt-th-btn" data-sort-key="lastlistened" data-sort-type="date">Last listened<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                                <th class="is-num hide-mobile dt-col-time"><button type="button" class="dt-th-btn" data-sort-key="timelistened" data-sort-type="number">Listened<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
                             </tr>
                         </thead>
                         <tbody id="songsTableBody" data-sort-container>
@@ -547,12 +549,12 @@
                                 <td class="mobile-expand-col show-mobile-only">
                                     <button type="button" class="mobile-row-expand-btn" onclick="toggleMobileTableRow(this)" aria-label="Show song details" aria-expanded="false">+</button>
                                 </td>
-                                <td class="ad-td-i" data-sort-index>1</td>
-                                <td class="is-num ad-td-n hide-mobile" th:text="${song.trackNumber != null ? song.trackNumber : '-'}">-</td>
-                                <td class="ad-td-name">
-                                    <div class="ad-name">
-                                        <span class="ad-name-tx">
-                                            <a th:href="@{'/songs/' + ${song.id}}" th:title="${song.name}"><span th:replace="~{fragments/catalog-card :: itunes-badge(${song.inItunes})}"></span><span th:text="${song.name}">Song</span><span th:if="${song.isSingle}" class="ad-badge">Single</span></a>
+                                <td class="dt-td-i" data-sort-index>1</td>
+                                <td class="is-num dt-td-n hide-mobile" th:text="${song.trackNumber != null ? song.trackNumber : '-'}">-</td>
+                                <td class="dt-td-name">
+                                    <div class="dt-name">
+                                        <span class="dt-name-tx">
+                                            <a th:href="@{'/songs/' + ${song.id}}" th:title="${song.name}"><span th:replace="~{fragments/catalog-card :: itunes-badge(${song.inItunes})}"></span><span th:text="${song.name}">Song</span><span th:if="${song.isSingle}" class="dt-badge">Single</span></a>
                                             <small th:if="${song.artistId != null and album.artistId != null and song.artistId != album.artistId}">
                                                 by <a class="ab-by" th:href="@{'/artists/' + ${song.artistId}}" th:text="${song.artistName}"
                                                       th:classappend="${song.artistGenderName == 'Male'} ? 'is-male' : (${song.artistGenderName == 'Female'} ? 'is-female' : '')">Artist</a>
@@ -561,17 +563,17 @@
                                     </div>
                                 </td>
                                 <td class="is-num">
-                                    <span class="ad-pc">
-                                        <b th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'ad-gold' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</b>
+                                    <span class="dt-pc">
+                                        <b th:classappend="${song.totalPlays != null and song.totalPlays >= 100} ? 'dt-gold' : ''" th:text="${song.totalPlays != null ? song.totalPlays : 0}">0</b>
                                     </span>
                                 </td>
-                                <td th:if="${showLegacy}" class="is-num ad-td-n hide-mobile" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
-                                <td th:if="${showLegacy}" class="is-num ad-td-n hide-mobile" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
-                                <td class="is-num ad-td-d hide-mobile" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
-                                <td class="ad-td-d hide-mobile" th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
-                                <td class="ad-td-d hide-mobile" th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
-                                <td class="ad-td-d hide-mobile" th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
-                                <td class="is-num ad-td-d hide-mobile" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
+                                <td th:if="${showLegacy}" class="is-num dt-td-n hide-mobile" th:text="${song.vatitoPlays != null ? song.vatitoPlays : 0}">0</td>
+                                <td th:if="${showLegacy}" class="is-num dt-td-n hide-mobile" th:text="${song.robertloverPlays != null ? song.robertloverPlays : 0}">0</td>
+                                <td class="is-num dt-td-d hide-mobile" th:text="${song.lengthFormatted != null ? song.lengthFormatted : '-'}">-</td>
+                                <td class="dt-td-d hide-mobile" th:text="${song.releaseDate != null ? song.releaseDate : '-'}">-</td>
+                                <td class="dt-td-d hide-mobile" th:text="${song.firstListenedDate != null ? song.firstListenedDate : '-'}">-</td>
+                                <td class="dt-td-d hide-mobile" th:text="${song.lastListenedDate != null ? song.lastListenedDate : '-'}">-</td>
+                                <td class="is-num dt-td-d hide-mobile" th:text="${song.totalListeningTime != null ? song.totalListeningTime : '-'}">-</td>
                             </tr>
                         </tbody>
                     </table>
@@ -599,7 +601,7 @@
                  th:style="${activeTab == 'chart-history'} ? 'display: block !important;' : 'display: none !important;'">
                 <div th:replace="~{fragments/detail-chart-history :: tab(${chartHistoryView}, 'album')}"></div>
             </div>
-            </div> <!-- End of ad-main -->
+            </div> <!-- End of dt-main -->
         </div>
     </div>
     
@@ -623,136 +625,18 @@
             }
         });
 
-        function toTagChipValues(tags) {
-            return Array.isArray(tags) ? tags.map(tag => ({ value: tag.id, label: tag.name })) : [];
-        }
 
-        function initializeTagChipSelect() {
-            tagChipSelect = initChipSelect({
-                containerId: 'tagChipSelect',
-                inputName: 'tags',
-                placeholder: 'Search tags...',
-                staticOptions: tagOptions || [],
-                valueField: 'id',
-                labelField: 'name',
-                minChars: 0,
-                debounceMs: 100,
-                showAllOnFocus: true,
-                initialValues: toTagChipValues(initialAssignedTags)
-            });
-        }
 
-        function resetTagChipSelect() {
-            if (!tagChipSelect) {
-                return;
-            }
-            tagChipSelect.clear();
-            toTagChipValues(initialAssignedTags).forEach(tag => tagChipSelect.addChip(tag.value, tag.label));
-        }
 
-        function captureFormState(formId) {
-            const form = document.getElementById(formId);
-            if (!form) {
-                return null;
-            }
 
-            const values = {};
-            const selectOptions = {};
 
-            Array.from(form.elements).forEach(element => {
-                if (!element.name) {
-                    return;
-                }
 
-                if (element.tagName === 'SELECT' && element.id) {
-                    selectOptions[element.id] = element.innerHTML;
-                }
 
-                if (element.type === 'checkbox' || element.type === 'radio') {
-                    if (!values[element.name]) {
-                        values[element.name] = [];
-                    }
-                    if (element.checked) {
-                        values[element.name].push(element.value);
-                    }
-                    return;
-                }
+        // Safari restores pages from its back/forward cache as they were left, overlay included
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) document.body.classList.remove('detail-save-busy');
+        });
 
-                if (element.tagName === 'SELECT' && element.multiple) {
-                    values[element.name] = Array.from(element.selectedOptions).map(option => option.value);
-                    return;
-                }
-
-                values[element.name] = element.value;
-            });
-
-            return { values, selectOptions };
-        }
-
-        function restoreFormState(formId, state) {
-            const form = document.getElementById(formId);
-            if (!form || !state) {
-                return;
-            }
-
-            form.querySelectorAll('select[id]').forEach(select => {
-                if (state.selectOptions[select.id] !== undefined) {
-                    select.innerHTML = state.selectOptions[select.id];
-                }
-            });
-
-            Array.from(form.elements).forEach(element => {
-                if (!element.name) {
-                    return;
-                }
-
-                const savedValue = state.values[element.name];
-
-                if (element.type === 'checkbox' || element.type === 'radio') {
-                    const selectedValues = Array.isArray(savedValue) ? savedValue : [];
-                    element.checked = selectedValues.includes(element.value);
-                    return;
-                }
-
-                if (element.tagName === 'SELECT' && element.multiple) {
-                    const selectedValues = Array.isArray(savedValue) ? savedValue : [];
-                    Array.from(element.options).forEach(option => {
-                        option.selected = selectedValues.includes(option.value);
-                    });
-                    return;
-                }
-
-                element.value = savedValue ?? '';
-            });
-        }
-
-        function destroySearchableSelects(formId) {
-            const form = document.getElementById(formId);
-            if (!form) {
-                return;
-            }
-
-            form.querySelectorAll('select[data-searchable-initialized]').forEach(select => {
-                const wrapper = select.closest('.searchable-select-wrapper');
-                if (wrapper && wrapper.parentNode) {
-                    wrapper.parentNode.insertBefore(select, wrapper);
-                    wrapper.remove();
-                }
-                delete select.dataset.searchableInitialized;
-                select.style.display = 'none';
-            });
-        }
-
-        function showDetailSaveOverlay() {
-            document.body.classList.add('detail-save-busy');
-        }
-
-        function destroyFlatpickrInstance(inputId) {
-            const input = document.getElementById(inputId);
-            if (input && input._flatpickr) {
-                input._flatpickr.destroy();
-            }
-        }
 
         // ============================================
         // Profile edit in place (sidebar)
@@ -789,7 +673,7 @@
                 }
             });
 
-            document.querySelectorAll('#albumForm .ad-fb[data-field]').forEach(box => {
+            document.querySelectorAll('#albumForm .dt-fb[data-field]').forEach(box => {
                 box.classList.toggle('is-changed', changed.has(box.dataset.field));
             });
 
@@ -809,7 +693,7 @@
             if (sidebar) {
                 sidebar.classList.toggle('is-editing', editing);
             }
-            const container = document.querySelector('.container-wide.ad-page');
+            const container = document.querySelector('.container-wide.dt-page');
             if (container) {
                 container.classList.toggle('is-editing-profile', editing);
             }
@@ -867,45 +751,13 @@
             destroySearchableSelects('albumForm');
             destroyFlatpickrInstance('releaseDate');
             clearAllHighlights();
-            document.querySelectorAll('#albumForm .ad-fb.is-changed').forEach(box => box.classList.remove('is-changed'));
+            document.querySelectorAll('#albumForm .dt-fb.is-changed').forEach(box => box.classList.remove('is-changed'));
             setProfileEditing(false);
         }
 
-        function toggleEdit() {
-            if (isEditing) {
-                exitEditMode();
-            } else {
-                enterEditMode();
-            }
-        }
 
-        function cancelEdit() {
-            exitEditMode();
-        }
 
-        // Overflow menu next to Edit (Fetch external data, Delete)
-        function toggleProfileMenu(event) {
-            event.stopPropagation();
-            const menu = document.getElementById('profileMenu');
-            const button = document.getElementById('profileMenuBtn');
-            if (!menu || !button) {
-                return;
-            }
-            const open = menu.hidden;
-            menu.hidden = !open;
-            button.setAttribute('aria-expanded', String(open));
-        }
 
-        function closeProfileMenu() {
-            const menu = document.getElementById('profileMenu');
-            const button = document.getElementById('profileMenuBtn');
-            if (menu && !menu.hidden) {
-                menu.hidden = true;
-                if (button) {
-                    button.setAttribute('aria-expanded', 'false');
-                }
-            }
-        }
 
         function openExternalFetchFromMenu() {
             if (!isEditing) {
@@ -1076,50 +928,7 @@
                 });
         }
 
-        function updateGalleryUI() {
-            const prevBtn = document.getElementById('galleryPrev');
-            const nextBtn = document.getElementById('galleryNext');
-            const counter = document.getElementById('galleryCounter');
-            const currentIndexSpan = document.getElementById('currentImageIndex');
-            const totalCountSpan = document.getElementById('totalImageCount');
-            const btnSetDefault = document.getElementById('btnSetDefault');
-            const btnRemoveGallery = document.getElementById('btnRemoveGallery');
-            const btnRemoveMain = document.getElementById('btnRemoveMain');
-            const btnUploadMain = document.getElementById('btnUploadImage');
 
-            const hasMultipleImages = galleryImages.length > 1;
-            const isOnSecondaryImage = galleryImages[currentGalleryIndex] !== 0;
-
-            if (prevBtn) prevBtn.style.display = hasMultipleImages ? 'flex' : 'none';
-            if (nextBtn) nextBtn.style.display = hasMultipleImages ? 'flex' : 'none';
-            if (counter) counter.style.display = hasMultipleImages ? 'block' : 'none';
-            if (currentIndexSpan) currentIndexSpan.textContent = currentGalleryIndex + 1;
-            if (totalCountSpan) totalCountSpan.textContent = galleryImages.length;
-
-            // Upload button is always visible
-            if (btnUploadMain) btnUploadMain.style.display = 'inline-block';
-
-            if (isOnSecondaryImage) {
-                if (btnSetDefault) btnSetDefault.style.display = 'inline-block';
-                if (btnRemoveGallery) btnRemoveGallery.style.display = 'inline-block';
-                if (btnRemoveMain) btnRemoveMain.style.display = 'none';
-            } else {
-                if (btnSetDefault) btnSetDefault.style.display = 'none';
-                if (btnRemoveGallery) btnRemoveGallery.style.display = 'none';
-                // Only show remove button if this is the only image
-                if (btnRemoveMain) btnRemoveMain.style.display = hasMultipleImages ? 'none' : 'inline-block';
-            }
-        }
-
-        function galleryNavigate(direction) {
-            let newIndex = currentGalleryIndex + direction;
-            // Wrap around carousel
-            if (newIndex < 0) newIndex = galleryImages.length - 1;
-            if (newIndex >= galleryImages.length) newIndex = 0;
-            currentGalleryIndex = newIndex;
-            updateGalleryImage();
-            updateGalleryUI();
-        }
 
         function updateGalleryImage() {
             let img = document.getElementById('albumImage');
@@ -1251,30 +1060,7 @@
             }
         });
 
-        // External Metadata Search for Album Edit Mode
-        // Marks the field box a fetched value landed in, until the user touches it
-        function highlightField(fieldId) {
-            const field = document.getElementById(fieldId);
-            const box = field ? field.closest('.ad-fb') : null;
-            if (!box) {
-                return;
-            }
-            box.classList.remove('field-highlight');
-            void box.offsetWidth; // restart the highlight
-            box.classList.add('field-highlight');
-            const removeHighlight = () => {
-                box.classList.remove('field-highlight');
-                box.removeEventListener('input', removeHighlight);
-                box.removeEventListener('change', removeHighlight);
-            };
-            box.addEventListener('input', removeHighlight);
-            box.addEventListener('change', removeHighlight);
-            updateProfileDirtyState();
-        }
         
-        function clearAllHighlights() {
-            document.querySelectorAll('.field-highlight').forEach(el => el.classList.remove('field-highlight'));
-        }
         
         function openAlbumExternalMetadataSearch() {
             const artistName = /*[[${artistName}]]*/ '';

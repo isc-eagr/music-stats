@@ -79,6 +79,7 @@ Agents must always run and verify changes here, never against the live DB.
 - **Dev profile safety:** automated Last.fm imports are off (property and the dev DB's `app_config` `automation.enabled=false`, API key blanked), and saved filters go to `music-stats-dev-saved-filters.properties`. Never run the app without the `dev` profile: the default profile points at the live DB.
 - **Rebuild the dev DB:** stop the dev app, then run `tools/devdb/build-dev-db.bat`. It recreates the file from scratch in a few seconds with `tools/devdb/DevDatabaseBuilder.java`, which opens the live DB read-only. Rebuild after a schema change or when fresher data is needed.
 - **Schema:** the builder applies `db_consolidated.sql` and the three `db_*_performance_indexes.sql` files (migrations are not replayed), then fixes whatever still differs from the live schema and prints it as "Schema drift". The scripts matched the live schema exactly on 17/11/2026, so a non-empty drift list means a schema change skipped `db_consolidated.sql`: add it there (plus a migration and `TestDatabaseSupport.createSchema()`) as usual. A new table also needs a line in `DevDatabaseBuilder.copyData()` to get rows (the builder warns about unhandled tables).
+- **Stop it when done:** a dev server an agent starts (port 8081, or the 8082 / 8083 entries in `.claude/launch.json` when another session holds 8081) must be stopped by that same agent as soon as its testing is finished, before reporting back. Never leave one running, and never stop a dev server another session started.
 - `music-stats.bat` and `deploy-prod.bat` stay user-run only.
 
 ### Database
@@ -114,6 +115,18 @@ Please do not add emojis to the codebase. They cause encoding issues in some env
 
 ### Lookup Tables
 LookupRepository provides maps (id->name) for: Gender, Ethnicity, Genre, SubGenre, Language. These populate dropdowns and resolve FK display names.
+
+### Tables: floating headers (required)
+Every data table must keep its header row visible while scrolling, so the developer never has to scroll back up to read the columns. Apply it to every new table, server-rendered or built in JS:
+- Wrap the table in a div with `table-scroll` (add it to the existing wrapper class, e.g. `class="table-scroll dt-table-wrap"`) and put `sticky-head` on the `<table>`. Both live in `static/css/global.css`.
+- `table-scroll` is a scroll box capped to the window height, so the header sticks inside it even when the table scrolls sideways. `static/js/table-scroll.js` (loaded on every page by the `nav-styles` fragment) releases the box (`is-page-scroll`) when the table fits the width, so the page keeps one scrollbar and the header sticks to the top of the window.
+- `sticky-head` sticks the whole `<thead>`, so multi-row headers (group bands plus column names) stay stacked. Pinned left columns (`position: sticky; left`) still work inside it.
+- Header cells must have an opaque background (no `rgba(...)` tints or `transparent`), otherwise rows show through. For a tint over a card colour, layer it: `background: linear-gradient(rgba(0,0,0,.18), rgba(0,0,0,.18)), var(--ad-bg)`.
+- Do not wrap a table in `overflow-x: auto` / `overflow: hidden` without `table-scroll`: any overflow ancestor without a height cap silently kills the sticky header.
+- Infinite scroll in a table view must work in both modes: check the scroll box's own `scrollTop` when it scrolls internally, and the window otherwise (see `isListViewNearBottom` in `static/js/graphs.js`).
+- Tables inside a modal that already scrolls only need `sticky-head`, no `table-scroll` (e.g. the unmatched plays modal).
+- Infinite-scroll sentinels go inside the `table-scroll` box, right after the table (see the chart overview tables in `templates/charts/overview.html`), so an IntersectionObserver fires both when the box scrolls internally and when the page scrolls.
+- Exception: tiny fixed-size tables that always fit on screen (the Consistency ledger).
 
 ## Conventions
 

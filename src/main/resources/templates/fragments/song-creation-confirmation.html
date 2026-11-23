@@ -3,10 +3,13 @@
 <body>
     <div th:fragment="confirmation" class="song-duplicate-confirmation" data-song-duplicate-confirmation
          hidden tabindex="-1" role="group" aria-label="Confirm duplicate song">
-        <p role="status">A song with the exact same title by the same artist already exists. Do you still want to create this song?</p>
+        <p role="status">
+            <svg class="song-duplicate-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <span>A song with the exact same title by the same artist already exists. Do you still want to create this song?</span>
+        </p>
         <div class="song-duplicate-actions">
-            <button type="button" class="btn btn-secondary" data-cancel-duplicate>Go back</button>
-            <button type="button" class="btn btn-action" data-confirm-duplicate>Create anyway</button>
+            <button type="button" class="song-duplicate-btn" data-cancel-duplicate>Go back</button>
+            <button type="button" class="song-duplicate-btn is-confirm" data-confirm-duplicate>Create anyway</button>
         </div>
     </div>
 </body>

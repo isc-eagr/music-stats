@@ -27,7 +27,8 @@ public class AutomatedPlayImportService {
         this.appConfigService = appConfigService;
     }
 
-    @Scheduled(cron = "0 * * * * *")
+    // Ticks every second so the configured interval can be any number of seconds; shouldRunNow() gates the real runs
+    @Scheduled(cron = "* * * * * *")
     public void runScheduledImport() {
         AppConfigService.AutomationConfig automationConfig = appConfigService.getAutomationConfig();
         if (!automationConfig.enabled()) {
@@ -56,7 +57,7 @@ public class AutomatedPlayImportService {
             return true;
         }
 
-        long intervalMillis = automationConfig.intervalMinutes() * 60_000L;
+        long intervalMillis = automationConfig.intervalSeconds() * 1_000L;
         long elapsedMillis = System.currentTimeMillis() - lastAttemptEpochMillis;
         return elapsedMillis >= intervalMillis;
     }

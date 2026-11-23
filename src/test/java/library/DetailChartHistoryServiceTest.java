@@ -7,6 +7,7 @@ import library.dto.ChartHistoryViewDTO.CalendarGrid;
 import library.dto.ChartHistoryViewDTO.HitCard;
 import library.dto.ChartHistoryViewDTO.HitSection;
 import library.dto.ChartHistoryViewDTO.Tile;
+import library.dto.ChartHistoryViewDTO.TileStat;
 import library.service.DetailChartHistoryService;
 import library.util.ChartAggregationUtils;
 import org.jsoup.Jsoup;
@@ -196,6 +197,11 @@ class DetailChartHistoryServiceTest {
                 List.of(Map.of("position", 3, "periodKey", "2022-Spring")), List.of(), bbStats, null, null);
 
         assertThat(view.tiles()).extracting(Tile::key).containsExactly("weekly", "seasonal", "bb");
+        // One song: no "1 song" / "1 top 10" / entries counts, only time on the chart (and periods + hits)
+        assertThat(view.tiles().get(0).stats()).extracting(TileStat::label).containsExactly("weeks");
+        assertThat(view.tiles().get(1).stats()).extracting(TileStat::label).containsExactly("season", "top 10");
+        assertThat(view.tiles().get(2).stats()).extracting(TileStat::label).containsExactly("weeks");
+        assertThat(view.hasSpread()).isFalse();
         HitCard card = view.sections().get(1).songs().get(0);
         assertThat(card.name()).isEqualTo("Titi");
         assertThat(card.peak()).isEqualTo(4);

@@ -1,1605 +1,195 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Charts - Music Stats</title>
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title>Weekly Chart - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
-    <style>
-        .charts-page {
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-            --mobile-detail-card-bg: rgba(96, 165, 250, 0.09);
-            --mobile-detail-card-border: rgba(96, 165, 250, 0.22);
-            --mobile-detail-label: #9fc2f5;
-            --mobile-detail-value: #edf5ff;
-        }
-        
-        .overview-hero {
-            margin-bottom: 22px;
-        }
-
-        .overview-hero-card {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(12, 12, 15, 0.96));
-            border: 1px solid #2a2a2f;
-            border-radius: 18px;
-            padding: 22px 24px;
-            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
-            text-align: center;
-        }
-
-        .overview-hero-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.14), transparent 48%);
-            pointer-events: none;
-        }
-
-        .overview-title {
-            position: relative;
-            z-index: 1;
-            margin: 0;
-            font-size: clamp(2rem, 3.5vw, 2.5rem);
-            color: #60a5fa;
-            text-shadow: 0 0 24px rgba(0, 0, 0, 0.24);
-        }
-
-        .overview-subtitle-line {
-            position: relative;
-            z-index: 1;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .weekly-topbar-actions {
-            display: none;
-        }
-
-        .overview-subtitle {
-            font-size: 1.02rem;
-            color: #c9d9ef;
-            letter-spacing: 0.02em;
-        }
-        
-        .preview-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            animation: pulse-glow 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse-glow {
-            0%, 100% {
-                box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
-            }
-            50% {
-                box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
-            }
-        }
-        
-        .charts-nav {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        
-        .charts-nav-center {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .weekly-date-select {
-            background: #1a1a1a;
-            border: 1px solid #444;
-            color: #e0e0e0;
-            padding: 9px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.88rem;
-            outline: none;
-        }
-
-        .weekly-date-select:focus {
-            border-color: #60a5fa;
-        }
-
-        .weekly-date-select option {
-            background: #1a1a1a;
-            color: #e0e0e0;
-        }
-        
-        @media (max-width: 768px) {
-            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .app-nav-left {
-                width: auto;
-                justify-content: flex-start;
-                gap: 6px;
-                flex: 0 0 auto;
-            }
-
-            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .app-nav-brand {
-                margin-right: 0;
-            }
-
-            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .weekly-topbar-actions {
-                display: flex !important;
-                flex: 0 1 auto;
-                align-items: center;
-                justify-content: flex-end;
-                gap: 6px;
-                width: auto;
-                max-width: calc(100% - 140px);
-                margin: 0 0 0 auto;
-            }
-
-            body.weekly-chart-page .app-nav.weekly-mobile-actions-nav .weekly-topbar-actions .action-btn {
-                padding: 6px 8px;
-                font-size: 0.72rem;
-                line-height: 1;
-                white-space: nowrap;
-                border-radius: 999px;
-            }
-
-            .charts-actions .weekly-mobile-hide,
-            .chart-playlist-btn {
-                display: none !important;
-            }
-
-            .charts-nav {
-                display: grid;
-                grid-template-columns: 34px minmax(0, 1.25fr) minmax(0, 0.8fr) minmax(0, 1fr) 34px;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .charts-nav-center {
-                display: contents;
-            }
-
-            .weekly-date-select {
-                width: 100%;
-                min-width: 0;
-            }
-        }
-        
-        .nav-btn {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .charts-nav .nav-btn {
-            justify-content: center;
-            width: 34px;
-            height: 34px;
-            padding: 0;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-        
-        .nav-btn:hover:not(.disabled) {
-            background: #2a2a2a;
-            border-color: #444;
-        }
-        
-        .nav-btn.disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        
-        /* Chart type toggle buttons */
-        .chart-type-toggle {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-        
-        .chart-toggle-btn {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #888;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.2s ease;
-        }
-        
-        .chart-toggle-btn:hover {
-            background: #2a2a2a;
-            border-color: #444;
-            color: #fff;
-        }
-        
-        .chart-toggle-btn.active {
-            background: #2d5016;
-            border-color: #3d6b1e;
-            color: #fff;
-        }
-        
-        .number-one-section {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-bottom: 30px;
-        }
-        
-        .number-one-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .number-one-label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.85rem;
-            color: #888;
-        }
-        
-        .number-one-image {
-            width: 200px;
-            height: 200px;
-            border-radius: 12px;
-            object-fit: cover;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-        
-        .number-one-placeholder {
-            width: 200px;
-            height: 200px;
-            border-radius: 12px;
-            background: #1a1a1a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem;
-            color: #444;
-        }
-        
-        /* Section headers for Songs/Albums */
-        .chart-section {
-            margin-bottom: 40px;
-        }
-        
-        .chart-section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #2a2a2a;
-        }
-        
-        .chart-section-icon {
-            font-size: 1.5rem;
-        }
-        
-        .chart-section-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            flex: 1;
-            color: #fff;
-            margin: 0;
-        }
-        
-        .charts-table-container {
-            background: #0a0a0a;
-            border-radius: 12px;
-            border: 1px solid #2a2a2a;
-            overflow: hidden;
-        }
-        
-        .charts-table-wrapper {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        /* Chart table links */
-        .chart-link {
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-        
-        .chart-link:hover {
-            text-decoration: underline;
-        }
-        
-        .chart-link-primary {
-            color: #fff;
-        }
-        
-        .chart-link-primary:hover {
-            color: #22c55e;
-        }
-        
-        .chart-link-secondary {
-            color: #aaa;
-        }
-        
-        .chart-link-secondary:hover {
-            color: #fff;
-        }
-        .mobile-inline-artist {
-            display: none;
-            margin-top: 4px;
-            font-size: 0.78rem;
-            line-height: 1.25;
-        }
-
-        .mobile-inline-artist .chart-link-secondary {
-            color: #aaa;
-        }
-
-        .mobile-inline-artist .chart-link-secondary:hover {
-            color: #fff;
-        }
-        
-        .charts-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .charts-table th,
-        .charts-table td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid #1a1a1a;
-        }
-
-        .charts-table .cover-col {
-            width: 62px;
-            padding: 8px 10px;
-        }
-
-        .charts-table .cover-col .title-image,
-        .charts-table .cover-col .title-placeholder {
-            width: 42px;
-            height: 42px;
-        }
-        
-        .charts-table th {
-            background: #111;
-            color: #888;
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .charts-table th.sortable {
-            cursor: pointer;
-            user-select: none;
-        }
-        .charts-table th.sortable:hover { color: #ccc; background: #191919; }
-        .charts-table th.sort-asc::after  { content: ' \2191'; color: #22c55e; font-weight: normal; }
-        .charts-table th.sort-desc::after { content: ' \2193'; color: #22c55e; font-weight: normal; }
-        
-        .charts-table tbody tr:hover {
-            background: #151515;
-        }
-        
-        .charts-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        
-        /* Column widths */
-        .col-expand { width: 40px; text-align: center; }
-        .col-position { width: 80px; text-align: center; }
-        .col-title { min-width: 200px; }
-        .col-artist { min-width: 150px; }
-        .col-plays { width: 110px; text-align: center; }
-        .col-movement { width: 96px; text-align: center; }
-        .col-peak { width: 80px; text-align: center; }
-        .col-span { width: 80px; text-align: center; }
-        .col-at-peak { width: 80px; text-align: center; }
-
-        .charts-table .col-title,
-        .charts-table .col-artist,
-        .charts-table .mobile-name-col {
-            white-space: normal;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
-
-        .charts-table th.col-plays,
-        .charts-table td.col-plays {
-            text-align: center;
-        }
-        
-        /* Position cell */
-        .position-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .position-number {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #fff;
-        }
-
-        .mvmt {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 44px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-size: 0.74rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            background: #1f2937;
-            color: #d1d5db;
-            border: 1px solid #374151;
-        }
-
-        .mvmt-up {
-            color: #86efac;
-            background: rgba(34, 197, 94, 0.12);
-            border-color: rgba(34, 197, 94, 0.3);
-        }
-
-        .mvmt-down {
-            color: #fca5a5;
-            background: rgba(239, 68, 68, 0.12);
-            border-color: rgba(239, 68, 68, 0.3);
-        }
-
-        .mvmt-same {
-            color: #d1d5db;
-            background: rgba(148, 163, 184, 0.12);
-            border-color: rgba(148, 163, 184, 0.28);
-        }
-
-        .mvmt-new {
-            color: #86efac;
-            background: rgba(34, 197, 94, 0.12);
-            border-color: rgba(34, 197, 94, 0.3);
-        }
-
-        .mvmt-re {
-            color: #fcd34d;
-            background: rgba(245, 158, 11, 0.12);
-            border-color: rgba(245, 158, 11, 0.3);
-        }
-        
-        /* Plays cell */
-        .plays-cell {
-            display: block;
-            width: 100%;
-            text-align: center;
-        }
-        
-        .plays-count {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #fff;
-            text-align: center;
-            width: 100%;
-        }
-
-        /* Peak cell */
-        .peak-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .peak-position {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #e5e7eb;
-        }
-        
-        .peak-position.peak-number-one {
-            color: #fbbf24;
-            text-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.4);
-        }
-        
-        .recap-pos-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .peak-now-pill {
-            display: block;
-            padding: 2px 7px;
-            margin-top: 4px;
-            border-radius: 999px;
-            font-size: 0.62rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: #ffd978;
-            background: rgba(245, 158, 11, 0.14);
-            border: 1px solid rgba(245, 158, 11, 0.34);
-            width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .title-cell {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .title-image {
-            width: 40px;
-            height: 40px;
-            border-radius: 4px;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-
-        .title-placeholder {
-            width: 40px;
-            height: 40px;
-            border-radius: 4px;
-            background: #1a1a1a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            color: #444;
-            flex-shrink: 0;
-        }
-        
-        /* Expand button */
-        .expand-btn {
-            background: #222;
-            border: 1px solid #333;
-            color: #888;
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.2s ease;
-        }
-        
-        .expand-btn:hover {
-            background: #333;
-            color: #fff;
-        }
-        
-        .expand-btn.expanded {
-            background: rgba(115, 115, 125, 0.14);
-            border-color: rgba(115, 115, 125, 0.4);
-            color: #d1d5db;
-        }
-        .charts-table tbody tr[data-gender="2"] .expand-btn.expanded {
-            background: rgba(74, 144, 226, 0.14);
-            border-color: rgba(74, 144, 226, 0.45);
-            color: #93c5fd;
-        }
-        .charts-table tbody tr[data-gender="1"] .expand-btn.expanded {
-            background: rgba(217, 74, 138, 0.14);
-            border-color: rgba(217, 74, 138, 0.45);
-            color: #f9a8d4;
-        }
-        
-        /* Chart run detail row */
-        .chart-run-row {
-            display: none;
-        }
-        
-        .chart-run-row.visible {
-            display: table-row;
-        }
-        
-        .chart-run-cell {
-            background: #0f0f0f;
-            padding: 16px 20px !important;
-        }
-        .chart-run-content {
-            display: grid;
-            gap: 16px;
-        }
-        .chart-run-wrap {
-            display: grid;
-            gap: 8px;
-        }
-        .chart-run-label {
-            font-size: 0.74rem;
-            color: #8c8f9a;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .chart-run-boxes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        .chart-run-box {
-            min-width: 28px;
-            height: 28px;
-            padding: 0 7px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.78rem;
-            font-weight: 700;
-            border-radius: 8px;
-            background: #25262d;
-            color: #d9dde7;
-            border: 1px solid #3b3d46;
-            text-decoration: none;
-        }
-        .chart-run-box:hover {
-            border-color: rgba(96, 165, 250, 0.34);
-            color: #fff;
-        }
-        .chart-run-box.gender-male {
-            background: #2a5c8a;
-            border-color: #3a7cc0;
-            color: #fff;
-        }
-        .chart-run-box.gender-female {
-            background: #8a2a63;
-            border-color: #c04a8d;
-            color: #fff;
-        }
-        .chart-run-box.gender-other {
-            background: #3a3b43;
-            border-color: #555861;
-            color: #e5e7eb;
-        }
-        .chart-run-box.peak-one {
-            background: rgba(245, 158, 11, 0.18);
-            border-color: rgba(251, 191, 36, 0.45);
-            color: #fcd34d;
-        }
-
-        @media (max-width: 768px) {
-            .charts-page {
-                padding: 16px 12px 32px;
-            }
-
-            .overview-hero-card {
-                padding: 18px 16px;
-            }
-
-            .overview-title {
-                font-size: 1.7rem;
-            }
-
-            .overview-subtitle-line {
-                gap: 8px;
-            }
-
-            .overview-subtitle {
-                font-size: 0.92rem;
-            }
-
-            .chart-type-toggle {
-                gap: 8px;
-                margin-bottom: 22px;
-            }
-
-            .chart-toggle-btn {
-                flex: 1 1 0;
-                padding: 10px 14px;
-                font-size: 0.92rem;
-            }
-
-            .charts-table-wrapper {
-                overflow-x: auto;
-            }
-
-            .charts-table.mobile-compact-table {
-                min-width: 0;
-                width: 100%;
-                table-layout: fixed;
-            }
-
-            .charts-table.mobile-compact-table th,
-            .charts-table.mobile-compact-table td {
-                padding: 8px 6px;
-            }
-
-            .charts-table.mobile-compact-table th.mobile-expand-col,
-            .charts-table.mobile-compact-table td.mobile-expand-col {
-                width: 32px;
-                padding-left: 4px;
-                padding-right: 4px;
-            }
-
-            .charts-table.mobile-compact-table th.col-position,
-            .charts-table.mobile-compact-table td.col-position,
-            .charts-table.mobile-compact-table th.col-plays,
-            .charts-table.mobile-compact-table td.col-plays,
-            .charts-table.mobile-compact-table th.col-span,
-            .charts-table.mobile-compact-table td.col-span,
-            .charts-table.mobile-compact-table th.col-peak,
-            .charts-table.mobile-compact-table td.col-peak {
-                width: 56px;
-            }
-
-            .charts-table.mobile-compact-table th.mobile-name-col,
-            .charts-table.mobile-compact-table td.mobile-name-col {
-                white-space: normal;
-                min-width: 0;
-                overflow-wrap: break-word;
-                word-break: normal;
-            }
-
-            .charts-table.mobile-compact-table .position-number {
-                font-size: 1.15rem;
-            }
-
-            .charts-table.mobile-compact-table .peak-position {
-                font-size: 1rem;
-            }
-
-            .charts-table.mobile-compact-table .peak-now-pill {
-                display: none;
-            }
-
-            .mobile-inline-artist {
-                display: block;
-            }
-
-            .charts-table .cover-col {
-                width: 44px;
-                padding: 3px 6px;
-            }
-
-            .charts-table .cover-col .title-image,
-            .charts-table .cover-col .title-placeholder {
-                width: 38px;
-                height: 38px;
-            }
-
-            .charts-table.mobile-compact-table .mobile-table-detail-cell {
-                white-space: normal;
-            }
-        }
-        .chart-run-box.current {
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-        }
-        .chart-run-box.absent {
-            background: #111218;
-            border-color: #262831;
-            color: #636773;
-            cursor: default;
-        }
-        .chart-run-stats {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .chart-run-stat {
-            background: var(--mobile-detail-card-bg);
-            border: 1px solid var(--mobile-detail-card-border);
-            border-radius: 8px;
-            padding: 10px 14px;
-            text-align: center;
-            min-width: 70px;
-        }
-        .chart-run-stat-label {
-            font-size: 0.74rem;
-            color: var(--mobile-detail-label);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-        }
-        .chart-run-stat-value {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--mobile-detail-value);
-        }
-        
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-        }
-        
-        .empty-state-title {
-            font-size: 1.5rem;
-            color: #fff;
-            margin-bottom: 10px;
-        }
-        
-        .empty-state-text {
-            color: #888;
-            margin-bottom: 20px;
-        }
-        
-        .generate-all-btn {
-            background: #2d5016;
-            color: #fff;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .generate-all-btn:hover {
-            background: #3d6b1e;
-        }        /* Progress modal */
-        .progress-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .progress-modal.visible {
-            display: flex;
-        }
-        
-        .progress-modal-content {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 12px;
-            padding: 30px;
-            width: 400px;
-            text-align: center;
-        }
-        
-        .progress-modal-title {
-            font-size: 1.2rem;
-            color: #fff;
-            margin-bottom: 20px;
-        }
-        
-        .progress-bar-container {
-            background: #0a0a0a;
-            border-radius: 8px;
-            height: 24px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #2d5016, #22c55e);
-            transition: width 0.3s ease;
-            border-radius: 8px;
-        }
-        
-        .progress-text {
-            color: #888;
-            font-size: 0.9rem;
-        }
-        
-        .progress-current-week {
-            color: #22c55e;
-            font-weight: 600;
-        }
-        
-        /* Action buttons row */
-        .charts-actions {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
-        
-        .action-btn {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
-        }
-        
-        .action-btn:hover {
-            background: #2a2a2a;
-            border-color: #444;
-        }
-        
-        .action-btn.primary {
-            background: #2d5016;
-            border-color: #3d6b1e;
-        }
-
-        .action-btn.primary:hover {
-            background: #3d6b1e;
-        }
-        
-        .chart-playlist-btn {
-            padding: 8px 16px;
-            background: #2d5016;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-            margin-left: auto;
-        }
-        
-        .chart-playlist-btn:hover {
-            background: #3d6b1e;
-        }
-
-        /* Gender percentage badge styling */
-        .gender-pct {
-            color: #3b82f6; /* lighter blue */
-            font-weight: 600;
-            font-size: 0.95rem;
-            margin-left: 12px;
-            transition: text-shadow 0.2s ease, color 0.2s ease;
-            text-shadow: 0 0 6px rgba(59,130,246,0.45), 0 0 12px rgba(59,130,246,0.25);
-        }
-
-        .gender-pct--full {
-            /* shimmer the text itself using a moving gradient */
-            color: transparent;
-            background-image: linear-gradient(110deg, rgba(59,130,246,0.95) 20%, rgba(255,255,255,0.95) 45%, rgba(59,130,246,0.95) 75%);
-            background-size: 200% 100%;
-            -webkit-background-clip: text;
-            background-clip: text;
-            animation: metallicShine 2.6s ease-in-out infinite;
-            text-shadow: 0 0 10px rgba(59,130,246,0.5);
-        }
-
-        @keyframes metallicShine {
-            0% { background-position: -200% center; }
-            100% { background-position: 200% center; }
-        }
-
-        .gender-pct {
-            position: relative;
-            display: inline-block;
-            z-index: 2;
-        }
-
-        /* removed ::before overlay; shimmer applied directly to text via background-clip */
-    </style>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <link rel="stylesheet" th:href="@{/css/catalog-table.css}">
+    <link rel="stylesheet" th:href="@{/css/chart-overview.css}">
+    <link rel="stylesheet" th:href="@{/css/weekly-chart.css}">
+    <link rel="stylesheet" th:href="@{/css/detail-chart-history.css(v=10)}">
+    <script th:src="@{/js/chart-run.js(v=1)}" defer></script>
 </head>
 <body class="weekly-chart-page">
     <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
-    
-    <div class="charts-page">
+
+    <div class="container co-page wk-page">
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title">Weekly Chart</h1>
+                    <div th:if="${hasChart or isPreview}" class="view-toggle" role="group" aria-label="Chart">
+                        <button type="button" id="songsToggle" class="view-btn active" onclick="showSongsChart()">Songs</button>
+                        <button type="button" id="albumsToggle" class="view-btn" onclick="showAlbumsChart()"
+                                th:disabled="${albumEntries == null or albumEntries.isEmpty()}">Albums</button>
+                    </div>
+                </div>
+                <div class="catalog-toolbar-actions wk-actions">
+                    <a class="toolbar-btn" href="/charts/overview?chart=weekly">Chart overview</a>
+                    <button th:if="${missingWeeksCount > 0 and (hasChart or isPreview)}" type="button" class="toolbar-btn" onclick="startBulkGeneration()"
+                            th:text="${'Generate ' + missingWeeksCount + ' missing'}">Generate 0 missing</button>
+                    <div th:if="${hasChart or isPreview}" id="weeklyTopbarActions" class="weekly-topbar-actions">
+                        <button th:if="${hasChart}" type="button" class="toolbar-btn" onclick="regenerateThisChart()" title="Regenerate just this week's chart">
+                            <span class="wk-desk">Regenerate this chart</span><span class="wk-mob">This chart</span>
+                        </button>
+                        <button type="button" class="toolbar-btn" onclick="startBulkRegeneration()" title="Delete all charts and regenerate from scratch">
+                            <span class="wk-desk">Regenerate all</span><span class="wk-mob">All</span>
+                        </button>
+                    </div>
+                    <button th:if="${hasChart or isPreview}" type="button" id="weeklyPlaylistBtn" class="toolbar-btn toolbar-btn-primary wk-desk"
+                            onclick="openWeeklySongsPlaylistGenerator()">Generate playlist</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Empty state when no chart exists and not in preview mode -->
-        <div th:if="${!hasChart and !isPreview}" class="empty-state">
-            <div class="empty-state-icon">📊</div>
-            <h2 class="empty-state-title">No Charts Generated Yet</h2>
-            <p class="empty-state-text" th:if="${missingWeeksCount > 0}">
-                There are <span th:text="${missingWeeksCount}">0</span> weeks with play data that don't have charts.
-            </p>
-            <p class="empty-state-text" th:if="${missingWeeksCount == 0}">
-                No play data available to generate charts.
-            </p>
-            <button th:if="${missingWeeksCount > 0}" class="generate-all-btn" onclick="startBulkGeneration()">
-                Generate All Missing Charts
+        <div th:if="${!hasChart and !isPreview}" class="co-panel wk-empty">
+            <h2>No chart for this week yet</h2>
+            <p th:if="${missingWeeksCount > 0}"
+               th:text="${missingWeeksCount == 1 ? '1 week with play data has no chart.' : missingWeeksCount + ' weeks with play data have no charts.'}">0 weeks with play data have no charts.</p>
+            <p th:if="${missingWeeksCount == 0}">No play data available to generate charts.</p>
+            <button th:if="${missingWeeksCount > 0}" type="button" class="toolbar-btn toolbar-btn-primary" onclick="startBulkGeneration()">
+                Generate all missing charts
             </button>
         </div>
-        
-        <!-- Chart display when chart exists OR in preview mode -->
-        <div th:if="${hasChart or isPreview}">
-            <div id="weeklyTopbarActions" class="weekly-topbar-actions">
-                <button th:if="${hasChart}" type="button" class="action-btn" onclick="regenerateThisChart()" title="Regenerate this chart">
-                    🔄 This Chart
-                </button>
-                <button type="button" class="action-btn" onclick="startBulkRegeneration()" title="Regenerate all charts">
-                    🔄 All
-                </button>
-            </div>
 
-            <!-- Header -->
-            <div class="overview-hero">
-                <section class="overview-hero-card">
-                    <h1 class="overview-title">Weekly Charts</h1>
-                    <div class="overview-subtitle-line">
-                        <div class="overview-subtitle" th:text="${formattedPeriod}">Nov 16 - Nov 22, 2025</div>
-                        <span th:if="${isPreview}" class="preview-badge">👁️ LIVE PREVIEW</span>
-                    </div>
-                </section>
-            </div>
-            
-            <!-- Navigation -->
-            <div class="charts-nav">
-                <a th:if="${prevPeriodKey != null}" 
-                   th:href="@{/charts/weekly/{pk}(pk=${prevPeriodKey}, view=${selectedView})}" 
-                   id="prevChartLink"
-                   class="nav-btn"
-                   title="Previous week">
-                    ←
+        <!-- Chart display when chart exists OR in preview mode -->
+        <th:block th:if="${hasChart or isPreview}">
+            <nav class="wk-weekbar" aria-label="Week navigation">
+                <a th:if="${prevPeriodKey != null}" id="prevChartLink" class="wk-step" title="Previous week"
+                   th:href="@{/charts/weekly/{pk}(pk=${prevPeriodKey}, view=${selectedView})}">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
                 </a>
-                <span th:if="${prevPeriodKey == null}" class="nav-btn disabled" title="Previous week">←</span>
-                
-                <div class="charts-nav-center">
-                    <select id="weeklyMonth" class="weekly-date-select" title="Month"></select>
-                    <select id="weeklyDay" class="weekly-date-select" title="Day"></select>
-                    <select id="weeklyYear" class="weekly-date-select" title="Year"></select>
+                <span th:if="${prevPeriodKey == null}" class="wk-step disabled" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+                </span>
+
+                <div class="wk-week">
+                    <span class="co-eyebrow" th:text="${'Week ' + #strings.substringAfter(periodKey, 'W') + ' · ' + #strings.substringBefore(periodKey, '-')}">Week 46 · 2022</span>
+                    <span class="wk-week-range" th:text="${formattedPeriod}">Nov 14 - Nov 20, 2022</span>
                 </div>
-                
-                <a th:if="${nextPeriodKey != null and !nextIsPreview}" 
-                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, view=${selectedView})}" 
-                   id="nextChartLink"
-                   class="nav-btn"
-                   title="Next week">
-                    →
+
+                <a th:if="${nextPeriodKey != null and !nextIsPreview}" id="nextChartLink" class="wk-step" title="Next week"
+                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, view=${selectedView})}">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
                 </a>
-                <a th:if="${nextPeriodKey != null and nextIsPreview}" 
-                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, preview=true, view=${selectedView})}" 
-                   id="nextPreviewChartLink"
-                   class="nav-btn"
-                   title="Next week">
-                    →
+                <a th:if="${nextPeriodKey != null and nextIsPreview}" id="nextPreviewChartLink" class="wk-step wk-step-preview" title="Live preview of the week in progress"
+                   th:href="@{/charts/weekly/{pk}(pk=${nextPeriodKey}, preview=true, view=${selectedView})}">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
                 </a>
-                <span th:if="${nextPeriodKey == null}" class="nav-btn disabled" title="Next week">→</span>
-            </div>
-            
-            <!-- Chart type toggle buttons -->
-            <div class="chart-type-toggle">
-                <button id="songsToggle" class="chart-toggle-btn active" onclick="showSongsChart()">
-                    🎵 Songs Chart
-                </button>
-                <button id="albumsToggle" class="chart-toggle-btn" onclick="showAlbumsChart()">
-                    💿 Albums Chart
-                </button>
-            </div>
-            
-            <!-- Actions -->
-            <div class="charts-actions">
-                <button th:if="${missingWeeksCount > 0}" class="action-btn primary" onclick="startBulkGeneration()">
-                    Generate <span th:text="${missingWeeksCount}">0</span> Missing Charts
-                </button>
-                <button th:if="${hasChart}" class="action-btn weekly-mobile-hide" onclick="regenerateThisChart()" title="Regenerate just this week's chart">
-                    🔄 Regenerate This Chart
-                </button>
-                <button class="action-btn weekly-mobile-hide" onclick="startBulkRegeneration()" title="Delete all charts and regenerate from scratch">
-                    🔄 Regenerate All Charts
-                </button>
-            </div>
-            
-            <!-- Top 20 Songs Section -->
-            <div id="songsSection" class="chart-section">
-                <!-- #1 Song Image -->
-                <div class="number-one-section" th:if="${numberOneSong != null}">
-                    <div class="number-one-card">
-                        <div class="number-one-label">🎵 #1 Song</div>
-                        <img th:if="${numberOneSong.albumHasImage and numberOneSong.albumId != null}" 
-                             th:src="@{/albums/{id}/image(id=${numberOneSong.albumId})}" 
-                             alt="Number 1 Song Album"
-                             class="number-one-image">
-                        <img th:if="${!numberOneSong.albumHasImage and numberOneSong.hasImage}" 
-                             th:src="@{/songs/{id}/image(id=${numberOneSong.songId})}" 
-                             alt="Number 1 Song"
-                             class="number-one-image">
-                        <div th:if="${!numberOneSong.albumHasImage and !numberOneSong.hasImage}" class="number-one-placeholder">&#127925;</div>
+                <span th:if="${nextPeriodKey == null}" class="wk-step disabled" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+                </span>
+
+                <span th:if="${isPreview}" class="wk-preview">Live preview</span>
+
+                <div class="wk-jump">
+                    <span class="co-menu-label">Jump to</span>
+                    <select id="weeklyDay" title="Day" aria-label="Day"></select>
+                    <select id="weeklyMonth" title="Month" aria-label="Month"></select>
+                    <select id="weeklyYear" title="Year" aria-label="Year"></select>
+                </div>
+            </nav>
+
+            <!-- Songs -->
+            <section id="songsSection" class="wk-section">
+                <div th:replace="~{fragments/weekly-chart-rows :: summary('song', ${entries}, ${numberOneSong})}"></div>
+                <div th:replace="~{fragments/weekly-chart-rows :: breakdowns(${songBreakdowns})}"></div>
+
+                <div class="wk-section-head">
+                    <h2 class="wk-section-title">Top 20 songs</h2>
+                    <span th:if="${isPreview}" class="co-hint">Live standings for the week in progress</span>
+                </div>
+                <div class="table-scroll wk-table-shell">
+                    <table id="songsChartTable" class="sticky-head catalog-table wk-table">
+                        <thead th:replace="~{fragments/weekly-chart-rows :: head('song', true)}"></thead>
+                        <tbody>
+                            <th:block th:each="entry : ${entries}">
+                                <tr th:replace="~{fragments/weekly-chart-rows :: songRow(${entry}, 'chart')}"></tr>
+                            </th:block>
+                            <tr th:if="${entries == null or entries.isEmpty()}"><td colspan="9" class="co-empty">No songs on this chart.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div th:if="${isPreview and contenderEntries != null and !contenderEntries.isEmpty()}" id="previewContendersSection" class="wk-sub">
+                    <div class="wk-section-head">
+                        <h2 class="wk-section-title">Potential contenders (21-50)</h2>
+                        <span class="co-hint">Songs outside the Top 20 that could still move in as the week unfolds.</span>
+                    </div>
+                    <div class="table-scroll wk-table-shell">
+                        <table class="sticky-head catalog-table wk-table">
+                            <thead th:replace="~{fragments/weekly-chart-rows :: head('song', true)}"></thead>
+                            <tbody>
+                                <th:block th:each="entry : ${contenderEntries}">
+                                    <tr th:replace="~{fragments/weekly-chart-rows :: songRow(${entry}, 'contender')}"></tr>
+                                </th:block>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                
-                <div class="chart-section-header">
-                    <span class="chart-section-icon">🎵</span>
-                    <h2 class="chart-section-title">Top 20 Songs</h2>
-                    <div id="songsGenderPct" class="gender-pct"></div>
-                    <button type="button" class="genre-breakdown-btn" onclick="showGenreBreakdown('#songsSection', '.chart-run-row', 'Songs Genre Breakdown')">Genre Breakdown</button>
-                    <button type="button" class="chart-playlist-btn desktop-only" onclick="openWeeklySongsPlaylistGenerator()">🎵 Generate Playlist</button>
-                </div>
-                <div class="charts-table-container">
-                    <div class="charts-table-wrapper">
-                        <table class="charts-table table mobile-compact-table">
-                            <thead>
-                                <tr>
-                                    <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
-                                    <th class="col-expand hide-mobile"></th>
-                                    <th class="cover-col"></th>
-                                    <th class="col-movement hide-mobile">Movement</th>
-                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Pos.</th>
-                                    <th class="col-title mobile-name-col sortable" onclick="sortTable(this,'text')">Song</th>
-                                    <th class="col-artist hide-mobile sortable" onclick="sortTable(this,'text')">Artist</th>
-                                    <th class="col-plays hide-mobile sortable" onclick="sortTable(this,'number')">Plays</th>
-                                    <th class="col-span sortable" onclick="sortTable(this,'number')">Weeks</th>
-                                    <th class="col-peak sortable" onclick="sortTable(this,'number')">Peak</th>
-                                    <th class="col-at-peak hide-mobile sortable" onclick="sortTable(this,'number')">Weeks @ Peak</th>
-                                </tr>
-                        </thead>
-                    <tbody>
-                        <th:block th:each="entry : ${entries}">
-                            <!-- Main row -->
-                            <tr th:data-song-id="${entry.songId}" th:data-album="${entry.albumName}"
-                                th:attr="data-gender=${entry.genderId},data-genre=${entry.genreName},data-mobile-artist=${entry.artistName != null ? entry.artistName : '-'},data-mobile-album=${entry.albumName != null ? entry.albumName : '-'},data-mobile-movement=${entry.movementDisplay != null ? entry.movementDisplay : '-'},data-mobile-movement-class=${entry.movementClass != null ? entry.movementClass : ''},data-mobile-plays=${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'},data-mobile-weeks-at-peak=${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}"
-                                th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                                <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this, 'song')" aria-label="Show weekly song details" aria-expanded="false">+</button></td>
-                                <td class="col-expand hide-mobile">
-                                    <button class="expand-btn" 
-                                            th:data-song-id="${entry.songId}"
-                                            onclick="toggleChartRun(this)">+</button>
-                                </td>
-                                <td class="cover-col">
-                                    <img th:if="${entry.albumHasImage and entry.albumId != null}"
-                                         th:src="@{/albums/{id}/image(id=${entry.albumId})}"
-                                         alt="" class="title-image">
-                                    <img th:if="${!entry.albumHasImage and entry.hasImage}"
-                                         th:src="@{/songs/{id}/image(id=${entry.songId})}"
-                                         alt="" class="title-image">
-                                    <div th:if="${!entry.albumHasImage and !entry.hasImage}" class="title-placeholder">
-                                        <span>&#127925;</span>
-                                    </div>
-                                </td>
-                                <td class="col-movement hide-mobile">
-                                    <span th:if="${entry.movementDisplay != '-'}"
-                                          class="mvmt"
-                                          th:classappend="' ' + ${entry.movementClass}"
-                                          th:text="${entry.movementDisplay}">NEW</span>
-                                    <span th:if="${entry.movementDisplay == '-'}" style="color:#555;">-</span>
-                                </td>
-                                <td class="col-position" th:attr="data-sort-val=${entry.position}">
-                                    <div class="position-cell">
-                                        <span class="position-number" th:text="${entry.position}">1</span>
-                                    </div>
-                                </td>
-                                <td class="col-title mobile-name-col" th:attr="data-sort-val=${entry.songName}">
-                                    <a th:href="@{/songs/{id}(id=${entry.songId})}" 
-                                       class="chart-link chart-link-primary"
-                                       th:text="${entry.songName}">Song Name</a>
-                                    <div class="mobile-inline-artist">
-                                        <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                           class="chart-link chart-link-secondary"
-                                           th:text="${entry.artistName}">Artist Name</a>
-                                    </div>
-                                </td>
-                                <td class="col-artist hide-mobile" th:attr="data-sort-val=${entry.artistName}">
-                                    <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                       class="chart-link chart-link-secondary"
-                                       th:text="${entry.artistName}">Artist Name</a>
-                                </td>
-                                <td class="col-plays hide-mobile" th:attr="data-sort-val=${entry.playCount != null ? entry.playCount : -1}">
-                                    <div class="plays-cell">
-                                        <span th:if="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="number-one-tooltip-trigger tooltip-enabled" tabindex="0" data-tooltip-title="Combined song versions:" data-tooltip-icon="🎵">
-                                            <span class="plays-count"
-                                                  th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
-                                            <span class="number-one-tooltip-item-source" hidden th:each="tooltipItem : ${entry.playBreakdownItems}" th:text="${tooltipItem}"></span>
-                                        </span>
-                                        <span th:unless="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="plays-count"
-                                              th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
-                                    </div>
-                                </td>
-                                <td class="col-span" th:attr="data-sort-val=${entry.weeksOnChart != null ? entry.weeksOnChart : -1}"
-                                    th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">5</td>
-                                <td class="col-peak" th:attr="data-sort-val=${entry.peakPosition != null ? entry.peakPosition : 9999}">
-                                    <div class="peak-cell">
-                                        <span class="recap-pos-cell">
-                                            <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition != null ? entry.peakPosition : '-'}">1</span>
-                                            <span th:if="${entry.peakPosition != null and entry.position == entry.peakPosition}" class="peak-now-pill">Peak</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="col-at-peak hide-mobile" th:attr="data-sort-val=${entry.weeksAtPeak != null ? entry.weeksAtPeak : -1}"
-                                    th:text="${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}">x1</td>
-                            </tr>
-                            <!-- Chart run detail row (hidden by default) -->
-                            <tr class="chart-run-row" th:data-song-id="${entry.songId}">
-                                <td colspan="10" class="chart-run-cell">
-                                    <div class="chart-run-content" th:id="'chart-run-' + ${entry.songId}">
-                                        <!-- Content loaded via AJAX -->
-                                        <div style="text-align: center; color: #888;">Loading chart run...</div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </th:block>
-                    </tbody>
-                </table>
+
+                <div th:if="${!isPreview and fallOffEntries != null and !fallOffEntries.isEmpty()}" class="wk-sub">
+                    <div class="wk-section-head">
+                        <h2 class="wk-section-title">Fall-offs</h2>
+                        <span class="co-hint">Dropped out since the last available chart. # is the last position held.</span>
+                    </div>
+                    <div class="table-scroll wk-table-shell">
+                        <table class="sticky-head catalog-table wk-table">
+                            <thead th:replace="~{fragments/weekly-chart-rows :: head('song', false)}"></thead>
+                            <tbody>
+                                <th:block th:each="entry : ${fallOffEntries}">
+                                    <tr th:replace="~{fragments/weekly-chart-rows :: songRow(${entry}, 'falloff')}"></tr>
+                                </th:block>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div id="previewContendersSection"
-                     th:if="${isPreview and contenderEntries != null and !contenderEntries.isEmpty()}"
-                     style="margin-top: 28px;">
-                    <div class="chart-section-header">
-                        <span class="chart-section-icon">&#8593;</span>
-                        <div>
-                            <h2 class="chart-section-title">Potential Contenders (21-50)</h2>
-                            <div style="color: #9ca3af; font-size: 0.86rem; margin-top: 4px;">
-                                Songs currently outside the Top 20 that could move into the chart as the week unfolds.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="charts-table-container">
-                        <div class="charts-table-wrapper">
-                            <table class="charts-table table mobile-compact-table">
-                                <thead>
-                                    <tr>
-                                        <th class="cover-col"></th>
-                                        <th class="col-position sortable" onclick="sortTable(this,'number')">Pos.</th>
-                                        <th class="col-title mobile-name-col sortable" onclick="sortTable(this,'text')">Song</th>
-                                        <th class="col-artist hide-mobile sortable" onclick="sortTable(this,'text')">Artist</th>
-                                        <th class="col-plays sortable" onclick="sortTable(this,'number')">Plays</th>
-                                        <th class="col-span hide-mobile sortable" onclick="sortTable(this,'number')">Weeks</th>
-                                        <th class="col-peak hide-mobile sortable" onclick="sortTable(this,'number')">Peak</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr th:each="entry : ${contenderEntries}"
-                                        th:data-song-id="${entry.songId}"
-                                        th:attr="data-gender=${entry.genderId},data-genre=${entry.genreName}"
-                                        th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                                        <td class="cover-col">
-                                            <img th:if="${entry.albumHasImage and entry.albumId != null}"
-                                                 th:src="@{/albums/{id}/image(id=${entry.albumId})}"
-                                                 alt="" class="title-image">
-                                            <img th:if="${!entry.albumHasImage and entry.hasImage}"
-                                                 th:src="@{/songs/{id}/image(id=${entry.songId})}"
-                                                 alt="" class="title-image">
-                                            <div th:if="${!entry.albumHasImage and !entry.hasImage}" class="title-placeholder">
-                                                <span>&#127925;</span>
-                                            </div>
-                                        </td>
-                                        <td class="col-position" th:attr="data-sort-val=${entry.position}">
-                                            <div class="position-cell">
-                                                <span class="position-number" th:text="${entry.position}">21</span>
-                                            </div>
-                                        </td>
-                                        <td class="col-title mobile-name-col" th:attr="data-sort-val=${entry.songName}">
-                                            <a th:href="@{/songs/{id}(id=${entry.songId})}"
-                                               class="chart-link chart-link-primary"
-                                               th:text="${entry.songName}">Song Name</a>
-                                            <div class="mobile-inline-artist">
-                                                <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                                   class="chart-link chart-link-secondary"
-                                                   th:text="${entry.artistName}">Artist Name</a>
-                                            </div>
-                                        </td>
-                                        <td class="col-artist hide-mobile" th:attr="data-sort-val=${entry.artistName}">
-                                            <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                               class="chart-link chart-link-secondary"
-                                               th:text="${entry.artistName}">Artist Name</a>
-                                        </td>
-                                        <td class="col-plays" th:attr="data-sort-val=${entry.playCount != null ? entry.playCount : -1}">
-                                            <span class="plays-count"
-                                                  th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
-                                        </td>
-                                        <td class="col-span hide-mobile"
-                                            th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">0</td>
-                                        <td class="col-peak hide-mobile">
-                                            <span class="peak-position"
-                                                  th:text="${entry.peakPosition != null ? entry.peakPosition : '-'}">-</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            </section>
+
+            <!-- Albums -->
+            <section id="albumsSection" class="wk-section" hidden th:if="${albumEntries != null and !albumEntries.isEmpty()}">
+                <div th:replace="~{fragments/weekly-chart-rows :: summary('album', ${albumEntries}, ${numberOneAlbum})}"></div>
+                <div th:replace="~{fragments/weekly-chart-rows :: breakdowns(${albumBreakdowns})}"></div>
+
+                <div class="wk-section-head">
+                    <h2 class="wk-section-title">Top 10 albums</h2>
+                    <span th:if="${isPreview}" class="co-hint">Live standings for the week in progress</span>
                 </div>
-                <div th:if="${!isPreview && fallOffEntries != null && !fallOffEntries.isEmpty()}" style="margin-top: 20px;">
-                    <div class="chart-section-header">
-                        <span class="chart-section-icon">&#8600;</span>
-                        <h2 class="chart-section-title">Fall-offs From Last Available Chart</h2>
-                    </div>
-                    <div class="charts-table-container">
-                        <div class="charts-table-wrapper">
-                            <table class="charts-table table mobile-compact-table">
-                                <thead>
-                                    <tr>
-                                        <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
-                                        <th class="col-expand hide-mobile"></th>
-                                        <th class="col-movement hide-mobile">Movement</th>
-                                        <th class="col-position">Pos.</th>
-                                        <th class="cover-col"></th>
-                                        <th class="col-title mobile-name-col">Song</th>
-                                        <th class="col-artist hide-mobile">Artist</th>
-                                        <th class="col-plays hide-mobile">Plays</th>
-                                        <th class="col-span">Weeks</th>
-                                        <th class="col-peak">Peak</th>
-                                        <th class="col-at-peak hide-mobile">Weeks @ Peak</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <th:block th:each="entry : ${fallOffEntries}">
-                                        <tr th:attr="data-gender=${entry.genderId},data-song-id=${entry.songId},data-mobile-album=${entry.albumName != null ? entry.albumName : '-'},data-mobile-movement='OFF',data-mobile-movement-class='mvmt-down',data-mobile-plays=${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'},data-mobile-weeks-at-peak=${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}"
-                                            th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                                            <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this, 'song')" aria-label="Show weekly fall-off details" aria-expanded="false">+</button></td>
-                                            <td class="col-expand hide-mobile">
-                                                <button class="expand-btn"
-                                                        th:data-song-id="${entry.songId}"
-                                                        onclick="toggleChartRun(this)">+</button>
-                                            </td>
-                                            <td class="col-movement hide-mobile"><span class="mvmt mvmt-down">OFF</span></td>
-                                            <td class="col-position" th:text="${entry.position}">1</td>
-                                            <td class="cover-col">
-                                                <img th:if="${entry.albumHasImage and entry.albumId != null}"
-                                                     th:src="@{/albums/{id}/image(id=${entry.albumId})}"
-                                                     alt="" class="title-image">
-                                                <img th:if="${!entry.albumHasImage and entry.hasImage}"
-                                                     th:src="@{/songs/{id}/image(id=${entry.songId})}"
-                                                     alt="" class="title-image">
-                                                <div th:if="${!entry.albumHasImage and !entry.hasImage}" class="title-placeholder">
-                                                    <span>&#127925;</span>
-                                                </div>
-                                            </td>
-                                            <td class="col-title mobile-name-col">
-                                                <a th:href="@{/songs/{id}(id=${entry.songId})}"
-                                                   class="chart-link chart-link-primary"
-                                                   th:text="${entry.songName}">Song Name</a>
-                                                <div class="mobile-inline-artist">
-                                                    <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                                       class="chart-link chart-link-secondary"
-                                                       th:text="${entry.artistName}">Artist Name</a>
-                                                </div>
-                                            </td>
-                                            <td class="col-artist hide-mobile">
-                                                <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                                   class="chart-link chart-link-secondary"
-                                                   th:text="${entry.artistName}">Artist Name</a>
-                                            </td>
-                                            <td class="col-plays hide-mobile">
-                                                <div class="plays-cell">
-                                                    <span th:if="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="number-one-tooltip-trigger tooltip-enabled" tabindex="0" data-tooltip-title="Combined song versions:" data-tooltip-icon="🎵">
-                                                        <span class="plays-count"
-                                                              th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
-                                                        <span class="number-one-tooltip-item-source" hidden th:each="tooltipItem : ${entry.playBreakdownItems}" th:text="${tooltipItem}"></span>
-                                                    </span>
-                                                    <span th:unless="${entry.playBreakdownItems != null and !entry.playBreakdownItems.isEmpty()}" class="plays-count"
-                                                          th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
-                                                </div>
-                                            </td>
-                                            <td class="col-span" th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">5</td>
-                                            <td class="col-peak">
-                                                <div class="peak-cell">
-                                                    <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition != null ? entry.peakPosition : '-'}">1</span>
-                                                </div>
-                                            </td>
-                                            <td class="col-at-peak hide-mobile" th:text="${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}">x1</td>
-                                        </tr>
-                                        <tr class="chart-run-row" th:data-song-id="${entry.songId}">
-                                            <td colspan="10" class="chart-run-cell">
-                                                <div class="chart-run-content" th:id="'chart-run-' + ${entry.songId}">
-                                                    <div style="text-align: center; color: #888;">Loading chart run...</div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </th:block>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Top 10 Albums Section -->
-            <div id="albumsSection" class="chart-section" style="display: none;" th:if="${albumEntries != null && !albumEntries.isEmpty()}">
-                <!-- #1 Album Image -->
-                <div class="number-one-section" th:if="${numberOneAlbum != null}">
-                    <div class="number-one-card">
-                        <div class="number-one-label">💿 #1 Album</div>
-                        <img th:if="${numberOneAlbum.hasImage}" 
-                             th:src="@{/albums/{id}/image(id=${numberOneAlbum.albumId})}" 
-                             alt="Number 1 Album"
-                             class="number-one-image">
-                        <div th:unless="${numberOneAlbum.hasImage}" class="number-one-placeholder">&#128191;</div>
-                    </div>
-                </div>
-                
-                <div class="chart-section-header">
-                    <span class="chart-section-icon">💿</span>
-                    <h2 class="chart-section-title">Top 10 Albums</h2>
-                    <div id="albumsGenderPct" class="gender-pct"></div>
-                    <button type="button" class="genre-breakdown-btn" onclick="showGenreBreakdown('#albumsSection', '.album-chart-run-row', 'Albums Genre Breakdown')">Genre Breakdown</button>
-                </div>
-                <div class="charts-table-container">
-                    <div class="charts-table-wrapper">
-                        <table class="charts-table table mobile-compact-table">
-                            <thead>
-                                <tr>
-                                    <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
-                                    <th class="col-expand hide-mobile"></th>
-                                    <th class="cover-col"></th>
-                                    <th class="col-movement hide-mobile">Movement</th>
-                                    <th class="col-position sortable" onclick="sortTable(this,'number')">Pos.</th>
-                                    <th class="col-title mobile-name-col sortable" onclick="sortTable(this,'text')">Album</th>
-                                    <th class="col-artist hide-mobile sortable" onclick="sortTable(this,'text')">Artist</th>
-                                    <th class="col-plays hide-mobile sortable" onclick="sortTable(this,'number')">Plays</th>
-                                    <th class="col-span sortable" onclick="sortTable(this,'number')">Weeks</th>
-                                    <th class="col-peak sortable" onclick="sortTable(this,'number')">Peak</th>
-                                    <th class="col-at-peak hide-mobile sortable" onclick="sortTable(this,'number')">Weeks @ Peak</th>
-                                </tr>
-                            </thead>
+                <div class="table-scroll wk-table-shell">
+                    <table id="albumsChartTable" class="sticky-head catalog-table wk-table">
+                        <thead th:replace="~{fragments/weekly-chart-rows :: head('album', true)}"></thead>
                         <tbody>
                             <th:block th:each="entry : ${albumEntries}">
-                                <!-- Main row -->
-                                <tr th:data-album-id="${entry.albumId}"
-                                    th:attr="data-gender=${entry.genderId},data-genre=${entry.genreName},data-mobile-artist=${entry.artistName != null ? entry.artistName : '-'},data-mobile-movement=${entry.movementDisplay != null ? entry.movementDisplay : '-'},data-mobile-movement-class=${entry.movementClass != null ? entry.movementClass : ''},data-mobile-plays=${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'},data-mobile-weeks-at-peak=${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}"
-                                    th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                                    <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this, 'album')" aria-label="Show weekly album details" aria-expanded="false">+</button></td>
-                                    <td class="col-expand hide-mobile">
-                                        <button class="expand-btn" 
-                                                th:data-album-id="${entry.albumId}"
-                                                onclick="toggleAlbumChartRun(this)">+</button>
-                                    </td>
-                                    <td class="cover-col">
-                                        <img th:if="${entry.hasImage}"
-                                             th:src="@{/albums/{id}/image(id=${entry.albumId})}"
-                                             alt="" class="title-image">
-                                        <div th:unless="${entry.hasImage}" class="title-placeholder">
-                                            <span>&#128191;</span>
-                                        </div>
-                                    </td>
-                                    <td class="col-movement hide-mobile">
-                                        <span th:if="${entry.movementDisplay != '-'}"
-                                              class="mvmt"
-                                              th:classappend="' ' + ${entry.movementClass}"
-                                              th:text="${entry.movementDisplay}">NEW</span>
-                                        <span th:if="${entry.movementDisplay == '-'}" style="color:#555;">-</span>
-                                    </td>
-                                    <td class="col-position" th:attr="data-sort-val=${entry.position}">
-                                        <div class="position-cell">
-                                            <span class="position-number" th:text="${entry.position}">1</span>
-                                        </div>
-                                    </td>
-                                    <td class="col-title mobile-name-col" th:attr="data-sort-val=${entry.albumName}">
-                                        <a th:href="@{/albums/{id}(id=${entry.albumId})}" 
-                                           class="chart-link chart-link-primary"
-                                           th:text="${entry.albumName}">Album Name</a>
-                                        <div class="mobile-inline-artist">
-                                            <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                               class="chart-link chart-link-secondary"
-                                               th:text="${entry.artistName}">Artist Name</a>
-                                        </div>
-                                    </td>
-                                    <td class="col-artist hide-mobile" th:attr="data-sort-val=${entry.artistName}">
-                                        <a th:href="@{/artists/{id}(id=${entry.artistId})}"
-                                           class="chart-link chart-link-secondary"
-                                           th:text="${entry.artistName}">Artist Name</a>
-                                    </td>
-                                    <td class="col-plays hide-mobile" th:attr="data-sort-val=${entry.playCount != null ? entry.playCount : -1}">
-                                        <div class="plays-cell">
-                                            <span class="plays-count"
-                                                  th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
-                                        </div>
-                                    </td>
-                                    <td class="col-span" th:attr="data-sort-val=${entry.weeksOnChart != null ? entry.weeksOnChart : -1}"
-                                        th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">5</td>
-                                    <td class="col-peak" th:attr="data-sort-val=${entry.peakPosition != null ? entry.peakPosition : 9999}">
-                                        <div class="peak-cell">
-                                            <span class="recap-pos-cell">
-                                                <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition != null ? entry.peakPosition : '-'}">1</span>
-                                                <span th:if="${entry.peakPosition != null and entry.position == entry.peakPosition}" class="peak-now-pill">Peak</span>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="col-at-peak hide-mobile" th:attr="data-sort-val=${entry.weeksAtPeak != null ? entry.weeksAtPeak : -1}"
-                                        th:text="${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}">x1</td>
-                                </tr>
-                                <!-- Chart run detail row (hidden by default) -->
-                                <tr class="chart-run-row album-chart-run-row" th:data-album-id="${entry.albumId}">
-                                    <td colspan="10" class="chart-run-cell">
-                                        <div class="chart-run-content" th:id="'album-chart-run-' + ${entry.albumId}">
-                                            <!-- Content loaded via AJAX -->
-                                            <div style="text-align: center; color: #888;">Loading chart run...</div>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <tr th:replace="~{fragments/weekly-chart-rows :: albumRow(${entry}, 'chart')}"></tr>
                             </th:block>
                         </tbody>
                     </table>
+                </div>
+
+                <div th:if="${!isPreview and albumFallOffEntries != null and !albumFallOffEntries.isEmpty()}" class="wk-sub">
+                    <div class="wk-section-head">
+                        <h2 class="wk-section-title">Fall-offs</h2>
+                        <span class="co-hint">Dropped out since the last available chart. # is the last position held.</span>
+                    </div>
+                    <div class="table-scroll wk-table-shell">
+                        <table class="sticky-head catalog-table wk-table">
+                            <thead th:replace="~{fragments/weekly-chart-rows :: head('album', false)}"></thead>
+                            <tbody>
+                                <th:block th:each="entry : ${albumFallOffEntries}">
+                                    <tr th:replace="~{fragments/weekly-chart-rows :: albumRow(${entry}, 'falloff')}"></tr>
+                                </th:block>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div th:if="${!isPreview && albumFallOffEntries != null && !albumFallOffEntries.isEmpty()}" style="margin-top: 20px;">
-                    <div class="chart-section-header">
-                        <span class="chart-section-icon">&#8600;</span>
-                        <h2 class="chart-section-title">Fall-offs From Last Available Chart</h2>
-                    </div>
-                    <div class="charts-table-container">
-                        <div class="charts-table-wrapper">
-                            <table class="charts-table table mobile-compact-table">
-                                <thead>
-                                    <tr>
-                                        <th class="mobile-expand-col show-mobile-only" data-no-sort></th>
-                                        <th class="col-expand hide-mobile"></th>
-                                        <th class="cover-col"></th>
-                                        <th class="col-movement hide-mobile">Movement</th>
-                                        <th class="col-position">Pos.</th>
-                                        <th class="col-title mobile-name-col">Album</th>
-                                        <th class="col-artist hide-mobile">Artist</th>
-                                        <th class="col-plays hide-mobile">Plays</th>
-                                        <th class="col-span">Weeks</th>
-                                        <th class="col-peak">Peak</th>
-                                        <th class="col-at-peak hide-mobile">Weeks @ Peak</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <th:block th:each="entry : ${albumFallOffEntries}">
-                                        <tr th:data-album-id="${entry.albumId}"
-                                            th:attr="data-gender=${entry.genderId},data-mobile-artist=${entry.artistName != null ? entry.artistName : '-'},data-mobile-movement='OFF',data-mobile-movement-class='mvmt-down',data-mobile-plays=${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'},data-mobile-weeks-at-peak=${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}"
-                                            th:style="${entry.genderId == 1} ? 'background: rgba(236, 72, 153, 0.15); border-left: 3px solid rgba(236, 72, 153, 0.6);' : (${entry.genderId == 2} ? 'background: rgba(59, 130, 246, 0.15); border-left: 3px solid rgba(59, 130, 246, 0.6);' : '')">
-                                            <td class="mobile-expand-col show-mobile-only"><button type="button" class="mobile-row-expand-btn" onclick="toggleWeeklyMobileDetails(this, 'album')" aria-label="Show weekly album fall-off details" aria-expanded="false">+</button></td>
-                                            <td class="col-expand hide-mobile">
-                                                <button class="expand-btn" th:data-album-id="${entry.albumId}" onclick="toggleAlbumChartRun(this)">+</button>
-                                            </td>
-                                            <td class="cover-col">
-                                                <img th:if="${entry.hasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId})}" alt="" class="title-image">
-                                                <div th:unless="${entry.hasImage}" class="title-placeholder">
-                                                    <span>&#128191;</span>
-                                                </div>
-                                            </td>
-                                            <td class="col-movement hide-mobile"><span class="mvmt mvmt-down">OFF</span></td>
-                                            <td class="col-position" th:text="${entry.position}">1</td>
-                                            <td class="col-title mobile-name-col">
-                                                <a th:href="@{/albums/{id}(id=${entry.albumId})}" class="chart-link chart-link-primary" th:text="${entry.albumName}">Album Name</a>
-                                                <div class="mobile-inline-artist">
-                                                    <a th:href="@{/artists/{id}(id=${entry.artistId})}" class="chart-link chart-link-secondary" th:text="${entry.artistName}">Artist Name</a>
-                                                </div>
-                                            </td>
-                                            <td class="col-artist hide-mobile">
-                                                <a th:href="@{/artists/{id}(id=${entry.artistId})}" class="chart-link chart-link-secondary" th:text="${entry.artistName}">Artist Name</a>
-                                            </td>
-                                            <td class="col-plays hide-mobile">
-                                                <div class="plays-cell">
-                                                    <span class="plays-count" th:text="${entry.playCount != null ? #numbers.formatInteger(entry.playCount, 1, 'COMMA') : '-'}">0</span>
-                                                </div>
-                                            </td>
-                                            <td class="col-span" th:text="${entry.weeksOnChart != null ? entry.weeksOnChart : '-'}">5</td>
-                                            <td class="col-peak">
-                                                <div class="peak-cell">
-                                                    <span class="peak-position" th:classappend="${entry.peakPosition == 1 ? 'peak-number-one' : ''}" th:text="${entry.peakPosition != null ? entry.peakPosition : '-'}">1</span>
-                                                </div>
-                                            </td>
-                                            <td class="col-at-peak hide-mobile" th:text="${entry.weeksAtPeak != null ? 'x' + entry.weeksAtPeak : '-'}">x1</td>
-                                        </tr>
-                                        <tr class="chart-run-row album-chart-run-row" th:data-album-id="${entry.albumId}">
-                                            <td colspan="10" class="chart-run-cell">
-                                                <div class="chart-run-content" th:id="'album-chart-run-' + ${entry.albumId}">
-                                                    <div style="text-align: center; color: #888;">Loading chart run...</div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </th:block>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+            </section>
+        </th:block>
     </div>
-    
+
     <!-- Progress Modal -->
     <div class="progress-modal" id="progressModal">
         <div class="progress-modal-content">
@@ -1613,423 +203,221 @@
             <div class="progress-text" style="margin-top: 8px;">
                 Processing: <span class="progress-current-week" id="progressCurrentWeek">-</span>
             </div>
-            <button id="closeModalBtn" class="action-btn" style="display: none; margin-top: 20px;" onclick="closeModalAndReload()">
-                Close & Refresh
+            <button id="closeModalBtn" type="button" class="toolbar-btn" style="display: none; margin: 20px auto 0;" onclick="closeModalAndReload()">
+                Close &amp; refresh
             </button>
         </div>
     </div>
-    
+
+    <!-- Playlist Generator Modal -->
+    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+
     <script th:inline="javascript">
         /*<![CDATA[*/
         const currentPeriodKey = /*[[${periodKey}]]*/ null;
         const availableDates = /*[[${availableDates}]]*/ [];
         const selectedDate = /*[[${selectedDate}]]*/ null;
         let activeWeeklyView = /*[[${selectedView}]]*/ 'songs';
-        
-        // Chart type toggle functions
+        /*]]>*/
+    </script>
+
+    <script th:inline="none">
+        // ------------------------------------------------------------------ Songs / Albums view
+
+        function setWeeklyView(view) {
+            const songs = document.getElementById('songsSection');
+            const albums = document.getElementById('albumsSection');
+            if (!songs) return;
+            if (view === 'albums' && !albums) view = 'songs';
+            songs.hidden = view === 'albums';
+            if (albums) albums.hidden = view !== 'albums';
+            document.getElementById('songsToggle')?.classList.toggle('active', view !== 'albums');
+            document.getElementById('albumsToggle')?.classList.toggle('active', view === 'albums');
+            const playlist = document.getElementById('weeklyPlaylistBtn');
+            if (playlist) playlist.hidden = view === 'albums';
+            activeWeeklyView = view;
+        }
+
         function showSongsChart() {
-            document.getElementById('songsSection').style.display = 'block';
-            const albumsSection = document.getElementById('albumsSection');
-            if (albumsSection) {
-                albumsSection.style.display = 'none';
-            }
-            document.getElementById('songsToggle').classList.add('active');
-            document.getElementById('albumsToggle').classList.remove('active');
+            setWeeklyView('songs');
             syncWeeklyViewState('songs');
         }
-        
+
         function showAlbumsChart() {
-            const albumsSection = document.getElementById('albumsSection');
-            if (!albumsSection) {
-                showSongsChart();
-                return;
-            }
-            document.getElementById('songsSection').style.display = 'none';
-            albumsSection.style.display = 'block';
-            document.getElementById('songsToggle').classList.remove('active');
-            document.getElementById('albumsToggle').classList.add('active');
-            syncWeeklyViewState('albums');
+            setWeeklyView('albums');
+            syncWeeklyViewState(activeWeeklyView);
+        }
+
+        function withWeeklyView(href, view) {
+            const url = new URL(href, window.location.origin);
+            if (view === 'albums') url.searchParams.set('view', 'albums');
+            else url.searchParams.delete('view');
+            return url.toString();
         }
 
         function syncWeeklyViewState(view) {
-            activeWeeklyView = view;
-            const nextUrl = new URL(window.location.href);
-            if (view === 'albums') {
-                nextUrl.searchParams.set('view', 'albums');
-            } else {
-                nextUrl.searchParams.delete('view');
-            }
-            window.history.replaceState({}, '', nextUrl);
-            syncWeeklyNavLinks(view);
-        }
-
-        function syncWeeklyNavLinks(view) {
+            window.history.replaceState({}, '', withWeeklyView(window.location.href, view));
             ['prevChartLink', 'nextChartLink', 'nextPreviewChartLink'].forEach(function(id) {
                 const link = document.getElementById(id);
-                if (!link) return;
-                const url = new URL(link.href, window.location.origin);
-                if (view === 'albums') {
-                    url.searchParams.set('view', 'albums');
-                } else {
-                    url.searchParams.delete('view');
-                }
-                link.href = url.toString();
+                if (link) link.href = withWeeklyView(link.href, view);
             });
         }
 
-        function applyInitialWeeklyView() {
-            // The empty state has no chart sections or chart-type controls to initialize.
-            if (!document.getElementById('songsSection')) {
-                return;
-            }
+        setWeeklyView(activeWeeklyView);
 
-            if (activeWeeklyView === 'albums') {
-                showAlbumsChart();
-                return;
-            }
-            showSongsChart();
-        }
-        
-        // Navigate to a specific date's chart
         function navigateToDate(dateStr) {
-            if (dateStr) {
-                const target = new URL(`/charts/weekly/by-date?date=${dateStr}`, window.location.origin);
-                if (activeWeeklyView === 'albums') {
-                    target.searchParams.set('view', 'albums');
-                }
-                window.location.href = target.toString();
-            }
+            if (!dateStr) return;
+            const target = new URL(`/charts/weekly/by-date?date=${dateStr}`, window.location.origin);
+            if (activeWeeklyView === 'albums') target.searchParams.set('view', 'albums');
+            window.location.href = target.toString();
         }
-        
-        // Cache for chart run data
-        const chartRunCache = {};
 
-        applyInitialWeeklyView();
-        
-        // Toggle chart run detail row
-        async function toggleChartRun(button) {
-            const songId = button.getAttribute('data-song-id');
-            const mainRow = button.closest('tr');
-            const detailRow = mainRow ? mainRow.nextElementSibling : null;
-            if (!detailRow || !detailRow.classList.contains('chart-run-row')) {
+        // ------------------------------------------------------------------ Sorting
+
+        function sortWeeklyTable(th) {
+            const table = th.closest('table');
+            const tbody = table.tBodies[0];
+            const colIndex = th.cellIndex;
+            const type = th.dataset.sort;
+            const dir = th.classList.contains('ct-sorted') && !th.classList.contains('wk-asc') ? 'asc' : (th.classList.contains('ct-sorted') ? 'desc' : 'asc');
+
+            table.querySelectorAll('thead th').forEach(h => h.classList.remove('ct-sorted', 'wk-asc'));
+            th.classList.add('ct-sorted');
+            if (dir === 'asc') th.classList.add('wk-asc');
+
+            const groups = [];
+            Array.from(tbody.rows).forEach(row => {
+                if (row.classList.contains('wk-row')) groups.push({ row, extra: [] });
+                else if (groups.length) groups[groups.length - 1].extra.push(row);
+            });
+            const valueOf = row => {
+                const cell = row.cells[colIndex];
+                return cell?.dataset?.sortVal ?? cell?.textContent?.trim() ?? '';
+            };
+            groups.sort((a, b) => {
+                const av = valueOf(a.row), bv = valueOf(b.row);
+                const cmp = type === 'number' ? (parseFloat(av) || 0) - (parseFloat(bv) || 0) : av.localeCompare(bv);
+                return dir === 'asc' ? cmp : -cmp;
+            });
+            groups.forEach(g => { tbody.appendChild(g.row); g.extra.forEach(r => tbody.appendChild(r)); });
+        }
+
+        // ------------------------------------------------------------------ Chart run panel
+
+        const weeklyRunCache = {};
+
+        function escapeWeeklyHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function weeklyRunUrl(row) {
+            return row.dataset.entry === 'album'
+                ? `/charts/weekly/${currentPeriodKey}/album/${row.dataset.albumId}/run`
+                : `/charts/weekly/${currentPeriodKey}/song/${row.dataset.songId}/run`;
+        }
+
+        /** Album, movement and weeks at peak: columns phones don't show, so they sit at the top of the panel there. */
+        function weeklyRunFacts(row) {
+            const facts = [];
+            if (row.dataset.entry === 'song') facts.push(['Album', escapeWeeklyHtml(row.dataset.album || '-')]);
+            const move = row.querySelector('.wk-c-move');
+            facts.push(['Movement', move ? move.innerHTML : '-']);
+            facts.push(['Weeks at peak', escapeWeeklyHtml(row.dataset.weeksAtPeak || '-')]);
+            return '<div class="wk-run-facts">' + facts.map(([label, value]) =>
+                `<div class="wk-run-fact"><span class="co-eyebrow">${label}</span><b>${value}</b></div>`).join('') + '</div>';
+        }
+
+        function weeklyRunPanel(row, data) {
+            const isAlbum = row.dataset.entry === 'album';
+            const facts = weeklyRunFacts(row);
+            if (data === null) return `<div class="co-run">${facts}<span class="co-hint">Loading chart run...</span></div>`;
+            if (data === false) return `<div class="co-run">${facts}<span class="co-hint" style="color:#f87171">Failed to load chart run.</span></div>`;
+
+            const weeks = data.weeks || [];
+            const total = data.totalWeeksOnChart || weeks.filter(w => w.onChart).length;
+            const tiers = isAlbum
+                ? [['Weeks at #1', data.weeksAtTop1], ['Weeks at top 5', data.weeksAtTop5], ['Weeks at top 10', data.weeksAtTop10]]
+                : [['Weeks at #1', data.weeksAtTop1], ['Weeks at top 5', data.weeksAtTop5], ['Weeks at top 10', data.weeksAtTop10], ['Weeks at top 20', data.weeksAtTop20]];
+            const tiles = tiers.map(([label, value], index) => {
+                const count = value || 0;
+                const pct = total ? Math.round(count / total * 100) : 0;
+                const one = index === 0;
+                return `<div class="co-tile${one ? ' co-tile-one' : ''}"><span class="co-eyebrow"${one ? ' style="color:#fcd34d"' : ''}>${label}</span>`
+                    + `<span class="co-tile-value">${count}</span><span class="co-tile-bar"><i style="width:${pct}%"></i></span>`
+                    + `<span class="co-hint">${pct}% of the run</span></div>`;
+            }).join('');
+
+            const open = isAlbum
+                ? `<a class="co-small-btn" href="/albums/${row.dataset.albumId}">Open album</a>`
+                : `<a class="co-small-btn" href="/songs/${row.dataset.songId}">Open song</a>`;
+
+            // The boxes are drawn by chart-run.js once the panel is in the page (paintWeeklyBoxes)
+            return `<div class="co-run">${facts}<div class="co-tiles">${tiles}</div>`
+                + '<span class="chh-eyebrow">Chart run</span><div class="chh-run-boxes"></div>'
+                + `<div class="co-row"><span class="co-hint">Each box is a week on the chart; this week is outlined. Click one to open that week.</span><span class="co-spacer"></span>${open}</div></div>`;
+        }
+
+        function paintWeeklyBoxes(cell, data) {
+            const boxes = cell.querySelector('.chh-run-boxes');
+            if (!boxes || !data) return;
+            const weeks = window.ChartRun.trim(data.weeks || []);
+            window.ChartRun.renderBoxes(boxes, weeks, '/charts/weekly/{key}', 'weeks', currentPeriodKey);
+        }
+
+        async function toggleWeeklyRun(button) {
+            const row = button.closest('tr');
+            const next = row.nextElementSibling;
+            if (next && next.classList.contains('co-run-row')) {
+                next.remove();
+                button.setAttribute('aria-expanded', 'false');
                 return;
             }
-            
-            if (detailRow.classList.contains('visible')) {
-                detailRow.classList.remove('visible');
-                button.classList.remove('expanded');
-                button.textContent = '+';
-            } else {
-                // Load data if not cached
-                if (!chartRunCache[songId]) {
-                    await loadChartRun(songId, mainRow);
-                }
-                detailRow.classList.add('visible');
-                button.classList.add('expanded');
-                button.textContent = '−';
-            }
-        }
-        
-        // Load chart run data via AJAX
-        async function loadChartRun(songId, row) {
+            const detail = document.createElement('tr');
+            const tone = row.classList.contains('ct-male') ? 'ct-male chh-scope chh-male'
+                : row.classList.contains('ct-female') ? 'ct-female chh-scope chh-female' : 'co-run-other chh-scope';
+            detail.className = 'co-run-row ' + tone;
+            const cell = document.createElement('td');
+            // Span only the visible columns: phones hide some, and extra spanned columns squeeze the name column
+            cell.colSpan = Array.from(row.cells).filter(c => getComputedStyle(c).display !== 'none').length;
+            cell.innerHTML = weeklyRunPanel(row, null);
+            detail.appendChild(cell);
+            row.after(detail);
+            button.setAttribute('aria-expanded', 'true');
+
+            const url = weeklyRunUrl(row);
             try {
-                const response = await fetch(`/charts/weekly/${currentPeriodKey}/song/${songId}/run`);
-                if (!response.ok) throw new Error('Failed to load chart run');
-                
-                const data = await response.json();
-                chartRunCache[songId] = data;
-                
-                // Render the chart run content
-                const container = document.getElementById(`chart-run-${songId}`);
-                container.innerHTML = renderChartRun(data, getWeeklyChartToneClass(row));
+                if (!weeklyRunCache[url]) {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Failed to load chart run');
+                    weeklyRunCache[url] = await response.json();
+                }
+                cell.innerHTML = weeklyRunPanel(row, weeklyRunCache[url]);
+                paintWeeklyBoxes(cell, weeklyRunCache[url]);
             } catch (error) {
                 console.error('Error loading chart run:', error);
-                const container = document.getElementById(`chart-run-${songId}`);
-                container.innerHTML = '<div style="color: #f87171;">Failed to load chart run data</div>';
-            }
-        }
-        
-        function getWeeklyChartToneClass(row) {
-            const genderId = row?.dataset?.gender;
-            if (genderId === '2') {
-                return 'gender-male';
-            }
-            if (genderId === '1') {
-                return 'gender-female';
-            }
-            return 'gender-other';
-        }
-
-        async function toggleWeeklyMobileDetails(button, entityType) {
-            const mainRow = button.closest('tr');
-            if (!mainRow) return;
-
-            let detailRow = mainRow.nextElementSibling;
-            if (!detailRow || !detailRow.classList.contains('mobile-table-detail-row')) {
-                detailRow = document.createElement('tr');
-                detailRow.className = 'mobile-table-detail-row';
-
-                const detailCell = document.createElement('td');
-                detailCell.className = 'mobile-table-detail-cell';
-                detailCell.colSpan = Array.from(mainRow.cells).filter(function(cell) {
-                    return window.getComputedStyle(cell).display !== 'none';
-                }).length;
-                detailCell.innerHTML = renderWeeklyMobileDetails(mainRow);
-
-                detailRow.appendChild(detailCell);
-                mainRow.insertAdjacentElement('afterend', detailRow);
-            }
-
-            const isVisible = detailRow.classList.contains('visible');
-            detailRow.classList.toggle('visible', !isVisible);
-            button.classList.toggle('expanded', !isVisible);
-            button.textContent = isVisible ? '+' : '-';
-            button.setAttribute('aria-expanded', String(!isVisible));
-            if (isVisible) return;
-
-            const runContainer = detailRow.querySelector('[data-mobile-run-container]');
-            if (runContainer) {
-                await loadWeeklyMobileRunIntoContainer(runContainer, mainRow, entityType || (mainRow.dataset.albumId ? 'album' : 'song'));
+                cell.innerHTML = weeklyRunPanel(row, false);
             }
         }
 
-        function renderWeeklyMobileDetails(row) {
-            const detailFields = [
-                ['Album', row.dataset.mobileAlbum],
-                { label: 'Movement', value: row.dataset.mobileMovement, html: renderWeeklyMovementChip(row) },
-                { label: 'Plays', value: row.dataset.mobilePlays, html: escapeWeeklyMobileDetailHtml(row.dataset.mobilePlays || '-') },
-                { label: 'Weeks @ Peak', value: row.dataset.mobileWeeksAtPeak, html: escapeWeeklyMobileDetailHtml(row.dataset.mobileWeeksAtPeak || '-') }
-            ].filter((field) => field.value !== undefined && field.value !== null && field.value !== '');
+        document.addEventListener('click', function(event) {
+            const runButton = event.target.closest('[data-wk-run]');
+            if (runButton) { toggleWeeklyRun(runButton); return; }
+            const header = event.target.closest('.wk-table th[data-sort]');
+            if (header) sortWeeklyTable(header);
+        });
 
-            return `<div class="mobile-table-detail-grid">${detailFields.map((field) => `
-                <div class="mobile-table-detail-item">
-                    <span class="mobile-table-detail-label">${escapeWeeklyMobileDetailHtml(field.label)}</span>
-                    <span class="mobile-table-detail-value">${field.html}</span>
-                </div>
-            `).join('')}</div><div style="margin-top:12px;"><div style="color:#888;font-size:0.82rem;" data-mobile-run-container="1">Loading chart run...</div></div>`;
-        }
+        // ------------------------------------------------------------------ Regeneration
 
-        function renderWeeklyMovementChip(row) {
-            const movement = row.dataset.mobileMovement || '-';
-            if (movement === '-') {
-                return '<span>-</span>';
-            }
-            const movementClass = row.dataset.mobileMovementClass || '';
-            const className = movementClass ? 'mvmt ' + movementClass : 'mvmt';
-            return `<span class="${className}">${escapeWeeklyMobileDetailHtml(movement)}</span>`;
-        }
-
-        async function loadWeeklyMobileRunIntoContainer(container, row, entityType) {
-            if (!container || container.dataset.loaded || container.dataset.loading) return;
-
-            container.dataset.loading = '1';
-            container.innerHTML = '<div style="color:#888;font-size:0.82rem;">Loading chart run...</div>';
-            try {
-                if (entityType === 'album') {
-                    const albumId = row.dataset.albumId;
-                    let data = albumChartRunCache[albumId];
-                    if (!data) {
-                        const response = await fetch(`/charts/weekly/${currentPeriodKey}/album/${albumId}/run`);
-                        if (!response.ok) throw new Error('Failed to load chart run');
-                        data = await response.json();
-                        albumChartRunCache[albumId] = data;
-                    }
-                    container.innerHTML = renderAlbumChartRun(data, getWeeklyChartToneClass(row));
-                } else {
-                    const songId = row.dataset.songId;
-                    let data = chartRunCache[songId];
-                    if (!data) {
-                        const response = await fetch(`/charts/weekly/${currentPeriodKey}/song/${songId}/run`);
-                        if (!response.ok) throw new Error('Failed to load chart run');
-                        data = await response.json();
-                        chartRunCache[songId] = data;
-                    }
-                    container.innerHTML = renderChartRun(data, getWeeklyChartToneClass(row));
-                }
-                container.dataset.loaded = '1';
-            } catch (error) {
-                container.innerHTML = '<div style="color:#f87171;">Failed to load chart run data</div>';
-            } finally {
-                delete container.dataset.loading;
-            }
-        }
-
-        function escapeWeeklyMobileDetailHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        function trimChartRunAbsentWeeks(weeks) {
-            let trimStart = 0;
-            while (trimStart < weeks.length && !weeks[trimStart].onChart) {
-                trimStart++;
-            }
-            let trimEnd = weeks.length - 1;
-            while (trimEnd >= trimStart && !weeks[trimEnd].onChart) {
-                trimEnd--;
-            }
-            return trimStart > trimEnd ? [] : weeks.slice(trimStart, trimEnd + 1);
-        }
-
-        // Helper to consolidate consecutive absent weeks into a single box
-        function consolidateAbsentWeeks(weeks) {
-            const trimmedWeeks = trimChartRunAbsentWeeks(weeks || []);
-            const result = [];
-            let i = 0;
-            while (i < trimmedWeeks.length) {
-                if (trimmedWeeks[i].onChart) {
-                    result.push(trimmedWeeks[i]);
-                    i++;
-                } else {
-                    let count = 0;
-                    while (i < trimmedWeeks.length && !trimmedWeeks[i].onChart) {
-                        count++;
-                        i++;
-                    }
-                    result.push({
-                        onChart: false,
-                        count: count
-                    });
-                }
-            }
-            return result;
-        }
-
-        function renderChartRunBoxes(weeks, toneClass) {
-            return weeks.map(week => {
-                if (week.onChart) {
-                    const classes = week.position === 1
-                        ? 'chart-run-box peak-one'
-                        : `chart-run-box ${toneClass}`;
-                    const tooltip = week.dateRange || week.periodKey;
-                    return `<a href="/charts/weekly/${week.periodKey}" class="${classes}" title="${tooltip}">${week.display}</a>`;
-                }
-
-                return `<span class="chart-run-box absent" title="${week.count} weeks off chart">${week.count}x</span>`;
-            }).join('');
-        }
-        
-        // Render chart run HTML
-        function renderChartRun(data, toneClass) {
-            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks || []);
-            const boxesHtml = renderChartRunBoxes(consolidatedWeeks, toneClass);
-            
-            return `
-                <div class="chart-run-stats">
-                    <div class="chart-run-stat">
-                        <div class="chart-run-stat-label">Top 1</div>
-                        <div class="chart-run-stat-value">${data.weeksAtTop1}</div>
-                    </div>
-                    <div class="chart-run-stat">
-                        <div class="chart-run-stat-label">Top 5</div>
-                        <div class="chart-run-stat-value">${data.weeksAtTop5}</div>
-                    </div>
-                    <div class="chart-run-stat">
-                        <div class="chart-run-stat-label">Top 10</div>
-                        <div class="chart-run-stat-value">${data.weeksAtTop10}</div>
-                    </div>
-                    <div class="chart-run-stat">
-                        <div class="chart-run-stat-label">Top 20</div>
-                        <div class="chart-run-stat-value">${data.weeksAtTop20}</div>
-                    </div>
-                </div>
-                <div class="chart-run-wrap">
-                    <div class="chart-run-label">Chart-run</div>
-                    <div class="chart-run-boxes">${boxesHtml}</div>
-                </div>
-            `;
-        }
-        
-        // Cache for album chart run data
-        const albumChartRunCache = {};
-        
-        // Toggle album chart run detail row
-        async function toggleAlbumChartRun(button) {
-            const albumId = button.getAttribute('data-album-id');
-            const mainRow = button.closest('tr');
-            const detailRow = mainRow ? mainRow.nextElementSibling : null;
-            if (!detailRow || !detailRow.classList.contains('album-chart-run-row')) {
-                return;
-            }
-            
-            if (detailRow.classList.contains('visible')) {
-                detailRow.classList.remove('visible');
-                button.classList.remove('expanded');
-                button.textContent = '+';
-            } else {
-                // Load data if not cached
-                if (!albumChartRunCache[albumId]) {
-                    await loadAlbumChartRun(albumId, mainRow);
-                }
-                detailRow.classList.add('visible');
-                button.classList.add('expanded');
-                button.textContent = '−';
-            }
-        }
-        
-        // Load album chart run data via AJAX
-        async function loadAlbumChartRun(albumId, row) {
-            try {
-                const response = await fetch(`/charts/weekly/${currentPeriodKey}/album/${albumId}/run`);
-                if (!response.ok) throw new Error('Failed to load chart run');
-                
-                const data = await response.json();
-                albumChartRunCache[albumId] = data;
-                
-                // Render the chart run content
-                const container = document.getElementById(`album-chart-run-${albumId}`);
-                container.innerHTML = renderAlbumChartRun(data, getWeeklyChartToneClass(row));
-            } catch (error) {
-                console.error('Error loading album chart run:', error);
-                const container = document.getElementById(`album-chart-run-${albumId}`);
-                container.innerHTML = '<div style="color: #f87171;">Failed to load chart run data</div>';
-            }
-        }
-        
-        // Render album chart run HTML
-        function renderAlbumChartRun(data, toneClass) {
-            const consolidatedWeeks = consolidateAbsentWeeks(data.weeks || []);
-            const boxesHtml = renderChartRunBoxes(consolidatedWeeks, toneClass);
-            
-            return `
-                <div class="chart-run-stats">
-                    <div class="chart-run-stat">
-                        <div class="chart-run-stat-label">Top 1</div>
-                        <div class="chart-run-stat-value">${data.weeksAtTop1}</div>
-                    </div>
-                    <div class="chart-run-stat">
-                        <div class="chart-run-stat-label">Top 5</div>
-                        <div class="chart-run-stat-value">${data.weeksAtTop5}</div>
-                    </div>
-                    <div class="chart-run-stat">
-                        <div class="chart-run-stat-label">Top 10</div>
-                        <div class="chart-run-stat-value">${data.weeksAtTop10}</div>
-                    </div>
-                </div>
-                <div class="chart-run-wrap">
-                    <div class="chart-run-label">Chart-run</div>
-                    <div class="chart-run-boxes">${boxesHtml}</div>
-                </div>
-            `;
-        }
-        
-        // Bulk generation
         let generationSessionId = null;
         let progressInterval = null;
-        
+
         async function regenerateThisChart() {
-            if (!confirm(`🔄 Regenerate Chart\n\nThis will delete and regenerate the chart for ${currentPeriodKey}.\n\nContinue?`)) {
-                return;
-            }
-            
+            if (!confirm(`Regenerate chart\n\nThis will delete and regenerate the chart for ${currentPeriodKey}.\n\nContinue?`)) return;
             try {
                 const response = await fetch(`/charts/regenerate/${currentPeriodKey}`, { method: 'POST' });
                 const data = await response.json();
-                
                 if (data.success) {
                     showSuccessToast('Chart regenerated successfully!');
                     window.location.reload();
@@ -2040,36 +428,25 @@
                 showErrorToast('Error regenerating chart: ' + error.message);
             }
         }
-        
+
         async function startBulkRegeneration() {
-            // Get chart count first to show in confirmation
             try {
                 const countResponse = await fetch('/charts/weekly/count');
                 const countData = await countResponse.json();
                 const chartCount = countData.count || 0;
-                
-                // First confirmation - warning
-                if (!confirm(`⚠️ WARNING: DESTRUCTIVE ACTION ⚠️\n\nThis will PERMANENTLY DELETE all ${chartCount} existing weekly charts.\n\nThe charts will be regenerated from scratch, but this may take a while.\n\nAre you SURE you want to continue?`)) {
-                    return;
-                }
-                
-                // Second confirmation - double check
-                if (!confirm(`🚨 FINAL CONFIRMATION 🚨\n\nYou are about to DELETE ${chartCount} weekly charts.\n\nThis CANNOT be undone. Type "regenerate" in the next prompt to confirm, or click Cancel to abort.`)) {
-                    return;
-                }
-                
-                const userConfirm = prompt('Type "regenerate" to confirm this destructive action:');
-                if (userConfirm !== 'regenerate') {
+
+                if (!confirm(`WARNING: DESTRUCTIVE ACTION\n\nThis will PERMANENTLY DELETE all ${chartCount} existing weekly charts.\n\nThe charts will be regenerated from scratch, but this may take a while.\n\nAre you SURE you want to continue?`)) return;
+                if (!confirm(`FINAL CONFIRMATION\n\nYou are about to DELETE ${chartCount} weekly charts.\n\nThis CANNOT be undone. Type "regenerate" in the next prompt to confirm, or click Cancel to abort.`)) return;
+                if (prompt('Type "regenerate" to confirm this destructive action:') !== 'regenerate') {
                     showWarningToast('Regeneration cancelled.');
                     return;
                 }
-                
+
                 const response = await fetch('/charts/regenerate-all', { method: 'POST' });
                 const data = await response.json();
-                
                 if (data.success) {
                     generationSessionId = data.sessionId;
-                    document.getElementById('progressModalTitle').textContent = 'Regenerating All Charts...';
+                    document.getElementById('progressModalTitle').textContent = 'Regenerating all charts...';
                     showProgressModal();
                     startProgressPolling();
                 } else {
@@ -2079,15 +456,14 @@
                 showErrorToast('Error starting regeneration: ' + error.message);
             }
         }
-        
+
         async function startBulkGeneration() {
             try {
                 const response = await fetch('/charts/generate-all', { method: 'POST' });
                 const data = await response.json();
-                
                 if (data.success) {
                     generationSessionId = data.sessionId;
-                    document.getElementById('progressModalTitle').textContent = 'Generating Charts...';
+                    document.getElementById('progressModalTitle').textContent = 'Generating charts...';
                     showProgressModal();
                     startProgressPolling();
                 } else {
@@ -2097,11 +473,11 @@
                 showErrorToast('Error starting generation: ' + error.message);
             }
         }
-        
+
         function showProgressModal() {
             document.getElementById('progressModal').classList.add('visible');
         }
-        
+
         function hideProgressModal() {
             document.getElementById('progressModal').classList.remove('visible');
             if (progressInterval) {
@@ -2109,536 +485,168 @@
                 progressInterval = null;
             }
         }
-        
+
         function startProgressPolling() {
             progressInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/charts/generate-all/progress/${generationSessionId}`);
                     const progress = await response.json();
-                    
                     updateProgressUI(progress);
-                    
+
                     // Jackson serializes isComplete() as "complete" in JSON
                     if (progress.complete || progress.isComplete) {
                         clearInterval(progressInterval);
                         progressInterval = null;
-                        
                         if (progress.error) {
-                            document.getElementById('progressModalTitle').textContent = 'Generation Failed';
+                            document.getElementById('progressModalTitle').textContent = 'Generation failed';
                             document.getElementById('progressCurrentWeek').textContent = progress.error;
                         } else {
-                            document.getElementById('progressModalTitle').textContent = 'Generation Complete!';
+                            document.getElementById('progressModalTitle').textContent = 'Generation complete';
                             document.getElementById('progressCurrentWeek').textContent = 'Done';
                         }
-                        // Show close button
-                        document.getElementById('closeModalBtn').style.display = 'inline-block';
+                        document.getElementById('closeModalBtn').style.display = 'inline-flex';
                     }
                 } catch (error) {
                     console.error('Error polling progress:', error);
                 }
             }, 500);
         }
-        
+
         function closeModalAndReload() {
             hideProgressModal();
             window.location.reload();
         }
-        
+
         function updateProgressUI(progress) {
             document.getElementById('progressBar').style.width = progress.percentage + '%';
             document.getElementById('progressCount').textContent = progress.completedWeeks;
             document.getElementById('progressTotal').textContent = progress.totalWeeks;
             document.getElementById('progressCurrentWeek').textContent = progress.currentWeek || 'Finishing...';
         }
-        
+
+        // ------------------------------------------------------------------ Phone app bar actions + jump-to selects
+
         document.addEventListener('DOMContentLoaded', function() {
             const topbarActions = document.getElementById('weeklyTopbarActions');
             const nav = document.querySelector('.app-nav');
             const navContainer = nav ? nav.querySelector('.app-nav-container') : null;
 
-            if (topbarActions && nav && navContainer && topbarActions.dataset.mobileTopbarBound !== 'true') {
-                topbarActions.dataset.mobileTopbarBound = 'true';
-
-                const placeholder = document.createElement('div');
-                placeholder.className = 'weekly-topbar-actions-placeholder';
+            if (topbarActions && nav && navContainer) {
+                const placeholder = document.createElement('span');
+                placeholder.hidden = true;
                 topbarActions.parentNode.insertBefore(placeholder, topbarActions);
-
                 const mobileQuery = window.matchMedia('(max-width: 768px)');
 
                 function syncWeeklyMobileTopbarActions() {
                     if (mobileQuery.matches) {
-                        if (topbarActions.parentElement !== navContainer) {
-                            navContainer.appendChild(topbarActions);
-                        }
+                        if (topbarActions.parentElement !== navContainer) navContainer.appendChild(topbarActions);
                         nav.classList.add('weekly-mobile-actions-nav');
                         return;
                     }
-
-                    if (placeholder.parentNode && topbarActions.parentElement !== placeholder.parentNode) {
-                        placeholder.parentNode.insertBefore(topbarActions, placeholder.nextSibling);
-                    }
+                    if (topbarActions.previousSibling !== placeholder) placeholder.after(topbarActions);
                     nav.classList.remove('weekly-mobile-actions-nav');
                 }
 
                 syncWeeklyMobileTopbarActions();
-
-                if (typeof mobileQuery.addEventListener === 'function') {
-                    mobileQuery.addEventListener('change', syncWeeklyMobileTopbarActions);
-                } else if (typeof mobileQuery.addListener === 'function') {
-                    mobileQuery.addListener(syncWeeklyMobileTopbarActions);
-                }
+                mobileQuery.addEventListener('change', syncWeeklyMobileTopbarActions);
             }
 
-            const monthSelect = document.getElementById('weeklyMonth');
             const daySelect = document.getElementById('weeklyDay');
+            const monthSelect = document.getElementById('weeklyMonth');
             const yearSelect = document.getElementById('weeklyYear');
             if (!monthSelect || !daySelect || !yearSelect) return;
 
-            let initYear = null;
-            let initMonth = null;
-            let initDay = null;
-            if (selectedDate) {
-                const parts = selectedDate.split('-');
-                if (parts.length === 3) {
-                    initYear = parts[0];
-                    initMonth = parts[1];
-                    initDay = parts[2];
+            const [initYear, initMonth, initDay] = selectedDate && selectedDate.split('-').length === 3
+                ? selectedDate.split('-') : [null, null, null];
+
+            function fill(select, placeholderText, options, selected) {
+                select.add(new Option(placeholderText, ''));
+                options.forEach(([value, label]) => select.add(new Option(label, value, false, value === selected)));
+            }
+
+            fill(daySelect, 'Day', Array.from({ length: 31 }, (_, i) => {
+                const day = String(i + 1).padStart(2, '0');
+                return [day, day];
+            }), initDay);
+            fill(monthSelect, 'Month', ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                .map((month, i) => [String(i + 1).padStart(2, '0'), month]), initMonth);
+            const years = Array.from(new Set((availableDates || []).map(date => String(date).split('-')[0]).filter(Boolean))).sort();
+            fill(yearSelect, 'Year', years.map(year => [year, year]), initYear);
+
+            [daySelect, monthSelect, yearSelect].forEach(select => select.addEventListener('change', function() {
+                if (daySelect.value && monthSelect.value && yearSelect.value) {
+                    navigateToDate(`${yearSelect.value}-${monthSelect.value}-${daySelect.value}`);
                 }
-            }
-
-            const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'];
-            const monthOption = document.createElement('option');
-            monthOption.value = '';
-            monthOption.textContent = '-- Month --';
-            monthSelect.appendChild(monthOption);
-            months.forEach(function(month, index) {
-                const option = document.createElement('option');
-                option.value = String(index + 1).padStart(2, '0');
-                option.textContent = month;
-                if (initMonth === option.value) option.selected = true;
-                monthSelect.appendChild(option);
-            });
-
-            const dayOption = document.createElement('option');
-            dayOption.value = '';
-            dayOption.textContent = '-- Day --';
-            daySelect.appendChild(dayOption);
-            for (let day = 1; day <= 31; day++) {
-                const option = document.createElement('option');
-                option.value = String(day).padStart(2, '0');
-                option.textContent = String(day).padStart(2, '0');
-                if (initDay === option.value) option.selected = true;
-                daySelect.appendChild(option);
-            }
-
-            const years = Array.from(new Set((availableDates || []).map(function(date) {
-                return String(date).split('-')[0];
-            }).filter(Boolean))).sort();
-            const yearOption = document.createElement('option');
-            yearOption.value = '';
-            yearOption.textContent = '-- Year --';
-            yearSelect.appendChild(yearOption);
-            years.forEach(function(year) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                if (initYear === option.value) option.selected = true;
-                yearSelect.appendChild(option);
-            });
-
-            [monthSelect, daySelect, yearSelect].forEach(function(select) {
-                select.addEventListener('change', function() {
-                    const month = monthSelect.value;
-                    const day = daySelect.value;
-                    const year = yearSelect.value;
-                    if (month && day && year) {
-                        navigateToDate(`${year}-${month}-${day}`);
-                    }
-                });
-            });
+            }));
         });
-        
-        /**
-         * Open playlist generator for the weekly songs chart
-         */
+
+        // ------------------------------------------------------------------ Playlist
+
         function openWeeklySongsPlaylistGenerator() {
-            // Get song data from the table
-            const songs = [];
-            const chartTable = document.querySelector('#songsSection > .charts-table-container .charts-table');
-            const rows = chartTable
-                ? chartTable.querySelectorAll('tbody tr[data-song-id]:not(.chart-run-row):not(.mobile-table-detail-row)')
-                : [];
-            
-            rows.forEach(row => {
-                const songId = row.getAttribute('data-song-id');
-                if (!songId) return;
-                
-                const titleLink = row.querySelector('.col-title a');
-                const artistLink = row.querySelector('.col-artist a');
-                const albumName = row.getAttribute('data-album') || '';
-                
-                if (titleLink && artistLink) {
-                    songs.push({
-                        id: parseInt(songId),
-                        name: titleLink.textContent.trim(),
-                        artist: artistLink.textContent.trim(),
-                        album: albumName
-                    });
-                }
-            });
-            
+            const songs = Array.from(document.querySelectorAll('#songsChartTable tbody tr.wk-row')).map(row => ({
+                id: parseInt(row.dataset.songId, 10),
+                name: row.querySelector('.wk-name')?.textContent.trim() || '',
+                artist: row.querySelector('.wk-artist')?.textContent.trim() || '',
+                album: row.dataset.album || ''
+            })).filter(song => song.id && song.name);
+
             if (songs.length === 0) {
                 showWarningToast('No songs found in the chart');
                 return;
             }
-            
-            // Generate default name based on the period
-            const periodText = document.querySelector('.overview-subtitle');
-            const defaultName = 'Weekly Chart' + (periodText ? ' - ' + periodText.textContent.trim() : '');
-            
-            // Open the playlist generator modal
-            openPlaylistGeneratorModal(songs, defaultName);
+            const range = document.querySelector('.wk-week-range');
+            openPlaylistGeneratorModal(songs, 'Weekly Chart' + (range ? ' - ' + range.textContent.trim() : ''));
         }
-        /*]]>*/
-    </script>
 
-    <script>
-        function sortTable(th, dataType) {
-            const table = th.closest('table');
-            const tbody = table.querySelector('tbody');
-            const colIndex = th.cellIndex;
-            const currentDir = th.dataset.sortDir || '';
-            const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+        // ------------------------------------------------------------------ Combined-versions tooltip on plays
 
-            table.querySelectorAll('thead th').forEach(h => {
-                h.dataset.sortDir = '';
-                h.classList.remove('sort-asc', 'sort-desc');
-            });
-            th.dataset.sortDir = newDir;
-            th.classList.add(newDir === 'asc' ? 'sort-asc' : 'sort-desc');
+        let activeWeeklyTooltip = null;
+        let activeWeeklyTooltipTrigger = null;
 
-            const allRows = Array.from(tbody.children);
-            const pairs = [];
-            for (let i = 0; i < allRows.length; i++) {
-                const row = allRows[i];
-                if (row.classList.contains('chart-run-row') || row.classList.contains('album-chart-run-row') || row.classList.contains('mobile-table-detail-row')) continue;
-
-                const detailRows = [];
-                let nextIndex = i + 1;
-                while (nextIndex < allRows.length) {
-                    const nextRow = allRows[nextIndex];
-                    if (!nextRow.classList.contains('chart-run-row')
-                        && !nextRow.classList.contains('album-chart-run-row')
-                        && !nextRow.classList.contains('mobile-table-detail-row')) {
-                        break;
-                    }
-                    detailRows.push(nextRow);
-                    nextIndex++;
-                }
-
-                pairs.push({ mainRow: row, detailRows });
+        function ensureWeeklyTooltip() {
+            if (!activeWeeklyTooltip) {
+                activeWeeklyTooltip = document.createElement('div');
+                activeWeeklyTooltip.className = 'number-one-tooltip';
+                document.body.appendChild(activeWeeklyTooltip);
             }
-
-            pairs.forEach(p => {
-                const cell = p.mainRow.cells[colIndex];
-                p.sortVal = cell?.dataset?.sortVal ?? cell?.textContent?.trim() ?? '';
-            });
-
-            pairs.sort((a, b) => {
-                if (dataType === 'number') {
-                    return newDir === 'asc'
-                        ? (parseFloat(a.sortVal) || 0) - (parseFloat(b.sortVal) || 0)
-                        : (parseFloat(b.sortVal) || 0) - (parseFloat(a.sortVal) || 0);
-                }
-                return newDir === 'asc'
-                    ? a.sortVal.localeCompare(b.sortVal)
-                    : b.sortVal.localeCompare(a.sortVal);
-            });
-
-            pairs.forEach(({ mainRow, detailRows }) => {
-                tbody.appendChild(mainRow);
-                detailRows.forEach(detailRow => tbody.appendChild(detailRow));
-            });
-        }
-    </script>
-    
-    <script th:inline="javascript">
-        /*<![CDATA[*/
-        let activeWeeklyNumberOneTooltip = null;
-        let activeWeeklyNumberOneTrigger = null;
-
-        function ensureWeeklyNumberOneTooltip() {
-            if (activeWeeklyNumberOneTooltip) {
-                return activeWeeklyNumberOneTooltip;
-            }
-            activeWeeklyNumberOneTooltip = document.createElement('div');
-            activeWeeklyNumberOneTooltip.className = 'number-one-tooltip';
-            document.body.appendChild(activeWeeklyNumberOneTooltip);
-            return activeWeeklyNumberOneTooltip;
+            return activeWeeklyTooltip;
         }
 
-        function positionWeeklyNumberOneTooltip(trigger) {
-            const tooltip = ensureWeeklyNumberOneTooltip();
+        function positionWeeklyTooltip(trigger) {
+            const tooltip = ensureWeeklyTooltip();
             const rect = trigger.getBoundingClientRect();
-            const tooltipHeight = tooltip.offsetHeight;
-            tooltip.style.left = rect.left + 'px';
-            tooltip.style.top = Math.max(8, rect.top - tooltipHeight - 8) + 'px';
+            const left = Math.min(rect.left, window.innerWidth - tooltip.offsetWidth - 8);
+            tooltip.style.left = Math.max(8, left) + 'px';
+            tooltip.style.top = Math.max(8, rect.top - tooltip.offsetHeight - 8) + 'px';
         }
 
-        function showWeeklyNumberOneTooltip(trigger) {
+        function showWeeklyTooltip(trigger) {
             const items = Array.from(trigger.querySelectorAll('.number-one-tooltip-item-source'))
-                .map((item) => item.textContent.trim())
-                .filter((item) => item);
-            if (!items.length) {
-                return;
-            }
-            const tooltip = ensureWeeklyNumberOneTooltip();
-            const title = trigger.dataset.tooltipTitle || 'Combined song versions:';
-            const icon = trigger.dataset.tooltipIcon || '🎵';
-            tooltip.innerHTML = `<div class="tooltip-title">${title}</div>`
-                + items.map((item) => `<div class="tooltip-song">${icon} ${item}</div>`).join('');
+                .map(item => item.textContent.trim()).filter(Boolean);
+            if (!items.length) return;
+            const tooltip = ensureWeeklyTooltip();
+            tooltip.innerHTML = `<div class="tooltip-title">${escapeWeeklyHtml(trigger.dataset.tooltipTitle || 'Combined song versions:')}</div>`
+                + items.map(item => `<div class="tooltip-song">${escapeWeeklyHtml(item)}</div>`).join('');
             tooltip.style.display = 'block';
-            activeWeeklyNumberOneTrigger = trigger;
-            positionWeeklyNumberOneTooltip(trigger);
+            activeWeeklyTooltipTrigger = trigger;
+            positionWeeklyTooltip(trigger);
         }
 
-        function hideWeeklyNumberOneTooltip(trigger) {
-            const tooltip = ensureWeeklyNumberOneTooltip();
-            tooltip.style.display = 'none';
-            if (!trigger || activeWeeklyNumberOneTrigger === trigger) {
-                activeWeeklyNumberOneTrigger = null;
-            }
+        function hideWeeklyTooltip(trigger) {
+            ensureWeeklyTooltip().style.display = 'none';
+            if (!trigger || activeWeeklyTooltipTrigger === trigger) activeWeeklyTooltipTrigger = null;
         }
 
-        function initializeWeeklyNumberOneTooltips(root = document) {
-            root.querySelectorAll('.number-one-tooltip-trigger.tooltip-enabled').forEach((trigger) => {
-                if (trigger.dataset.tooltipBound === 'true') {
-                    return;
-                }
-                trigger.dataset.tooltipBound = 'true';
-                trigger.addEventListener('mouseenter', () => showWeeklyNumberOneTooltip(trigger));
-                trigger.addEventListener('mouseleave', () => hideWeeklyNumberOneTooltip(trigger));
-                trigger.addEventListener('focusin', () => showWeeklyNumberOneTooltip(trigger));
-                trigger.addEventListener('focusout', () => hideWeeklyNumberOneTooltip(trigger));
-            });
-        }
+        document.querySelectorAll('.number-one-tooltip-trigger.tooltip-enabled').forEach(trigger => {
+            trigger.addEventListener('mouseenter', () => showWeeklyTooltip(trigger));
+            trigger.addEventListener('mouseleave', () => hideWeeklyTooltip(trigger));
+            trigger.addEventListener('focusin', () => showWeeklyTooltip(trigger));
+            trigger.addEventListener('focusout', () => hideWeeklyTooltip(trigger));
+        });
 
         window.addEventListener('scroll', () => {
-            if (activeWeeklyNumberOneTrigger) {
-                positionWeeklyNumberOneTooltip(activeWeeklyNumberOneTrigger);
-            }
+            if (activeWeeklyTooltipTrigger) positionWeeklyTooltip(activeWeeklyTooltipTrigger);
         }, true);
-
-        window.addEventListener('resize', () => {
-            if (activeWeeklyNumberOneTrigger) {
-                positionWeeklyNumberOneTooltip(activeWeeklyNumberOneTrigger);
-            }
-        });
-
-        function computeMalePct(listSelector, rowSelector, targetId) {
-            const rows = document.querySelectorAll(listSelector + ' ' + rowSelector);
-            let male = 0, total = 0;
-            rows.forEach(r => {
-                const g = r.getAttribute('data-gender');
-                if (g != null) {
-                    total++;
-                    if (g === '2') male++;
-                }
-            });
-            const el = document.getElementById(targetId);
-            if (!el) return;
-            if (total === 0) {
-                el.textContent = '';
-                el.classList.remove('gender-pct--full');
-                el.classList.remove('gender-pct');
-            } else {
-                const malePct = Math.round((male / total) * 100);
-                el.textContent = `${malePct}%`;
-                el.classList.add('gender-pct');
-                if (malePct === 100) el.classList.add('gender-pct--full');
-                else el.classList.remove('gender-pct--full');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Songs table: exclude detail rows
-            computeMalePct('#songsSection > .charts-table-container .charts-table tbody', 'tr[data-song-id]', 'songsGenderPct');
-            computeMalePct('#albumsSection .charts-table tbody', 'tr[data-album-id]', 'albumsGenderPct');
-            initializeWeeklyNumberOneTooltips();
-        });
-        /*]]>*/
-    </script>
-
-    <!-- Playlist Generator Modal -->
-    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
-
-    <!-- Genre Breakdown Modal -->
-    <div id="genreBreakdownModal" class="gb-modal-overlay" onclick="closeGenreBreakdown(event)">
-        <div class="gb-modal">
-            <div class="gb-modal-header">
-                <h3 class="gb-modal-title" id="gbModalTitle">Genre Breakdown</h3>
-                <button class="gb-modal-close" onclick="document.getElementById('genreBreakdownModal').classList.remove('open')">&times;</button>
-            </div>
-            <div class="gb-modal-body" id="gbModalBody"></div>
-        </div>
-    </div>
-
-    <style>
-        .genre-breakdown-btn {
-            background: transparent;
-            border: 1px solid #444;
-            color: #888;
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .genre-breakdown-btn:hover { border-color: #888; color: #ccc; }
-        .number-one-tooltip {
-            position: fixed;
-            display: none;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            border: 1px solid #ffd700;
-            border-radius: 8px;
-            padding: 12px 16px;
-            max-width: 400px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.2);
-            z-index: 10000;
-            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-        .number-one-tooltip .tooltip-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #ffd700;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .number-one-tooltip .tooltip-song {
-            font-size: 13px;
-            color: #e5e7eb;
-            padding: 4px 0;
-            line-height: 1.4;
-        }
-        .number-one-tooltip-trigger {
-            display: inline-flex;
-            align-items: center;
-        }
-        .number-one-tooltip-trigger.tooltip-enabled {
-            cursor: help;
-        }
-        .number-one-tooltip-trigger.tooltip-enabled > a,
-        .number-one-tooltip-trigger.tooltip-enabled > span:not(.number-one-tooltip-item-source) {
-            text-decoration-line: underline;
-            text-decoration-style: dotted;
-            text-decoration-thickness: 1px;
-            text-underline-offset: 3px;
-        }
-        .number-one-tooltip-item-source {
-            display: none;
-        }
-        .gb-modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-        .gb-modal-overlay.open { display: flex; }
-        .gb-modal {
-            background: #111;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            width: min(420px, 92vw);
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .gb-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px 12px;
-            border-bottom: 1px solid #1e1e1e;
-        }
-        .gb-modal-title { margin: 0; font-size: 1rem; font-weight: 600; color: #eee; }
-        .gb-modal-close {
-            background: none; border: none; color: #666; font-size: 1.4rem;
-            cursor: pointer; line-height: 1; padding: 0;
-        }
-        .gb-modal-close:hover { color: #ccc; }
-        .gb-modal-body { overflow-y: auto; padding: 14px 20px 18px; }
-        .gb-table { width: 100%; border-collapse: collapse; }
-        .gb-table th {
-            text-align: left; font-size: 0.75rem; font-weight: 600;
-            color: #666; text-transform: uppercase; letter-spacing: 0.5px;
-            padding: 0 8px 8px 0; border-bottom: 1px solid #222;
-        }
-        .gb-table th:last-child { text-align: right; padding-right: 0; }
-        .gb-table td { padding: 7px 8px 7px 0; border-bottom: 1px solid #181818; font-size: 0.9rem; color: #ccc; }
-        .gb-table td:last-child { text-align: right; padding-right: 0; color: #888; }
-        .gb-table tr:last-child td { border-bottom: none; }
-        .gb-bar-cell { width: 90px; }
-        .gb-bar-wrap { background: #1e1e1e; border-radius: 3px; height: 6px; overflow: hidden; }
-        .gb-bar { height: 100%; border-radius: 3px; background: #22c55e; }
-        .gb-count { color: #aaa; }
-        .gb-pct { min-width: 42px; display: inline-block; }
-    </style>
-
-    <script>
-        function showGenreBreakdown(sectionSelector, skipRowClass, title) {
-            const section = document.querySelector(sectionSelector);
-            if (!section) return;
-            const table = section.querySelector('table');
-            if (!table) return;
-
-            // Collect genre values from data rows
-            const counts = {};
-            table.querySelectorAll('tbody tr').forEach(row => {
-                if (skipRowClass && row.classList.contains(skipRowClass.replace('.', ''))) return;
-                if (row.classList.contains('chart-run-row') || row.classList.contains('mobile-table-detail-row')) return;
-                if (!row.dataset.genre) return;
-                const genre = row.dataset.genre || '(none)';
-                counts[genre] = (counts[genre] || 0) + 1;
-            });
-
-            const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-            const total = entries.reduce((s, [, c]) => s + c, 0);
-            const topCount = entries.length > 0 ? entries[0][1] : 0;
-
-            // Build table HTML
-            let html = '<table class="gb-table"><thead><tr><th>Genre</th><th></th><th>Count</th><th>%</th></tr></thead><tbody>';
-            entries.forEach(([genre, count]) => {
-                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                const barPct = topCount > 0 ? Math.round((count / topCount) * 100) : 0;
-                html += `<tr>
-                    <td>${genre}</td>
-                    <td class="gb-bar-cell"><div class="gb-bar-wrap"><div class="gb-bar" style="width:${barPct}%"></div></div></td>
-                    <td class="gb-count">${count}</td>
-                    <td><span class="gb-pct">${pct}%</span></td>
-                </tr>`;
-            });
-            if (entries.length === 0) html += '<tr><td colspan="4" style="color:#666;text-align:center;padding:20px">No genre data.</td></tr>';
-            html += '</tbody></table>';
-
-            document.getElementById('gbModalTitle').textContent = title;
-            document.getElementById('gbModalBody').innerHTML = html;
-            document.getElementById('genreBreakdownModal').classList.add('open');
-        }
-
-        function closeGenreBreakdown(event) {
-            const overlay = document.getElementById('genreBreakdownModal');
-            if (event.target === overlay) overlay.classList.remove('open');
-        }
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') document.getElementById('genreBreakdownModal')?.classList.remove('open');
-        });
     </script>
 </body>
 </html>

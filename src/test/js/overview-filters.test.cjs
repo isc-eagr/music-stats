@@ -51,11 +51,3 @@ test('reusing a URL cannot duplicate filters or retain cleared values', () => {
     assert.equal(url.searchParams.has('totalChartSpan'), false);
     assert.equal(url.searchParams.has('q'), false);
 });
-
-test('sticky header support targets every chart overview table family', () => {
-    const source = fs.readFileSync(path.join(__dirname, '../../main/resources/static/js/overview-sticky-headers.js'), 'utf8');
-    for (const selector of ['.overview-table', '.pc-table', '.trl-table', '.bb-table']) {
-        assert.match(source, new RegExp(selector.replace('.', '\\.')));
-    }
-    assert.match(source, /position: fixed|overview-sticky-header-layer/);
-});

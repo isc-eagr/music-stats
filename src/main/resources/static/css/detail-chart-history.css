@@ -1,7 +1,7 @@
 /* ==========================================================================
    Detail pages (artist, album, song) - Chart History tab
    Chart tiles (switcher), "Where they peaked" spread, hit cards with run bars,
-   Seasonal + Yearly calendar. Gender colors come from the .ad-page tokens
+   Seasonal + Yearly calendar. Gender colors come from the .dt-page tokens
    (detail-general.css): --ad-c, --ad-t, --ad-rgb, --ad-bd, --ad-hair, ...
    ========================================================================== */
 
@@ -23,6 +23,57 @@
 }
 
 .chh a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Chart run cards, boxes and modal outside detail pages (Chart Overview, Weekly chart):
+   the .chh variables plus the detail page's gender tokens, per item. */
+.chh-scope {
+    --chh-gold: #fbbf24;
+    --chh-gold-ink: #1a1205;
+    --chh-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+    --chh-muted: #a1a1aa;
+    --chh-soft: #c7cad1;
+    --ad-c: #a1a1aa;
+    --ad-t: #d4d4d8;
+    --ad-rgb: 161, 161, 170;
+    --ad-bd: rgba(161, 161, 170, 0.3);
+    --ad-bg: #18181a;
+    --ad-bg2: #121214;
+    --ad-hair: rgba(161, 161, 170, 0.15);
+    --ad-lbl: rgba(212, 212, 216, 0.62);
+    --ad-tint: rgba(161, 161, 170, 0.1);
+    --ad-ink: #111114;
+}
+
+.chh-scope.chh-male {
+    --ad-c: #60a5fa;
+    --ad-t: #93c5fd;
+    --ad-rgb: 96, 165, 250;
+    --ad-bd: rgba(96, 165, 250, 0.34);
+    --ad-bg: #131922;
+    --ad-bg2: #0f131a;
+    --ad-hair: rgba(96, 165, 250, 0.16);
+    --ad-lbl: rgba(147, 197, 253, 0.68);
+    --ad-tint: rgba(96, 165, 250, 0.12);
+    --ad-ink: #08111f;
+}
+
+.chh-scope.chh-female {
+    --ad-c: #f472b6;
+    --ad-t: #f9a8d4;
+    --ad-rgb: 244, 114, 182;
+    --ad-bd: rgba(244, 114, 182, 0.34);
+    --ad-bg: #1c141a;
+    --ad-bg2: #150f13;
+    --ad-hair: rgba(244, 114, 182, 0.16);
+    --ad-lbl: rgba(249, 168, 212, 0.68);
+    --ad-tint: rgba(244, 114, 182, 0.12);
+    --ad-ink: #1f0915;
+}
+
+.chh-scope a {
     color: inherit;
     text-decoration: none;
 }
@@ -721,6 +772,12 @@ a.chh-box:hover {
     color: #fff;
 }
 
+/* The chart being viewed (Weekly chart page) */
+.chh-box.is-now {
+    outline: 2px solid #bef264;
+    outline-offset: 2px;
+}
+
 .chh-run-note {
     margin: 0;
     font-size: 13px;
@@ -816,7 +873,7 @@ a.chh-box:hover {
 
 .chh-modal-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 180px));
     gap: 8px;
 }
 
@@ -841,6 +898,25 @@ a.chh-box:hover {
 .chh-stat-value {
     font-size: 19px;
     color: #fff;
+}
+
+.chh-stat-bar {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.chh-stat-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--ad-c);
+}
+
+.chh-stat-note {
+    font-size: 11px;
+    color: var(--chh-muted);
 }
 
 .chh-modal-chart-head {

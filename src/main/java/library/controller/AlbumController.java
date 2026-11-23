@@ -855,8 +855,8 @@ public class AlbumController {
         model.addAttribute("lastFullListenDate", fullListenStats.lastFullListenDate() != null
                 ? DateFormatUtils.formatIsoDateForDisplay(fullListenStats.lastFullListenDate()) : null);
         model.addAttribute("fullAlbumPlays", fullListenStats.fullAlbumPlays());
-        model.addAttribute("listeningSpan", DateFormatUtils.spanLabel(
-                (String) model.getAttribute("firstListenedDate"), (String) model.getAttribute("lastListenedDate")));
+        model.addAttribute("firstListenedRecency", DateFormatUtils.recency((String) model.getAttribute("firstListenedDate")));
+        model.addAttribute("lastListenedRecency", DateFormatUtils.recency((String) model.getAttribute("lastListenedDate")));
         model.addAttribute("fullListenSpan", DateFormatUtils.spanLabel(
                 (String) model.getAttribute("firstFullListenDate"), (String) model.getAttribute("lastFullListenDate")));
         
@@ -1129,32 +1129,6 @@ public class AlbumController {
         return albumService.searchAlbums(query, limit);
     }
     
-    /**
-     * API: Get gender ID for an album (for UI coloring in chart editors).
-     */
-    @GetMapping("/{albumId}/gender")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> getAlbumGender(@PathVariable Integer albumId) {
-        Optional<Album> albumOpt = albumService.getAlbumById(albumId);
-        if (albumOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        Album album = albumOpt.get();
-        Integer genderId = null;
-        
-        if (album.getArtistId() != null) {
-            Optional<Artist> artistOpt = artistService.getArtistById(album.getArtistId());
-            if (artistOpt.isPresent()) {
-                genderId = artistOpt.get().getGenderId();
-            }
-        }
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("genderId", genderId);
-        return ResponseEntity.ok(response);
-    }
-
     private boolean hasActiveFilters(HttpServletRequest request) {
         return request.getParameterMap().entrySet().stream().anyMatch(entry -> {
             String key = entry.getKey();

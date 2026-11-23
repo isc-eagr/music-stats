@@ -176,13 +176,6 @@
     width: 100%;
 }
 
-/* Golden styling for #1 peak positions */
-.peak-number-one {
-    color: #fbbf24 !important;
-    font-weight: 700;
-    text-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.4);
-}
-
 /* Mobile responsive for detail tabs */
 @media (max-width: 900px) {
     .detail-tabs {

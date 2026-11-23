@@ -637,7 +637,7 @@ public class NowPlayingLookupController {
                 String weeksAtPeak = safe(billboardStats.get("weeksAtPeak"));
                 if (!weeksOnChart.isEmpty()) {
                     String billboardPeakOne = "1".equals(peakPosition) ? " chip-peak-one" : "";
-                    h.append("<a class=\"chip chip-link").append(billboardPeakOne).append("\" href=\"").append(base).append("/misc/billboard-hot-100\" target=\"_blank\"><span>");
+                    h.append("<a class=\"chip chip-link").append(billboardPeakOne).append("\" href=\"").append(base).append("/charts/overview?chart=hot100\" target=\"_blank\"><span>");
                     if ("1".equals(peakPosition)) h.append("\u2b50 ");
                     h.append("<span class=\"val\">").append(escapeHtml(weeksOnChart)).append("</span> weeks on the Hot 100");
                     if (!peakPosition.isEmpty()) {
@@ -662,7 +662,7 @@ public class NowPlayingLookupController {
                     String peakStr = peakObj != null ? peakObj.toString() : "";
                     String daysAtPeakStr = daysAtPeakObj != null ? daysAtPeakObj.toString() : "";
                     String pcPeakOne = "1".equals(peakStr) ? " chip-peak-one" : "";
-                    h.append("<a class=\"chip chip-link").append(pcPeakOne).append("\" href=\"").append(base).append("/misc/vatos-cuntdown\" target=\"_blank\"><span>");
+                    h.append("<a class=\"chip chip-link").append(pcPeakOne).append("\" href=\"").append(base).append("/charts/overview?chart=cuntdown\" target=\"_blank\"><span>");
                     if ("1".equals(peakStr)) h.append("\u2b50 ");
                     h.append("<span class=\"val\">").append(escapeHtml(daysStr)).append("</span> Days on Vato's Cuntdown");
                     if (!peakStr.isEmpty()) {
@@ -687,7 +687,7 @@ public class NowPlayingLookupController {
                     String peakStr = peakObj != null ? peakObj.toString() : "";
                     String daysAtPeakStr = daysAtPeakObj != null ? daysAtPeakObj.toString() : "";
                     String trlPeakOne = "1".equals(peakStr) ? " chip-peak-one" : "";
-                    h.append("<a class=\"chip chip-link").append(trlPeakOne).append("\" href=\"").append(base).append("/misc/trl\" target=\"_blank\"><span>");
+                    h.append("<a class=\"chip chip-link").append(trlPeakOne).append("\" href=\"").append(base).append("/charts/overview?chart=trl\" target=\"_blank\"><span>");
                     if ("1".equals(peakStr)) h.append("\u2b50 ");
                     h.append("<span class=\"val\">").append(escapeHtml(daysStr)).append("</span> Days on TRL");
                     if (!peakStr.isEmpty()) {

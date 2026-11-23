@@ -1,22 +1,12 @@
 package library.controller;
 
-import library.dto.ChartAlbumOverviewRowDTO;
-import library.dto.ChartArtistOverviewRowDTO;
-import library.dto.PcOverviewRowDTO;
-import library.service.AppConfigService;
+import library.service.ChartOverviewService;
 import library.service.PcService;
-import library.service.OverviewFilterService;
-import library.service.OverviewCacheService;
-import library.util.ChartOverviewSupport;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -24,114 +14,10 @@ import java.util.Map;
 @RequestMapping({"/misc/vatos-cuntdown", "/misc/pc"})
 public class PcController {
 
-    private final AppConfigService appConfigService;
     private final PcService pcService;
-    private final OverviewFilterService overviewFilterService;
-    private final OverviewCacheService overviewCacheService;
 
-    public PcController(AppConfigService appConfigService, PcService pcService) {
-        this(appConfigService, pcService, new OverviewFilterService(), new OverviewCacheService());
-    }
-
-    public PcController(AppConfigService appConfigService, PcService pcService, OverviewFilterService overviewFilterService) {
-        this(appConfigService, pcService, overviewFilterService, new OverviewCacheService());
-    }
-
-    @Autowired
-    public PcController(AppConfigService appConfigService, PcService pcService, OverviewFilterService overviewFilterService,
-                        OverviewCacheService overviewCacheService) {
-        this.appConfigService = appConfigService;
+    public PcController(PcService pcService) {
         this.pcService = pcService;
-        this.overviewFilterService = overviewFilterService;
-        this.overviewCacheService = overviewCacheService;
-    }
-
-    @GetMapping
-    public String pcList(
-            @RequestParam(defaultValue = "song") String overviewTab,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String dir,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
-            @RequestParam MultiValueMap<String, String> filterParams,
-            Model model) {
-        String normalizedOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
-        int safePage = Math.max(1, page);
-        int safeSize = normalizeSize(size);
-        String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
-        String normalizedDir = ChartOverviewSupport.normalizeDir(normalizedOverviewTab, dir);
-
-        List<PcOverviewRowDTO> entries = List.of();
-        List<ChartAlbumOverviewRowDTO> albumOverviewRows = List.of();
-        List<ChartArtistOverviewRowDTO> artistOverviewRows = List.of();
-        int activeTotalCount;
-
-        if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = ChartOverviewSupport.sortAlbumRows(overviewFilterService.filter("pc", "album", pcAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            activeTotalCount = allAlbumRows.size();
-            albumOverviewRows = ChartOverviewSupport.paginateRows(allAlbumRows, safePage, safeSize);
-        } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = ChartOverviewSupport.sortArtistRows(overviewFilterService.filter("pc", "artist", pcArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
-            activeTotalCount = allArtistRows.size();
-            artistOverviewRows = ChartOverviewSupport.paginateRows(allArtistRows, safePage, safeSize);
-        } else {
-            List<PcOverviewRowDTO> allEntries = sortSongRows(overviewFilterService.filter("pc", "song", pcSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            activeTotalCount = allEntries.size();
-            entries = ChartOverviewSupport.paginateRows(allEntries, safePage, safeSize);
-        }
-
-        model.addAttribute("entries", entries);
-        model.addAttribute("albumOverviewRows", albumOverviewRows);
-        model.addAttribute("artistOverviewRows", artistOverviewRows);
-        model.addAttribute("overviewTab", normalizedOverviewTab);
-        model.addAttribute("pageSize", safeSize);
-        model.addAttribute("activeTotalCount", activeTotalCount);
-        model.addAttribute("selectedSort", normalizedSort);
-        model.addAttribute("selectedDir", normalizedDir);
-        model.addAttribute("selectedIncludeFeatured", includeFeatured);
-        model.addAttribute("overviewFilterFields", overviewFilterService.fieldsFor("pc", normalizedOverviewTab));
-        model.addAttribute("currentSection", "pc");
-        return "misc/pc";
-    }
-
-    @GetMapping("/data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> pcData(
-            @RequestParam(defaultValue = "song") String overviewTab,
-            @RequestParam(defaultValue = "2") int page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String dir,
-            @RequestParam(defaultValue = "false") boolean includeFeatured,
-            @RequestParam MultiValueMap<String, String> filterParams) {
-        String normalizedOverviewTab = ChartOverviewSupport.normalizeOverviewTab(overviewTab);
-        int safePage = Math.max(1, page);
-        int safeSize = normalizeSize(size);
-        String normalizedSort = normalizeSort(normalizedOverviewTab, sort);
-        String normalizedDir = ChartOverviewSupport.normalizeDir(normalizedOverviewTab, dir);
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
-
-        if ("album".equals(normalizedOverviewTab)) {
-            List<ChartAlbumOverviewRowDTO> allAlbumRows = ChartOverviewSupport.sortAlbumRows(overviewFilterService.filter("pc", "album", pcAlbumOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", ChartOverviewSupport.paginateRows(allAlbumRows, safePage, safeSize));
-            result.put("totalCount", allAlbumRows.size());
-            result.put("hasMore", (long) safePage * safeSize < allAlbumRows.size());
-        } else if ("artist".equals(normalizedOverviewTab)) {
-            List<ChartArtistOverviewRowDTO> allArtistRows = ChartOverviewSupport.sortArtistRows(overviewFilterService.filter("pc", "artist", pcArtistOverviewRows(includeFeatured), filterParams), normalizedSort, normalizedDir);
-            result.put("entries", ChartOverviewSupport.paginateRows(allArtistRows, safePage, safeSize));
-            result.put("totalCount", allArtistRows.size());
-            result.put("hasMore", (long) safePage * safeSize < allArtistRows.size());
-        } else {
-            List<PcOverviewRowDTO> allEntries = sortSongRows(overviewFilterService.filter("pc", "song", pcSongOverviewRows(), filterParams), normalizedSort, normalizedDir);
-            int totalCount = allEntries.size();
-            result.put("entries", ChartOverviewSupport.paginateRows(allEntries, safePage, safeSize));
-            result.put("totalCount", totalCount);
-            result.put("hasMore", (long) safePage * safeSize < totalCount);
-        }
-
-        result.put("nextPage", safePage + 1);
-        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/merge")
@@ -182,14 +68,9 @@ public class PcController {
         } else if (effectiveDate != null && !effectiveDate.isBlank()) {
             effectiveDate = pcService.findClosestChartDate(effectiveDate);
         }
-        if (effectiveDate != null) {
-            List<Map<String, Object>> countdown = pcService.getCountdownForDate(effectiveDate);
-            model.addAttribute("countdown", countdown);
-            model.addAttribute("fallOffs", pcService.getFallOffsForDate(effectiveDate, countdown));
-            model.addAttribute("selectedDate", effectiveDate);
-        }
+        ChartRecapPage.populate(model, ChartOverviewService.Chart.CUNTDOWN, "/misc/vatos-cuntdown", availableDates, effectiveDate);
         model.addAttribute("currentSection", "pc-recaps");
-        return "misc/pc-recaps";
+        return ChartRecapPage.VIEW;
     }
 
     @GetMapping("/recaps/data")
@@ -200,6 +81,7 @@ public class PcController {
             return ResponseEntity.ok(Map.of("entries", List.of()));
         }
         List<Map<String, Object>> countdown = pcService.getCountdownForDate(effectiveDate);
+        pcService.applyBreakdownAttributes(countdown);
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("date", effectiveDate);
         result.put("entries", countdown);
@@ -222,66 +104,5 @@ public class PcController {
             return pcService.getChartRunByNames(artist, song);
         }
         return List.of();
-    }
-
-    private String normalizeSort(String overviewTab, String sort) {
-        if ("album".equals(overviewTab)) {
-            return switch (sort == null ? "" : sort) {
-                case "artist", "album", "songs", "days", "peak", "numberOnes", "atNumberOne", "firstDebut", "lastAppearance" -> sort;
-                default -> "days";
-            };
-        }
-        if ("artist".equals(overviewTab)) {
-            return switch (sort == null ? "" : sort) {
-                case "artist", "songs", "days", "peak", "numberOnes", "atNumberOne", "firstDebut", "lastAppearance" -> sort;
-                default -> "days";
-            };
-        }
-        return switch (sort == null ? "" : sort) {
-            case "days", "peak", "atPeak", "debutDate", "debutPosition", "peakDate", "lastDate", "song", "artist" -> sort;
-            default -> "debutDate";
-        };
-    }
-
-    private List<PcOverviewRowDTO> sortSongRows(List<PcOverviewRowDTO> rows, String sort, String dir) {
-        List<PcOverviewRowDTO> sortedRows = new ArrayList<>(rows);
-        sortedRows.sort(buildSongComparator(sort, dir));
-        return sortedRows;
-    }
-
-    private Comparator<PcOverviewRowDTO> buildSongComparator(String sort, String dir) {
-        Comparator<PcOverviewRowDTO> comparator = switch (sort) {
-            case "days" -> Comparator.comparingInt(PcOverviewRowDTO::getDaysOnCountdown);
-            case "peak" -> Comparator.comparingInt(PcOverviewRowDTO::getPeakPosition);
-            case "atPeak" -> Comparator.comparingInt(PcOverviewRowDTO::getDaysAtPeak);
-            case "debutPosition" -> Comparator.comparing(PcOverviewRowDTO::getDebutPosition, Comparator.nullsLast(Integer::compareTo));
-            case "peakDate" -> Comparator.comparing(PcOverviewRowDTO::getPeakWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "lastDate" -> Comparator.comparing(PcOverviewRowDTO::getLastWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "song" -> Comparator.comparing(PcOverviewRowDTO::getSongTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            case "artist" -> Comparator.comparing(PcOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-            default -> Comparator.comparing(PcOverviewRowDTO::getFirstWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-        };
-        comparator = comparator
-            .thenComparing(PcOverviewRowDTO::getFirstWeek, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-            .thenComparing(PcOverviewRowDTO::getArtistName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-            .thenComparing(PcOverviewRowDTO::getSongTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-        return "asc".equals(dir) ? comparator : comparator.reversed();
-    }
-
-    private int normalizeSize(Integer size) {
-        return appConfigService.normalizePageSize(size, appConfigService.getPcOverviewPageSize(), 25, 200);
-    }
-
-    private List<PcOverviewRowDTO> pcSongOverviewRows() {
-        return overviewCacheService.get("pc:song", pcService::getOverviewRows);
-    }
-
-    private List<ChartAlbumOverviewRowDTO> pcAlbumOverviewRows() {
-        return overviewCacheService.get("pc:album", () -> pcService.getAlbumOverviewRows(pcSongOverviewRows()));
-    }
-
-    private List<ChartArtistOverviewRowDTO> pcArtistOverviewRows(boolean includeFeatured) {
-        return overviewCacheService.get("pc:artist:" + includeFeatured,
-                () -> pcService.getArtistOverviewRows(pcSongOverviewRows(), includeFeatured));
     }
 }

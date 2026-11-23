@@ -1,0 +1,346 @@
+/* ==========================================================================
+   Config page: sidebar sections + one panel at a time.
+   Builds on the detail page tokens and parts in detail-general.css
+   (.dt-page, .dt-card, .dt-cap, .dt-btn, .dt-switch, .dt-edit-foot).
+   ========================================================================== */
+
+.container-wide.dt-page.cfg-page {
+    max-width: var(--page-max);
+    padding: 20px var(--page-gutter) 48px;
+    color: #f2f2f4;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+.cfg-layout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+/* ── Sidebar: title, section menu, import status ── */
+.container-wide.dt-page .cfg-side {
+    flex: 1 1 240px;
+    max-width: 260px;
+    padding: 18px 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+@media (min-width: 901px) {
+    .container-wide.dt-page .cfg-side {
+        position: sticky;
+        top: 16px;
+    }
+}
+
+.cfg-title {
+    margin: 0 8px;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.cfg-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cfg-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ad-mut);
+    font: 600 14px Inter, system-ui, sans-serif;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cfg-tab:hover {
+    color: #fff;
+    background: var(--ad-tint);
+}
+
+.cfg-tab.is-active {
+    color: #fff;
+    background: rgba(var(--ad-rgb), 0.22);
+    box-shadow: inset 0 0 0 1px var(--ad-tintb);
+}
+
+.cfg-tab:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--ad-t);
+}
+
+/* Unsaved changes inside that section */
+.cfg-tab-dot {
+    display: none;
+    width: 7px;
+    height: 7px;
+    margin-left: auto;
+    border-radius: 4px;
+    background: #fb923c;
+}
+
+.cfg-tab.has-changes .cfg-tab-dot {
+    display: block;
+}
+
+.cfg-status {
+    margin: 0 8px;
+}
+
+.cfg-status .dt-cap {
+    margin-bottom: 8px;
+}
+
+.cfg-status-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 3px 0;
+    font-size: 12.5px;
+    color: var(--ad-mut);
+}
+
+.cfg-status-row b {
+    font-weight: 600;
+    color: #f2f2f4;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.cfg-status-row b.is-on { color: #4ade80; }
+.cfg-status-row b.is-issue { color: #fb923c; }
+
+/* ── Main column: one panel visible at a time ── */
+.cfg-main {
+    flex: 999 1 560px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.container-wide.dt-page .cfg-panel {
+    padding: 20px 22px 8px;
+}
+
+.cfg-panel[hidden] {
+    display: none;
+}
+
+.cfg-panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--ad-hair);
+}
+
+.cfg-panel-head h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.cfg-panel-head span {
+    font-size: 12px;
+    color: var(--ad-mut);
+}
+
+.cfg-group {
+    padding-top: 18px;
+}
+
+.cfg-group .dt-cap {
+    margin: 0 0 2px;
+}
+
+/* One setting per row: label left, control right */
+.cfg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 52px;
+    padding: 0 10px;
+    margin: 0 -10px;
+    border-radius: 10px;
+}
+
+.cfg-row + .cfg-row {
+    box-shadow: inset 0 1px 0 var(--ad-hair);
+}
+
+.cfg-row > label,
+.cfg-row > .cfg-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f2f2f4;
+}
+
+.cfg-row.is-changed > label,
+.cfg-row.is-changed > .cfg-label {
+    color: #fdba74;
+}
+
+.cfg-ctl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cfg-unit {
+    font-size: 12.5px;
+    color: var(--ad-mut);
+}
+
+.cfg-page input[type="text"],
+.cfg-page input[type="number"] {
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f2f2f4;
+    font: 600 13.5px Inter, system-ui, sans-serif;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cfg-page input[type="text"] {
+    width: 260px;
+}
+
+.cfg-page input[type="number"] {
+    width: 84px;
+    text-align: right;
+    font-family: var(--ad-num);
+    font-variant-numeric: tabular-nums;
+}
+
+.cfg-page input[type="text"]:focus,
+.cfg-page input[type="number"]:focus {
+    outline: none;
+    border-color: var(--ad-tintb);
+    box-shadow: 0 0 0 3px var(--ad-tint);
+}
+
+.cfg-row.is-changed input[type="text"],
+.cfg-row.is-changed input[type="number"] {
+    border-color: #fb923c;
+}
+
+.cfg-page select {
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0 8px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f2f2f4;
+    font: 600 13px Inter, system-ui, sans-serif;
+    cursor: pointer;
+}
+
+.cfg-page select:focus {
+    outline: none;
+    border-color: var(--ad-tintb);
+    box-shadow: 0 0 0 3px var(--ad-tint);
+}
+
+.cfg-row.is-changed select {
+    border-color: #fb923c;
+}
+
+.cfg-page input:invalid {
+    border-color: #f87171;
+}
+
+/* Toggles: green when on (the page has no gender accent, so the shared switch would be gray) */
+.cfg-page .dt-switch input:checked ~ span {
+    background: #22c55e;
+}
+
+.cfg-page .dt-switch input:focus-visible ~ span {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4);
+}
+
+/* Save bar: the detail profile editor's footer, sitting under the visible panel */
+.cfg-page .cfg-foot {
+    margin: 0;
+}
+
+.cfg-foot .dt-edit-actions {
+    margin-top: 10px;
+}
+
+.dt-edit-status.is-saved .dt-dirty-dot {
+    background: #4ade80;
+}
+
+/* ── Database panel ── */
+.cfg-path {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--ad-mut);
+    overflow-wrap: anywhere;
+}
+
+.cfg-note {
+    margin: 0;
+    padding: 12px 0 14px;
+    font-size: 12.5px;
+    color: var(--ad-mut);
+}
+
+.cfg-msg {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    background: rgba(74, 222, 128, 0.08);
+    color: #bbf7d0;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.cfg-msg.is-error {
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.08);
+    color: #fecaca;
+}
+
+@media (max-width: 900px) {
+    .container-wide.dt-page .cfg-side {
+        max-width: none;
+    }
+
+    .cfg-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .cfg-tab {
+        width: auto;
+    }
+}
+
+@media (max-width: 560px) {
+    .cfg-page input[type="text"] {
+        width: 180px;
+    }
+
+    .cfg-foot .dt-edit-status .cfg-keys {
+        display: none;
+    }
+}

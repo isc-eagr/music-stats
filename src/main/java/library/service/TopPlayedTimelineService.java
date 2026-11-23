@@ -72,6 +72,30 @@ public class TopPlayedTimelineService {
         return buildSnapshots(sql);
     }
 
+    /**
+     * All-time plays of each genre split by gender (genre and gender resolve their overrides),
+     * so the Genre Reigns page can color genres by who listens to them most.
+     */
+    public Map<Integer, ReignPageBuilder.GenreShare> getGenreGenderShares() {
+        String sql = """
+            SELECT COALESCE(s.override_genre_id, al.override_genre_id, ar.genre_id) AS genre_id,
+                   SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 2 THEN 1 ELSE 0 END) AS male,
+                   SUM(CASE WHEN COALESCE(s.override_gender_id, ar.gender_id) = 1 THEN 1 ELSE 0 END) AS female,
+                   COUNT(*) AS total
+            FROM play p
+            JOIN song s ON s.id = p.song_id
+            JOIN artist ar ON ar.id = s.artist_id
+            LEFT JOIN album al ON al.id = s.album_id
+            GROUP BY 1
+            HAVING genre_id IS NOT NULL
+            """;
+        Map<Integer, ReignPageBuilder.GenreShare> shares = new HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            shares.put(rs.getInt("genre_id"), new ReignPageBuilder.GenreShare(rs.getInt("male"), rs.getInt("female"), rs.getInt("total")));
+        });
+        return shares;
+    }
+
     /** Timeline item a song's plays count toward, with its display fields. */
     private record SongItem(Integer itemId, String itemName, String secondaryName, Integer genderId, String genderName) {
     }

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${(periodType == 'yearly' ? 'Yearly Chart - ' : 'Seasonal Chart - ') + displayName + ' - Music Stats'}">Seasonal Chart - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <link rel="stylesheet" th:href="@{/css/catalog-table.css}">
+    <link rel="stylesheet" th:href="@{/css/chart-overview.css}">
+    <link rel="stylesheet" th:href="@{/css/weekly-chart.css}">
+    <link rel="stylesheet" th:href="@{/css/period-chart.css}">
+    <script th:src="@{/js/period-chart.js}" defer></script>
+</head>
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <div class="container co-page wk-page pd-page" id="periodChart"
+         th:with="seasonal=${periodType == 'seasonal'},
+                  bothFinal=${songChartFinalized and albumChartFinalized},
+                  songEdit=${!songChartFinalized},
+                  albumEdit=${!albumChartFinalized},
+                  unit=${periodType == 'seasonal' ? 'season' : 'year'}">
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title" th:text="${seasonal ? 'Seasonal Chart' : 'Yearly Chart'}">Seasonal Chart</h1>
+                    <div class="view-toggle" role="group" aria-label="Chart">
+                        <button type="button" id="songsToggle" class="view-btn active" data-pd-view="songs">Songs
+                            <span th:if="${songEdit}" class="pd-toggle-count" data-pd-count="song" th:text="${#lists.size(songEntries) + '/' + maxSongs}">0/30</span></button>
+                        <button type="button" id="albumsToggle" class="view-btn" data-pd-view="albums">Albums
+                            <span th:if="${albumEdit}" class="pd-toggle-count" data-pd-count="album" th:text="${#lists.size(albumEntries) + '/' + maxAlbums}">0/5</span></button>
+                    </div>
+                </div>
+                <div class="catalog-toolbar-actions wk-actions">
+                    <span th:unless="${bothFinal}" class="pd-save-state" id="pdSaveState" aria-live="polite"></span>
+                    <a class="toolbar-btn" href="/charts/seasonal/overview">Chart overview</a>
+                    <button type="button" class="toolbar-btn wk-desk" data-pd-list="songs" title="Opens the Songs list filtered to this period's plays">Open in Songs list</button>
+                    <button th:if="${bothFinal}" type="button" class="toolbar-btn" id="pdEditBtn"
+                            title="Turns both charts back into drafts so they can be edited">Edit chart</button>
+                    <button th:unless="${bothFinal}" type="button" class="toolbar-btn" id="pdSaveBtn">Save draft</button>
+                    <button th:unless="${bothFinal}" type="button" class="toolbar-btn pd-finalize" id="finalizeBtn"
+                            th:disabled="${!canFinalize}"
+                            th:title="${!isComplete ? 'The ' + unit + ' has not ended yet' : (!canFinalize ? 'Fill every position first' : 'Save or finalize the charts')}">Finalize</button>
+                    <button th:if="${songChartFinalized}" type="button" id="pdPlaylistBtn" class="toolbar-btn toolbar-btn-primary wk-desk">Generate playlist</button>
+                </div>
+            </div>
+        </div>
+
+        <nav class="wk-weekbar pd-periodbar" th:attr="aria-label=${seasonal ? 'Season navigation' : 'Year navigation'}">
+            <a th:if="${prevPeriodKey != null}" class="wk-step" th:href="@{/charts/{t}/{pk}(t=${periodType}, pk=${prevPeriodKey})}"
+               th:title="${'Previous: ' + prevLabel}" th:attr="aria-label=${'Previous: ' + prevLabel}">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+            </a>
+            <span th:if="${prevPeriodKey == null}" class="wk-step disabled" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+            </span>
+            <div class="wk-week">
+                <span class="pd-period"><span class="wk-week-range" th:text="${displayName}">Fall 2025</span>
+                    <span class="pd-range" th:text="${periodRange}">01/09/2025 - 30/11/2025</span></span>
+            </div>
+            <a th:if="${nextPeriodKey != null}" class="wk-step" th:href="@{/charts/{t}/{pk}(t=${periodType}, pk=${nextPeriodKey})}"
+               th:title="${'Next: ' + nextLabel}" th:attr="aria-label=${'Next: ' + nextLabel}">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </a>
+            <span th:if="${nextPeriodKey == null}" class="wk-step disabled" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+            </span>
+
+            <span th:if="${bothFinal}" class="pd-status" th:classappend="${seasonal ? 'pd-status-season' : 'pd-status-year'}">Finalized</span>
+            <span th:unless="${bothFinal}" class="pd-status pd-status-draft"
+                  th:text="${songChartFinalized ? 'Albums draft' : (albumChartFinalized ? 'Songs draft' : 'Draft')}">Draft</span>
+
+            <div th:if="${!seasonal and yearSeasons != null and !yearSeasons.isEmpty()}" class="pd-year-seasons">
+                <span class="co-menu-label">Seasons</span>
+                <a th:each="key : ${yearSeasons}" class="pd-chip" th:href="@{/charts/seasonal/{pk}(pk=${key})}"
+                   th:text="${#strings.substringAfter(key, '-')}">Winter</a>
+            </div>
+
+            <div class="wk-jump">
+                <span class="co-menu-label">Jump to</span>
+                <th:block th:if="${seasonal}">
+                    <select id="pdJumpSeason" aria-label="Season">
+                        <option th:each="name : ${seasonNames}" th:value="${name}" th:text="${name}"
+                                th:selected="${#strings.endsWith(periodKey, '-' + name)}">Winter</option>
+                    </select>
+                    <select id="pdJumpYear" aria-label="Year"></select>
+                </th:block>
+                <select th:unless="${seasonal}" id="pdJumpPeriod" aria-label="Year">
+                    <option th:each="y : ${allYears}" th:value="${y.periodKey}" th:text="${y.displayName != null ? y.displayName : y.periodKey}"
+                            th:selected="${y.periodKey == periodKey}">2025</option>
+                </select>
+            </div>
+        </nav>
+
+        <!-- Songs -->
+        <section id="songsSection" class="wk-section" th:attr="data-pd-section='song',data-pd-editing=${songEdit}">
+            <th:block th:unless="${songEdit}">
+                <div th:replace="~{fragments/period-chart-rows :: summary('song', ${songSummary}, ${seasonal}, ${periodYear})}"></div>
+                <div th:replace="~{fragments/weekly-chart-rows :: breakdowns(${songBreakdowns})}"></div>
+            </th:block>
+            <th:block th:if="${songEdit}">
+                <div th:replace="~{fragments/period-chart-rows :: progress('song', ${maxSongs}, ${maxExtraSongs}, ${seasonal})}"></div>
+                <div th:replace="~{fragments/period-chart-rows :: search('song', 'Add a song', 'Search a song or artist... (Enter adds the first result)')}"></div>
+            </th:block>
+
+            <div class="wk-section-head">
+                <h2 class="wk-section-title" th:text="${'Top ' + maxSongs + ' songs'}">Top 30 songs</h2>
+                <span class="co-hint" th:text="${songEdit ? 'Drag the handle or use the arrows to reorder. Positions renumber as you go.' : 'Plays are counted inside the ' + unit + '. Weekly peak and weeks are its run on the Weekly chart.'}">Hint</span>
+            </div>
+            <div class="table-scroll wk-table-shell">
+                <table id="songsChartTable" class="sticky-head catalog-table wk-table pd-table" th:classappend="${songEdit ? 'pd-editing' : ''}">
+                    <thead th:replace="~{fragments/period-chart-rows :: head('song', ${songEdit}, ${seasonal})}"></thead>
+                    <tbody id="songList" data-pd-list="song" th:attr="data-pd-max=${maxSongs},data-pd-start=1">
+                        <th:block th:each="entry : ${songEntries}">
+                            <tr th:replace="~{fragments/period-chart-rows :: songRow(${entry}, ${songStats[entry.songId]}, ${songEdit}, ${seasonal}, ${periodYear}, ${!songEdit})}"></tr>
+                        </th:block>
+                        <tr th:if="${!songEdit and songEntries.isEmpty()}"><td colspan="11" class="co-empty">No songs on this chart.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <th:block th:if="${seasonal}">
+                <div class="wk-section-head pd-bubbling-head">
+                    <h2 class="wk-section-title">Bubbling under <span class="pd-sub" th:text="${'31 - ' + (maxSongs + maxExtraSongs) + (songEdit ? ' · ' : '')}">31 - 35</span><span th:if="${songEdit}" class="pd-sub" data-pd-count="extra" th:text="${#lists.size(extraSongEntries) + ' / ' + maxExtraSongs}">0 / 5</span></h2>
+                    <span class="co-hint" th:text="${songEdit ? 'Optional. Goes in the playlist, never counts as a chart entry.' : 'Kept with the chart and in the playlist, not counted as chart entries.'}">Hint</span>
+                </div>
+                <div class="pd-bubbling" th:if="${songEdit or !extraSongEntries.isEmpty()}">
+                    <th:block th:if="${songEdit}">
+                        <div th:replace="~{fragments/period-chart-rows :: search('extra', 'Add a bubbling-under song', 'Search a song or artist...')}"></div>
+                    </th:block>
+                    <div class="table-scroll wk-table-shell pd-bubbling-shell">
+                        <table id="extrasChartTable" class="sticky-head catalog-table wk-table pd-table" th:classappend="${songEdit ? 'pd-editing' : ''}">
+                            <thead th:replace="~{fragments/period-chart-rows :: head('song', ${songEdit}, ${seasonal})}"></thead>
+                            <tbody id="extraList" data-pd-list="extra" th:attr="data-pd-max=${maxExtraSongs},data-pd-start=${maxSongs + 1}">
+                                <th:block th:each="entry : ${extraSongEntries}">
+                                    <tr th:replace="~{fragments/period-chart-rows :: songRow(${entry}, ${songStats[entry.songId]}, ${songEdit}, ${seasonal}, ${periodYear}, false)}"></tr>
+                                </th:block>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p th:if="${!songEdit and extraSongEntries.isEmpty()}" class="co-hint pd-none">No bubbling-under songs this season.</p>
+            </th:block>
+        </section>
+
+        <!-- Albums -->
+        <section id="albumsSection" class="wk-section" hidden th:attr="data-pd-section='album',data-pd-editing=${albumEdit}">
+            <th:block th:unless="${albumEdit}">
+                <div th:replace="~{fragments/period-chart-rows :: summary('album', ${albumSummary}, ${seasonal}, ${periodYear})}"></div>
+                <div th:replace="~{fragments/weekly-chart-rows :: breakdowns(${albumBreakdowns})}"></div>
+            </th:block>
+            <th:block th:if="${albumEdit}">
+                <div th:replace="~{fragments/period-chart-rows :: progress('album', ${maxAlbums}, 0, ${seasonal})}"></div>
+                <div th:replace="~{fragments/period-chart-rows :: search('album', 'Add an album', 'Search an album or artist... (Enter adds the first result)')}"></div>
+            </th:block>
+
+            <div class="wk-section-head">
+                <h2 class="wk-section-title" th:text="${'Top ' + maxAlbums + ' albums'}">Top 5 albums</h2>
+                <span class="co-hint" th:text="${albumEdit ? 'Drag the handle or use the arrows to reorder.' : 'Plays are counted inside the ' + unit + '.'}">Hint</span>
+            </div>
+            <div class="table-scroll wk-table-shell">
+                <table id="albumsChartTable" class="sticky-head catalog-table wk-table pd-table" th:classappend="${albumEdit ? 'pd-editing' : ''}">
+                    <thead th:replace="~{fragments/period-chart-rows :: head('album', ${albumEdit}, ${seasonal})}"></thead>
+                    <tbody id="albumList" data-pd-list="album" th:attr="data-pd-max=${maxAlbums},data-pd-start=1">
+                        <th:block th:each="entry : ${albumEntries}">
+                            <tr th:replace="~{fragments/period-chart-rows :: albumRow(${entry}, ${albumStats[entry.albumId]}, ${albumEdit}, ${seasonal}, ${periodYear}, ${!albumEdit})}"></tr>
+                        </th:block>
+                        <tr th:if="${!albumEdit and albumEntries.isEmpty()}"><td colspan="11" class="co-empty">No albums on this chart.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div class="pd-toast" id="saveIndicator" role="status" aria-live="polite"></div>
+
+    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+    <script th:inline="javascript">
+        window.periodChartState = {
+            periodType: /*[[${periodType}]]*/ 'seasonal',
+            periodKey: /*[[${periodKey}]]*/ '2025-Fall',
+            periodYear: /*[[${periodYear}]]*/ '2025',
+            displayName: /*[[${displayName}]]*/ 'Fall 2025',
+            periodStart: /*[[${periodStart}]]*/ null,
+            periodEnd: /*[[${periodEnd}]]*/ null,
+            maxSongs: /*[[${maxSongs}]]*/ 30,
+            maxAlbums: /*[[${maxAlbums}]]*/ 5,
+            maxExtraSongs: /*[[${maxExtraSongs}]]*/ 5,
+            songChartId: /*[[${songChart.id}]]*/ 0,
+            albumChartId: /*[[${albumChart.id}]]*/ 0,
+            songFinalized: /*[[${songChartFinalized}]]*/ false,
+            albumFinalized: /*[[${albumChartFinalized}]]*/ false,
+            seasonKeys: /*[[${periodType == 'seasonal' ? allSeasons.![periodKey] : null}]]*/ []
+        };
+    </script>
+</body>
+</html>

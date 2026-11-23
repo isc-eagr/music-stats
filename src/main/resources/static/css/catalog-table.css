@@ -343,6 +343,34 @@
 .catalog-table td.rank-col.ct-medal-2 { color: #e4e4e7; }
 .catalog-table td.rank-col.ct-medal-3 { color: #f0a868; }
 
+/* ── Gender rows: same blue / pink surfaces as the list cards, opaque so pinned cells stay solid ── */
+.catalog-table tbody tr.ct-male {
+    --ct-row-bg: #121923;
+    --ct-row-hover: #172233;
+    --ct-row-line: rgba(96, 165, 250, 0.14);
+    --ct-row-edge: rgba(96, 165, 250, 0.7);
+}
+
+.catalog-table tbody tr.ct-female {
+    --ct-row-bg: #1b131a;
+    --ct-row-hover: #261824;
+    --ct-row-line: rgba(244, 114, 182, 0.14);
+    --ct-row-edge: rgba(244, 114, 182, 0.7);
+}
+
+.catalog-table tbody tr:is(.ct-male, .ct-female) > td {
+    background: var(--ct-row-bg);
+    border-bottom-color: var(--ct-row-line);
+}
+
+.catalog-table tbody tr:is(.ct-male, .ct-female) > td:first-child {
+    box-shadow: inset 3px 0 0 var(--ct-row-edge);
+}
+
+.catalog-table tbody tr:is(.ct-male, .ct-female):hover > td {
+    background: var(--ct-row-hover);
+}
+
 /* ── Gender cues: cover ring and tinted secondary links ── */
 .catalog-table tr.ct-male .cover-col img {
     box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.75);

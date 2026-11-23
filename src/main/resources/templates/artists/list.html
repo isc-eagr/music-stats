@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artists - Music Stats</title>
     <!-- Load global styles before fragment so fragment CSS can assume variables/layout are present -->
-    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <link rel="stylesheet" th:href="@{/css/catalog-modal.css(v=1)}">
     <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
-    <th:block th:replace="~{fragments/share-history :: styles}"></th:block>
     <link rel="stylesheet" th:href="@{/css/artists.css}">
     <link rel="stylesheet" th:href="@{/css/detail-tabs.css}">
     <link rel="stylesheet" th:href="@{/css/top-tables.css}">
@@ -17,7 +17,7 @@
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script th:src="@{/js/list-utils.js}"></script>
+    <script th:src="@{/js/list-utils.js(v=2)}"></script>
     <script th:src="@{/js/play-breakdown-tooltip.js}"></script>
     <script th:src="@{/js/graphs.js}"></script>
 </head>
@@ -141,7 +141,7 @@
                 <div class="catalog-toolbar-control-actions">
                     <div class="filters" id="filterPanel">
                         <div class="filter-header">
-                            <h3>Edit Filter</h3>
+                            <h3>Filters</h3>
                             <button class="filter-close" onclick="toggleFilters()">×</button>
                         </div>
                         
@@ -217,14 +217,12 @@
                                     <div class="filter-item-content">
                                         <input type="hidden" name="ageMode" id="ageModeInput" th:value="${ageMode}" />
                                         <div id="ageRange">
-                                            <div class="filter-group" style="display: flex; gap: 8px; align-items: center;">
+                                            <div class="filter-group filter-range">
                                                 <input type="number" autocomplete="off" name="ageMin" id="ageMin" 
-                                                       th:value="${ageMin}" placeholder="Min" min="0"
-                                                       style="width: 80px;">
-                                                <span>to</span>
+                                                       th:value="${ageMin}" placeholder="Min" min="0">
+                                                <span class="filter-range-sep">to</span>
                                                 <input type="number" autocomplete="off" name="ageMax" id="ageMax" 
-                                                       th:value="${ageMax}" placeholder="Max" min="0"
-                                                       style="width: 80px;">
+                                                       th:value="${ageMax}" placeholder="Max" min="0">
                                             </div>
                                         </div>
                                     </div>
@@ -239,14 +237,12 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="filter-group" style="display: flex; gap: 8px; align-items: center;">
+                                        <div class="filter-group filter-range">
                                             <input type="number" autocomplete="off" name="albumCountMin" id="albumCountMin" 
-                                                   th:value="${albumCountMin}" placeholder="Min" min="0"
-                                                   style="width: 80px;">
-                                            <span>to</span>
+                                                   th:value="${albumCountMin}" placeholder="Min" min="0">
+                                            <span class="filter-range-sep">to</span>
                                             <input type="number" autocomplete="off" name="albumCountMax" id="albumCountMax" 
-                                                   th:value="${albumCountMax}" placeholder="Max" min="0"
-                                                   style="width: 80px;">
+                                                   th:value="${albumCountMax}" placeholder="Max" min="0">
                                         </div>
                                     </div>
                                 </div>
@@ -270,9 +266,9 @@
                                             <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="between"
                                                     th:classappend="${birthDateMode == 'between'} ? 'active' : ''">Between</button>
                                             <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="isnull"
-                                                    th:classappend="${birthDateMode == 'isnull'} ? 'active' : ''">Is Null</button>
+                                                    th:classappend="${birthDateMode == 'isnull'} ? 'active' : ''">Is null</button>
                                             <button type="button" class="filter-modifier" data-filter="birthDate" data-mode="isnotnull"
-                                                    th:classappend="${birthDateMode == 'isnotnull'} ? 'active' : ''">Is Not Null</button>
+                                                    th:classappend="${birthDateMode == 'isnotnull'} ? 'active' : ''">Is not null</button>
                                         </div>
                                         <input type="hidden" name="birthDateMode" id="birthDateModeInput" th:value="${birthDateMode}" />
                                         <div id="birthDateSingle" th:style="${birthDateMode == 'between' or birthDateMode == 'isnull' or birthDateMode == 'isnotnull'} ? 'display:none' : ''">
@@ -284,7 +280,7 @@
                                             <label class="field"><span>From</span>
                                                 <input type="text" autocomplete="off" name="birthDateFrom" th:value="${birthDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
-                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                            <label class="field"><span>To</span>
                                                 <input type="text" autocomplete="off" name="birthDateTo" th:value="${birthDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
@@ -351,9 +347,9 @@
                                             <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="between"
                                                     th:classappend="${deathDateMode == 'between'} ? 'active' : ''">Between</button>
                                             <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="isnull"
-                                                    th:classappend="${deathDateMode == 'isnull'} ? 'active' : ''">Is Null</button>
+                                                    th:classappend="${deathDateMode == 'isnull'} ? 'active' : ''">Is null</button>
                                             <button type="button" class="filter-modifier" data-filter="deathDate" data-mode="isnotnull"
-                                                    th:classappend="${deathDateMode == 'isnotnull'} ? 'active' : ''">Is Not Null</button>
+                                                    th:classappend="${deathDateMode == 'isnotnull'} ? 'active' : ''">Is not null</button>
                                         </div>
                                         <input type="hidden" name="deathDateMode" id="deathDateModeInput" th:value="${deathDateMode}" />
                                         <div id="deathDateSingle" th:style="${deathDateMode == 'between' or deathDateMode == 'isnull' or deathDateMode == 'isnotnull'} ? 'display:none' : ''">
@@ -365,7 +361,7 @@
                                             <label class="field"><span>From</span>
                                                 <input type="text" autocomplete="off" name="deathDateFrom" th:value="${deathDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
-                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                            <label class="field"><span>To</span>
                                                 <input type="text" autocomplete="off" name="deathDateTo" th:value="${deathDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
@@ -428,8 +424,8 @@
                                         <div class="filter-group">
                                             <select name="inItunes" id="inItunesSelect">
                                                 <option value="">All</option>
-                                                <option value="true" th:selected="${selectedInItunes == 'true'}">✅ In iTunes</option>
-                                                <option value="false" th:selected="${selectedInItunes == 'false'}">❌ Not in iTunes</option>
+                                                <option value="true" th:selected="${selectedInItunes == 'true'}">In iTunes</option>
+                                                <option value="false" th:selected="${selectedInItunes == 'false'}">Not in iTunes</option>
                                             </select>
                                         </div>
                                     </div>
@@ -464,7 +460,7 @@
                                             <label class="field"><span>From</span>
                                                 <input type="text" autocomplete="off" name="firstListenedDateFrom" th:value="${firstListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
-                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                            <label class="field"><span>To</span>
                                                 <input type="text" autocomplete="off" name="firstListenedDateTo" th:value="${firstListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
@@ -588,11 +584,11 @@
                                                 <option th:each="theme : ${themes}" th:value="${theme.id}" th:text="${theme.name}" th:selected="${selectedImageTheme != null and selectedImageTheme == theme.id}"></option>
                                             </select>
                                         </div>
-                                        <div class="filter-group" style="margin-top: 6px;">
-                                            <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer; margin-right: 12px;">
+                                        <div class="filter-group filter-choices">
+                                            <label class="filter-choice">
                                                 <input type="radio" name="imageThemeMode" value="has" th:checked="${imageThemeMode == null or imageThemeMode == 'has'}"> Has
                                             </label>
-                                            <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                            <label class="filter-choice">
                                                 <input type="radio" name="imageThemeMode" value="doesntHave" th:checked="${imageThemeMode == 'doesntHave'}"> Doesn't Have
                                             </label>
                                         </div>
@@ -627,14 +623,12 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="filter-group" style="display: flex; gap: 8px; align-items: center;">
+                                        <div class="filter-group filter-range">
                                             <input type="number" autocomplete="off" name="itunesPresenceMin" id="itunesPresenceMin" 
-                                                   th:value="${itunesPresenceMin}" placeholder="Min" min="0" max="100"
-                                                   style="width: 80px;">
-                                            <span>to</span>
+                                                   th:value="${itunesPresenceMin}" placeholder="Min" min="0" max="100">
+                                            <span class="filter-range-sep">to</span>
                                             <input type="number" autocomplete="off" name="itunesPresenceMax" id="itunesPresenceMax" 
-                                                   th:value="${itunesPresenceMax}" placeholder="Max" min="0" max="100"
-                                                   style="width: 80px;">
+                                                   th:value="${itunesPresenceMax}" placeholder="Max" min="0" max="100">
                                         </div>
                                     </div>
                                 </div>
@@ -709,7 +703,7 @@
                                             <label class="field"><span>From</span>
                                                 <input type="text" autocomplete="off" name="lastListenedDateFrom" th:value="${lastListenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
-                                            <label class="field" style="margin-top: 8px;"><span>To</span>
+                                            <label class="field"><span>To</span>
                                                 <input type="text" autocomplete="off" name="lastListenedDateTo" th:value="${lastListenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                             </label>
                                         </div>
@@ -728,7 +722,7 @@
                                         <label class="field"><span>From</span>
                                             <input type="text" autocomplete="off" name="listenedDateFrom" th:value="${listenedDateFrom}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                         </label>
-                                        <label class="field" style="margin-top: 8px;"><span>To</span>
+                                        <label class="field"><span>To</span>
                                             <input type="text" autocomplete="off" name="listenedDateTo" th:value="${listenedDateTo}" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" />
                                         </label>
                                     </div>
@@ -746,8 +740,8 @@
                                         <div class="filter-group">
                                             <select name="organized" id="organizedSelect">
                                                 <option value="">All</option>
-                                                <option value="true" th:selected="${selectedOrganized == 'true'}">📦 Organized</option>
-                                                <option value="false" th:selected="${selectedOrganized == 'false'}">📬 Not Organized</option>
+                                                <option value="true" th:selected="${selectedOrganized == 'true'}">Organized</option>
+                                                <option value="false" th:selected="${selectedOrganized == 'false'}">Not Organized</option>
                                             </select>
                                         </div>
                                     </div>
@@ -762,14 +756,12 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="filter-group" style="display: flex; gap: 8px; align-items: center;">
+                                        <div class="filter-group filter-range">
                                             <input type="number" autocomplete="off" name="playCountMin" id="playCountMin" 
-                                                   th:value="${playCountMin}" placeholder="Min" min="0"
-                                                   style="width: 80px;">
-                                            <span>to</span>
+                                                   th:value="${playCountMin}" placeholder="Min" min="0">
+                                            <span class="filter-range-sep">to</span>
                                             <input type="number" autocomplete="off" name="playCountMax" id="playCountMax" 
-                                                   th:value="${playCountMax}" placeholder="Max" min="0"
-                                                   style="width: 80px;">
+                                                   th:value="${playCountMax}" placeholder="Max" min="0">
                                         </div>
                                     </div>
                                 </div>
@@ -783,14 +775,12 @@
                                         </span>
                                     </div>
                                     <div class="filter-item-content">
-                                        <div class="filter-group" style="display: flex; gap: 8px; align-items: center;">
+                                        <div class="filter-group filter-range">
                                             <input type="number" autocomplete="off" name="songCountMin" id="songCountMin" 
-                                                   th:value="${songCountMin}" placeholder="Min" min="0"
-                                                   style="width: 80px;">
-                                            <span>to</span>
+                                                   th:value="${songCountMin}" placeholder="Min" min="0">
+                                            <span class="filter-range-sep">to</span>
                                             <input type="number" autocomplete="off" name="songCountMax" id="songCountMax" 
-                                                   th:value="${songCountMax}" placeholder="Max" min="0"
-                                                   style="width: 80px;">
+                                                   th:value="${songCountMax}" placeholder="Max" min="0">
                                         </div>
                                     </div>
                                 </div>
@@ -1148,7 +1138,7 @@
             
             <!-- Organized filter chip -->
             <div class="filter-chip" th:if="${selectedOrganized != null and !selectedOrganized.isEmpty()}">
-                <span class="filter-chip-label" th:text="${selectedOrganized == 'true' ? '📦 Organized' : '📬 Not Organized'}">Organized</span>
+                <span class="filter-chip-label" th:text="${selectedOrganized == 'true' ? 'Organized' : 'Not Organized'}">Organized</span>
                 <button class="filter-chip-remove" onclick="removeFilter('organized')" type="button">×</button>
             </div>
             
@@ -1285,8 +1275,6 @@
         </div> <!-- Close pagination-and-counters-wrapper -->
         
         <!-- Pagination info -->
-        <section th:replace="~{fragments/share-history :: panel('artists', 'plays,time,albums,songs', 'data-artist-id', 'data-id')}"></section>
-
         <div class="pagination-info">
             <span th:text="${startIndex} + ' - ' + ${endIndex} + ' of ' + ${totalCount}"></span>
         </div>
@@ -1509,7 +1497,7 @@
                 <div class="column-toggle-grid" id="artistColumnToggles"></div>
             </div>
             <div class="top-table-container" id="topArtistsTableContainer">
-                <table class="top-table catalog-table" id="topArtistsTable">
+                <table class="sticky-head top-table catalog-table" id="topArtistsTable">
                     <thead>
                         <tr>
                             <th class="rank-col ct-pin ct-pin-rank">#</th>
@@ -1555,44 +1543,6 @@
     </div>
     
     <script>
-        function toggleFilters() {
-            const panel = document.getElementById('filterPanel');
-            const isMobile = window.innerWidth <= 768;
-            if (panel.style.display === 'block') {
-                panel.style.display = 'none';
-                if (isMobile) {
-                    document.body.style.overflow = '';
-                    const overlay = document.querySelector('.filter-sheet-overlay');
-                    if (overlay) overlay.remove();
-                }
-            } else {
-                panel.style.display = 'block';
-                if (isMobile) {
-                    document.body.style.overflow = 'hidden';
-                    const overlay = document.createElement('div');
-                    overlay.className = 'filter-sheet-overlay';
-                    overlay.addEventListener('click', function() { toggleFilters(); });
-                    document.body.appendChild(overlay);
-                    requestAnimationFrame(function() { overlay.style.opacity = '1'; });
-                }
-            }
-        }
-        
-        function toggleFilterItem(header) {
-            const content = header.nextElementSibling;
-            const chevron = header.querySelector('.filter-item-chevron');
-            
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
-                chevron.classList.remove('expanded');
-                header.classList.remove('active');
-            } else {
-                content.classList.add('expanded');
-                chevron.classList.add('expanded');
-                header.classList.add('active');
-            }
-        }
-        
         function toggleMultiSelectDropdown(filterName) {
             const dropdown = document.getElementById(filterName + 'Dropdown');
             if (!dropdown) { console.warn('Dropdown not found for', filterName); return; }
@@ -1631,201 +1581,11 @@
             }
         });
         
-        function updateChips(filterName, checkbox) {
-            const chipsContainer = document.getElementById(filterName + 'Chips');
-            const labelElement = chipsContainer.nextElementSibling;
-            const value = checkbox.value;
-            const text = checkbox.parentElement.textContent.trim();
-            const optionElement = checkbox.closest('.multi-select-option');
-            
-            if (checkbox.checked) {
-                // Add chip
-                const chip = document.createElement('span');
-                chip.className = 'multi-select-chip';
-                chip.setAttribute('data-value', value);
-                chip.innerHTML = `
-                    <span>${text}</span>
-                    <button type="button" class="multi-select-chip-remove" onclick="removeChip(event, '${filterName}', ${value})" data-value="${value}">×</button>
-                `;
-                chipsContainer.appendChild(chip);
-                // Hide selected option from dropdown
-                if (optionElement) optionElement.style.display = 'none';
-            } else {
-                // Remove chip
-                const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
-                if (chip) chip.remove();
-                // Show option back in dropdown
-                if (optionElement) optionElement.style.display = '';
-            }
-            
-            // Show/hide placeholder label
-            if (chipsContainer.children.length > 0) {
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'none';
-                }
-            } else {
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'block';
-                }
-            }
-        }
         
-        function removeChip(event, filterName, value) {
-            event.stopPropagation();
-            
-            // Uncheck the checkbox and show option back
-            const dropdown = document.getElementById(filterName + 'Dropdown');
-            const checkbox = dropdown.querySelector(`input[value="${value}"]`);
-            if (checkbox) {
-                checkbox.checked = false;
-                const optionElement = checkbox.closest('.multi-select-option');
-                if (optionElement) optionElement.style.display = '';
-            }
-            
-            // Remove the chip (find button by data-value, then remove its parent span)
-            const chipsContainer = document.getElementById(filterName + 'Chips');
-            const chipButton = chipsContainer.querySelector(`button[data-value="${value}"]`);
-            if (chipButton && chipButton.parentElement) chipButton.parentElement.remove();
-            
-            // Show placeholder if no chips left
-            const labelElement = chipsContainer.nextElementSibling;
-            if (chipsContainer.children.length === 0) {
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'block';
-                }
-            }
-        }
         
-        function updateCountryChips(checkbox) {
-            const chipsContainer = document.getElementById('countryChips');
-            const labelElement = chipsContainer.nextElementSibling;
-            const value = checkbox.value;
-            const text = checkbox.parentElement.textContent.trim();
-            const optionElement = checkbox.closest('.multi-select-option');
-            
-            if (checkbox.checked) {
-                // Add chip
-                const chip = document.createElement('span');
-                chip.className = 'multi-select-chip';
-                chip.setAttribute('data-value', value);
-                chip.innerHTML = `
-                    <span>${text}</span>
-                    <button type="button" class="multi-select-chip-remove" onclick="removeCountryChip(event, '${value.replace(/'/g, "\\'")}')" data-value="${value}">×</button>
-                `;
-                chipsContainer.appendChild(chip);
-                // Hide selected option from dropdown
-                if (optionElement) optionElement.style.display = 'none';
-            } else {
-                // Remove chip
-                const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
-                if (chip) chip.remove();
-                // Show option back in dropdown
-                if (optionElement) optionElement.style.display = '';
-            }
-            
-            // Show/hide placeholder label
-            if (chipsContainer.children.length > 0) {
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'none';
-                }
-            } else {
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'block';
-                }
-            }
-        }
         
-        function removeCountryChip(event, value) {
-            event.stopPropagation();
-            
-            // Uncheck the checkbox and show option back
-            const dropdown = document.getElementById('countryDropdown');
-            const checkbox = dropdown.querySelector(`input[value="${value}"]`);
-            if (checkbox) {
-                checkbox.checked = false;
-                const optionElement = checkbox.closest('.multi-select-option');
-                if (optionElement) optionElement.style.display = '';
-            }
-            
-            // Remove the chip
-            const chipsContainer = document.getElementById('countryChips');
-            const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
-            if (chip) chip.remove();
-            
-            // Show placeholder if no chips left
-            const labelElement = chipsContainer.nextElementSibling;
-            if (chipsContainer.children.length === 0) {
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'block';
-                }
-            }
-        }
         
-        function updateAccountChips(checkbox) {
-            const chipsContainer = document.getElementById('accountChips');
-            const labelElement = chipsContainer.nextElementSibling;
-            const value = checkbox.value;
-            const displayText = value === 'vatito' ? 'Primary (vatito)' : 'Legacy (robertlover)';
-            const optionElement = checkbox.closest('.multi-select-option');
-            
-            if (checkbox.checked) {
-                // Add chip
-                const chip = document.createElement('span');
-                chip.className = 'multi-select-chip';
-                chip.setAttribute('data-value', value);
-                chip.innerHTML = `
-                    <span>${displayText}</span>
-                    <button type="button" class="multi-select-chip-remove" onclick="removeAccountChip(event, '${value}')" data-value="${value}">×</button>
-                `;
-                chipsContainer.appendChild(chip);
-                // Hide selected option from dropdown
-                if (optionElement) optionElement.style.display = 'none';
-                
-                // Hide placeholder
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'none';
-                }
-            } else {
-                // Remove chip
-                const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
-                if (chip) chip.remove();
-                // Show option back in dropdown
-                if (optionElement) optionElement.style.display = '';
-                
-                // Show placeholder if no chips left
-                if (chipsContainer.children.length === 0) {
-                    if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                        labelElement.style.display = 'block';
-                    }
-                }
-            }
-        }
         
-        function removeAccountChip(event, value) {
-            event.stopPropagation();
-            
-            // Uncheck the checkbox and show option back
-            const dropdown = document.getElementById('accountDropdown');
-            const checkbox = dropdown.querySelector(`input[value="${value}"]`);
-            if (checkbox) {
-                checkbox.checked = false;
-                const optionElement = checkbox.closest('.multi-select-option');
-                if (optionElement) optionElement.style.display = '';
-            }
-            
-            // Remove the chip
-            const chipsContainer = document.getElementById('accountChips');
-            const chip = chipsContainer.querySelector(`[data-value="${value}"]`);
-            if (chip) chip.remove();
-            
-            // Show placeholder if no chips left
-            const labelElement = chipsContainer.nextElementSibling;
-            if (chipsContainer.children.length === 0) {
-                if (labelElement && labelElement.classList.contains('multi-select-label')) {
-                    labelElement.style.display = 'block';
-                }
-            }
-        }
         
         function applyFilters() {
             submitFilterForm('filterForm');
@@ -1842,23 +1602,12 @@
             window.location.href = url.toString();
         }
         
-        function changeSortBy(level, sortValue) {
-            changeListSort(level, sortValue);
-        }
         
-        function toggleSortDirection(level) {
-            toggleListSortDirection(level);
-        }
         
         function clearFilters() {
             window.location.href = buildSortOnlyUrl('/artists');
         }
         
-        function removeFilter(...paramNames) {
-            const url = new URL(window.location);
-            paramNames.forEach(paramName => url.searchParams.delete(paramName));
-            window.location.href = url.toString();
-        }
         
         function removeFilterGroup(paramName) {
             const url = new URL(window.location);
@@ -1867,15 +1616,6 @@
             window.location.href = url.toString();
         }
         
-        // Hide already-selected options in all multi-select dropdowns
-        function hideSelectedDropdownOptions() {
-            document.querySelectorAll('.multi-select-dropdown').forEach(dropdown => {
-                dropdown.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-                    const optionElement = checkbox.closest('.multi-select-option');
-                    if (optionElement) optionElement.style.display = 'none';
-                });
-            });
-        }
         
         // Handle filter modifier buttons
         document.addEventListener('DOMContentLoaded', function() {
@@ -2152,10 +1892,10 @@
     
     <!-- Create Artist Modal -->
     <div id="createArtistModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content cm-wide">
             <div class="modal-header">
                 <h2>Create New Artist</h2>
-                <span class="modal-close" onclick="closeCreateModal()">&times;</span>
+                <button type="button" class="modal-close" onclick="closeCreateModal()" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
             </div>
             <form id="createArtistForm" onsubmit="submitCreateArtist(event)">
                 <div class="modal-body">
@@ -2242,9 +1982,9 @@
                 </div>
                 
                 <div class="modal-footer">
-                    <button type="button" class="btn-secondary" onclick="openCreateArtistExternalFetch()">External</button>
-                    <button type="submit" class="btn-action">Create</button>
-                    <button type="button" class="btn-negative" onclick="closeCreateModal()">Cancel</button>
+                    <button type="button" class="cm-btn cm-left" onclick="openCreateArtistExternalFetch()">External</button>
+                    <button type="button" class="cm-btn" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="cm-btn is-primary">Create</button>
                 </div>
             </form>
         </div>
@@ -2277,114 +2017,6 @@
         }
         .counter-icon {
             font-size: 14px;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            background-color: #1a1a1a;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #333;
-        }
-        
-        .modal-header h2 {
-            margin: 0;
-            color: #fff;
-        }
-        
-        .modal-close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        
-        .modal-close:hover {
-            color: #fff;
-        }
-        
-        .modal-body {
-            padding: 20px;
-        }
-        
-        .modal-body .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .modal-body .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #ccc;
-            font-size: 14px;
-        }
-        
-        .modal-body .form-group input,
-        .modal-body .form-group select {
-            width: 100%;
-            padding: 8px;
-            background-color: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 14px;
-        }
-        
-        .modal-body .form-group input:focus,
-        .modal-body .form-group select:focus {
-            outline: none;
-            border-color: #666;
-        }
-        
-        .modal-footer {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid #333;
-            justify-content: flex-end;
-        }
-        
-        /* Checkbox styling */
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 0;
-        }
-        
-        .checkbox-container input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        
-        .checkbox-label {
-            font-size: 14px;
-            color: #e5e7eb;
-            cursor: pointer;
         }
         
         /* Infinite scroll loading overlay */
@@ -2496,224 +2128,11 @@
     </div>
 
     <script>
-        (function() {
-            const grid = document.getElementById('artistGrid');
-            if (!grid) return;
-
-            let currentPage = parseInt(grid.dataset.currentPage, 10);
-            const totalPages = parseInt(grid.dataset.totalPages, 10);
-            const sentinel = document.getElementById('scrollSentinel');
-            const overlay = document.getElementById('infLoadOverlay');
-            const overlayTitle = overlay ? overlay.querySelector('.inf-load-title') : null;
-            const endMsg = document.getElementById('scrollEnd');
-            const loadAllButton = document.getElementById('loadAllResultsButton');
-
-            if (currentPage === 0) {
-                document.querySelectorAll('.pagination').forEach(el => el.style.display = 'none');
+        initCatalogInfiniteScroll('artistGrid', '.artist-card', function(grid) {
+            if (typeof window.initializePlayBreakdownTooltips === 'function') {
+                window.initializePlayBreakdownTooltips(grid);
             }
-
-            if (totalPages <= 1 || currentPage >= totalPages - 1) {
-                if (totalPages > 0) endMsg.hidden = false;
-                return;
-            }
-
-            let loading = false;
-            let loadAllInProgress = false;
-            let cardLoadAllCompleted = false;
-            let tableLoadAllCompleted = false;
-
-            function isTableViewActive() {
-                const tableView = document.getElementById('tableView');
-                return tableView && tableView.style.display !== 'none';
-            }
-
-            const observer = new IntersectionObserver(function(entries) {
-                if (entries[0].isIntersecting && !loading) {
-                    loadNextPage();
-                }
-            }, { rootMargin: '300px' });
-
-            observer.observe(sentinel);
-
-            function updateCounterText(addedCount) {
-                const infoEl = document.querySelector('.pagination-info span');
-                if (!infoEl) return;
-                const parts = infoEl.textContent.split(' of ');
-                if (parts.length === 2) {
-                    const currentEnd = parseInt(parts[0].split(' - ')[1], 10) || 0;
-                    infoEl.textContent = parts[0].split(' - ')[0] + ' - ' + (currentEnd + addedCount) + ' of ' + parts[1];
-                }
-            }
-
-            function getVisibleResultCounts() {
-                const infoEl = document.querySelector('.pagination-info span');
-                if (!infoEl) {
-                    return { loadedCount: 0, totalCount: 0 };
-                }
-
-                const match = infoEl.textContent.match(/(\d+)\s*-\s*(\d+)\s+of\s+(\d+)/i);
-                if (!match) {
-                    return { loadedCount: 0, totalCount: 0 };
-                }
-
-                return {
-                    loadedCount: parseInt(match[2], 10) || 0,
-                    totalCount: parseInt(match[3], 10) || 0
-                };
-            }
-
-            function formatLoadAllText(loadedCount, totalCount) {
-                if (typeof window.formatLoadAllProgressText === 'function') {
-                    return window.formatLoadAllProgressText('Loading all...', loadedCount, totalCount);
-                }
-
-                return totalCount > 0
-                    ? 'Loading all... (' + Math.min(loadedCount, totalCount) + '/' + totalCount + ')'
-                    : 'Loading all...';
-            }
-
-            function updateOverlayTitle() {
-                if (!overlayTitle) return;
-
-                if (loadAllInProgress) {
-                    const progress = getVisibleResultCounts();
-                    overlayTitle.textContent = formatLoadAllText(progress.loadedCount, progress.totalCount);
-                    return;
-                }
-
-                overlayTitle.textContent = 'Loading more...';
-            }
-
-            function updateLoadAllButton() {
-                if (!loadAllButton) return;
-                if (isTableViewActive()) {
-                    const progress = typeof window.getTableViewProgressState === 'function'
-                        ? window.getTableViewProgressState()
-                        : { loadedCount: 0, totalCount: 0, loading: false, loadAllInProgress: false, allLoaded: false };
-                    setLoadAllButtonVisibility(tableLoadAllCompleted || progress.allLoaded);
-                    loadAllButton.disabled = progress.loading || progress.loadAllInProgress;
-                    loadAllButton.textContent = progress.loadAllInProgress
-                        ? formatLoadAllText(progress.loadedCount, progress.totalCount)
-                        : 'Load all';
-                } else {
-                    setLoadAllButtonVisibility(cardLoadAllCompleted || totalPages <= 1 || currentPage >= totalPages - 1);
-                    loadAllButton.disabled = loading || loadAllInProgress;
-                    const progress = getVisibleResultCounts();
-                    loadAllButton.textContent = loadAllInProgress
-                        ? formatLoadAllText(progress.loadedCount, progress.totalCount)
-                        : 'Load all';
-                }
-                loadAllButton.style.opacity = loadAllButton.disabled ? '0.65' : '1';
-                loadAllButton.style.cursor = loadAllButton.disabled ? 'wait' : 'pointer';
-                updateOverlayTitle();
-            }
-
-            function setLoadAllButtonVisibility(hidden) {
-                if (!loadAllButton) return;
-                loadAllButton.hidden = hidden;
-                loadAllButton.style.display = hidden ? 'none' : '';
-            }
-
-            function hideLoadAllButtonIfFinished() {
-                if (!loadAllButton) return;
-
-                if (isTableViewActive()) {
-                    const progress = typeof window.getTableViewProgressState === 'function'
-                        ? window.getTableViewProgressState()
-                        : null;
-                    if (progress && progress.allLoaded) {
-                        tableLoadAllCompleted = true;
-                        setLoadAllButtonVisibility(true);
-                    }
-                    return;
-                }
-
-                if (currentPage >= totalPages - 1) {
-                    cardLoadAllCompleted = true;
-                    setLoadAllButtonVisibility(true);
-                }
-            }
-
-            async function loadNextPage() {
-                loading = true;
-                updateLoadAllButton();
-                overlay.classList.add('active');
-                currentPage++;
-                let addedCount = 0;
-
-                try {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('page', currentPage);
-                    const resp = await fetch(url.toString());
-                    if (!resp.ok) throw new Error('Network error');
-                    const html = await resp.text();
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const newCards = doc.querySelectorAll('#artistGrid .artist-card');
-                    addedCount = newCards.length;
-                    newCards.forEach(function(card) { grid.insertBefore(card, sentinel); });
-                    if (typeof window.initializePlayBreakdownTooltips === 'function') {
-                        window.initializePlayBreakdownTooltips(grid);
-                    }
-                    updateCounterText(addedCount);
-                    updateLoadAllButton();
-                } catch (e) {
-                    currentPage--;
-                }
-
-                overlay.classList.remove('active');
-
-                if (currentPage >= totalPages - 1) {
-                    observer.disconnect();
-                    endMsg.hidden = false;
-                }
-
-                loading = false;
-                updateLoadAllButton();
-                return addedCount > 0;
-            }
-
-            window.loadAllInfiniteResults = async function() {
-                if (loadAllInProgress || loading || currentPage >= totalPages - 1) {
-                    return;
-                }
-
-                loadAllInProgress = true;
-                cardLoadAllCompleted = false;
-                observer.disconnect();
-                updateLoadAllButton();
-
-                try {
-                    while (currentPage < totalPages - 1) {
-                        const advanced = await loadNextPage();
-                        if (!advanced) {
-                            break;
-                        }
-                    }
-                } finally {
-                    loadAllInProgress = false;
-                    updateLoadAllButton();
-                    hideLoadAllButtonIfFinished();
-                }
-            };
-
-            window.loadAllVisibleResults = async function() {
-                if (isTableViewActive()) {
-                    if (typeof window.loadAllTableViewResults === 'function') {
-                        tableLoadAllCompleted = false;
-                        await window.loadAllTableViewResults();
-                        hideLoadAllButtonIfFinished();
-                    }
-                    return;
-                }
-                await window.loadAllInfiniteResults();
-                hideLoadAllButtonIfFinished();
-            };
-
-            window.refreshPageLoadAllButtonState = updateLoadAllButton;
-
-            updateLoadAllButton();
-        })();
+        });
     </script>
-    <th:block th:replace="~{fragments/share-history :: scripts}"></th:block>
 </body>
 </html>

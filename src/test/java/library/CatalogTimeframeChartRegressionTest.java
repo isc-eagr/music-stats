@@ -4,7 +4,6 @@ import library.dto.ChartEntryDTO;
 import library.dto.ChartTopEntryDTO;
 import library.dto.GenderCardDTO;
 import library.dto.GenreCardDTO;
-import library.dto.NumberOneRunDTO;
 import library.dto.TimeframeCardDTO;
 import library.dto.TimeframeResultDTO;
 import library.repository.ChartEntryRepository;
@@ -168,21 +167,6 @@ class CatalogTimeframeChartRegressionTest {
             assertThat(verano.getPlayCount()).isEqualTo(3);
             assertThat(verano.getPeakPosition()).isNull();
             assertThat(verano.getWeeksOnChart()).isZero();
-        }
-    }
-
-    @Test
-    void chartNumberOneRunsUseTheDisplayDateFormat() {
-        try (TestDatabaseSupport db = TestDatabaseSupport.create()) {
-            ChartService service = chartService(db);
-
-            List<NumberOneRunDTO> runs = service.getNumberOneRuns("song");
-            assertThat(runs).extracting(NumberOneRunDTO::getName)
-                    .containsExactly("Bidi Bidi Bom Bom", "Titi Me Pregunto");
-            assertThat(runs.get(0).getRunStartDate()).isEqualTo("08/01/2024");
-            assertThat(runs.get(0).getRunEndDate()).isEqualTo("14/01/2024");
-            assertThat(runs.get(0).getTotalWeeks()).isEqualTo(1);
-            assertThat(runs.get(1).getRunStartDate()).isEqualTo("01/01/2024");
         }
     }
 

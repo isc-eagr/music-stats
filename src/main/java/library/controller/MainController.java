@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import library.dto.GlobalSearchResultDTO;
 import library.repository.SongRepositoryImpl;
+import library.service.CatalogDetailService;
 import library.service.GlobalSearchService;
 
 import java.util.List;
@@ -22,6 +23,9 @@ public class MainController {
 
 	@Autowired
 	private GlobalSearchService globalSearchService;
+
+	@Autowired
+	private CatalogDetailService catalogDetailService;
 
 	
 	@RequestMapping("/")
@@ -45,6 +49,9 @@ public class MainController {
 		model.addAttribute("songsByGender", songRepositoryImpl.getSongCountsByGender());
 		model.addAttribute("albumsByGender", songRepositoryImpl.getAlbumCountsByGender());
 		model.addAttribute("listeningTimeByGender", songRepositoryImpl.getListeningTimeByGender());
+
+		// Hour of day, day of week and month of year over every play
+		model.addAttribute("rhythm", catalogDetailService.globalRhythm());
 		
 		return "index";
 	}

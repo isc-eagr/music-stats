@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${(chart.key() == 'hot100' ? 'Billboard Hot 100' : chart.label()) + ' - Music Stats'}">Chart Recap - Music Stats</title>
+    <link rel="stylesheet" th:href="@{/css/global.css(v=3)}">
+    <th:block th:replace="~{fragments/navigation :: nav-styles}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/catalog-list.css}">
+    <link rel="stylesheet" th:href="@{/css/catalog-table.css}">
+    <link rel="stylesheet" th:href="@{/css/chart-overview.css}">
+    <link rel="stylesheet" th:href="@{/css/weekly-chart.css}">
+    <link rel="stylesheet" th:href="@{/css/detail-chart-history.css(v=10)}">
+    <link rel="stylesheet" th:href="@{/css/chart-recap.css}">
+    <script th:inline="javascript">
+        window.chartRecapConfig = /*[[${recapConfig}]]*/ {};
+    </script>
+    <script th:src="@{/js/chart-run.js(v=1)}" defer></script>
+    <script th:src="@{/js/chart-recap.js}" defer></script>
+</head>
+<!--
+  Shared recap page for the Billboard Hot 100, TRL and Vato's Cuntdown: one chart date at a time, in the
+  Weekly Chart design. Everything below the week bar is drawn by js/chart-recap.js from <base>/recaps/data.
+-->
+<body>
+    <th:block th:replace="~{fragments/navigation :: navigation}"></th:block>
+
+    <div class="container co-page wk-page rc-page" id="chartRecap" th:classappend="${'co-tone-' + chart.key()}">
+        <div class="toolbar catalog-toolbar">
+            <div class="catalog-toolbar-header">
+                <div class="catalog-toolbar-heading">
+                    <h1 class="catalog-toolbar-title rc-title">
+                        <span class="co-dot" aria-hidden="true"></span>
+                        <span th:text="${chart.key() == 'hot100' ? 'Billboard Hot 100' : chart.label()}">Billboard Hot 100</span>
+                    </h1>
+                </div>
+                <div class="catalog-toolbar-actions wk-actions">
+                    <a class="toolbar-btn" th:href="@{/charts/overview(chart=${chart.key()})}">Chart overview</a>
+                    <button type="button" id="recapPlaylistBtn" class="toolbar-btn toolbar-btn-primary wk-desk">Generate playlist</button>
+                </div>
+            </div>
+        </div>
+
+        <nav class="wk-weekbar" aria-label="Date navigation">
+            <button type="button" id="recapPrev" class="wk-step" title="Previous chart" disabled>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+            </button>
+            <div class="wk-week">
+                <span class="co-eyebrow" id="recapEyebrow" th:text="${chart.unit() == 'day' ? 'Countdown' : 'Chart week'}">Chart week</span>
+                <span class="wk-week-range" id="recapDate">-</span>
+            </div>
+            <button type="button" id="recapNext" class="wk-step" title="Next chart" disabled>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <div class="wk-jump">
+                <span class="co-menu-label">Jump to</span>
+                <select id="recapDay" title="Day" aria-label="Day"></select>
+                <select id="recapMonth" title="Month" aria-label="Month"></select>
+                <select id="recapYear" title="Year" aria-label="Year"></select>
+            </div>
+        </nav>
+
+        <div id="recapContent" aria-live="polite">
+            <div class="co-panel wk-empty"><p>Loading chart...</p></div>
+        </div>
+    </div>
+
+    <th:block th:replace="~{fragments/playlist-generator-modal :: playlist-generator-modal}"></th:block>
+</body>
+</html>

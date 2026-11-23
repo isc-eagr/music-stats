@@ -308,7 +308,7 @@ class DetailAssociationsServiceTest {
             assertThat(artist.select("#assocRow6 .as-types i").eachAttr("class")).containsExactly("is-link-co");
             assertThat(artist.select("#assocPartners thead [data-sort-key]").eachAttr("data-sort-key")).containsExactly(
                     "name", "link", "songs", "plays", "primary", "legacy", "top");
-            assertThat(artist.select("#assocPartners tbody .ad-mb")).isEmpty();
+            assertThat(artist.select("#assocPartners tbody .dt-mb")).isEmpty();
             // Shared / Primary / Legacy live in one column: total, the split beside it, one bar scaled to the top partner
             assertThat(artist.select("#assocPartners thead th")).hasSize(6);
             assertThat(artist.select("#assocRow4 .as-pl-top b").text()).isEqualTo("4");
@@ -316,12 +316,12 @@ class DetailAssociationsServiceTest {
             assertThat(artist.select("#assocRow4 .as-pl-bar i").eachAttr("style")).containsExactly("width: 75.0%", "width: 25.0%");
             assertThat(artist.select("#assocRow2 .as-pl-bar i").eachAttr("style")).containsExactly("width: 100.0%");
             assertThat(artist.getElementById("assocFamily")).isNull();
-            assertThat(artist.select("#assocGlance .ad-tile > b").eachText()).containsExactly("3", "8");
+            assertThat(artist.select("#assocGlance .dt-tile > b").eachText()).containsExactly("3", "8");
             // Readable breakdowns with a bar: share of songs and of plays
             assertThat(artist.select("#assocGlance .as-tile small").eachText())
                     .containsExactly("60.0% of 5 songs", "61.5% of 13 plays");
             // Collaborators and their gender split are one block: count, plays bar, artists and plays per gender
-            assertThat(artist.select("#assocCollaborators .ad-count").text()).isEqualTo("3");
+            assertThat(artist.select("#assocCollaborators .dt-count").text()).isEqualTo("3");
             assertThat(artist.select("#assocCollaborators .as-split i").eachAttr("class")).containsExactly("is-m", "is-f");
             assertThat(artist.select("#assocCollaborators .as-split-legend > div").eachText())
                     .containsExactly("Male 2 artists 8 plays · 66.7%", "Female 1 artist 4 plays · 33.3%");

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Playground > Reigns: the top 3 artists, songs and genres by cumulative plays over time. Model: r (ReignPageDTO). -->
+<div th:fragment="reigns-view" class="container-wide dt-page cd-page rg-page" th:classappend="${r.theme}">
+
+    <div class="rg-top">
+        <nav class="rg-tabs" aria-label="Reign type">
+            <a th:href="@{/playground(view='reigns',reign='artists')}" th:classappend="${r.type == 'artist'} ? 'is-on'" th:attr="aria-current=${r.type == 'artist'} ? 'page' : null">Artist</a>
+            <a th:href="@{/playground(view='reigns',reign='songs')}" th:classappend="${r.type == 'song'} ? 'is-on'" th:attr="aria-current=${r.type == 'song'} ? 'page' : null">Song</a>
+            <a th:href="@{/playground(view='reigns',reign='genres')}" th:classappend="${r.type == 'genre'} ? 'is-on'" th:attr="aria-current=${r.type == 'genre'} ? 'page' : null">Genre</a>
+        </nav>
+    </div>
+
+    <section class="dt-card cd-card" th:if="${r.current == null}">
+        <p class="cd-empty">No plays yet, so there are no reigns to show.</p>
+    </section>
+
+    <th:block th:if="${r.current != null}" th:with="c=${r.current}, s=${r.stats}, base=${'/' + r.type + 's/'}">
+
+    <!-- Hero: the current #1, with #2 and #3 beside it -->
+    <section class="dt-card cd-hero rg-hero">
+        <div class="rg-throne">
+            <figure class="rg-trophy" th:if="${r.type != 'genre'}">
+                <a class="rg-trophy-frame" th:href="@{${base} + ${c.first.itemId}}" th:title="${c.first.name}">
+                    <svg class="rg-trophy-ph" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>
+                    <img th:src="@{${base} + ${c.first.itemId} + '/image'}" alt="" onerror="this.remove()">
+                </a>
+                <span class="rg-trophy-badge dt-num"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>#1</span>
+                <figcaption class="rg-trophy-ribbon" th:text="${#numbers.formatInteger(c.reignDays, 1, 'COMMA')} + ' days on top'">196 days on top</figcaption>
+            </figure>
+            <div class="rg-king">
+                <span class="cd-eyebrow rg-eyebrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg><th:block th:text="'Current #1 ' + ${r.type}">Current #1 artist</th:block></span>
+                <div class="rg-king-name">
+                    <span class="rg-crown dt-num" th:if="${r.type == 'genre'}" aria-hidden="true">#1</span>
+                    <div>
+                        <h2 class="rg-name"><a th:href="@{${base} + ${c.first.itemId}}" th:text="${c.first.name}">Rauw Alejandro</a></h2>
+                        <div class="rg-king-sec" th:if="${c.first.secondary != null}" th:text="${c.first.secondary}">Artist</div>
+                    </div>
+                </div>
+                <div class="rg-sub">Reigning since <span th:text="${c.since}">06/05/2026</span> · <span th:text="${c.reignOrdinal}">3rd reign</span></div>
+                <dl class="rg-score">
+                    <div><dt>Plays</dt><dd class="dt-num" th:text="${#numbers.formatInteger(c.first.playsNow, 1, 'COMMA')}">4,850</dd></div>
+                    <div th:if="${c.second != null}"><dt>Lead over #2</dt><dd class="dt-num is-up" th:text="'+' + ${#numbers.formatInteger(c.gapToSecond, 1, 'COMMA')}">+30</dd></div>
+                    <div><dt>Current reign</dt><dd class="dt-num is-gold" th:text="${#numbers.formatInteger(c.reignDays, 1, 'COMMA')} + 'd'">196d</dd></div>
+                    <div><dt>Total at #1</dt><dd class="dt-num" th:text="${#numbers.formatInteger(c.daysAt1Total, 1, 'COMMA')} + 'd'">1,079d</dd></div>
+                    <div><dt>Reigns at #1</dt><dd class="dt-num" th:text="${c.timesAt1}">3</dd></div>
+                </dl>
+            </div>
+            <div class="rg-podium">
+                <a th:if="${c.second != null}" class="rg-runner" th:href="@{${base} + ${c.second.itemId}}">
+                    <span class="rg-pos is-2">#2</span>
+                    <span class="rg-thumb is-2" th:if="${r.type != 'genre'}"><img th:src="@{${base} + ${c.second.itemId} + '/image'(thumbnail=true)}" alt="" onerror="this.remove()"></span>
+                    <span class="rg-dot" th:classappend="'is-' + ${c.second.tone}"></span>
+                    <span class="rg-runner-n">
+                        <b th:text="${c.second.name}">Bad Bunny</b>
+                        <small th:text="${c.second.secondary != null ? c.second.secondary + ' · ' : ''} + ${#numbers.formatInteger(c.gapToSecond, 1, 'COMMA')} + ' behind #1'">30 behind #1</small>
+                    </span>
+                    <span class="rg-runner-v dt-num" th:text="${#numbers.formatInteger(c.second.playsNow, 1, 'COMMA')}">4,820</span>
+                </a>
+                <a th:if="${c.third != null}" class="rg-runner" th:href="@{${base} + ${c.third.itemId}}">
+                    <span class="rg-pos is-3">#3</span>
+                    <span class="rg-thumb is-3" th:if="${r.type != 'genre'}"><img th:src="@{${base} + ${c.third.itemId} + '/image'(thumbnail=true)}" alt="" onerror="this.remove()"></span>
+                    <span class="rg-dot" th:classappend="'is-' + ${c.third.tone}"></span>
+                    <span class="rg-runner-n">
+                        <b th:text="${c.third.name}">Rihanna</b>
+                        <small th:text="${c.third.secondary != null ? c.third.secondary + ' · ' : ''} + ${#numbers.formatInteger(c.gapToThird, 1, 'COMMA')} + ' behind #2'">1,710 behind #2</small>
+                    </span>
+                    <span class="rg-runner-v dt-num" th:text="${#numbers.formatInteger(c.third.playsNow, 1, 'COMMA')}">3,110</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="cd-tiles">
+            <div class="cd-tile"><span class="cd-tile-l">Snapshots</span><span class="cd-tile-v dt-num" th:text="${s.snapshots}">44</span></div>
+            <div class="cd-tile"><span class="cd-tile-l">Crown changes</span><span class="cd-tile-v dt-num" th:text="${s.crownChanges}">9</span></div>
+            <div class="cd-tile"><span class="cd-tile-l">#1 holders</span><span class="cd-tile-v dt-num" th:text="${s.holders}">6</span></div>
+            <div class="cd-tile"><span class="cd-tile-l">Reached top 3</span><span class="cd-tile-v dt-num" th:text="${s.entrants}">15</span></div>
+            <div class="cd-tile">
+                <span class="cd-tile-l">Longest reign</span>
+                <span class="cd-tile-v dt-num" th:text="${#numbers.formatInteger(s.longestDays, 1, 'COMMA')} + 'd'">3,458d</span>
+                <span class="rg-tile-n" th:classappend="'is-' + ${s.longestTone}" th:text="${s.longestName}">Rihanna</span>
+            </div>
+            <div class="cd-tile rg-tile-m">
+                <span class="cd-tile-l">Male days at #1</span>
+                <span class="cd-tile-v dt-num" th:text="${s.maleAt1Pct} + '%'">29%</span>
+                <span class="rg-tile-n" th:text="${#numbers.formatInteger(s.maleAt1Days, 1, 'COMMA')} + 'd of ' + ${s.spanText}">2,325d of 21.8y</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lanes: who held each spot across the whole history -->
+    <section class="dt-card cd-card rg-lanes-card">
+        <div class="cd-head">
+            <h2 class="dt-cap">Top 3 over time</h2>
+            <div class="rg-legend">
+                <span><i class="is-male"></i>Male</span>
+                <span><i class="is-female"></i>Female</span>
+                <span th:if="${r.type != 'genre'}"><i class="is-other"></i>Mixed / other</span>
+                <span data-lanes-only="time"><i class="is-shuffle"></i>Quick swaps</span>
+            </div>
+            <div class="rg-modes" role="group" aria-label="Lane spacing">
+                <button type="button" class="is-on" data-lanes-mode="time" aria-pressed="true">Real time</button>
+                <button type="button" data-lanes-mode="changes" aria-pressed="false">Every change</button>
+            </div>
+        </div>
+        <p class="rg-note" th:if="${r.type == 'genre'}">Genres take the color of the gender with more of their plays.</p>
+        <div class="rg-lanes-body">
+        <div class="rg-lanes-main" th:each="mode : ${ {'time', 'changes'} }" th:attr="data-lanes=${mode}" th:hidden="${mode == 'changes'}">
+            <div class="rg-lane" th:each="lane : ${r.lanes}">
+                <span class="rg-pos" th:classappend="'is-' + ${lane.position}" th:text="'#' + ${lane.position}">#1</span>
+                <div class="rg-track">
+                    <span th:each="sg : ${mode == 'time' ? lane.timeSegments : lane.changeSegments}" class="rg-seg"
+                          th:classappend="${sg.shuffle} ? 'is-shuffle' : 'is-' + ${sg.tone}"
+                          th:style="'left:' + ${sg.left} + '%;width:calc(' + ${sg.width} + '% - 2px)'"
+                          th:title="${sg.shuffle}
+                                ? ${sg.count} + ' quick swaps, ' + ${sg.start} + ' - ' + ${sg.end} + ': ' + ${sg.names}
+                                : ${sg.name} + ' · ' + ${sg.start} + ' - ' + ${sg.end} + ' · ' + ${#numbers.formatInteger(sg.days, 1, 'COMMA')} + 'd'">
+                        <b th:text="${sg.label}">Rihanna</b><small class="dt-num" th:if="${sg.showDays}" th:text="${#numbers.formatInteger(sg.days, 1, 'COMMA')} + 'd'">1,374d</small>
+                    </span>
+                </div>
+            </div>
+            <div class="rg-ticks">
+                <span th:each="tk : ${mode == 'time' ? r.timeTicks : r.changeTicks}" th:style="'left:' + ${tk.left} + '%'" th:text="${tk.label}">'06</span>
+            </div>
+        </div>
+
+        <div class="rg-splits">
+            <div class="rg-split" th:each="g : ${r.genderSplits}">
+                <span class="rg-split-l">Days at <span th:text="'#' + ${g.position}">#1</span> by gender</span>
+                <div class="rg-split-v">
+                    <b class="dt-num"><span th:text="${g.malePct} + '%'">29%</span> <small th:text="'male · ' + ${#numbers.formatInteger(g.maleDays, 1, 'COMMA')} + 'd'">male</small></b>
+                    <span class="rg-split-f" th:text="${g.femalePct} + '%'">71%</span>
+                </div>
+                <div class="rg-split-bar"><i class="is-male" th:style="'width:' + ${g.malePct} + '%'"></i><i class="is-female" th:style="'width:' + ${g.femalePct} + '%'"></i></div>
+            </div>
+        </div>
+        </div>
+    </section>
+
+    <!-- Every snapshot -->
+    <section class="dt-card cd-card">
+        <div class="cd-head">
+            <h2 class="dt-cap">Every snapshot</h2>
+            <span class="rg-note"><span th:text="${s.snapshots}">44</span> rows, newest first · plays at the start of each snapshot</span>
+        </div>
+        <div class="table-scroll rg-scroll">
+            <table class="sticky-head rg-table rg-snaps">
+                <thead>
+                <tr><th>#</th><th>Start</th><th>End</th><th>Days</th><th class="rg-gold">#1</th><th>#2</th><th>#3</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="sn : ${r.snapshots}" th:classappend="${sn.current} ? 'is-current'">
+                    <td class="dt-num rg-mute" th:text="${sn.rank}">44</td>
+                    <td class="dt-num" th:text="${sn.start}">06/05/2026</td>
+                    <td class="dt-num" th:text="${sn.end}">Present</td>
+                    <td class="dt-num">
+                        <span class="rg-days"><span class="rg-mini"><i th:style="'width:' + ${sn.barPct} + '%'"></i></span><span th:text="${#numbers.formatInteger(sn.days, 1, 'COMMA')} + 'd'">196d</span></span>
+                    </td>
+                    <td th:each="i : ${#numbers.sequence(0, 2)}">
+                        <div class="rg-slot" th:if="${#lists.size(sn.slots) > i}" th:with="it=${sn.slots[i]}">
+                            <span class="rg-dot" th:classappend="'is-' + ${it.tone}"></span>
+                            <span class="rg-slot-n">
+                                <a th:href="@{${base} + ${it.itemId}}" th:text="${it.name}">Rauw Alejandro</a>
+                                <small th:text="${it.secondary != null ? it.secondary + ' · ' : ''} + ${#numbers.formatInteger(it.playsAtStart, 1, 'COMMA')} + ' plays' + ${sn.current ? ' · now ' + #numbers.formatInteger(it.playsNow, 1, 'COMMA') : ''}">4,783 plays</small>
+                            </span>
+                            <span th:if="${it.movement == 'new'}" class="rg-mv is-new">NEW</span>
+                            <span th:if="${it.movement == 'climbed'}" class="rg-mv is-climbed" title="Climbed">&#9650;</span>
+                            <span th:if="${it.movement == 'dropped'}" class="rg-mv is-dropped" title="Dropped">&#9660;</span>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Top 3 history -->
+    <section class="dt-card cd-card" id="rgBoard">
+        <div class="cd-head">
+            <h2 class="dt-cap">Top 3 history</h2>
+            <span class="rg-note">Every <span th:text="${r.type}">artist</span> that reached the top 3 · click a column to sort</span>
+        </div>
+        <div class="table-scroll rg-scroll">
+            <table class="sticky-head rg-table rg-board">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th><button type="button" class="dt-th-btn" data-sort-key="name" data-sort-type="text"><th:block th:text="${r.title}">Artist</th:block><svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="best" data-sort-type="number">Best<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="d1" data-sort-type="number">Days #1<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="d2" data-sort-type="number">Days #2<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="d3" data-sort-type="number">Days #3<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="top3" data-sort-type="number">Top 3 days<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="reigns" data-sort-type="number">Reigns at #1<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="longest" data-sort-type="number">Longest #1<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num" th:if="${r.type == 'genre'}"><button type="button" class="dt-th-btn" data-sort-key="male" data-sort-type="number">Male plays<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="first" data-sort-type="date">First in top 3<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                    <th class="is-num"><button type="button" class="dt-th-btn" data-sort-key="last" data-sort-type="date">Last in top 3<svg class="dt-ico dt-sort-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></th>
+                </tr>
+                </thead>
+                <tbody data-sort-container>
+                <tr th:each="b : ${r.board}" data-sort-item
+                    th:attr="data-name=${b.name}, data-best=${4 - b.best}, data-d1=${b.daysAt1 * 100000000L + b.daysAt2 * 10000L + b.daysAt3},data-d2=${b.daysAt2}, data-d3=${b.daysAt3},
+                             data-top3=${b.daysInTop3}, data-reigns=${b.reignsAt1}, data-longest=${b.longestAt1},
+                             data-male=${b.malePct}, data-first=${b.first}, data-last=${b.lastSort}">
+                    <td class="dt-num rg-mute" data-sort-index th:text="${b.rank}">1</td>
+                    <td>
+                        <div class="rg-slot">
+                            <span class="rg-dot" th:classappend="'is-' + ${b.tone}"></span>
+                            <span class="rg-slot-n">
+                                <a th:href="@{${base} + ${b.itemId}}" th:text="${b.name}">Rihanna</a>
+                                <small th:if="${b.secondary != null}" th:text="${b.secondary}">Artist</small>
+                            </span>
+                            <span th:if="${b.inTop3Now}" class="rg-now">Now</span>
+                        </div>
+                    </td>
+                    <td class="is-num"><span class="rg-pos" th:classappend="'is-' + ${b.best}" th:text="'#' + ${b.best}">#1</span></td>
+                    <td class="is-num dt-num rg-gold" th:classappend="${b.daysAt1 == 0} ? 'is-zero'" th:text="${#numbers.formatInteger(b.daysAt1, 1, 'COMMA')} + 'd'">3,458d</td>
+                    <td class="is-num dt-num" th:classappend="${b.daysAt2 == 0} ? 'is-zero'" th:text="${#numbers.formatInteger(b.daysAt2, 1, 'COMMA')} + 'd'">1,276d</td>
+                    <td class="is-num dt-num" th:classappend="${b.daysAt3 == 0} ? 'is-zero'" th:text="${#numbers.formatInteger(b.daysAt3, 1, 'COMMA')} + 'd'">1,190d</td>
+                    <td class="is-num dt-num">
+                        <span class="rg-stack-v" th:text="${#numbers.formatInteger(b.daysInTop3, 1, 'COMMA')} + 'd'">5,924d</span>
+                        <span class="rg-stack" aria-hidden="true"><i class="is-1" th:style="'width:' + ${b.barAt1} + '%'"></i><i class="is-2" th:style="'width:' + ${b.barAt2} + '%'"></i><i class="is-3" th:style="'width:' + ${b.barAt3} + '%'"></i></span>
+                    </td>
+                    <td class="is-num dt-num" th:classappend="${b.reignsAt1 == 0} ? 'is-zero'" th:text="${b.reignsAt1}">1</td>
+                    <td class="is-num dt-num" th:classappend="${b.longestAt1 == 0} ? 'is-zero'" th:text="${#numbers.formatInteger(b.longestAt1, 1, 'COMMA')} + 'd'">3,458d</td>
+                    <td class="is-num" th:if="${r.type == 'genre'}">
+                        <span class="rg-share" th:if="${b.malePct != null}">
+                            <span class="rg-split-bar"><i class="is-male" th:style="'width:' + ${b.malePct} + '%'"></i><i class="is-female" th:style="'width:' + ${b.femalePct} + '%'"></i></span>
+                            <span class="dt-num" th:text="${b.malePct} + '%'">61%</span>
+                        </span>
+                    </td>
+                    <td class="is-num dt-num rg-mute" th:text="${b.first}">30/08/2010</td>
+                    <td class="is-num dt-num rg-mute" th:text="${b.last}">Present</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    </th:block>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.initDetailSort) window.initDetailSort('rgBoard', { defaultKey: 'd1' });
+    
+            // Top 3 over time: Real time / Every change, remembered for next visit
+            var card = document.querySelector('.rg-lanes-card');
+            if (!card) return;
+            function setMode(mode) {
+                card.querySelectorAll('[data-lanes]').forEach(function (el) { el.hidden = el.dataset.lanes !== mode; });
+                card.querySelectorAll('[data-lanes-only]').forEach(function (el) { el.hidden = el.dataset.lanesOnly !== mode; });
+                card.querySelectorAll('[data-lanes-mode]').forEach(function (b) {
+                    var on = b.dataset.lanesMode === mode;
+                    b.classList.toggle('is-on', on);
+                    b.setAttribute('aria-pressed', String(on));
+                });
+                try { localStorage.setItem('reignLanesMode', mode); } catch (e) { /* storage blocked */ }
+            }
+            card.querySelectorAll('[data-lanes-mode]').forEach(function (b) {
+                b.addEventListener('click', function () { setMode(b.dataset.lanesMode); });
+            });
+            var saved = null;
+            try { saved = localStorage.getItem('reignLanesMode'); } catch (e) { /* storage blocked */ }
+            if (saved === 'changes') setMode('changes');
+        });
+    </script>
+</div>
+</body>
+</html>

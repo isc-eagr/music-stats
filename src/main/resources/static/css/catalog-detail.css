@@ -1,6 +1,6 @@
 /* ==========================================================================
    Catalog detail page (genre, subgenre, language, ethnicity, country).
-   Builds on the detail page tokens (.ad-page, detail-general.css) and reuses the
+   Builds on the detail page tokens (.dt-page, detail-general.css) and reuses the
    When you listen panels of the Plays tab (detail-plays.css).
    ========================================================================== */
 
@@ -9,9 +9,9 @@
     --cd-f: #f472b6;
     --cd-o: #71717a;
     --cd-gold: #fbbf24;
-    max-width: 1100px;
+    max-width: var(--page-max);
     margin: 0 auto;
-    padding: 20px 16px 48px;
+    padding: 20px var(--page-gutter) 48px;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -34,7 +34,7 @@
 .cd-crumb-here { color: #f2f2f4; font-weight: 600; }
 
 /* ── Hero ── */
-.container-wide.ad-page .cd-hero {
+.container-wide.dt-page .cd-hero {
     padding: 22px;
     display: flex;
     flex-direction: column;
@@ -68,20 +68,28 @@
     overflow-wrap: anywhere;
 }
 
-.cd-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.cd-hero-sub { font-size: 13px; color: #9ca3af; }
+.cd-page .cd-hero-sub a, .cd-page .cd-eyebrow a { color: var(--ad-t); text-decoration: underline; text-decoration-color: var(--ad-tintb); text-underline-offset: 3px; }
+.cd-page .cd-hero-sub a:hover, .cd-page .cd-eyebrow a:hover { color: #fff; }
 
-.cd-chip {
-    padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    font-size: 12px;
-    font-weight: 600;
-    color: #d4d6dc;
+/* Where it stands among its peers: big numbers, no pills */
+.cd-standing { display: flex; flex-wrap: wrap; align-items: stretch; }
+
+.cd-stand {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 120px;
+    padding: 2px 18px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.cd-chip.is-rank { border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.12); color: #fcd34d; }
-.cd-page a.cd-chip.is-link { border-color: var(--ad-tintb); background: var(--ad-tint); color: var(--ad-t); }
+.cd-stand:first-child { padding-left: 0; border-left: 0; }
+.cd-stand:last-child { padding-right: 0; }
+.cd-stand b { font-size: 30px; font-weight: 700; line-height: 1; color: #f2f2f4; }
+.cd-stand.is-top b { color: #fcd34d; }
+.cd-stand-l { font-size: 11px; color: #9ca3af; }
+.cd-stand-n { font-size: 11px; font-weight: 600; color: var(--ad-t); }
 
 .cd-tiles {
     display: grid;
@@ -120,11 +128,11 @@
 }
 
 .cd-tile.is-link .cd-tile-l { color: var(--ad-t); }
-.cd-tile-l .ad-ico { width: 12px; height: 12px; stroke-width: 2.4; }
+.cd-tile-l .dt-ico { width: 12px; height: 12px; stroke-width: 2.4; }
 .cd-tile-v { font-size: 22px; font-weight: 700; line-height: 1; white-space: nowrap; }
 
 /* ── Cards ── */
-.container-wide.ad-page .cd-card { padding: 18px 20px; min-width: 0; }
+.container-wide.dt-page .cd-card { padding: 18px 20px; min-width: 0; }
 
 .cd-row { display: flex; flex-wrap: wrap; gap: 16px; }
 .cd-row > .cd-gender { flex: 1 1 340px; }
@@ -139,7 +147,7 @@
     margin-bottom: 10px;
 }
 
-.cd-head .ad-cap { flex: 1 1 auto; margin: 0; }
+.cd-head .dt-cap { flex: 1 1 auto; margin: 0; }
 .cd-head-r { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .cd-head-note { font-size: 12px; color: #a1a1aa; }
 .cd-sub { margin: 0 0 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8b8b93; }
@@ -266,6 +274,9 @@
 .cd-pills { display: grid; gap: 2px; margin-top: 6px; }
 .cd-pill { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
 .cd-pill > span { font-size: 9px; color: #9ca3af; }
+.cd-pv { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
+.cd-pv[hidden] { display: none; }
+.cd-pv small { min-height: 12px; font-size: 9px; color: #a1a1aa; white-space: nowrap; }
 
 .cd-pill b {
     width: 100%;
@@ -304,6 +315,7 @@
 .cd-ix { color: #6b7280; font-weight: 700; }
 .cd-pn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cd-peer:not(.is-self) .cd-pbar { opacity: 0.55; }
+.cd-peer-gap { margin: 0; padding: 2px 0; text-align: center; font-size: 12px; letter-spacing: 0.3em; color: #4b4f59; }
 
 .cd-lolli { position: relative; height: 12px; }
 .cd-lolli::before { content: ''; position: absolute; left: 0; right: 0; top: 5px; height: 2px; background: rgba(255, 255, 255, 0.06); }
@@ -330,7 +342,11 @@
 }
 
 .cd-when-hours { grid-column: 1 / -1; }
-.cd-when .cd-when-grid .ad-cap { margin-top: 4px; }
+.cd-when .cd-when-grid .dt-cap { margin-top: 4px; }
+
+/* Without the month panel, hours and weekdays share one row instead of leaving the right side empty */
+.cd-when-grid.is-pair { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+.cd-when-grid.is-pair .cd-when-hours { grid-column: auto; }
 
 /* ── Mix cards ── */
 .cd-mixes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
@@ -357,7 +373,7 @@
 @media (max-width: 760px) {
     .cd-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .cd-hero h1 { font-size: 34px; }
-    .cd-peer-cols, .cd-when-grid { grid-template-columns: minmax(0, 1fr); }
+    .cd-peer-cols, .cd-when-grid, .cd-when-grid.is-pair { grid-template-columns: minmax(0, 1fr); }
     .cd-peer { grid-template-columns: 22px 96px minmax(0, 1fr) 50px; }
-    .cd-pill > span { font-size: 8px; }
+    .cd-pill > span, .cd-pv small { font-size: 8px; }
 }

@@ -207,3 +207,20 @@
         width: 100%;
     }
 }
+
+/* Phones: five columns have to fit the card without sideways scroll */
+@media (max-width: 440px) {
+    .cons-table thead th {
+        font-size: 9px;
+        letter-spacing: 0.04em;
+    }
+
+    .cons-table tbody th,
+    .cons-count {
+        font-size: 13px;
+    }
+
+    .cons-table .cons-num {
+        padding-left: 6px;
+    }
+}

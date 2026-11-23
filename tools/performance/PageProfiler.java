@@ -154,7 +154,6 @@ public class PageProfiler {
         route(r, "/charts/weekly/overview", chc, "weeklyOverview");
         route(r, "/charts/seasonal/overview", chc, "seasonalOverview");
         route(r, "/charts/yearly/overview", chc, "yearlyOverview");
-        route(r, "/charts/number-ones", chc, "weeklyNumberOnes");
         route(r, "/charts/weekly/(?<periodKey>[^/]+)", chc, "weeklyChart");
         route(r, "/charts/seasonal/(?<periodKey>[^/]+)", chc, "seasonalChart");
         route(r, "/charts/yearly/(?<periodKey>[^/]+)", chc, "yearlyChart");

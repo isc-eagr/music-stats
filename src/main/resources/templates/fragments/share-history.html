@@ -2,9 +2,10 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <!--
-  Share over time panel above the catalog lists. It charts the top items of the list, in its current sort and
-  filters, against the rest of what those filters match; clicking a band or a legend chip highlights that card or row.
-  catalog: artists, albums, songs, genres, subgenres, languages, ethnicities, genders or countries.
+  Share over time panel above the Catalogs list pages. It charts the top 10 listed items against the rest of what
+  the list's search matches; clicking a band or a legend chip highlights that card or row.
+  catalog: genres, subgenres, languages, ethnicities, genders or countries.
+  Listen Years and Release Years use the gender bars per year instead (year-panel / year-scripts below).
   measures: comma list offered in the Measure select (plays, time, artists, albums, songs).
   cardAttr / rowAttr: attribute holding the item key on the cards (#cardView) and table rows (#tableView).
 -->
@@ -17,9 +18,51 @@
 <!-- Scripts; include once at the end of <body> -->
 <th:block th:fragment="scripts">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
-    <script th:src="@{/js/share-chart-core.js}" defer></script>
+    <script th:src="@{/js/share-chart-core.js(v=2)}" defer></script>
     <script th:src="@{/js/catalog-share-history.js}" defer></script>
 </th:block>
+
+<!-- Gender bars per year scripts; include once at the end of <body> on the Years list -->
+<th:block th:fragment="year-scripts">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+    <script th:src="@{/js/share-chart-core.js(v=2)}" defer></script>
+    <script th:src="@{/js/catalog-year-bars.js}" defer></script>
+</th:block>
+
+<!--
+  Untitled gender bars above Listen Years and Release Years: one bar per year, split into male, female and other,
+  built from the year cards' own numbers (their data-bars attribute). Clicking a bar highlights that year's card or row.
+-->
+<section th:fragment="year-panel" class="share-history" id="yearBars" th:attr="data-year-type=${yearType}"
+         aria-label="Plays, time and catalog counts per year, split by gender">
+    <div class="sh-head">
+        <label class="sh-measure">
+            <span class="sh-measure-label">Measure</span>
+            <span class="sh-measure-pill">
+                <select data-sh="measure">
+                    <option value="plays">Plays</option>
+                    <option value="time">Play time</option>
+                    <option value="artists">Artists</option>
+                    <option value="albums">Albums</option>
+                    <option value="songs">Songs</option>
+                </select>
+            </span>
+        </label>
+        <button type="button" class="sh-toggle" data-sh="toggle" aria-expanded="true" aria-controls="yearBarsBody" aria-label="Hide chart">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+    </div>
+    <div class="sh-body" id="yearBarsBody">
+        <p class="sh-status" data-sh="status" role="status" aria-live="polite" hidden></p>
+        <div class="sh-chart-wrap" data-sh="wrap">
+            <canvas data-sh="canvas" role="img" aria-label="Bars per year split by gender. The year cards below hold the exact values."></canvas>
+            <div class="sh-tooltip" data-sh="tooltip" hidden></div>
+        </div>
+        <div class="sh-legend" data-sh="legend" aria-label="Genders"></div>
+        <p class="sh-note">Same numbers as the year cards below. Click a bar to jump to its card or row.</p>
+        <noscript>Enable JavaScript to see the gender bars.</noscript>
+    </div>
+</section>
 
 <section th:fragment="panel(catalog, measures, cardAttr, rowAttr)" class="share-history" id="shareHistory"
          th:attr="data-catalog=${catalog},data-measures=${measures},data-card-attr=${cardAttr},data-row-attr=${rowAttr}"

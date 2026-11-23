@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Seasonal / Yearly chart page pieces (charts/period-chart.html). One column set for every table:
+  [drag handle] position, cover, name + artist, plays in the period, weekly-chart peak and weeks,
+  then the cross-chart chips, [edit buttons]. The bracketed columns only show while a chart is a draft.
+  Seasonal tables: Yearly + Other seasons. Yearly tables: Seasons (plus any other year it made).
+  period-chart.js builds rows the editor adds with the same cells.
+-->
+<body>
+
+<thead th:fragment="head(kind, editing, seasonal)">
+    <tr>
+        <th th:if="${editing}" class="pd-c-grip" aria-label="Drag to reorder"></th>
+        <th class="wk-c-pos" th:attr="data-sort=${editing ? null : 'number'}">#</th>
+        <th class="wk-c-cover" aria-label="Cover"></th>
+        <th class="wk-c-name" th:attr="data-sort=${editing ? null : 'text'}" th:text="${kind == 'album' ? 'Album' : 'Song'}">Song</th>
+        <th class="wk-c-num" th:attr="data-sort=${editing ? null : 'number'}">Plays</th>
+        <th class="wk-c-peak" th:attr="data-sort=${editing ? null : 'number'}" title="Best position on the Weekly chart">Weekly peak</th>
+        <th class="wk-c-num" th:attr="data-sort=${editing ? null : 'number'}" title="Weeks on the Weekly chart"><span class="wk-desk">Weekly wks</span><span class="wk-mob">Wks</span></th>
+        <th:block th:if="${seasonal}">
+            <th class="pd-c-chips">Yearly</th>
+            <th class="pd-c-chips wk-desk">Other seasons</th>
+        </th:block>
+        <th th:unless="${seasonal}" class="pd-c-chips">Seasons</th>
+        <th th:if="${editing}" class="pd-c-edit"><span class="wk-desk">Edit</span></th>
+    </tr>
+</thead>
+
+<!-- Plays, weekly run and chips: the same cells for songs and albums -->
+<th:block th:fragment="stats(s, seasonal, year)">
+    <td class="wk-c-num" th:attr="data-sort-val=${s != null ? s.plays() : 0}">
+        <span class="wk-plays" th:text="${s != null ? #numbers.formatInteger(s.plays(), 1, 'COMMA') : '0'}">0</span>
+    </td>
+    <td class="wk-c-peak" th:attr="data-sort-val=${s != null and s.weeklyPeak() != null ? s.weeklyPeak() : 9999}">
+        <span th:if="${s != null and s.weeklyPeak() != null}" class="co-pk" th:classappend="${s.weeklyBand()}" th:text="${'#' + s.weeklyPeak()}">#1</span>
+        <span th:unless="${s != null and s.weeklyPeak() != null}" class="ct-dim">-</span>
+    </td>
+    <td class="wk-c-num" th:attr="data-sort-val=${s != null ? s.weeklyWeeks() : 0}" th:text="${s != null and s.weeklyWeeks() > 0 ? s.weeklyWeeks() : '-'}">0</td>
+    <th:block th:if="${seasonal}">
+        <td class="pd-c-chips">
+            <span class="pd-chips">
+                <a th:each="a : ${s != null ? s.yearly() : {}}" class="pd-chip pd-chip-year" th:href="${a.link()}" th:text="${a.label() + ' · #' + a.position()}">2025 · #7</a>
+                <span th:if="${s == null or s.yearly().isEmpty()}" class="ct-dim">-</span>
+            </span>
+        </td>
+        <td class="pd-c-chips wk-desk">
+            <span class="pd-chips">
+                <a th:each="a : ${s != null ? s.seasons() : {}}" class="pd-chip" th:classappend="${a.position() == 1 ? 'pd-chip-one' : ''}"
+                   th:href="${a.link()}" th:text="${a.labelFor(year) + ' · #' + a.position()}">Winter 2026 · #2</a>
+                <span th:if="${s == null or s.seasons().isEmpty()}" class="ct-dim">-</span>
+            </span>
+        </td>
+    </th:block>
+    <td th:unless="${seasonal}" class="pd-c-chips">
+        <span class="pd-chips">
+            <a th:each="a : ${s != null ? s.seasons() : {}}" class="pd-chip" th:classappend="${a.position() == 1 ? 'pd-chip-one' : ''}"
+               th:href="${a.link()}" th:text="${a.labelFor(year) + ' · #' + a.position()}">Winter · #2</a>
+            <a th:each="a : ${s != null ? s.yearly() : {}}" class="pd-chip pd-chip-year" th:href="${a.link()}" th:text="${a.label() + ' · #' + a.position()}">2024 · #3</a>
+            <span th:if="${s == null or (s.seasons().isEmpty() and s.yearly().isEmpty())}" class="ct-dim">-</span>
+        </span>
+    </td>
+</th:block>
+
+<th:block th:fragment="lead(entry, editing, medal)">
+    <td th:if="${editing}" class="pd-c-grip">
+        <span class="pd-grip" draggable="true" title="Drag to reorder" aria-hidden="true"><i></i><i></i><i></i></span>
+    </td>
+    <td class="wk-c-pos rank-col" th:classappend="${medal and entry.position <= 3 ? 'ct-medal-' + entry.position : ''}"
+        th:attr="data-sort-val=${entry.position}">
+        <span class="wk-pos pd-pos" th:text="${entry.position}">1</span>
+    </td>
+</th:block>
+
+<th:block th:fragment="edit(editing)">
+    <td th:if="${editing}" class="pd-c-edit">
+        <span class="pd-edit">
+            <button type="button" class="pd-ib" data-pd-move="up" aria-label="Move up" title="Move up">&#8593;</button>
+            <button type="button" class="pd-ib" data-pd-move="down" aria-label="Move down" title="Move down">&#8595;</button>
+            <button type="button" class="pd-ib pd-ib-x" data-pd-remove aria-label="Remove from chart" title="Remove">&times;</button>
+        </span>
+    </td>
+</th:block>
+
+<tr th:fragment="songRow(entry, s, editing, seasonal, year, medal)" class="wk-row pd-row"
+    th:classappend="${entry.genderId == 2 ? 'ct-male' : (entry.genderId == 1 ? 'ct-female' : '')}"
+    th:attr="data-id=${entry.songId},data-gender=${entry.genderId},data-album=${entry.albumName}">
+    <th:block th:replace="~{fragments/period-chart-rows :: lead(${entry}, ${editing}, ${medal})}"></th:block>
+    <td class="wk-c-cover">
+        <a class="co-cover wk-cover" th:href="@{/songs/{id}(id=${entry.songId})}" tabindex="-1" aria-hidden="true">
+            <img th:if="${entry.albumHasImage and entry.albumId != null}"
+                 th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}" alt="" loading="lazy">
+            <img th:if="${!entry.albumHasImage and entry.hasImage}"
+                 th:src="@{/songs/{id}/image(id=${entry.songId}, thumbnail=true)}" alt="" loading="lazy">
+        </a>
+    </td>
+    <td class="wk-c-name" th:attr="data-sort-val=${entry.songName}">
+        <a class="wk-name" th:href="@{/songs/{id}(id=${entry.songId})}" th:text="${entry.songName}">Song</a>
+        <a class="wk-artist" th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist</a>
+    </td>
+    <th:block th:replace="~{fragments/period-chart-rows :: stats(${s}, ${seasonal}, ${year})}"></th:block>
+    <th:block th:replace="~{fragments/period-chart-rows :: edit(${editing})}"></th:block>
+</tr>
+
+<tr th:fragment="albumRow(entry, s, editing, seasonal, year, medal)" class="wk-row pd-row"
+    th:classappend="${entry.genderId == 2 ? 'ct-male' : (entry.genderId == 1 ? 'ct-female' : '')}"
+    th:attr="data-id=${entry.albumId},data-gender=${entry.genderId}">
+    <th:block th:replace="~{fragments/period-chart-rows :: lead(${entry}, ${editing}, ${medal})}"></th:block>
+    <td class="wk-c-cover">
+        <a class="co-cover wk-cover" th:href="@{/albums/{id}(id=${entry.albumId})}" tabindex="-1" aria-hidden="true">
+            <img th:if="${entry.hasImage}" th:src="@{/albums/{id}/image(id=${entry.albumId}, thumbnail=true)}" alt="" loading="lazy">
+        </a>
+    </td>
+    <td class="wk-c-name" th:attr="data-sort-val=${entry.albumName}">
+        <a class="wk-name" th:href="@{/albums/{id}(id=${entry.albumId})}" th:text="${entry.albumName}">Album</a>
+        <a class="wk-artist" th:href="@{/artists/{id}(id=${entry.artistId})}" th:text="${entry.artistName}">Artist</a>
+    </td>
+    <th:block th:replace="~{fragments/period-chart-rows :: stats(${s}, ${seasonal}, ${year})}"></th:block>
+    <th:block th:replace="~{fragments/period-chart-rows :: edit(${editing})}"></th:block>
+</tr>
+
+<!-- Summary strip of a finalized chart: the #1, the male share and the artist with the most entries -->
+<div th:fragment="summary(kind, sum, seasonal, year)" class="co-summary wk-summary" th:if="${sum != null}"
+     th:with="top=${sum.top()}, ts=${sum.topStats()}">
+    <div class="wk-hero" th:classappend="${top.genderId == 2 ? 'ct-male' : (top.genderId == 1 ? 'ct-female' : '')}">
+        <a class="co-cover wk-hero-cover" th:href="${kind == 'album'} ? @{/albums/{id}(id=${top.albumId})} : @{/songs/{id}(id=${top.songId})}" tabindex="-1" aria-hidden="true">
+            <th:block th:if="${kind == 'album'}">
+                <img th:if="${top.hasImage}" th:src="@{/albums/{id}/image(id=${top.albumId})}" alt="">
+            </th:block>
+            <th:block th:unless="${kind == 'album'}">
+                <img th:if="${top.albumHasImage and top.albumId != null}" th:src="@{/albums/{id}/image(id=${top.albumId})}" alt="">
+                <img th:if="${!top.albumHasImage and top.hasImage}" th:src="@{/songs/{id}/image(id=${top.songId})}" alt="">
+            </th:block>
+        </a>
+        <div class="wk-hero-body">
+            <span class="co-eyebrow wk-gold"
+                  th:text="${seasonal ? (kind == 'album' ? 'Number one album' : 'Number one song') : (kind == 'album' ? 'Album of the year' : 'Song of the year')}">Number one song</span>
+            <a class="wk-hero-title" th:href="${kind == 'album'} ? @{/albums/{id}(id=${top.albumId})} : @{/songs/{id}(id=${top.songId})}"
+               th:text="${kind == 'album' ? top.albumName : top.songName}">Title</a>
+            <a class="wk-hero-artist" th:href="@{/artists/{id}(id=${top.artistId})}" th:text="${top.artistName}">Artist</a>
+            <div class="wk-hero-meta">
+                <span><b class="co-num" th:text="${#numbers.formatInteger(ts.plays(), 1, 'COMMA')}">0</b> <th:block th:text="${seasonal ? 'plays this season' : 'plays this year'}">plays this season</th:block></span>
+                <span th:if="${ts.weeklyPeak() != null}">Weekly peak <b class="co-num" th:text="${'#' + ts.weeklyPeak()}">#1</b> · <b class="co-num" th:text="${ts.weeklyWeeks()}">1</b> <th:block th:text="${ts.weeklyWeeks() == 1 ? 'week' : 'weeks'}">weeks</th:block></span>
+                <span th:if="${seasonal and !ts.yearly().isEmpty()}">Yearly <th:block th:text="${ts.yearly()[0].label()}">2025</th:block> <b class="co-num pd-year-text" th:text="${'#' + ts.yearly()[0].position()}">#7</b></span>
+                <span th:if="${!seasonal and ts.bestSeason() != null}">Best season <b class="co-num pd-season-text" th:text="${ts.bestSeason().labelFor(year) + ' #' + ts.bestSeason().position()}">Winter #2</b></span>
+            </div>
+        </div>
+    </div>
+    <div class="co-kpi wk-kpi">
+        <span class="co-eyebrow">Male share</span>
+        <span class="co-kpi-value wk-male-value" th:classappend="${sum.male() == sum.total() ? 'wk-full' : ''}"
+              th:text="${#numbers.formatDecimal(sum.malePercent(), 1, 0) + '%'}">70%</span>
+        <span class="co-kpi-sub" th:text="${sum.male() + ' male · ' + sum.female() + ' female' + (sum.other() > 0 ? ' · ' + sum.other() + ' other' : '')}">14 male · 6 female</span>
+        <span class="co-kpi-bar" aria-hidden="true">
+            <i class="male" th:style="${'width:' + sum.malePercent() + '%'}"></i>
+            <i class="female" th:style="${'width:' + sum.femalePercent() + '%'}"></i>
+            <i class="other" th:style="${'width:' + (100 - sum.malePercent() - sum.femalePercent()) + '%'}"></i>
+        </span>
+    </div>
+    <div class="co-kpi wk-kpi pd-lead-kpi">
+        <span class="co-eyebrow">Most entries</span>
+        <span class="co-kpi-value"><th:block th:text="${sum.leadCount()}">6</th:block>
+            <a class="pd-lead-name" th:href="@{/artists/{id}(id=${sum.leadArtistId()})}" th:text="${sum.leadArtist()}">Artist</a></span>
+        <span class="co-kpi-sub" th:text="${'best #' + sum.leadBest() + ' · ' + sum.leadBestTitle()}">best #4 · Song</span>
+    </div>
+</div>
+
+<!-- Draft progress: one block per position coloured by gender, the other counters and when Finalize unlocks -->
+<div th:fragment="progress(kind, max, maxExtra, seasonal)" class="co-panel pd-progress" th:attr="data-pd-progress=${kind}">
+    <div class="pd-progress-main">
+        <div class="pd-progress-head">
+            <span class="co-eyebrow" th:text="${kind == 'album' ? 'Albums placed' : 'Songs placed'}">Songs placed</span>
+            <span class="co-num pd-progress-count"><b data-pd-placed>0</b> <span class="ct-dim" th:text="${'/ ' + max}">/ 30</span></span>
+        </div>
+        <div class="pd-blocks" data-pd-blocks th:style="${'--pd-slots:' + max}" aria-hidden="true">
+            <i th:each="n : ${#numbers.sequence(1, max)}"></i>
+        </div>
+        <span class="co-hint">One block per position, coloured by gender as you place them</span>
+    </div>
+    <div th:if="${kind == 'song' and maxExtra > 0}" class="pd-progress-side">
+        <span class="co-eyebrow">Bubbling under</span>
+        <span class="co-num pd-progress-count"><b data-pd-extra-count>0</b> <span class="ct-dim" th:text="${'/ ' + maxExtra}">/ 5</span></span>
+    </div>
+    <div class="pd-progress-rule">
+        <span class="co-eyebrow">Finalize unlocks when</span>
+        <span th:text="${'the ' + (seasonal ? 'season' : 'year') + ' has ended and the songs and albums charts are full. Each one can be saved on its own once it is full.' + (seasonal ? ' Bubbling under is optional.' : '')}">the season has ended</span>
+    </div>
+</div>
+
+<!-- Search box of the draft editor; period-chart.js fills the results -->
+<div th:fragment="search(list, label, placeholder)" class="pd-search">
+    <label class="pd-search-label">
+        <span class="co-eyebrow" th:text="${label}">Add a song</span>
+        <span class="pd-search-box">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+            <input type="search" autocomplete="off" th:attr="data-pd-search=${list}" th:placeholder="${placeholder}">
+        </span>
+    </label>
+    <div class="pd-results" th:attr="data-pd-results=${list}" hidden></div>
+</div>
+
+</body>
+</html>

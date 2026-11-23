@@ -366,25 +366,6 @@
     font-weight: 600;
 }
 
-/* Timeframe winners (genre, ethnicity, ...) keep their chip colors, sized like the other footer pills */
-.lb-row .winning-chips {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 0;
-}
-
-.lb-row .winning-chip {
-    display: inline-flex;
-    align-items: center;
-    height: 22px;
-    margin: 0;
-    padding: 0 9px;
-    border-radius: 999px;
-    font-size: 11px;
-    line-height: 1;
-}
-
 /* Winning periods capsule: one pill split into Won | days | wks | mos | seas | yrs | dec.
    The sorted period gets the same green as the sorted metric. */
 .lb-wins {

@@ -46,7 +46,12 @@ function setup(data, options = {}) {
     };
     context.Chart.Interaction = { modes: {} };
     context.Chart.helpers = { getRelativePosition: event => event };
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../main/resources/static/js/breakdown-history.js'), 'utf8'), context);
+    context.window = context;
+    vm.createContext(context);
+    // The page loads the shared Chart.js helpers (ShareChartCore) before the breakdown script
+    for (const file of ['share-chart-core.js', 'breakdown-history.js']) {
+        vm.runInContext(fs.readFileSync(path.join(__dirname, '../../main/resources/static/js', file), 'utf8'), context);
+    }
     return { get: name => get(`history-${name}`), charts, requests, interaction: context.Chart.Interaction.modes,
         async change(name, value) { const element = get(`history-${name}`); element.value = value; element.listeners.change(); await flush(); } };
 }
@@ -177,7 +182,7 @@ test('hover selects only the band containing the pointer, including between samp
         chartArea: { left: 0, right: 100, top: 0, bottom: 100 },
         scales: { x: { getPixelForValue: i => i * 100 }, y: { getPixelForValue: value => 100 - value } },
         getDatasetMeta: () => ({ data: [{}, {}] }) };
-    const hover = event => ui.interaction.historySection(mockChart, event, {}, false);
+    const hover = event => ui.interaction.stackedSection(mockChart, event, {}, false);
     assert.equal(hover({ x: 25, y: 36 }).length, 1);
     assert.equal(hover({ x: 25, y: 36 })[0].datasetIndex, 1);
     assert.equal(hover({ x: 25, y: 80 })[0].datasetIndex, 0);

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +42,17 @@ public class ThemeService {
 
     public Optional<ArtistTheme> getActiveTheme() {
         return themeRepository.findByIsActiveTrue();
+    }
+
+    /**
+     * Picture counts per theme id (each artist holds at most one picture per theme).
+     * Themes without pictures are absent from the map.
+     */
+    public Map<Integer, Integer> getPictureCountsByTheme() {
+        Map<Integer, Integer> counts = new HashMap<>();
+        jdbcTemplate.query("SELECT theme_id, COUNT(*) AS total FROM ArtistImageTheme GROUP BY theme_id",
+                rs -> { counts.put(rs.getInt("theme_id"), rs.getInt("total")); });
+        return counts;
     }
 
     /**
@@ -122,7 +134,7 @@ public class ThemeService {
         }
         imageThemeRepository.save(assignment);
 
-        Map<String, Object> result = new java.util.HashMap<>();
+        Map<String, Object> result = new HashMap<>();
         result.put("wasReplaced", wasReplaced);
         result.put("previousImageId", previousImageId != null ? previousImageId : -1);
         return result;
@@ -180,7 +192,7 @@ public class ThemeService {
     public List<Map<String, Object>> getAssignmentsForArtist(Integer artistId) {
         return imageThemeRepository.findByArtistId(artistId).stream()
                 .map(a -> {
-                    Map<String, Object> m = new java.util.HashMap<>();
+                    Map<String, Object> m = new HashMap<>();
                     m.put("themeId", a.getThemeId());
                     m.put("artistImageId", a.getArtistImageId() != null ? a.getArtistImageId() : -1);
                     return m;

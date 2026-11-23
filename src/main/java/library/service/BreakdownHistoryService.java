@@ -19,16 +19,12 @@ import java.util.Map;
 /**
  * Share-over-time histories built from first plays (cumulative) or per-period activity.
  * {@link #getHistory} powers Playground > Breakdown over time; {@link #getCatalogHistory} powers the
- * "Share over time" chart above the catalog list pages, one series per listed item plus the rest.
+ * "Share over time" chart above the Catalogs list pages, one series per listed item plus the rest.
  */
 @Service
 public class BreakdownHistoryService {
     public static final int MAX_CATALOG_KEYS = 100;
     private static final List<String> CATALOG_MEASURES = List.of("artists", "albums", "songs", "plays", "time");
-    private static final Map<String, List<String>> CATALOG_ALLOWED_MEASURES = Map.of(
-            "artists", List.of("plays", "time", "albums", "songs"),
-            "albums", List.of("plays", "time", "songs"),
-            "songs", List.of("plays", "time"));
     private static final Map<String, String> CATALOG_BREAKDOWN = Map.of(
             "genres", "genre", "subgenres", "subgenre", "languages", "language",
             "ethnicities", "ethnicity", "genders", "gender");
@@ -69,18 +65,16 @@ public class BreakdownHistoryService {
     }
 
     /**
-     * One series per requested key (an artist, album or song id, a lookup id, or a country name),
-     * in the requested order, plus {@code rest} for everything else so the shares add up to the total.
-     * Artist plays count songs where the artist is the main artist, so shares never overlap.
-     * {@code scopeJson} (a JSON array of keys) limits everything to the list's current filters; null means the whole library.
+     * One series per requested key (a lookup id, or a country name), in the requested order, plus {@code rest}
+     * for everything else so the shares add up to the total.
+     * {@code scopeJson} (a JSON array of keys) limits everything to the list's current search; null means the whole library.
      */
     public CatalogHistory getCatalogHistory(String catalog, List<String> keys, String measure, String mode,
                                             String interval, Integer year, String scopeJson) {
-        List<String> allowed = CATALOG_ALLOWED_MEASURES.getOrDefault(catalog,
-                CATALOG_BREAKDOWN.containsKey(catalog) || catalog.equals("countries") ? CATALOG_MEASURES : null);
         List<String> requested = keys == null ? List.of() : keys.stream()
                 .filter(key -> key != null && !key.isBlank()).map(String::trim).distinct().toList();
-        if (allowed == null || !allowed.contains(measure) || requested.size() > MAX_CATALOG_KEYS) {
+        if (!(CATALOG_BREAKDOWN.containsKey(catalog) || catalog.equals("countries"))
+                || !CATALOG_MEASURES.contains(measure) || requested.size() > MAX_CATALOG_KEYS) {
             throw new IllegalArgumentException("Invalid share history options");
         }
         Window window = window(mode, interval, year);
@@ -103,8 +97,7 @@ public class BreakdownHistoryService {
         List<CatalogSeries> series = requested.stream().map(requestedKey -> {
             Label label = labels.get(requestedKey);
             return new CatalogSeries(requestedKey, label == null ? requestedKey : label.name(),
-                    label == null ? null : label.subtitle(), label == null ? null : label.genderId(),
-                    buckets.values().get(requestedKey));
+                    label == null ? null : label.genderId(), buckets.values().get(requestedKey));
         }).toList();
         return new CatalogHistory(buckets.periods(), series, buckets.values().get(""), buckets.totals(), scopeJson != null);
     }
@@ -217,13 +210,8 @@ public class BreakdownHistoryService {
     }
 
     private String catalogKey(String catalog, String measure) {
-        return switch (catalog) {
-            case "artists" -> "ar.id";
-            case "albums" -> "al.id";
-            case "songs" -> "s.id";
-            case "countries" -> "NULLIF(TRIM(ar.country), '')";
-            default -> categoryId(CATALOG_BREAKDOWN.get(catalog), measure);
-        };
+        return catalog.equals("countries") ? "NULLIF(TRIM(ar.country), '')"
+                : categoryId(CATALOG_BREAKDOWN.get(catalog), measure);
     }
 
     private String categoryId(String breakdown, String measure) {
@@ -237,27 +225,20 @@ public class BreakdownHistoryService {
                 + "ar." + breakdown + "_id)";
     }
 
-    /** Display name, an optional second line (the artist for albums and songs) and the gender used for colors. */
+    /** Display name, plus the gender id on the Genders list (used for its blue/pink colors). */
     private Map<String, Label> labels(String catalog, List<String> keys) {
         Map<String, Label> labels = new HashMap<>();
         if (catalog.equals("countries")) return labels;
         List<Long> ids = keys.stream().filter(key -> key.matches("\\d{1,18}")).map(Long::valueOf).toList();
         if (ids.isEmpty()) return labels;
         String in = String.join(", ", Collections.nCopies(ids.size(), "?"));
-        String sql = switch (catalog) {
-            case "artists" -> "SELECT id, name, NULL AS subtitle, gender_id FROM Artist WHERE id IN (" + in + ")";
-            case "albums" -> "SELECT al.id, al.name, ar.name AS subtitle, ar.gender_id FROM Album al"
-                    + " JOIN Artist ar ON ar.id = al.artist_id WHERE al.id IN (" + in + ")";
-            case "songs" -> "SELECT s.id, s.name, ar.name AS subtitle, COALESCE(s.override_gender_id, ar.gender_id) AS gender_id"
-                    + " FROM Song s JOIN Artist ar ON ar.id = s.artist_id WHERE s.id IN (" + in + ")";
-            case "genders" -> "SELECT id, name, NULL AS subtitle, id AS gender_id FROM Gender WHERE id IN (" + in + ")";
-            default -> "SELECT id, name, NULL AS subtitle, NULL AS gender_id FROM "
-                    + LOOKUP_TABLE.get(CATALOG_BREAKDOWN.get(catalog)) + " WHERE id IN (" + in + ")";
-        };
+        String gender = catalog.equals("genders") ? "id" : "NULL";
+        String sql = "SELECT id, name, " + gender + " AS gender_id FROM "
+                + LOOKUP_TABLE.get(CATALOG_BREAKDOWN.get(catalog)) + " WHERE id IN (" + in + ")";
         jdbc.query(sql, rs -> {
-            Object gender = rs.getObject("gender_id");
-            labels.put(rs.getString("id"), new Label(rs.getString("name"), rs.getString("subtitle"),
-                    gender == null ? null : ((Number) gender).intValue()));
+            Object genderId = rs.getObject("gender_id");
+            labels.put(rs.getString("id"), new Label(rs.getString("name"),
+                    genderId == null ? null : ((Number) genderId).intValue()));
         }, ids.toArray());
         return labels;
     }
@@ -275,12 +256,12 @@ public class BreakdownHistoryService {
     private record Event(LocalDate date, String category, long amount) {}
     private record Window(LocalDate requestedStart, LocalDate end) {}
     private record Buckets(List<Period> periods, Map<String, long[]> values, List<Long> totals) {}
-    private record Label(String name, String subtitle, Integer genderId) {}
+    private record Label(String name, Integer genderId) {}
     public record Period(String start, String end) {}
     public record Series(String name, long[] values) {}
     public record History(List<Period> periods, List<Series> series, List<Long> totals) {}
-    public record CatalogSeries(String key, String name, String subtitle, Integer genderId, long[] values) {}
-    /** filtered: totals and rest cover only what matches the list's current filters. */
+    public record CatalogSeries(String key, String name, Integer genderId, long[] values) {}
+    /** filtered: totals and rest cover only what matches the list's current search. */
     public record CatalogHistory(List<Period> periods, List<CatalogSeries> series, long[] rest, List<Long> totals,
                                  boolean filtered) {}
 }

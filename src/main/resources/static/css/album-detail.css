@@ -18,7 +18,7 @@
     pointer-events: none;
 }
 
-.album-detail .ab-photo-title .item-name-top.ad-photo-name {
+.album-detail .ab-photo-title .item-name-top.dt-photo-name {
     position: static;
 }
 
@@ -42,34 +42,34 @@
 }
 
 /* ── Stats card: every song in the legend links to its page ── */
-.album-detail a.ad-share-name {
+.album-detail a.dt-share-name {
     color: inherit;
     text-decoration: none;
 }
 
-.album-detail a.ad-share-name:hover {
+.album-detail a.dt-share-name:hover {
     color: var(--ad-t);
     text-decoration: none;
 }
 
 /* ── Songs (tracklist) table ── */
-.album-detail .ad-table .ab-col-track {
+.album-detail .dt-table .ab-col-track {
     width: 64px;
 }
 
-.album-detail .ad-name-tx small a.ab-by {
+.album-detail .dt-name-tx small a.ab-by {
     text-decoration: none;
     color: #a1a1aa;
 }
 
-.album-detail .ad-name-tx small a.ab-by.is-male {
+.album-detail .dt-name-tx small a.ab-by.is-male {
     color: #60a5fa;
 }
 
-.album-detail .ad-name-tx small a.ab-by.is-female {
+.album-detail .dt-name-tx small a.ab-by.is-female {
     color: #f472b6;
 }
 
-.album-detail .ad-name-tx small a.ab-by:hover {
+.album-detail .dt-name-tx small a.ab-by:hover {
     text-decoration: underline;
 }

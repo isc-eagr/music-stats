@@ -21,8 +21,8 @@
 
 <th:block th:fragment="metric-table(items, emptyLabel, showParent, showMalePercentages, showTop, filterType, valueMode, nameSortKey, nameHeader)">
     <div th:replace="~{fragments/catalog-list-table :: table-toolbar}"></div>
-    <div class="catalog-list-table-container">
-        <table class="catalog-list-table" id="catalogListTable">
+    <div class="table-scroll catalog-list-table-container">
+        <table class="sticky-head catalog-list-table" id="catalogListTable">
             <thead>
                 <tr class="cl-band-row">
                     <th class="band band-blank pin-band" colspan="2" data-band-cols="rank name"></th>
@@ -178,8 +178,8 @@
 
 <th:block th:fragment="year-table(items, emptyLabel, showMalePercentages, showTop)">
     <div th:replace="~{fragments/catalog-list-table :: table-toolbar}"></div>
-    <div class="catalog-list-table-container">
-        <table class="catalog-list-table" id="catalogListTable">
+    <div class="table-scroll catalog-list-table-container">
+        <table class="sticky-head catalog-list-table" id="catalogListTable">
             <thead>
                 <tr class="cl-band-row">
                     <th class="band band-blank pin-band" colspan="2" data-band-cols="rank name"></th>
@@ -221,7 +221,7 @@
                         th:text="'No ' + ${emptyLabel} + ' found'">No records found</td>
                 </tr>
                 <tr th:each="item, iterStat : ${items}" class="catalog-list-row"
-                    th:attr="data-direct-url=${yearType == 'listen' ? '/songs?accountMode=includes&amp;listenedDateFrom=' + item.year + '-01-01&amp;listenedDateTo=' + item.year + '-12-31' : '/songs?releaseDateMode=between&amp;releaseDateFrom=01/01/' + item.year + '&amp;releaseDateTo=31/12/' + item.year}">
+                    th:attr="data-year=${item.year},data-direct-url=${yearType == 'listen' ? '/songs?accountMode=includes&amp;listenedDateFrom=' + item.year + '-01-01&amp;listenedDateTo=' + item.year + '-12-31' : '/songs?releaseDateMode=between&amp;releaseDateFrom=01/01/' + item.year + '&amp;releaseDateTo=31/12/' + item.year}">
                     <td class="rank-col pin-rank" data-col="rank"
                         th:classappend="${startIndex + iterStat.index <= 3} ? ${'rank-' + (startIndex + iterStat.index)} : ''"
                         th:text="${startIndex + iterStat.index}">1</td>

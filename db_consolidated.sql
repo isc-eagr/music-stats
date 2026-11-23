@@ -448,7 +448,8 @@ CREATE TABLE IF NOT EXISTS play_import_automation_log (
     imported_count INTEGER NOT NULL DEFAULT 0,
     unmatched_count INTEGER NOT NULL DEFAULT 0,
     lastfm_playcount INTEGER,
-    local_playcount INTEGER
+    local_playcount INTEGER,
+    interval_seconds INTEGER
 );
 
 -- Linked songs (versions of the same song counted together)

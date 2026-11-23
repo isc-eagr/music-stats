@@ -38,6 +38,7 @@ public class ItunesController {
     @GetMapping("/unmatched")
     public String showUnmatchedItunes(Model model) {
         String libraryPath = itunesService.getDefaultLibraryPath();
+        model.addAttribute("currentSection", "itunes-only");
         
         try {
             if (itunesService.libraryExists()) {

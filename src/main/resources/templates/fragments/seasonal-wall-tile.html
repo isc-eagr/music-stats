@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- One Season wall tile: a season or year chart's #1 (or top artist) and its top-10 gender mix -->
+<div th:fragment="tile(t, yearTile)" class="sw-tile"
+     th:classappend="${'sw-' + t.state()
+        + (yearTile ? ' sw-yeartile' : '')
+        + (t.gender() != null ? ' sw-' + t.gender() : '')
+        + (t.crowned() ? ' sw-crowned' : '')}">
+    <th:block th:if="${t.state() == 'chart'}">
+        <div class="sw-tile-head">
+            <span class="sw-cover">
+                <img th:if="${t.coverUrl() != null}" th:src="${t.coverUrl()}" alt="" loading="lazy">
+                <span th:unless="${t.coverUrl() != null}" th:text="${t.initials()}"></span>
+            </span>
+            <div class="sw-tile-text">
+                <a class="sw-title" th:href="${t.link()}" th:text="${t.title()}" th:title="${t.title()}">Title</a>
+                <span class="sw-sub" th:text="${t.subtitle()}">Artist</span>
+            </div>
+            <span class="sw-pos co-num" th:classappend="${t.position() == 1} ? 'sw-gold' : ''" th:text="${'#' + t.position()}">#1</span>
+        </div>
+        <a class="sw-foot" th:href="${t.chartLink()}" th:title="${'Open the ' + t.label() + ' chart'}"
+           th:attr="aria-label=${'Open the ' + t.label() + ' chart. ' + t.maleCount() + ' male and ' + t.femaleCount() + ' female entries of ' + t.chartedCount()}">
+            <span class="sw-dots" aria-hidden="true"><i th:each="d : ${t.dots()}" th:class="${'sw-d ' + d}"></i></span>
+            <span class="sw-note">
+                <span class="sw-draft" th:if="${t.draft()}">Draft</span>
+                <span th:text="${'Male ' + t.maleCount() + ' of ' + t.chartedCount()}">Male 24 of 30</span>
+            </span>
+        </a>
+    </th:block>
+    <a th:if="${t.state() == 'empty'}" class="sw-placeholder" th:href="${t.chartLink()}">
+        <span class="sw-ph-main" th:text="${t.draft() ? 'In progress' : 'No entries'}">In progress</span>
+        <span class="sw-ph-sub" th:text="${t.label()}">Summer 2026</span>
+    </a>
+    <div th:if="${t.state() == 'none' or t.state() == 'later'}" class="sw-placeholder">
+        <span class="sw-ph-main" th:text="${t.state() == 'later' ? 'Not yet' : 'No chart'}">No chart</span>
+        <span class="sw-ph-sub" th:text="${t.label()}">Fall 2026</span>
+    </div>
+</div>
+</body>
+</html>

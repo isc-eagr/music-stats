@@ -71,7 +71,8 @@ public class ConfigController {
             @RequestParam(defaultValue = "false") boolean automationEnabled,
             @RequestParam(defaultValue = "") String automationAccount,
             @RequestParam(defaultValue = "") String automationApiKey,
-            @RequestParam int automationIntervalMinutes,
+            @RequestParam int automationIntervalValue,
+            @RequestParam(defaultValue = "min") String automationIntervalUnit,
             @RequestParam int automationImportLogLimit,
             @RequestParam int automationStartHour,
             @RequestParam int automationEndHour,
@@ -98,7 +99,7 @@ public class ConfigController {
                 automationEnabled,
                 automationAccount,
                 automationApiKey,
-                automationIntervalMinutes,
+                AppConfigService.toIntervalSeconds(automationIntervalValue, automationIntervalUnit),
                 automationImportLogLimit,
                 automationStartHour,
                 automationEndHour

@@ -881,8 +881,8 @@ public class SongController {
         model.addAttribute("showLegacy", library.util.LegacyPlays.worthShowing(songLegacyPlays,
                 effectiveReleaseDate, DateFormatUtils.parseDisplayDate(songFirstListened)));
         model.addAttribute("lastListenedDate", songService.getLastListenedDateForSong(id));
-        model.addAttribute("listeningSpan", DateFormatUtils.spanLabel(
-                (String) model.getAttribute("firstListenedDate"), (String) model.getAttribute("lastListenedDate")));
+        model.addAttribute("firstListenedRecency", DateFormatUtils.recency((String) model.getAttribute("firstListenedDate")));
+        model.addAttribute("lastListenedRecency", DateFormatUtils.recency((String) model.getAttribute("lastListenedDate")));
         
         // Consistency ledger: periods with plays out of the periods since the first play; ranks load in the background
         model.addAttribute("consistencyPeriods", library.dto.ConsistencyPeriodDTO.of(
@@ -2590,31 +2590,6 @@ public class SongController {
         }).toList();
     }
 
-    /**
-     * API: Get gender ID for a song (for UI coloring in chart editors).
-     */
-    @GetMapping("/{songId}/gender")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> getSongGender(@PathVariable Integer songId) {
-        Optional<Song> songOpt = songService.getSongById(songId);
-        if (songOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        Song song = songOpt.get();
-        Integer genderId = null;
-        
-        if (song.getArtistId() != null) {
-            Optional<Artist> artistOpt = artistService.getArtistById(song.getArtistId());
-            if (artistOpt.isPresent()) {
-                genderId = artistOpt.get().getGenderId();
-            }
-        }
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("genderId", genderId);
-        return ResponseEntity.ok(response);
-    }
 }
 
 

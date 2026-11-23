@@ -202,7 +202,7 @@ class MaleFunFactsServiceTest {
         }
         var model = new ExtendedModelMap();
         var controller = new PlaygroundController(new PlaygroundService(jdbc), service);
-        assertThat(controller.playground(null, "male", "year", "winter", null, model)).isEqualTo("playground");
+        assertThat(controller.playground(null, "male", model)).isEqualTo("playground");
         assertThat(model.get("selectedYear")).isNull();
 
         var resolver = new ClassLoaderTemplateResolver();

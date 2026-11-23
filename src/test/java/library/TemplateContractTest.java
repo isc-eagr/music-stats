@@ -21,14 +21,71 @@ class TemplateContractTest {
     private static final Path TEMPLATES = Path.of("src/main/resources/templates");
 
     @Test
+    void everyPageFrameUsesTheSharedPageWidth() throws IOException {
+        String frame = "max-width: var(--page-max)";
+        Path css = Path.of("src/main/resources/static/css");
+        assertThat(Files.readString(css.resolve("global.css"), StandardCharsets.UTF_8))
+                .contains("--page-max: 1800px;")
+                .contains("--page-gutter: 32px;");
+        for (String file : List.of("global.css", "catalog-detail.css", "config.css", "playground.css")) {
+            assertThat(Files.readString(css.resolve(file), StandardCharsets.UTF_8)).as(file).contains(frame);
+        }
+        assertThat(read("charts/overview.html")).contains(frame);
+        // The Number Ones pages use the shared .container frame and the chart overview tokens
+        assertThat(read("charts/number-ones.html")).contains("class=\"container co-page n1-page\"");
+        // The weekly chart and the recap pages use the shared .container frame from global.css
+        assertThat(read("charts/weekly.html")).contains("class=\"container co-page wk-page\"");
+        assertThat(read("charts/recap.html")).contains("class=\"container co-page wk-page rc-page\"");
+        for (String page : List.of("insertPlaysForm.html", "insertPlaysResult.html", "itunesChanges.html",
+                "itunesOnly.html", "unmatchedPlays.html")) {
+            assertThat(read(page)).as(page).doesNotContain("padding-left: 60px");
+        }
+    }
+
+    @Test
     void weeklyPreviewShowsPotentialContendersBelowTheTopTwenty() throws IOException {
         String weekly = read("charts/weekly.html");
 
         assertThat(weekly)
                 .contains("id=\"previewContendersSection\"")
                 .contains("isPreview and contenderEntries")
-                .contains("Potential Contenders (21-50)")
+                .contains("Potential contenders (21-50)")
                 .contains("th:each=\"entry : ${contenderEntries}\"");
+    }
+
+    @Test
+    void weeklyPlaysColumnStaysOnTheMainRowOnPhones() throws IOException {
+        String rows = read("fragments/weekly-chart-rows.html");
+
+        // Only desktop-only columns carry wk-desk; Plays must not, so phones show it without expanding the row
+        assertThat(rows)
+                .contains("<th class=\"wk-c-num\" th:attr=\"data-sort=${sortable ? 'number' : null}\">Plays</th>")
+                .contains("<td class=\"wk-c-num\" th:attr=\"data-sort-val=${entry.playCount != null ? entry.playCount : -1}\">");
+    }
+
+    @Test
+    void weeklyBreakdownTilesSitUnderBothSummariesWithoutAPopup() throws IOException {
+        String weekly = read("charts/weekly.html");
+
+        assertThat(weekly)
+                .contains("breakdowns(${songBreakdowns})")
+                .contains("breakdowns(${albumBreakdowns})")
+                .doesNotContain("showGenreBreakdown")
+                .doesNotContain("genreBreakdownModal");
+        assertThat(read("fragments/weekly-chart-rows.html"))
+                .contains("th:fragment=\"breakdowns(list)\"")
+                .contains("th:each=\"s, st : ${b.slices}\"");
+    }
+
+    @Test
+    void recapPageUsesTheSharedChartRunAndRecapScripts() throws IOException {
+        String recap = read("charts/recap.html");
+
+        assertThat(recap)
+                .contains("window.chartRecapConfig = /*[[${recapConfig}]]*/ {};")
+                .contains("@{/js/chart-run.js(v=1)}")
+                .contains("@{/js/chart-recap.js}")
+                .contains("id=\"recapContent\"");
     }
 
     @Test
@@ -36,15 +93,15 @@ class TemplateContractTest {
         String weekly = read("charts/weekly.html");
         String initialViewFlow = functionBody(
                 weekly,
-                "function applyInitialWeeklyView",
-                "// Navigate to a specific date's chart"
+                "function setWeeklyView",
+                "function showSongsChart"
         );
 
         assertThat(initialViewFlow)
                 .contains("document.getElementById('songsSection')")
-                .contains("if (!document.getElementById('songsSection'))")
-                .contains("return;");
-        assertThat(weekly.indexOf("applyInitialWeeklyView();"))
+                .contains("if (!songs) return;");
+        assertThat(weekly.indexOf("setWeeklyView(activeWeeklyView);"))
+                .isGreaterThan(-1)
                 .isLessThan(weekly.indexOf("let generationSessionId = null;"));
     }
 
@@ -75,60 +132,26 @@ class TemplateContractTest {
     }
 
     @Test
-    void chartLibraryLinksReplaceOnlyTheAffectedOverviewRow() throws IOException {
-        String pcHtml = read("misc/pc.html");
-        String pcMatchFlow = functionBody(pcHtml, "function linkPcMatch", "function escapePcHtml");
-        assertThat(pcMatchFlow)
-                .contains("replacePcMatchedRow(targetRow, data.row)")
-                .doesNotContain("reloadWithSearch()")
+    void chartOverviewLibraryLinksAndMergesRefreshRowsInPlace() throws IOException {
+        String admin = Files.readString(Path.of("src/main/resources/static/js/chart-overview-admin.js"), StandardCharsets.UTF_8);
+        String linkFlow = functionBody(admin, "function linkLibrary", "function linkChartEntries");
+        assertThat(linkFlow)
+                .contains("refreshAfter(request")
                 .doesNotContain("location.reload");
-        assertThat(pcHtml).contains("function replacePcMatchedRow(targetRow, entry)");
-        String pcMergeFlow = functionBody(pcHtml, "function mergePcEntries", "function runPcAutoLink");
-        assertThat(pcMergeFlow)
-                .contains("replacePcMergedRows(sourceRow, mergedTargets, latestRow)")
-                .doesNotContain("reloadWithSearch()")
+        String mergeFlow = functionBody(admin, "function runMerge", "if (bar) {");
+        assertThat(mergeFlow)
+                .contains("/misc/vatos-cuntdown/merge")
+                .contains("refreshAfter(")
                 .doesNotContain("location.reload");
-        assertThat(pcHtml).contains("function replacePcMergedRows(sourceRow, targetRows, entry)");
-
-        String trlHtml = read("misc/trl.html");
-        String trlMatchFlow = functionBody(trlHtml, "function selectSong", "function escapeHtml");
-        assertThat(trlMatchFlow)
-                .contains("replaceTrlMatchedRow(targetRow, data.row)")
-                .doesNotContain("refreshTrlOverviewInPlace()")
-                .doesNotContain("location.reload");
-        assertThat(trlHtml).contains("function replaceTrlMatchedRow(targetRow, entry)");
+        assertThat(admin).contains("return api().refresh();");
     }
 
     @Test
-    void pcLibraryModalDoesNotCloseAfterTextSelectionDragLeavesDialog() throws IOException {
-        String pcHtml = read("misc/pc.html");
-        String dismissalFlow = functionBody(
-                pcHtml,
-                "function setupPcMatchModalBackdropDismissal",
-                "function reloadWithSearch"
-        );
-
-        assertThat(dismissalFlow)
-                .contains("modal.addEventListener('mousedown'")
-                .contains("mouseDownTarget = event.target")
-                .contains("mouseDownTarget === modal && event.target === modal")
-                .contains("closePcMatchModal()");
-    }
-
-    @Test
-    void billboardLibraryModalDoesNotCloseAfterTextSelectionDragLeavesDialog() throws IOException {
-        String billboardHtml = read("misc/billboard-hot100.html");
-        String dismissalFlow = functionBody(
-                billboardHtml,
-                "function setupBillboardMatchModalBackdropDismissal",
-                "document.querySelectorAll('.bb-sort-link')"
-        );
-
-        assertThat(dismissalFlow)
-                .contains("modal.addEventListener('mousedown'")
-                .contains("mouseDownTarget = event.target")
-                .contains("mouseDownTarget === modal && event.target === modal")
-                .contains("closeBillboardMatchModal()");
+    void chartOverviewLinkModalDoesNotCloseAfterTextSelectionDragLeavesDialog() throws IOException {
+        String admin = Files.readString(Path.of("src/main/resources/static/js/chart-overview-admin.js"), StandardCharsets.UTF_8);
+        assertThat(admin)
+                .contains("modal.addEventListener('mousedown', event => { downOnBackdrop = event.target === modal; });")
+                .contains("if (downOnBackdrop && event.target === modal) closeModal();");
     }
 
     @Test
@@ -345,6 +368,23 @@ class TemplateContractTest {
     }
 
     @Test
+    void configSectionMenuOpensOnePanelPerSectionAndEverySettingBelongsToOne() throws IOException {
+        Document config = parse("config/index.html");
+
+        assertThat(config.select(".cfg-tab").eachAttr("data-tab"))
+                .containsExactly("import", "listens", "display", "database");
+        for (Element tab : config.select(".cfg-tab")) {
+            Element panel = config.selectFirst(".cfg-panel[data-panel=" + tab.attr("data-tab") + "]");
+            assertThat(panel).isNotNull();
+            assertThat(panel.id()).isEqualTo(tab.attr("aria-controls"));
+        }
+        assertThat(config.select("#configForm input[name]"))
+                .allSatisfy(input -> assertThat(input.closest(".cfg-panel")).isNotNull());
+        assertThat(config.selectFirst("#databaseBackupForm").closest(".cfg-panel").attr("data-panel"))
+                .isEqualTo("database");
+    }
+
+    @Test
     void artistScopeControlsAndPlayBreakdownIndicatorsStayWired() throws IOException {
         Document list = parse("artists/list.html");
         String listHtml = read("artists/list.html");
@@ -389,7 +429,7 @@ class TemplateContractTest {
         assertThat(sidebar.select("form#artistForm")).hasSize(1);
         for (String field : List.of("name", "genderId", "ethnicityId", "country", "genreId", "subgenreId",
                 "languageId", "birthDate", "deathDate", "isBand", "organized", "tags", "groups")) {
-            assertThat(sidebar.select("#artistForm .ad-fb[data-field=" + field + "]"))
+            assertThat(sidebar.select("#artistForm .dt-fb[data-field=" + field + "]"))
                     .describedAs("field box for " + field).hasSize(1);
         }
         assertThat(sidebar.select("#btnFetchExternal")).hasSize(1);
@@ -404,26 +444,25 @@ class TemplateContractTest {
         assertThat(detailHtml).contains("/js/detail-sort.js")
                 .contains("initDetailSort('artistAlbums'")
                 .contains("initDetailSort('artistSongs'")
-                .doesNotContain("initTopTableSort")
                 .doesNotContain("computeNoAlbumSummary");
         assertThat(detail.select("#artistAlbums [data-sort-container]")).hasSize(2);
         assertThat(detail.select("#artistSongs [data-sort-container]")).hasSize(1);
         // Songs sort from their column headers only (no chip row, no play bars)
         assertThat(detail.select("#artistSongs [th:replace*=sort-chips]")).isEmpty();
-        assertThat(detail.select("#artistSongs .ad-mb")).isEmpty();
+        assertThat(detail.select("#artistSongs .dt-mb")).isEmpty();
         assertThat(detailHtml).contains("is-medal is-gold").contains("is-medal is-silver").contains("is-medal is-bronze");
 
         String css = Files.readString(Path.of("src/main/resources/static/css/detail-general.css"), StandardCharsets.UTF_8);
         // th:field adds a hidden input after each checkbox, so the switch must use the general sibling selector
-        assertThat(css).contains(".ad-switch input:checked ~ span").doesNotContain("input:checked + span");
+        assertThat(css).contains(".dt-switch input:checked ~ span").doesNotContain("input:checked + span");
         assertThat(css).contains("position: sticky").doesNotContain("content: ' changed'");
         // Unsaved changes are orange so they never read as the gold used for top ranks
-        assertThat(css).contains(".ad-fb.is-changed {\n    border-color: #fb923c;");
+        assertThat(css).contains(".dt-fb.is-changed {\n    border-color: #fb923c;");
 
         // Lean album cards: length on the cover, and only the sorted-by metric below the plays
-        assertThat(detail.select("#artistAlbums .ad-shelf .ad-kv")).isEmpty();
-        assertThat(detail.select("#artistAlbums .ad-shelf .ad-album-len")).hasSize(1);
-        assertThat(detail.select("#artistAlbums .ad-shelf .ad-album-metric [data-metric]"))
+        assertThat(detail.select("#artistAlbums .dt-shelf .dt-kv")).isEmpty();
+        assertThat(detail.select("#artistAlbums .dt-shelf .dt-album-len")).hasSize(1);
+        assertThat(detail.select("#artistAlbums .dt-shelf .dt-album-metric [data-metric]"))
                 .extracting(e -> e.attr("data-metric"))
                 .contains("primaryplays", "legacyplays", "releasedate", "firstlistened", "lastlistened", "timelistened");
         assertThat(Files.readString(Path.of("src/main/resources/static/js/detail-sort.js"), StandardCharsets.UTF_8))
@@ -432,9 +471,8 @@ class TemplateContractTest {
         String sortJs = Files.readString(Path.of("src/main/resources/static/js/detail-sort.js"), StandardCharsets.UTF_8);
         assertThat(sortJs).contains("window.initDetailSort").contains("data-sort-pin").doesNotContain("shiftKey");
 
-        // The old ranking chips and their JS tooltips are gone, and so are the #1 crowns (Chart History covers them)
-        assertThat(detailHtml).doesNotContain("winning-chip").doesNotContain("setupNumberOneTooltip");
-        assertThat(detailHtml).doesNotContain("numberOneSongs").doesNotContain("numberOneAlbums").doesNotContain("ad-crown");
+        // No #1 crowns: Chart History covers them
+        assertThat(detailHtml).doesNotContain("numberOneSongs").doesNotContain("numberOneAlbums").doesNotContain("dt-crown");
     }
 
     @Test
@@ -456,6 +494,49 @@ class TemplateContractTest {
                 .contains("window.initializeLinkedSongTooltips = initialize")
                 .contains("window.buildLinkedSongTooltipTriggerHtml")
                 .contains("document.addEventListener('DOMContentLoaded'");
+    }
+
+    @Test
+    void listFilterPanelsUseTheSharedFilterComponents() throws IOException {
+        String listUtils = Files.readString(
+                Path.of("src/main/resources/static/js/list-utils.js"), StandardCharsets.UTF_8);
+        assertThat(listUtils)
+                .contains("window.toggleFilters = function()")
+                .contains("window.toggleFilterItem = function(header)")
+                .contains("function refreshFilterPanelState()");
+        assertThat(read("fragments/navigation.html")).contains("@{/css/catalog-filters.css");
+
+        String sharedCss = Files.readString(
+                Path.of("src/main/resources/static/css/catalog-filters.css"), StandardCharsets.UTF_8);
+        for (String component : List.of(".filter-toggle[data-count]", ".filter-item.has-value", ".filter-modifiers",
+                ".multi-select-display", ".filter-range", ".filter-choice", ".filter-item-switch", ".btn-apply",
+                ".filter-chip")) {
+            assertThat(sharedCss).as(component).contains(component);
+        }
+        for (String file : List.of("global.css", "mobile.css")) {
+            assertThat(Files.readString(Path.of("src/main/resources/static/css", file), StandardCharsets.UTF_8))
+                    .as(file)
+                    .doesNotContain(".filter-item-header {")
+                    .doesNotContain(".filter-modifier {")
+                    .doesNotContain(".btn-apply {");
+        }
+
+        for (String path : List.of(
+                "artists/list.html", "albums/list.html", "songs/list.html", "timeframes/list.html")) {
+            Document page = parse(path);
+            Element panel = page.getElementById("filterPanel");
+            assertThat(panel).as(path).isNotNull();
+            assertThat(panel.select("h3").text()).as(path).isEqualTo("Filters");
+            assertThat(panel.select(".filter-item-content [style], .filter-item[style]"))
+                    .as(path + " filter controls carry no inline styles").isEmpty();
+            assertThat(panel.select(".filter-modifier").eachText())
+                    .as(path).doesNotContain("Is Null", "Is Not Null");
+            assertThat(read(path))
+                    .as(path)
+                    .doesNotContain("function toggleFilters()")
+                    .doesNotContain("function toggleFilterItem(")
+                    .doesNotContain("Edit Filter");
+        }
     }
 
     @Test
@@ -516,7 +597,7 @@ class TemplateContractTest {
     @Test
     void chartsNavigationUsesQuietSectionDividersInsteadOfLabels() throws IOException {
         Document navigation = parse("fragments/navigation.html");
-        assertThat(navigation.select(".app-nav-dropdown-section-divider")).hasSize(6);
+        assertThat(navigation.select(".app-nav-dropdown-section-divider")).hasSize(5);
         assertThat(navigation.select(".app-nav-dropdown-section-label")).isEmpty();
 
         String css = Files.readString(

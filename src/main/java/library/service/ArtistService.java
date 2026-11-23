@@ -2397,22 +2397,22 @@ public class ArtistService {
                        play_count,
                        first_play,
                        CASE WHEN gender_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY gender_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as gender_rank,
                        CASE WHEN genre_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY genre_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY genre_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as genre_rank,
                        CASE WHEN subgenre_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY subgenre_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY subgenre_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as subgenre_rank,
                        CASE WHEN ethnicity_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY ethnicity_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as ethnicity_rank,
                        CASE WHEN language_id IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY language_id ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY language_id ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as language_rank,
                        CASE WHEN country IS NOT NULL 
-                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC, first_play ASC) 
+                            THEN ROW_NUMBER() OVER (PARTITION BY country ORDER BY play_count DESC, first_play ASC, id ASC) 
                             END as country_rank
                 FROM artist_play_counts
             )
@@ -2449,7 +2449,7 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC, a.id ASC) as rank
                 FROM Artist a
                 LEFT JOIN Song s ON s.artist_id = a.id
                 LEFT JOIN Play p ON p.song_id = s.id
@@ -2473,7 +2473,7 @@ public class ArtistService {
         String sql = """
             SELECT rank FROM (
                 SELECT a.id, 
-                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC) as rank
+                       ROW_NUMBER() OVER (ORDER BY COALESCE(COUNT(p.id), 0) DESC, a.id ASC) as rank
                 FROM Artist a
                 INNER JOIN Genre g ON a.genre_id = g.id
                 INNER JOIN Language l ON a.language_id = l.id
